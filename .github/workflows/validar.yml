@@ -1,16 +1,27 @@
 name: Validar projeto
+# Verificação única do projeto: TypeScript + build + testes (PGlite inclusive).
+# Roda em todo pull request e é REUTILIZADA pelo fluxo de publicação (workflow_call): o deploy só existe depois de ela passar.
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: validar-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   validar:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - name: Instalar dependências
         run: npm ci --no-audit --no-fund
       - name: Verificar TypeScript e build

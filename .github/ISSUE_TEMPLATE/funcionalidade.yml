@@ -1,0 +1,37 @@
+name: Funcionalidade ou decisão
+description: Proposta de funcionalidade ou decisão de produto
+title: "[Funcionalidade] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema ou necessidade
+      description: O que o mestre ou o jogador precisa fazer na mesa e hoje não consegue.
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceitação
+      placeholder: "- [ ] ...\n- [ ] ..."
+    validations:
+      required: true
+  - type: textarea
+    id: naofazer
+    attributes:
+      label: O que NÃO fazer (fora do escopo)
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options: ["Navegação", "Planejamento", "Encontros", "Personagens", "Compêndio", "Mobile", "Banco de dados", "Documentação"]
+    validations:
+      required: true
+  - type: checkboxes
+    id: banco
+    attributes:
+      label: Impacto
+      options:
+        - label: Exige migração de banco (a migração só será aplicada com autorização expressa)
+        - label: Exige decisão do responsável antes de implementar
