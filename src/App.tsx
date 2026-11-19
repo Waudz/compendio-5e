@@ -1,112 +1,105 @@
-import { useEffect, useRef, useState } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, GripVertical, PanelRight, X } from "lucide-react";
-import { key, makeId, restore, sections, type Page, type Workspace } from "./workspace";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
+import { BookOpen, ChevronLeft, ChevronRight, X } from "lucide-react";
+import "flexlayout-react/style/dark.css";
+import { ContextMenu, type MenuItem, type MenuState } from "./ContextMenu";
+import { Mobile } from "./Mobile";
+import { Panel } from "./Panel";
+import { loadLayout, saveLayout } from "./persistence";
+import { MAX_GROUPS, closeGroup, closeOthers, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, openTab, sections, type Kind, type TabSpec } from "./workspace";
+
+// Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
+const allowedActions = new Set([Actions.ADD_TAB, Actions.DELETE_TAB, Actions.SELECT_TAB, Actions.MOVE_NODE, Actions.DELETE_TABSET, Actions.SET_ACTIVE_TABSET, Actions.ADJUST_WEIGHTS]);
+const mobileQuery = "(max-width:700px)";
+
+function useMobile() {
+  const [mobile, setMobile] = useState(() => window.matchMedia(mobileQuery).matches);
+  useEffect(() => {
+    const q = window.matchMedia(mobileQuery), on = () => setMobile(q.matches);
+    q.addEventListener("change", on); return () => q.removeEventListener("change", on);
+  }, []);
+  return mobile;
+}
 
 export default function App() {
-  const [workspace, setWorkspace] = useState<Workspace>(restore);
+  const [model, setModel] = useState<Model>(() => createModel(loadLayout()));
+  const [, redraw] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const container = useRef<HTMLDivElement>(null);
-  useEffect(() => { localStorage.setItem(key, JSON.stringify(workspace)); }, [workspace]);
-  const update = (fn: (old: Workspace) => Workspace) => setWorkspace(fn);
-  const focusTab = (columnId: string, tabId: string) => update(w => ({ ...w, focused: columnId, columns: w.columns.map(c => c.id === columnId ? { ...c, active: tabId } : c) }));
-  const open = (page: Page) => update(w => {
-    const existing = w.columns.find(c => c.tabs.some(t => t.id === page));
-    if (existing) return { ...w, focused: existing.id, columns: w.columns.map(c => c.id === existing.id ? { ...c, active: page } : c) };
-    const target = w.columns.find(c => c.id === w.focused) || w.columns[0];
-    const tab = { id: page, page, title: sections.find(s => s.page === page)!.title };
-    return { ...w, focused: target.id, columns: w.columns.map(c => c.id === target.id ? { ...c, tabs: [...c.tabs, tab], active: tab.id } : c) };
-  });
-  const close = (columnId: string, tabId: string) => update(w => {
-    let columns = w.columns.map(c => {
-      if (c.id !== columnId) return c;
-      const tabs = c.tabs.filter(t => t.id !== tabId);
-      return { ...c, tabs, active: c.active === tabId ? (tabs.at(-1)?.id || "") : c.active };
-    }).filter(c => c.tabs.length);
-    if (!columns.length) columns = [{ id: "col-1", tabs: [], active: "", width: 100 }];
-    const sum = columns.reduce((n,c) => n+c.width,0);
-    columns = columns.map(c => ({ ...c, width: c.width * 100 / sum }));
-    return { columns, focused: columns.some(c => c.id === w.focused) ? w.focused : columns[0].id };
-  });
-  const move = (tabId: string, destination: string) => update(w => {
-    const source = w.columns.find(c => c.tabs.some(t => t.id === tabId));
-    if (!source || source.id === destination) return w;
-    const tab = source.tabs.find(t => t.id === tabId)!;
-    let columns = w.columns.map(c => c.id === source.id
-      ? { ...c, tabs: c.tabs.filter(t => t.id !== tabId), active: c.active === tabId ? (c.tabs.filter(t => t.id !== tabId).at(-1)?.id || "") : c.active }
-      : c.id === destination ? { ...c, tabs: [...c.tabs, tab], active: tabId } : c);
-    columns = columns.filter(c => c.tabs.length);
-    const sum = columns.reduce((n,c) => n+c.width,0);
-    return { columns: columns.map(c => ({ ...c, width: c.width * 100 / sum })), focused: destination };
-  });
-  const split = (tabId: string) => update(w => {
-    if (w.columns.length >= 3) return w;
-    const source = w.columns.find(c => c.tabs.some(t => t.id === tabId));
-    if (!source) return w;
-    const tab = source.tabs.find(t => t.id === tabId)!;
-    const id = makeId();
-    let columns = w.columns.map(c => c.id === source.id ? { ...c, tabs: c.tabs.filter(t => t.id !== tabId), active: c.active === tabId ? (c.tabs.filter(t => t.id !== tabId).at(-1)?.id || "") : c.active } : c);
-    columns = columns.filter(c => c.tabs.length);
-    const width = 100 / (columns.length + 1);
-    columns = [...columns.map(c => ({ ...c, width: width })), { id, tabs: [tab], active: tabId, width }];
-    return { columns, focused: id };
-  });
-  const startResize = (index: number, event: import("react").PointerEvent<HTMLDivElement>) => {
-    if (!container.current) return;
-    event.preventDefault();
-    const bounds = container.current.getBoundingClientRect();
-    const start = event.clientX;
-    const snapshot = workspace.columns.map(c => c.width);
-    const left = snapshot[index], right = snapshot[index+1];
-    const onMove = (e: PointerEvent) => {
-      const delta = (e.clientX - start) / bounds.width * 100;
-      const min = Math.min(22, (left + right) / 2 - 1);
-      const value = Math.max(min, Math.min(left + right - min, left + delta));
-      update(w => ({ ...w, columns: w.columns.map((c,i) => i === index ? { ...c, width: value } : i === index+1 ? { ...c, width: left + right - value } : c) }));
-    };
-    const onUp = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); window.removeEventListener("pointercancel", onUp); document.body.style.cursor = ""; document.body.style.userSelect = ""; };
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp, { once: true });
-    window.addEventListener("pointercancel", onUp, { once: true });
-  };
-  const activePage = workspace.columns.find(c => c.id === workspace.focused)?.tabs.find(t => t.id === workspace.columns.find(c => c.id === workspace.focused)?.active)?.page;
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const mobile = useMobile();
+  const good = useRef(model.toJson());
+  const handled = useRef<Event | null>(null);
+  const refresh = useCallback(() => redraw(n => n + 1), []);
+
+  // Toda mudança passa por aqui: valida a restrição de colunas (reverte se violada) e persiste.
+  const onModelChange = useCallback((m: Model) => {
+    const json = m.toJson();
+    if (!isColumnsOnly(json)) { setModel(createModel(good.current)); return; }
+    good.current = json; saveLayout(json); refresh();
+  }, [refresh]);
+  const onAction = useCallback((a: Action) => allowedActions.has(a.type) ? a : undefined, []);
+  const open = useCallback((s: TabSpec) => { openTab(model, s); onModelChange(model); }, [model, onModelChange]);
+  const run = (fn: () => void) => () => { fn(); onModelChange(model); };
+  const closeMenu = useCallback(() => setMenu(null), []);
+
+  const contextMenu = useCallback((node: TabNode | TabSetNode | { getType(): string }, e: React.MouseEvent) => {
+    e.preventDefault();
+    // O FlexLayout chama o callback para a aba e depois para o grupo (borbulhamento): vale o primeiro, o da aba.
+    if (handled.current === e.nativeEvent) return;
+    handled.current = e.nativeEvent;
+    const gs = groups(model);
+    let items: MenuItem[] = [];
+    if (node instanceof TabNode) {
+      const id = node.getId(), g = node.getParent() as TabSetNode, i = gs.indexOf(g);
+      const left = gs[i - 1], right = gs[i + 1];
+      const full = groupCount(model) >= MAX_GROUPS && g.getChildren().length > 1;
+      items = [
+        { label: "Mover para a coluna à esquerda", disabled: !left, onSelect: run(() => moveToGroup(model, id, left.getId())) },
+        { label: "Mover para a coluna à direita", disabled: !right, onSelect: run(() => moveToGroup(model, id, right.getId())) },
+        { label: "Abrir em nova coluna à esquerda", disabled: full || (i === 0 && g.getChildren().length === 1), onSelect: run(() => moveToNewColumn(model, id, "left")) },
+        { label: "Abrir em nova coluna à direita", disabled: full || (i === gs.length - 1 && g.getChildren().length === 1), onSelect: run(() => moveToNewColumn(model, id, "right")) },
+        "-",
+        { label: "Fechar aba", onSelect: run(() => closeTab(model, id)) },
+        { label: "Fechar outras abas", disabled: g.getChildren().length < 2, onSelect: run(() => closeOthers(model, id)) },
+        { label: "Fechar coluna", onSelect: run(() => closeGroup(model, g.getId())) },
+      ];
+    } else if (node instanceof TabSetNode) {
+      items = [{ label: "Fechar coluna", onSelect: run(() => closeGroup(model, node.getId())) }];
+    } else return;
+    setMenu({ x: e.clientX, y: e.clientY, items });
+  }, [model]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const factory = useCallback((node: TabNode) => {
+    const c = node.getConfig() as { kind: Kind; ref: string };
+    return <Panel kind={c.kind} entity={c.ref} onOpen={open}/>;
+  }, [open]);
+
+  const activeTab = model.getActiveTabset()?.getSelectedNode();
+  const activeId = activeTab instanceof TabNode ? activeTab.getId() : "";
+  const placeholder = useCallback(() => <div className="empty"><h1>Área de trabalho</h1><p>Escolha uma seção no menu lateral.</p></div>, []);
+  const renderSet = useCallback((node: TabSetNode | { getType(): string }, v: { buttons: ReactNode[] }) => {
+    if (node instanceof TabSetNode && groupCount(model) > 1)
+      v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={() => { closeGroup(model, node.getId()); onModelChange(model); }}><X size={14}/></button>);
+  }, [model, onModelChange]);
+
   return <div className="app">
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
       <div className="campaign" title="Campanha demonstrativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>Festival da Lua</strong></>}</div>
-      <nav aria-label="Menu principal">{sections.map(({page,title,icon:Icon}) =>
-        <button key={page} className={activePage === page ? "nav-item selected" : "nav-item"} onClick={() => open(page)} title={title}>
+      <nav aria-label="Menu principal">{sections.map(({ page, title, icon: Icon }) =>
+        <button key={page} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} onClick={() => open({ kind: "secao", ref: page })} title={title}>
           <Icon size={19}/>{!collapsed && <span>{title}</span>}
         </button>)}</nav>
       <button className="collapse" onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
         {collapsed ? <ChevronRight size={18}/> : <><ChevronLeft size={18}/> Recolher menu</>}
       </button>
     </aside>
-    <main className="workspace" ref={container}>
-      {workspace.columns.map((column,index) => {
-        const selected = column.tabs.find(t => t.id === column.active);
-        return <div className={workspace.focused === column.id ? "pane focused" : "pane"} style={{ flexBasis: `${column.width}%` }} key={column.id} onMouseDown={() => update(w => w.focused === column.id ? w : { ...w, focused: column.id })}>
-          <div className="tabbar" role="tablist" aria-label={`Abas da coluna ${index+1}`}
-            onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-            onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (id) move(id,column.id); setDragging(false); }}>
-            {column.tabs.map(tab => <div className={column.active === tab.id ? "tab active" : "tab"} key={tab.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain",tab.id); setDragging(true); }} onDragEnd={() => setDragging(false)}>
-              <button role="tab" aria-selected={column.active === tab.id} onClick={() => focusTab(column.id,tab.id)}>{tab.title}</button>
-              <button className="close" aria-label={`Fechar ${tab.title}`} onClick={() => close(column.id,tab.id)}><X size={14}/></button>
-            </div>)}
-            {workspace.columns.length < 3 && selected && <button className="split" title="Abrir esta aba em uma nova coluna" aria-label="Abrir esta aba em uma nova coluna" onClick={() => split(selected.id)}><PanelRight size={16}/><span className="split-label">Nova coluna</span></button>}
-          </div>
-          <section className="content">{selected ? <>
-            <div className="eyebrow">COMPÊNDIO 5e / DEMONSTRAÇÃO</div>
-            <h1>{selected.title}</h1>
-            <p>Estrutura inicial. Os dados reais serão integrados nas próximas etapas.</p>
-            <div className="placeholder"><BookOpen size={30}/><strong>{selected.title}</strong><span>Área reservada para a funcionalidade.</span></div>
-          </> : <div className="empty"><h1>Área de trabalho</h1><p>Escolha uma seção no menu lateral.</p></div>}</section>
-          {dragging && <div className="drop-hint">Solte a aba aqui</div>}
-          {index < workspace.columns.length-1 && <div className="resizer" role="separator" aria-label={`Redimensionar colunas ${index+1} e ${index+2}`} onPointerDown={e => startResize(index,e)} title="Arraste para ajustar a largura das colunas"><GripVertical size={16}/></div>}
-        </div>;
-      })}
+    <main className="workspace">
+      {mobile
+        ? <Mobile model={model} onOpen={open} onChange={() => onModelChange(model)}/>
+        : <Layout model={model} factory={factory} onAction={onAction} onModelChange={onModelChange} onContextMenu={contextMenu}
+            onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize/>}
     </main>
+    {menu && <ContextMenu menu={menu} onClose={closeMenu}/>}
   </div>;
 }
