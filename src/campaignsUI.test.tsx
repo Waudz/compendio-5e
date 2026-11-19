@@ -204,20 +204,17 @@ describe("convites por link", () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^https?:\/\/[^/]+\/compendio-5e\/\?convite=ABCDEFGHIJKL$/));
   });
 
-  it("abrir o link logado: a tela de Campanhas abre sozinha com o código preenchido; confirmar entra como jogador, limpa a URL e abre a campanha", async () => {
+  it("abrir o link logado: entra automaticamente como jogador, limpa a URL e abre a campanha", async () => {
     withInvite();
     const api = fakeApi({ memberships: [], members: [] }); mount(api);
-    const input = await screen.findByLabelText("Código ou link do convite") as HTMLInputElement;
-    expect(input.value).toBe("ABCDEFGHIJKL");
-    expect(screen.getByText(/Recebemos um link de convite/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
     await waitFor(() => expect(api.join).toHaveBeenCalledWith("ABCDEFGHIJKL"));
+    expect(api.join).toHaveBeenCalledTimes(1);
     expect(await screen.findByRole("heading", { name: "Mesa do Caio" })).toBeTruthy();   // entrou, ficou ativa e a aba dela abriu
     expect(window.location.search).toBe("");
     expect(document.querySelector(".campaign strong")?.textContent).toBe("Mesa do Caio");
   });
 
-  it("visitante com link: pede login mantendo o convite; depois de entrar, o código continua lá", async () => {
+  it("visitante com link: pede login mantendo o convite e aceita automaticamente após autenticar", async () => {
     withInvite();
     const f = { user: null as User | null };
     const listeners: ((e: string, s: { user: User } | null) => void)[] = [];
@@ -228,8 +225,9 @@ describe("convites por link", () => {
     expect(await screen.findByText(/Você recebeu um convite de campanha/)).toBeTruthy();
     expect(window.location.search).toBe("?convite=ABCDEFGHIJKL");   // a URL não é limpa antes de entrar
     listeners.forEach(l => l("SIGNED_IN", { user: me }));
-    const input = await screen.findByLabelText("Código ou link do convite") as HTMLInputElement;
-    expect(input.value).toBe("ABCDEFGHIJKL");
+    await waitFor(() => expect(api.join).toHaveBeenCalledWith("ABCDEFGHIJKL"));
+    expect(await screen.findByRole("heading", { name: "Mesa do Caio" })).toBeTruthy();
+    expect(window.location.search).toBe("");
   });
 
   it("aceita o link completo colado no campo", async () => {
@@ -243,9 +241,10 @@ describe("convites por link", () => {
   it("convite expirado, esgotado ou revogado: erro claro, nada é criado, a URL permanece para nova tentativa", async () => {
     withInvite("ZZZZZZZZZZZZ");
     const api = fakeApi({ memberships: [], members: [] }); mount(api);
-    await screen.findByLabelText("Código ou link do convite");
-    fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
+    await waitFor(() => expect(api.join).toHaveBeenCalledWith("ZZZZZZZZZZZZ"));
     expect((await screen.findByRole("alert")).textContent).toMatch(/Convite inválido, expirado ou esgotado/);
+    expect(window.location.search).toBe("?convite=ZZZZZZZZZZZZ");
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeTruthy();
     expect(screen.queryByText("Mesa do Caio")).toBeNull();
   });
 
