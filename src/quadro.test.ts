@@ -1,6 +1,6 @@
 // Quadro de Planejamento: funções puras.
 import { describe, expect, it } from "vitest";
-import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverCartao, moverColuna, novaColuna, removerCartao, renomearColuna, soltarCartao, todosCartoes, type Quadro } from "./quadro";
+import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverCartao, moverColuna, novaColuna, removerCartao, renomearColuna, soltarCartao, soltarColuna, proximoNomeColuna, moverParaNovaColuna, todosCartoes, type Quadro } from "./quadro";
 
 const q = (): Quadro => ({ colunas: [{ id: "a", titulo: "Sessão 5", cartoes: ["x", "y"] }, { id: "b", titulo: "Floresta", cartoes: ["z"] }, { id: "c", titulo: "Vazia", cartoes: [] }] });
 
@@ -65,5 +65,29 @@ describe("soltarCartao (arrastar e soltar)", () => {
   it("alvo ausente, igual ao ativo ou inexistente não muda nada nem perde cartões", () => {
     for (const alvo of [null, undefined, "x", "nao", "col:nao"]) expect(soltarCartao(q(), "x", alvo)).toEqual(q());
     expect(soltarCartao(q(), "nao", "z")).toEqual(q());
+  });
+});
+
+describe("colunas arrastáveis e nova coluna sem nome", () => {
+  it("soltarColuna reordena sobre outra coluna, sobre a lista dela ou sobre um cartão dela", () => {
+    expect(soltarColuna(q(), "a", "coluna:b").colunas.map(c => c.id)).toEqual(["b", "a", "c"]);
+    expect(soltarColuna(q(), "c", "col:a").colunas.map(c => c.id)).toEqual(["c", "a", "b"]);
+    expect(soltarColuna(q(), "a", "z").colunas.map(c => c.id)).toEqual(["b", "a", "c"]);          // z está na coluna b
+    expect(soltarColuna(q(), "a", "nova-coluna").colunas.map(c => c.id)).toEqual(["b", "c", "a"]);
+  });
+  it("soltarColuna ignora alvo ausente, a própria coluna ou desconhecido, sem perder cartões", () => {
+    for (const alvo of [null, undefined, "coluna:a", "col:a", "x", "coluna:nao"]) expect(soltarColuna(q(), "a", alvo)).toEqual(q());
+    expect(soltarColuna(q(), "nao", "coluna:b")).toEqual(q());
+  });
+  it("nomes automáticos nunca repetem e a nova coluna nasce com o cartão arrastado", () => {
+    expect(proximoNomeColuna(q())).toBe("Coluna 4");
+    expect(proximoNomeColuna({ colunas: [{ id: "1", titulo: "Coluna 2", cartoes: [] }] })).toBe("Coluna 3");
+    const m = moverParaNovaColuna(q(), "x", undefined, "n");
+    expect(m.colunas.at(-1)).toEqual({ id: "n", titulo: "Coluna 4", cartoes: ["x"] });
+    expect(m.colunas[0].cartoes).toEqual(["y"]); expect(todosCartoes(m).sort()).toEqual(["x", "y", "z"]);
+    expect(moverParaNovaColuna(q(), "nao")).toEqual(q());
+  });
+  it("soltar um cartão sobre a coluna arrastável manda o cartão para o fim dela", () => {
+    expect(soltarCartao(q(), "x", "coluna:b").colunas[1].cartoes).toEqual(["z", "x"]);
   });
 });

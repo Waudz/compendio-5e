@@ -59,3 +59,16 @@ export function maisRecenteVisivel(entradas: EntradaDiario[], papel: Role): Entr
   const ok = entradas.filter(e => papel === "mestre" || e.publicada);
   return ok.reduce<EntradaDiario | null>((a, e) => !a || e.atualizadaEm > a.atualizadaEm ? e : a, null);
 }
+
+const TIPOS_TEXTO = new Set(["paragraph", "heading", "quote", "bulletListItem", "numberedListItem", "checkListItem"]);
+/** Prévia de cartões e listas: os primeiros blocos com texto (títulos, parágrafos, listas), ignorando imagens, tabelas vazias e blocos em branco. */
+export function previaTexto(blocos: BlocoTexto[] | null | undefined, max = 2, separador = " · "): string | null {
+  const achados: string[] = [];
+  for (const b of blocos ?? []) {
+    if (!b || !TIPOS_TEXTO.has(b.type ?? "")) continue;
+    const t = textoInline(b.content).replace(/\s+/g, " ").trim();
+    if (t) achados.push(t);
+    if (achados.length >= max) break;
+  }
+  return achados.length ? achados.join(separador) : null;
+}

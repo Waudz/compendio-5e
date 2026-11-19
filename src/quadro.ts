@@ -49,10 +49,33 @@ export function deslocarCartao(q: Quadro, cartaoId: string, direcao: "cima" | "b
 /** Resultado de arrastar `ativo` e soltar sobre `alvo`: o alvo é um cartão (entra na posição dele) ou uma coluna (`col:<id>`, vai para o fim). */
 export function soltarCartao(q: Quadro, ativo: string, alvo: string | null | undefined): Quadro {
   if (!alvo || alvo === ativo || !todosCartoes(q).includes(ativo)) return q;
-  if (alvo.startsWith("col:")) { const c = alvo.slice(4); return q.colunas.some(x => x.id === c) ? moverCartao(q, ativo, c) : q; }
+  if (alvo.startsWith("col:") || alvo.startsWith("coluna:")) { const c = alvo.slice(alvo.startsWith("col:") ? 4 : 7); return q.colunas.some(x => x.id === c) ? moverCartao(q, ativo, c) : q; }
   const dest = q.colunas.find(c => c.cartoes.includes(alvo)); if (!dest) return q;
   const origem = q.colunas.find(c => c.cartoes.includes(ativo))!;
   const i = dest.cartoes.indexOf(alvo), j = origem.cartoes.indexOf(ativo);
   // mesma coluna: arrastar para baixo cai DEPOIS do alvo (como na lista visual); para cima, antes
   return moverCartao(q, ativo, dest.id, origem.id === dest.id && j < i ? i : i);
+}
+
+/** Nome automático para coluna criada sem nome ("Coluna 3"): nunca repete um nome existente. */
+export function proximoNomeColuna(q: Quadro): string {
+  const nomes = new Set(q.colunas.map(c => c.titulo));
+  for (let n = q.colunas.length + 1; ; n++) if (!nomes.has(`Coluna ${n}`)) return `Coluna ${n}`;
+}
+/** Cria uma coluna no fim já com o cartão dentro (soltar um cartão na área "nova coluna"). */
+export function moverParaNovaColuna(q: Quadro, cartaoId: string, titulo = proximoNomeColuna(q), id = novoId()): Quadro {
+  if (q.colunas.length >= MAX_COLUNAS || !todosCartoes(q).includes(cartaoId)) return q;
+  return moverCartao({ colunas: [...q.colunas, { id, titulo, cartoes: [] }] }, cartaoId, id);   // a coluna nasce vazia e o cartão é MOVIDO para ela (nunca removido antes)
+}
+/** Arrastar uma coluna (ids "coluna:<id>") e soltar sobre outra coluna, uma lista de cartões ("col:<id>"), um cartão ou a área de nova coluna (fim). */
+export function soltarColuna(q: Quadro, colunaId: string, alvo: string | null | undefined): Quadro {
+  if (!alvo) return q;
+  let destino: string | undefined;
+  if (alvo === "nova-coluna") destino = q.colunas[q.colunas.length - 1]?.id;
+  else if (alvo.startsWith("coluna:")) destino = alvo.slice(7);
+  else if (alvo.startsWith("col:")) destino = alvo.slice(4);
+  else destino = q.colunas.find(c => c.cartoes.includes(alvo))?.id;
+  const de = q.colunas.findIndex(c => c.id === colunaId), para = q.colunas.findIndex(c => c.id === destino);
+  if (de < 0 || para < 0 || de === para) return q;
+  const cs = [...q.colunas]; const [c] = cs.splice(de, 1); cs.splice(para, 0, c); return { colunas: cs };
 }

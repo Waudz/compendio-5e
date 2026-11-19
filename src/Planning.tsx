@@ -4,14 +4,15 @@
 import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCorners, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ClipboardList, GripVertical, MoreHorizontal, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type MouseEvent as RMouseEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type MouseEvent as RMouseEvent, type ReactNode } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { useCampaigns } from "./CampaignsContext";
 import { ConflitoAviso } from "./ConflitoAviso";
 import { EditorLazy } from "./EditorLazy";
-import { primeiroParagrafo, resumirTexto, type BlocoTexto } from "./inicio";
-import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverColuna, novaColuna, novoId, removerCartao, renomearColuna, soltarCartao, type Quadro } from "./quadro";
+import { previaTexto, type BlocoTexto } from "./inicio";
+import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverColuna, novaColuna, novoId, proximoNomeColuna, moverParaNovaColuna, removerCartao, renomearColuna, soltarCartao, soltarColuna, type Quadro } from "./quadro";
 import { validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
 import { novaOrigem, publicarExclusao, publicarRegistro, useAssinaturaGeral, type Conflito } from "./registrosStore";
@@ -112,8 +113,9 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
 
   const quadro: Quadro = lerQuadro(board?.meta);
   const novoCartao = async (colunaId: string, titulo: string) => {
-    const bad = validarTitulo(titulo); if (bad) { setAviso(bad); return false; }
-    const r = await api.create({ kind: "scene", campaignId: active.campaign.id, title: titulo, visibility: "private" });
+    const nome = titulo.trim() || "Novo cartão";   // o nome é opcional: dá para renomear ao editar
+    const bad = validarTitulo(nome); if (bad) { setAviso(bad); return false; }
+    const r = await api.create({ kind: "scene", campaignId: active.campaign.id, title: nome, visibility: "private" });
     if (!r.ok) { setAviso(r.error); return false; }
     setCenas(c => ({ ...c, [r.data.id]: r.data })); setEd(p => ({ ...p, [r.data.id]: novoEd(r.data) })); gravar(q => adicionarCartao(q, colunaId, r.data.id)); return true;
   };
@@ -121,7 +123,12 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     const r = await api.remove(id); if (!r.ok) { setAviso(r.error); return; }
     removerLocal(id); publicarExclusao(id, origem);
   };
-  const soltar = (e: DragEndEvent) => gravar(q => soltarCartao(q, String(e.active.id), e.over ? String(e.over.id) : null));
+  const soltar = (e: DragEndEvent) => {
+    const a = String(e.active.id), o = e.over ? String(e.over.id) : null;
+    if (a.startsWith("coluna:")) gravar(q => soltarColuna(q, a.slice(7), o));                      // arrastou uma coluna
+    else if (o === "nova-coluna") gravar(q => moverParaNovaColuna(q, a, proximoNomeColuna(q)));      // soltou um cartão na área de nova coluna
+    else gravar(q => soltarCartao(q, a, o));
+  };
 
   return <div className="content planejamento" data-testid="planejamento">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
@@ -130,9 +137,10 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando o planejamento…</p>}
-    {carregado && board && <DndContext sensors={sensores} collisionDetection={closestCorners} onDragEnd={soltar}><div className="quadro" role="list" aria-label="Colunas do planejamento">
-      {quadro.colunas.map((col, ci) => <section key={col.id} className={col.cartoes.some(id => ed[id]?.aberto) ? "coluna coluna-larga" : "coluna"} role="listitem" aria-label={`Coluna ${col.titulo}`}>
+    {carregado && board && <DndContext sensors={sensores} collisionDetection={closestCorners} onDragEnd={soltar}><SortableContext items={quadro.colunas.map(c => `coluna:${c.id}`)} strategy={horizontalListSortingStrategy}><div className="quadro" role="list" aria-label="Colunas do planejamento">
+      {quadro.colunas.map((col, ci) => <ColunaOrdenavel key={col.id} id={col.id} titulo={col.titulo} larga={col.cartoes.some(id => ed[id]?.aberto)}>
         <header>
+          <ColunaAlca titulo={col.titulo}/>
           <input className="coluna-titulo" aria-label={`Nome da coluna ${col.titulo}`} defaultValue={col.titulo} maxLength={80} onBlur={e => { if (e.target.value.trim() && e.target.value !== col.titulo) gravar(q => renomearColuna(q, col.id, e.target.value)); else e.target.value = col.titulo; }}/>
           <button className="icon" aria-label={`Mover coluna ${col.titulo} para a esquerda`} disabled={ci === 0} onClick={() => gravar(q => moverColuna(q, col.id, -1))}><ArrowLeft size={14}/></button>
           <button className="icon" aria-label={`Mover coluna ${col.titulo} para a direita`} disabled={ci === quadro.colunas.length - 1} onClick={() => gravar(q => moverColuna(q, col.id, 1))}><ArrowRight size={14}/></button>
@@ -140,15 +148,15 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
         </header>
         <ListaColuna colId={col.id} ids={col.cartoes.filter(id => cenas[id])}>{col.cartoes.map((id, i) => {
           const c = cenas[id]; if (!c) return null;
-          const x = ed[id], sujo = !!x && edSujo(x), t = primeiroParagrafo(c.content), spec: TabSpec = { kind: "documento", ref: id, title: c.title };
+          const x = ed[id], sujo = !!x && edSujo(x), t = previaTexto(c.content, 500, "\n"), spec: TabSpec = { kind: "documento", ref: id, title: c.title };
           return <Ordenavel key={id} id={id} alca={`Arrastar o cartão ${c.title}`} onContextMenu={e => aoClicarDireito(e, spec)}>
-            <div className="cartao-topo">
+            <CartaoTopo>
               <button className="cartao-abrir" aria-expanded={!!x?.aberto} onClick={() => alternar(id)}>
                 <strong>{c.title}{sujo && <span className="sujo" title="Alterações não salvas" aria-label="alterações não salvas"> ●</span>}</strong>
-                {!x?.aberto && t && <span className="cartao-previa">{resumirTexto(t, 140)}</span>}
+                {!x?.aberto && t && <span className="cartao-previa">{t}</span>}
               </button>
               <button className="icon" type="button" aria-label={`Mais ações de ${c.title}`} aria-haspopup="menu" onClick={e => abrirMenuEm(e.currentTarget, spec)}><MoreHorizontal size={14}/></button>
-            </div>
+            </CartaoTopo>
             {x && <div className="cartao-editor" hidden={!x.aberto}>
               <label>Título<input value={x.titulo} maxLength={120} onChange={e => { const v = e.target.value; mexer(id, y => ({ ...y, titulo: v })); }}/></label>
               <div className="campo-editor"><span className="campo-rotulo">Conteúdo</span>
@@ -175,9 +183,9 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
           </Ordenavel>;
         })}</ListaColuna>
         <NovoCartao onCriar={t => novoCartao(col.id, t)}/>
-      </section>)}
-      <NovaColuna onCriar={t => gravar(q => novaColuna(q, t))}/>
-    </div></DndContext>}
+      </ColunaOrdenavel>)}
+      <NovaColuna onCriar={t => gravar(q => novaColuna(q, t.trim() ? t : proximoNomeColuna(q)))}/>
+    </div></SortableContext></DndContext>}
     {carregado && board && quadro.colunas.length === 0 && <div className="placeholder"><ClipboardList size={30} aria-hidden="true"/><strong>Nenhuma coluna</strong><span>Crie a primeira coluna (por exemplo, “Sessão 5” ou “Julkoun”).</span></div>}
   </div>;
 }
@@ -185,14 +193,16 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
 function NovoCartao({ onCriar }: { onCriar: (t: string) => Promise<boolean> }) {
   const [t, setT] = useState(""), [busy, setBusy] = useState(false);
   return <form className="novo" onSubmit={async e => { e.preventDefault(); if (busy) return; setBusy(true); const ok = await onCriar(t); setBusy(false); if (ok) setT(""); }}>
-    <input value={t} onChange={e => setT(e.target.value)} placeholder="Novo cartão" aria-label="Título do novo cartão" maxLength={120}/>
-    <button className="icon" aria-label="Adicionar cartão" disabled={busy || !t.trim()}><Plus size={15}/></button></form>;
+    <input value={t} onChange={e => setT(e.target.value)} placeholder="Novo cartão (nome opcional)" aria-label="Título do novo cartão" maxLength={120}/>
+    <button className="icon" aria-label="Adicionar cartão" disabled={busy}><Plus size={15}/></button></form>;
 }
 function NovaColuna({ onCriar }: { onCriar: (t: string) => void }) {
   const [t, setT] = useState("");
-  return <form className="coluna nova-coluna" onSubmit={e => { e.preventDefault(); if (t.trim()) { onCriar(t); setT(""); } }}>
-    <input value={t} onChange={e => setT(e.target.value)} placeholder="Nova coluna" aria-label="Nome da nova coluna" maxLength={80}/>
-    <button className="btn-secondary" disabled={!t.trim()}>Adicionar coluna</button></form>;
+  const { setNodeRef, isOver } = useDroppable({ id: "nova-coluna" });
+  return <form ref={setNodeRef} className={isOver ? "coluna nova-coluna sobre" : "coluna nova-coluna"} onSubmit={e => { e.preventDefault(); onCriar(t); setT(""); }}>
+    <input value={t} onChange={e => setT(e.target.value)} placeholder="Nome da nova coluna (opcional)" aria-label="Nome da nova coluna" maxLength={80}/>
+    <button className="btn-secondary">Adicionar coluna</button>
+    <small className="muted">Ou arraste um cartão até aqui para criar uma coluna com ele.</small></form>;
 }
 
 /** Lista de cartões de uma coluna: zona de soltura (inclusive coluna vazia) e contexto de ordenação. */
@@ -200,8 +210,26 @@ function ListaColuna({ colId, ids, children }: { colId: string; ids: string[]; c
   const { setNodeRef, isOver } = useDroppable({ id: `col:${colId}` });
   return <SortableContext items={ids} strategy={verticalListSortingStrategy}><ul ref={setNodeRef} className={isOver ? "cartoes sobre" : "cartoes"}>{children}</ul></SortableContext>;
 }
+const CartaoCtx = createContext<Record<string, unknown>>({});
+/** Cabeçalho do cartão: clicar expande; arrastar (movimento > 6px) move o cartão. A alça continua para teclado e acessibilidade. */
+function CartaoTopo({ children }: { children: ReactNode }) {
+  const l = useContext(CartaoCtx);
+  return <div className="cartao-topo arrastavel" {...l}>{children}</div>;
+}
 function Ordenavel({ id, alca, onContextMenu, children }: { id: string; alca: string; onContextMenu: (e: RMouseEvent) => void; children: ReactNode }) {
   const s = useSortable({ id });
-  return <li ref={s.setNodeRef} className={s.isDragging ? "cartao arrastando" : "cartao"} style={{ transform: CSS.Transform.toString(s.transform), transition: s.transition }} onContextMenu={onContextMenu}>
-    <button type="button" className="alca" aria-label={alca} {...s.attributes} {...s.listeners}><GripVertical size={14}/></button>{children}</li>;
+  return <CartaoCtx.Provider value={(s.listeners ?? {}) as Record<string, unknown>}><li ref={s.setNodeRef} className={s.isDragging ? "cartao arrastando" : "cartao"} style={{ transform: CSS.Transform.toString(s.transform), transition: s.transition }} onContextMenu={onContextMenu}>
+    <button type="button" className="alca" aria-label={alca} {...s.attributes} {...s.listeners}><GripVertical size={14}/></button>{children}</li></CartaoCtx.Provider>;
+}
+
+/** Coluna arrastável (pela alça no cabeçalho): o id "coluna:<id>" a distingue dos cartões no mesmo DndContext. */
+function ColunaOrdenavel({ id, titulo, larga, children }: { id: string; titulo: string; larga: boolean; children: ReactNode }) {
+  const s = useSortable({ id: `coluna:${id}` });
+  return <ColunaCtx.Provider value={{ attributes: s.attributes as unknown as Record<string, unknown>, listeners: (s.listeners ?? {}) as Record<string, unknown> }}>
+    <section ref={s.setNodeRef} className={(larga ? "coluna coluna-larga" : "coluna") + (s.isDragging ? " arrastando" : "")} role="listitem" aria-label={`Coluna ${titulo}`} style={{ transform: CSS.Translate.toString(s.transform), transition: s.transition }}>{children}</section></ColunaCtx.Provider>;
+}
+const ColunaCtx = createContext<{ attributes: Record<string, unknown>; listeners: Record<string, unknown> }>({ attributes: {}, listeners: {} });
+function ColunaAlca({ titulo }: { titulo: string }) {
+  const c = useContext(ColunaCtx);
+  return <button type="button" className="alca-coluna" aria-label={`Arrastar a coluna ${titulo}`} {...c.attributes} {...c.listeners}><GripVertical size={14}/></button>;
 }

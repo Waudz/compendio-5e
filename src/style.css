@@ -255,3 +255,24 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .planejamento{container-type:inline-size}
 .coluna.coluna-larga{flex-basis:min(640px,calc(100cqw - 8px))}
 @media(max-width:700px){.coluna.coluna-larga{flex-basis:calc(100cqw - 8px)}}
+
+/* Editor rico no tema do Compêndio: sem caixa de outra cor, recuos menores, títulos proporcionais (os padrões do BlockNote são de página inteira) */
+.page-editor .bn-container[data-color-scheme]{--bn-colors-editor-background:transparent;--bn-colors-editor-text:var(--text);--bn-colors-menu-background:var(--panel);--bn-colors-menu-text:var(--text);--bn-colors-tooltip-background:var(--panel);--bn-colors-tooltip-text:var(--text);--bn-colors-hovered-background:var(--hover);--bn-colors-selected-background:var(--accent-soft,var(--hover));--bn-colors-border:var(--line);--bn-colors-side-menu:var(--muted);--bn-colors-disabled-background:var(--panel);--bn-colors-disabled-text:var(--muted)}
+.page-editor .bn-editor,.page-editor .ProseMirror{background:transparent;color:var(--text);padding-inline:44px 14px;font-size:15px}
+.page-editor .bn-block-content[data-content-type=heading]:has(> h1){--level:1.7em}
+.page-editor .bn-block-content[data-content-type=heading]:has(> h2){--level:1.4em}
+.page-editor .bn-block-content[data-content-type=heading]:has(> h3){--level:1.2em}
+.page-editor .bn-inline-content{color:var(--text)}
+.cartao-editor .bn-editor,.cartao-editor .ProseMirror{padding-inline:40px 8px}
+.registro-corpo .page-editor .bn-editor{padding-inline:0}
+
+.cartao-previa{white-space:pre-line;display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden}
+.registro-previa{white-space:pre-line}
+.alca-coluna{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:26px;background:transparent;border:0;color:var(--muted);cursor:grab;touch-action:none;border-radius:5px}.alca-coluna:hover{background:var(--hover);color:var(--text)}
+.coluna.arrastando{opacity:.6;z-index:6}
+.nova-coluna.sobre{outline:2px dashed var(--accent)}.nova-coluna small{display:block}
+
+.cartao-topo.arrastavel{cursor:grab;touch-action:pan-y}.cartao-topo.arrastavel:active{cursor:grabbing}
+.cartao-topo.arrastavel button{cursor:pointer}
+.alca{width:28px;height:28px}.alca-coluna{width:28px;height:30px}
+.cartao{padding-top:10px}
