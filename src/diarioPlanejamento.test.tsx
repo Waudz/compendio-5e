@@ -148,7 +148,7 @@ describe("Planejamento (mestre)", () => {
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
     await waitFor(() => expect(screen.getByRole("button", { name: "Excluir coluna Julkoun" }).hasAttribute("disabled")).toBe(false));
   });
-  it("abrir o cartão abre a página da cena em aba própria e edita o texto; o planejamento nunca é publicado", async () => {
+  it("abrir o cartão edita dentro do planejamento sem nova aba; o planejamento nunca é publicado", async () => {
     const registros = registrosEmMemoria("mestre", "u1", [
       reg({ id: "b1", kind: "board", title: "Quadro", meta: { colunas: [{ id: "k", titulo: "Sessão 5", cartoes: ["s1"] }] } }),
       reg({ id: "s1", kind: "scene", title: "Estrada", content: [par("Carroça atolada.")] }),
@@ -156,13 +156,14 @@ describe("Planejamento (mestre)", () => {
     await renderApp({ api: apiC(mestre), registros });
     await abrirSecao("Planejamento");
     fireEvent.click(await screen.findByText("Estrada"));
-    const texto = await screen.findByLabelText("Texto do registro");
+    const texto = await screen.findByLabelText("Conteúdo de Estrada");
     fireEvent.change(texto, { target: { value: "Carroça atolada.\n\nBandidos." } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
-    await screen.findByText("Registro salvo.");
+    await waitFor(() => expect(registros.dados.find(r => r.id === "s1")!.content).toHaveLength(2));
     expect(registros.dados.find(r => r.id === "s1")!.content).toHaveLength(2);
     expect(screen.queryByRole("button", { name: /Publicar/ })).toBeNull();   // cena não tem publicação
-    expect([...document.querySelectorAll(strip)].map(e => e.textContent)).toContain("Estrada (fixada)");
+    expect(screen.getByRole("button", { name: /Estrada/ , expanded: true })).toBeTruthy();
+    expect([...document.querySelectorAll(strip)].map(e => e.textContent)).not.toContain("Estrada (fixada)");
   });
   it("conflito de versão não sobrescreve: mostra aviso e recarrega", async () => {
     const registros = registrosEmMemoria("mestre", "u1", [reg({ id: "b1", kind: "board", title: "Quadro", meta: { colunas: [{ id: "k", titulo: "A", cartoes: [] }] } })]);

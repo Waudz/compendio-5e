@@ -39,7 +39,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe("Início: mestre", () => {
   it("mostra capa vazia, nome em destaque e descrição; edita nome e descrição pela infraestrutura existente", async () => {
     const { api, onOpen } = await montarHome(mestre());
-    expect(screen.getByTestId("inicio-capa").textContent).toMatch(/Sem capa/);
+    await waitFor(() => expect(screen.getByTestId("inicio-capa").textContent).toMatch(/Sem capa/));
     expect(screen.getByText("Uma campanha em Faerûn.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Editar informações" }));
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Mesa Renomeada" } });

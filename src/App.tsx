@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
 import { BookOpen, Castle, House as HomeIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
@@ -13,6 +13,7 @@ import { UnsavedContext, useUnsavedRegistry } from "./unsaved";
 import { findTab } from "./workspace";
 import { tituloDe, useVersaoRegistros } from "./registrosStore";
 import { Panel } from "./Panel";
+import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
 import { closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type Kind, type TabSpec } from "./workspace";
 
@@ -152,7 +153,7 @@ function Workspace({ userId }: { userId: string }) {
 
   const factory = useCallback((node: TabNode) => {
     const c = node.getConfig() as { kind: Kind; ref: string };
-    return <Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => openContentLink(s, node.getId())}/>;
+    return <OrigemAbaContext.Provider value={node.getId()}><Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => openContentLink(s, node.getId())}/></OrigemAbaContext.Provider>;
   }, [openMenu, openContentLink]);
 
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
@@ -176,7 +177,12 @@ function Workspace({ userId }: { userId: string }) {
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={guarded(node.getChildren().map(c => c.getId()), () => closeGroup(model, node.getId()))}><X size={14}/></button>);
   }, [model, onModelChange, unsaved.api]);
 
-  return <UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
+  const abrirEmAba = useMemo(() => ({
+    abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem),
+    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem) }] }),
+  }), [openContentLink]);
+
+  return <AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
       <div className="campaign">
@@ -214,5 +220,5 @@ function Workspace({ userId }: { userId: string }) {
     </main>
     {menu && <ContextMenu menu={menu} onClose={closeMenu}/>}
     {unsaved.dialog}
-  </div></UnsavedContext.Provider>;
+  </div></UnsavedContext.Provider></AbrirEmAbaContext.Provider>;
 }

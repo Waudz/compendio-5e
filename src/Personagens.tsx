@@ -2,6 +2,7 @@
 // Visível para a campanha = publicado; privado = só o dono vê. A ficha completa (atributos, magias, inventário) ainda não existe.
 import { Plus, Trash2, UserRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useAbrirEmAba } from "./abrirEmAba";
 import { Aviso } from "./Diario";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -21,7 +22,7 @@ function Retrato({ caminho, nome, tamanho = 44 }: { caminho: string | null; nome
 }
 
 export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
-  const api = useRegistros(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros();
+  const api = useRegistros(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros(), { aoClicarDireito } = useAbrirEmAba();
   const [lista, setLista] = useState<Registro[] | null>(null), [erro, setErro] = useState<string | null>(null), [busy, setBusy] = useState(false), [tentativa, setTentativa] = useState(0);
   const cid = active?.campaign.id;
   useEffect(() => {
@@ -46,7 +47,7 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
     {!lista && !erro && <p className="muted" role="status">Carregando personagens…</p>}
     {lista && lista.length === 0 && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}
     <ul className="home-party">{lista?.map(r => { const p = lerPerfil(r.meta); return <li key={r.id}>
-      <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: r.id, title: r.title })} aria-label={`Abrir ficha de ${r.title}`}>
+      <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: r.id, title: r.title })} onContextMenu={e => aoClicarDireito(e, { kind: "ficha", ref: r.id, title: r.title })} aria-label={`Abrir ficha de ${r.title}`}>
         <Retrato caminho={p.retrato} nome={r.title}/>
         <span><strong>{r.title}</strong><small>{p.classe || "Sem classe"} · nível {p.nivel}{r.ownerId === user?.id ? " · seu" : ""}{r.visibility === "private" ? " · privado" : ""}</small></span></button></li>; })}</ul>
   </div>;

@@ -3,6 +3,7 @@
 // sem ela, mostra um estado honesto "ainda não disponível". Nada aqui inventa dados nem cria um segundo Diário.
 import { Image as ImageIcon, ScrollText, Users } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useAbrirEmAba } from "./abrirEmAba";
 import { useAventureiros } from "./AventureirosContext";
 import { fontePersonagens } from "./perfilPersonagem";
 import { useCapa, useRegistros } from "./RegistrosContext";
@@ -88,7 +89,7 @@ function NomeDescricao({ id, onOpen }: { id: string; onOpen: (s: TabSpec, mode?:
 }
 
 export function DiarioPrevia({ campaignId, isMaster, fonte, onOpenContent }: { campaignId: string; isMaster: boolean; fonte?: FonteDiario; onOpenContent: (s: TabSpec) => void }) {
-  const papel = isMaster ? "mestre" : "jogador";
+  const papel = isMaster ? "mestre" : "jogador", { aoClicarDireito } = useAbrirEmAba();
   const v = useVersaoRegistros();   // recarrega a prévia quando o Diário muda
   const st = useFonte(`${campaignId}|${papel}|${v}`, fonte ? () => fonte.maisRecente(campaignId, papel) : null);
   let corpo;
@@ -103,13 +104,14 @@ export function DiarioPrevia({ campaignId, isMaster, fonte, onOpenContent }: { c
       corpo = <article className="home-diario-entry">
         <h3>{e.titulo}</h3>{data && <time className="muted">{data}</time>}{isMaster && !e.publicada && <span className="badge" title="Só você vê este registro">Rascunho</span>}
         {texto && <p>{resumirTexto(texto)}</p>}
-        <button className="btn-link" onClick={() => onOpenContent({ kind: "documento", ref: e.id, title: e.titulo })}>Ver registro completo</button></article>;
+        <button className="btn-link" onClick={() => onOpenContent({ kind: "documento", ref: e.id, title: e.titulo })} onContextMenu={ev => aoClicarDireito(ev, { kind: "documento", ref: e.id, title: e.titulo })}>Ver registro completo</button></article>;
     }
   }
   return <section className="home-sec" aria-label="Diário"><h2><ScrollText size={16} aria-hidden="true"/> Diário</h2>{corpo}</section>;
 }
 
 export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId: string; fonte?: FonteAventureiros; onOpenContent: (s: TabSpec) => void }) {
+  const { aoClicarDireito } = useAbrirEmAba();
   const st = useFonte(campaignId, fonte ? () => fonte.listar(campaignId) : null);
   let corpo;
   if (!st) corpo = <p className="muted" data-testid="aventureiros-indisponivel">Os personagens ainda não estão disponíveis nesta versão.</p>;
@@ -117,7 +119,7 @@ export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId:
   else if (st.s === "erro") corpo = <div className="notice err" role="alert">{st.msg} <button className="btn-link" onClick={st.recarregar}>Tentar de novo</button></div>;
   else if (st.data.length === 0) corpo = <p className="muted" data-testid="aventureiros-vazio">Nenhum aventureiro vinculado a esta campanha.</p>;
   else corpo = <ul className="home-party">{st.data.map((a: Aventureiro) => <li key={a.id}>
-    <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} aria-label={`Abrir ficha de ${a.nome}`}>
+    <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} onContextMenu={ev => aoClicarDireito(ev, { kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} aria-label={`Abrir ficha de ${a.nome}`}>
       {a.retratoUrl ? <img src={a.retratoUrl} alt="" loading="lazy"/> : <span className="home-portrait" aria-hidden="true">{a.nome.slice(0, 1).toLocaleUpperCase("pt-BR")}</span>}
       <span><strong>{a.nome}</strong><small>{a.classe} · nível {a.nivel}</small></span></button></li>)}</ul>;
   return <section className="home-sec" aria-label="Aventureiros"><h2><Users size={16} aria-hidden="true"/> Aventureiros</h2>{corpo}</section>;
