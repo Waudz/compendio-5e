@@ -26,3 +26,12 @@
   .tabbar { height:45px; }
   .content { flex:1; min-height:0; }
 }
+
+/* Separação de colunas: controles identificáveis e alça com área de toque ampla. */
+@media (min-width:701px) {
+  .split { display:flex; align-items:center; gap:7px; flex-shrink:0; padding:0 14px; font-size:12px; white-space:nowrap; }
+  .split-label { display:inline; }
+  .resizer { width:16px; right:-8px; background:linear-gradient(90deg,transparent 6px,#41566c 7px,#41566c 9px,transparent 10px); }
+  .resizer:hover { background:#47617b99; color:#e6ebf1; }
+  .pane { min-width:0; }
+}
