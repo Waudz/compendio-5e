@@ -22,7 +22,11 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
-      - run: npm run build
+      - name: Compilar com Supabase
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://gwcttjlxzelzjhbuitmi.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_Xq4BrPx_YkYGki7Ti2XUzA_ocr-zTWn
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

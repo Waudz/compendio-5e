@@ -22,7 +22,12 @@ export function traduzirErro(e: unknown): string {
   return "Não foi possível concluir a operação. Tente novamente.";
 }
 
-const redirect = () => `${location.origin}${import.meta.env.BASE_URL}`;
+const redirect = () => {
+  const url = new URL(import.meta.env.BASE_URL, location.origin);
+  const invite = new URLSearchParams(location.search).get("convite");
+  if (invite && /^[A-Z0-9]{12}$/i.test(invite)) url.searchParams.set("convite", invite.toUpperCase());
+  return url.toString();
+};
 const guard = async (fn: () => Promise<Result>): Promise<Result> => { try { return await fn(); } catch (e) { return { ok: false, error: traduzirErro(e) }; } };
 
 export type AuthApi = {
