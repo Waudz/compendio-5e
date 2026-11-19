@@ -25,3 +25,6 @@ npm test
 - Conteúdo demonstrativo, sem autenticação ou Supabase
 
 **Próximas entregas:** colunas verticais, arrastar abas, menu de contexto, dados reais e persistência por campanha.
+
+
+<!-- GitHub Pages: solicitar primeira publicação após habilitação -->
