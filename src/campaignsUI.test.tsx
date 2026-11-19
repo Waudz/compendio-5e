@@ -197,7 +197,7 @@ describe("convites por link", () => {
   afterEach(() => window.history.pushState({}, "", "/"));
 
   it("mestre vê o link completo e o botão copia exatamente esse link", async () => {
-    const writeText = vi.fn(async () => {}); vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    window.history.pushState({}, "", "/compendio-5e/"); // simula a base do GitHub Pages (jsdom inicia em /)\n    const writeText = vi.fn(async () => {}); vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: [], invites: [{ id: "i1", code: "ABCDEFGHIJKL", expires_at: "2030-01-01T00:00:00Z", max_uses: 5, uses: 0 }] });
     mount(api); await openMobile("Campanhas");
     fireEvent.click(within((await screen.findByText("Festival da Lua")).closest("li")!).getByRole("button", { name: "Abrir" }));
