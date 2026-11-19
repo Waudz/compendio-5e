@@ -6,6 +6,7 @@ export default function App() {
   const [workspace, setWorkspace] = useState<Workspace>(restore);
   const [collapsed, setCollapsed] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [dropEdge, setDropEdge] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   useEffect(() => { localStorage.setItem(key, JSON.stringify(workspace)); }, [workspace]);
   const update = (fn: (old: Workspace) => Workspace) => setWorkspace(fn);
@@ -51,6 +52,13 @@ export default function App() {
     columns = [...columns.map(c => ({ ...c, width: width })), { id, tabs: [tab], active: tabId, width }];
     return { columns, focused: id };
   });
+  const dropIntoNewColumn = (event: import("react").DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const tabId = event.dataTransfer.getData("text/plain");
+    if (tabId) split(tabId);
+    setDropEdge(false);
+    setDragging(false);
+  };
   const startResize = (index: number, event: import("react").PointerEvent<HTMLDivElement>) => {
     if (!container.current) return;
     event.preventDefault();
@@ -90,8 +98,8 @@ export default function App() {
         return <div className={workspace.focused === column.id ? "pane focused" : "pane"} style={{ flexBasis: `${column.width}%` }} key={column.id} onMouseDown={() => update(w => w.focused === column.id ? w : { ...w, focused: column.id })}>
           <div className="tabbar" role="tablist" aria-label={`Abas da coluna ${index+1}`}
             onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-            onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (id) move(id,column.id); setDragging(false); }}>
-            {column.tabs.map(tab => <div className={column.active === tab.id ? "tab active" : "tab"} key={tab.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain",tab.id); setDragging(true); }} onDragEnd={() => setDragging(false)}>
+            onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (id) move(id,column.id); setDragging(false); setDropEdge(false); }}>
+            {column.tabs.map(tab => <div className={column.active === tab.id ? "tab active" : "tab"} key={tab.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain",tab.id); e.dataTransfer.effectAllowed = "move"; setDragging(true); }} onDragEnd={() => { setDragging(false); setDropEdge(false); }}>
               <button role="tab" aria-selected={column.active === tab.id} onClick={() => focusTab(column.id,tab.id)}>{tab.title}</button>
               <button className="close" aria-label={`Fechar ${tab.title}`} onClick={() => close(column.id,tab.id)}><X size={14}/></button>
             </div>)}
@@ -107,6 +115,15 @@ export default function App() {
           {index < workspace.columns.length-1 && <div className="resizer" role="separator" aria-label={`Redimensionar colunas ${index+1} e ${index+2}`} onPointerDown={e => startResize(index,e)} title="Arraste para ajustar a largura das colunas"><GripVertical size={16}/></div>}
         </div>;
       })}
+      {dragging && workspace.columns.length < 3 && <div
+        className={dropEdge ? "new-column-drop active" : "new-column-drop"}
+        role="region"
+        aria-label="Soltar aba para criar nova coluna"
+        onDragEnter={e => { e.preventDefault(); setDropEdge(true); }}
+        onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDropEdge(true); }}
+        onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropEdge(false); }}
+        onDrop={dropIntoNewColumn}
+      ><PanelRight size={22}/><span>Solte aqui para criar uma coluna</span></div>}
     </main>
   </div>;
 }
