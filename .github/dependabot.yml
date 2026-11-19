@@ -1,0 +1,36 @@
+# Atualizações semanais e pequenas. Nenhum PR do Dependabot é mesclado sem o "Validar projeto" verde, e o merge é sempre manual.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      menores-e-correcoes:
+        update-types: [minor, patch]
+    ignore:
+      # Mudanças de versão maior nestas bibliotecas exigem decisão e teste manuais (pré-1.0, API sensível ou acoplamento forte).
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: flexlayout-react
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: "@blocknote/*"
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: "@mantine/*"
+        update-types: [version-update:semver-major]
+      - dependency-name: "@dnd-kit/*"
+        update-types: [version-update:semver-major]
+      - dependency-name: vite
+        update-types: [version-update:semver-major]
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
