@@ -7,7 +7,7 @@ import { Actions, DockLocation, Model, TabNode, TabSetNode, type DropInfo, type 
 export const MAX_GROUPS = 3;
 export const MIN_GROUP_WIDTH = 220;
 
-export type Kind = "secao" | "ficha" | "npc" | "documento";
+export type Kind = "secao" | "conta" | "ficha" | "npc" | "documento";
 export type TabSpec = { kind: Kind; ref: string; title?: string };
 export type Page = "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
 
@@ -19,8 +19,8 @@ export const sections: { page: Page; title: string; icon: typeof Users }[] = [
   { page: "compendio", title: "Compêndio", icon: ScrollText },
   { page: "documentos", title: "Documentos", icon: FileText },
 ];
-export const kinds: Kind[] = ["secao", "ficha", "npc", "documento"];
-const kindLabel: Record<Kind, string> = { secao: "", ficha: "Ficha", npc: "NPC", documento: "Documento" };
+export const kinds: Kind[] = ["secao", "conta", "ficha", "npc", "documento"];
+const kindLabel: Record<Kind, string> = { secao: "", conta: "Conta", ficha: "Ficha", npc: "NPC", documento: "Documento" };
 
 /** Id próprio da aba: `kind:ref` (ex.: secao:personagens, ficha:lydia). Uma entidade = uma aba. */
 export const tabId = (s: Pick<TabSpec, "kind" | "ref">) => `${s.kind}:${s.ref}`;
@@ -33,7 +33,7 @@ export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   return { kind, ref };
 };
 export const defaultTitle = (s: TabSpec) =>
-  s.title?.trim().slice(0, 40) || (s.kind === "secao" ? sections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
+  s.title?.trim().slice(0, 40) || (s.kind === "conta" ? "Conta" : s.kind === "secao" ? sections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
 
 const global: IJsonModel["global"] = {
   tabEnableClose: true, tabEnableRename: false, tabEnablePopout: false, tabEnablePopoutIcon: false, tabEnableFloat: false,

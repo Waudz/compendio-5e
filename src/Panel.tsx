@@ -1,4 +1,5 @@
 import { BookOpen } from "lucide-react";
+import { AccountPanel } from "./AccountPanel";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 const demo: Partial<Record<string, TabSpec[]>> = {
@@ -9,6 +10,7 @@ const demo: Partial<Record<string, TabSpec[]>> = {
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
 export function Panel({ kind, entity: id, onOpen }: { kind: Kind; entity: string; onOpen: (s: TabSpec) => void }) {
+  if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   const title = defaultTitle({ kind, ref: id });
   const items = kind === "secao" ? demo[id] : undefined;
   return <div className="content">
