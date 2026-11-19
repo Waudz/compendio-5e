@@ -1,6 +1,6 @@
 # COMPÊNDIO 5e 2.0 — DECISÕES, ARQUITETURA E ESTADO
 
-> Documento de referência para qualquer pessoa ou IA que trabalhe no projeto. Atualizar quando uma decisão mudar. Não confundir **decidido**, **planejado** e **implementado**: cada seção abaixo diz o que já existe no código. Roteiro, estado detalhado e pendências: `docs/PLANEJAMENTO-V2.md`. Última revisão: 19/11/2026.
+> Documento de referência para qualquer pessoa ou IA que trabalhe no projeto. Atualizar quando uma decisão mudar. Não confundir **decidido**, **planejado** e **implementado**: cada seção abaixo diz o que já existe no código. Roteiro e estado detalhado: `docs/PLANEJAMENTO-V2.md`. **Registro oficial de decisões recentes e pendências para os jogadores:** `docs/REGISTRO-OFICIAL-DECISOES.md` (19/11/2026). Última revisão: 19/11/2026.
 
 ## 1. Objetivo e princípios
 
