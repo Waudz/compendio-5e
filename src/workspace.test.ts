@@ -34,6 +34,16 @@ describe("abrir abas", () => {
   });
 });
 
+describe("abas de campanha", () => {
+  it("reabrir com novo título renomeia a aba existente, sem duplicar", () => {
+    const m = createModel();
+    openTab(m, { kind: "campanha", ref: "abc-123", title: "Festival" });
+    openTab(m, { kind: "campanha", ref: "abc-123", title: "Festival II" });
+    expect(ids(m).flat().filter(x => x === "campanha:abc-123")).toHaveLength(1);
+    expect(findTab(m, "campanha:abc-123")!.getName()).toBe("Festival II");
+  });
+});
+
 describe("grupos (colunas)", () => {
   it("cria grupos à esquerda e à direita", () => {
     const m = base();

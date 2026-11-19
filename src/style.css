@@ -127,3 +127,16 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .notice.err{border-color:var(--danger);color:var(--danger)}.notice.ok{border-color:var(--accent)}
 .nav-item.account{margin-top:auto}
 .sidebar nav{flex:1}
+
+/* Campanhas */
+.auth.wide{max-width:720px}
+.auth textarea{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 11px;font:inherit;font-size:14px;resize:vertical}
+.auth textarea:focus-visible{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.camp-list{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.camp{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.camp.active{border-color:var(--accent)}.camp p{margin:4px 0 0;font-size:13px}
+.camp .row,.auth .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.camp .row{margin-top:0}
+.badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--text-2);margin-left:6px}
+.badge.on{border-color:var(--accent);color:var(--accent)}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;color:var(--text)}
+.btn-secondary.danger{border-color:var(--danger);color:var(--danger)}

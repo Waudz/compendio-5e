@@ -4,7 +4,7 @@ import { defaultLayout, sanitizeLayout, tabId, sections } from "./workspace";
 
 export const VERSION = 2;
 export type Scope = { user: string; campaign: string; device: string };
-export const defaultScope: Scope = { user: "visitante", campaign: "demo", device: "navegador" };
+export const defaultScope: Scope = { user: "visitante", campaign: "nenhuma", device: "navegador" };
 export const storageKey = (s: Scope = defaultScope) => `compendio5e:workspace:v${VERSION}:${s.user}:${s.campaign}:${s.device}`;
 export const legacyKey = "compendio5e:workspace:columns:v1";
 

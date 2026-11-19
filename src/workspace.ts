@@ -1,17 +1,18 @@
 // Estado e operações puras do workspace (sem React, sem localStorage).
 // O layout é SEMPRE: linha raiz -> de 1 a 3 grupos (tabsets) lado a lado -> abas.
 // Nunca há linha dentro de coluna (grupos empilhados), popout, flutuantes ou bordas.
-import { BookOpen, FileText, ScrollText, Shield, Swords, Users } from "lucide-react";
+import { BookOpen, Castle, FileText, ScrollText, Shield, Swords, Users } from "lucide-react";
 import { Actions, DockLocation, Model, TabNode, TabSetNode, type DropInfo, type IJsonModel, type IJsonTabNode, type IJsonTabSetNode, type Node } from "flexlayout-react";
 
 export const MAX_GROUPS = 3;
 export const MIN_GROUP_WIDTH = 220;
 
-export type Kind = "secao" | "conta" | "ficha" | "npc" | "documento";
+export type Kind = "secao" | "conta" | "campanha" | "ficha" | "npc" | "documento";
 export type TabSpec = { kind: Kind; ref: string; title?: string };
-export type Page = "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
+export type Page = "campanhas" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
 
 export const sections: { page: Page; title: string; icon: typeof Users }[] = [
+  { page: "campanhas", title: "Campanhas", icon: Castle },
   { page: "personagens", title: "Personagens", icon: Users },
   { page: "iniciativa", title: "Iniciativa", icon: Swords },
   { page: "encontros", title: "Encontros", icon: Shield },
@@ -19,8 +20,8 @@ export const sections: { page: Page; title: string; icon: typeof Users }[] = [
   { page: "compendio", title: "Compêndio", icon: ScrollText },
   { page: "documentos", title: "Documentos", icon: FileText },
 ];
-export const kinds: Kind[] = ["secao", "conta", "ficha", "npc", "documento"];
-const kindLabel: Record<Kind, string> = { secao: "", conta: "Conta", ficha: "Ficha", npc: "NPC", documento: "Documento" };
+export const kinds: Kind[] = ["secao", "conta", "campanha", "ficha", "npc", "documento"];
+const kindLabel: Record<Kind, string> = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento" };
 
 /** Id próprio da aba: `kind:ref` (ex.: secao:personagens, ficha:lydia). Uma entidade = uma aba. */
 export const tabId = (s: Pick<TabSpec, "kind" | "ref">) => `${s.kind}:${s.ref}`;
@@ -125,7 +126,10 @@ export const activeGroup = (m: Model): TabSetNode | undefined => m.getActiveTabs
 export function openTab(m: Model, spec: TabSpec): void {
   const id = tabId(spec);
   const existing = findTab(m, id);
-  if (existing) { m.doAction(Actions.selectTab(id)); const g = existing.getParent(); if (g) m.doAction(Actions.setActiveTabset(g.getId())); return; }
+  if (existing) {
+    const t = spec.title?.trim().slice(0, 40);
+    if (t && t !== existing.getName()) m.doAction(Actions.renameTab(id, t)); // ex.: campanha renomeada
+    m.doAction(Actions.selectTab(id)); const g = existing.getParent(); if (g) m.doAction(Actions.setActiveTabset(g.getId())); return; }
   const g = activeGroup(m);
   if (!g) return;
   m.doAction(Actions.addTab(tabJson(spec), g.getId(), DockLocation.CENTER, -1, true));
