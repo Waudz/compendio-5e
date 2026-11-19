@@ -68,3 +68,27 @@
 **Ordem recomendada (proposta, não autorização para código/banco):** (1) fechar correções 1c e consolidar documentação; (2) criar shell mobile independente e visão geral Início sem romper desktop; (3) projetar modelo de páginas, links, audiências e atalhos compatível com `notes`; (4) implementar por incrementos editor, planejamento e Enciclopédia, em paralelo à biblioteca SRD e fichas conforme dependências; (5) testar RLS e uso real; (6) interface mobile do mestre para leitura/combate.
 
 **Procedimento para novas conversas:** ler este registro junto com `DECISOES-E-ARQUITETURA.md` e `docs/PLANEJAMENTO-V2.md`; conferir estado real de branch/PR antes de afirmar que algo está implementado; registrar novas decisões com data e status; não converter proposta em aprovação; não sobrescrever decisões anteriores sem explicitar a mudança.
+
+## H. Decisões adicionais aprovadas em 19/11/2026 — planejamento e navegação
+
+### Editor e quadro
+- Editor por blocos inspirado em AFFiNE/Notion para páginas, cenas e anotações; desenvolvimento incremental, sem canvas infinito obrigatório.
+- Colunas livres independentes de pastas, com cartões em lista vertical. Reorganizar cartões não move a página original; atalhos não duplicam conteúdo.
+- Cartão compacto com título/prévia ou expandido com blocos, com edição no quadro quando viável; página completa em aba própria. No mobile mestre, colunas são seções expansíveis e cenas abrem para leitura, preservando contexto.
+
+### Registros rápidos, exportação e Diário
+- Registro rápido por cartão/cena durante sessão no desktop e celular, sem alterar planejamento. Permitir registro sem cena preparada e marcação de pendências, como cadastrar NPC depois.
+- Registros brutos privados por padrão e preservados cronologicamente. Diário é redigido manualmente pelo mestre; registros não são publicados nem transformados automaticamente em resumo.
+- Exportar/copiar todos os cartões de uma sessão de uma vez, por coluna e cena, distinguindo PLANEJAMENTO, REGISTROS DA SESSÃO e PENDÊNCIAS. Filtros e formatos texto/Markdown são proposta de primeira entrega; exportação lado a lado com Diário é melhoria não bloqueante.
+
+### Encontros
+- Cartão de encontro especial no planejamento, com resumo, criaturas/quantidades e link para encontro original em aba própria. Vínculo não duplica dados; mudanças no original atualizam prévias; duplicação explícita cria variante.
+- Iniciar combate cria instância independente com PV, condições e resultados, sem alterar encontro original. Histórico deve preservar o estado executado, a detalhar tecnicamente.
+- Vincular encontro como bloco dentro de cena também foi sugerido; não é requisito obrigatório da primeira entrega.
+
+### Navegação desktop — decisão mais recente
+- Modelo inspirado no VS Code: clique normal no menu ativa destino existente ou reutiliza aba temporária/não fixada; aba fixada ou com edição não salva não é substituída. Iniciar edição protege a aba; fixação manual disponível.
+- Links internos de conteúdo para NPC, local, encontro, documento ou cena abrem nova aba permanente no workspace, sem substituir origem. Se o registro já está aberto, ativar aba existente sem duplicar. Menu permite abrir em nova aba explicitamente. Regra independe da quantidade de painéis; mobile usa histórico próprio.
+- Esta decisão altera a regra anterior de navegação normal por registros em docs/NAVEGACAO-ABAS.md. Reconciliar documentação, código e testes antes de considerar implementado.
+
+**Pendências:** J1/D7 bestiário dos jogadores; J2 autoria da história dos personagens; compartilhamento granular da Enciclopédia; modelo de blocos e vínculos; sincronização; teste real. Nenhuma autorização de migração, merge ou publicação está implícita.
