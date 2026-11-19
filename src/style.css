@@ -1,16 +1,16 @@
-/* Paleta central (destaque turquesa sobre azul-grafite). Troque as cores só aqui. */
+/* Paleta central: azul discreto sobre azul-grafite, ações comuns neutras. */
 :root{
   --bg:#141D27;            /* fundo principal */
   --panel:#202C39;         /* painéis, menu lateral, faixa de abas */
-  --accent:#00CEC8;        /* destaque turquesa */
+  --accent:#3B82F6;        /* destaque azul */
   --text:#E7EBF2;          /* texto principal */
   --text-2:#AAB6C5;        /* texto secundário */
   --line:#2D3B4B;          /* divisórias */
   --hover:#293848;         /* hover de itens */
   --muted:#8C9AAB;         /* texto desabilitado / eyebrow */
-  --accent-soft:rgba(0,206,200,.16);
-  --accent-faint:rgba(0,206,200,.10);
-  --on-accent:#0B1620;     /* texto sobre fundo turquesa (contraste) */
+  --accent-soft:rgba(59,130,246,.16);
+  --accent-faint:rgba(59,130,246,.10);
+  --on-accent:#0B1620;     /* texto sobre fundo azul (contraste) */
   --danger:#F08A8A;
   --nav-h:64px;
   --head-h:45px;
@@ -118,8 +118,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .auth label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text-2)}
 .auth input{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 11px;font:inherit;font-size:14px}
 .auth input:focus-visible{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
-.btn-primary{background:var(--accent);color:var(--on-accent);border:0;border-radius:7px;padding:10px 14px;font-weight:600}
-.btn-primary:hover:not(:disabled){filter:brightness(1.08)}.btn-primary:disabled{opacity:.55;cursor:default}
+.btn-primary{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 14px;font-weight:600}
+.btn-primary:hover:not(:disabled){background:var(--hover);border-color:var(--accent)}.btn-primary:disabled{opacity:.55;cursor:default}
 .btn-secondary{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:9px 13px}.btn-secondary:hover:not(:disabled){border-color:var(--accent)}
 .btn-link{background:none;border:0;color:var(--accent);padding:2px 0;text-align:left;font-size:13px}.btn-link:hover{text-decoration:underline}
 .auth .links{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:14px}
@@ -140,3 +140,9 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .badge.on{border-color:var(--accent);color:var(--accent)}
 .code{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;color:var(--text)}
 .btn-secondary.danger{border-color:var(--danger);color:var(--danger)}
+
+/* Azul preenchido somente na ação principal de autenticação; demais ações permanecem neutras. */
+.auth:not(.wide) .btn-primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.auth:not(.wide) .btn-primary:hover:not(:disabled){filter:brightness(1.08)}
+/* Confirmações não devem parecer um botão de ação. */
+.notice.ok{border-color:var(--line);box-shadow:inset 3px 0 0 var(--accent)}
