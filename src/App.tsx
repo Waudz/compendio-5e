@@ -60,12 +60,16 @@ export default function App() {
     const left = snapshot[index], right = snapshot[index+1];
     const onMove = (e: PointerEvent) => {
       const delta = (e.clientX - start) / bounds.width * 100;
-      const value = Math.max(18, Math.min(left + right - 18, left + delta));
+      const min = Math.min(22, (left + right) / 2 - 1);
+      const value = Math.max(min, Math.min(left + right - min, left + delta));
       update(w => ({ ...w, columns: w.columns.map((c,i) => i === index ? { ...c, width: value } : i === index+1 ? { ...c, width: left + right - value } : c) }));
     };
-    const onUp = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+    const onUp = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); window.removeEventListener("pointercancel", onUp); document.body.style.cursor = ""; document.body.style.userSelect = ""; };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp, { once: true });
+    window.addEventListener("pointercancel", onUp, { once: true });
   };
   const activePage = workspace.columns.find(c => c.id === workspace.focused)?.tabs.find(t => t.id === workspace.columns.find(c => c.id === workspace.focused)?.active)?.page;
   return <div className="app">
@@ -91,7 +95,7 @@ export default function App() {
               <button role="tab" aria-selected={column.active === tab.id} onClick={() => focusTab(column.id,tab.id)}>{tab.title}</button>
               <button className="close" aria-label={`Fechar ${tab.title}`} onClick={() => close(column.id,tab.id)}><X size={14}/></button>
             </div>)}
-            {workspace.columns.length < 3 && selected && <button className="split" title="Mover aba atual para nova coluna" aria-label="Mover aba atual para nova coluna" onClick={() => split(selected.id)}><PanelRight size={16}/></button>}
+            {workspace.columns.length < 3 && selected && <button className="split" title="Abrir esta aba em uma nova coluna" aria-label="Abrir esta aba em uma nova coluna" onClick={() => split(selected.id)}><PanelRight size={16}/><span className="split-label">Nova coluna</span></button>}
           </div>
           <section className="content">{selected ? <>
             <div className="eyebrow">COMPÊNDIO 5e / DEMONSTRAÇÃO</div>
@@ -100,7 +104,7 @@ export default function App() {
             <div className="placeholder"><BookOpen size={30}/><strong>{selected.title}</strong><span>Área reservada para a funcionalidade.</span></div>
           </> : <div className="empty"><h1>Área de trabalho</h1><p>Escolha uma seção no menu lateral.</p></div>}</section>
           {dragging && <div className="drop-hint">Solte a aba aqui</div>}
-          {index < workspace.columns.length-1 && <div className="resizer" role="separator" aria-label={`Redimensionar colunas ${index+1} e ${index+2}`} onPointerDown={e => startResize(index,e)}><GripVertical size={13}/></div>}
+          {index < workspace.columns.length-1 && <div className="resizer" role="separator" aria-label={`Redimensionar colunas ${index+1} e ${index+2}`} onPointerDown={e => startResize(index,e)} title="Arraste para ajustar a largura das colunas"><GripVertical size={16}/></div>}
         </div>;
       })}
     </main>
