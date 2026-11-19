@@ -1,9 +1,8 @@
 name: Validar projeto
 on:
   push:
-    branches: [main, feat/workspace-inicial]
-  pull_request:
     branches: [main]
+  pull_request:
 jobs:
   validar:
     runs-on: ubuntu-latest
