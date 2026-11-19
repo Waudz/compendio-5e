@@ -123,28 +123,27 @@ describe("Diário (jogador)", () => {
 });
 
 describe("Planejamento (mestre)", () => {
-  it("cria o quadro, adiciona colunas e cartões, exclui, com persistência", async () => {
+  it("cria o planejamento e as anotações permanentes, adiciona colunas, seções e cartões sem nome, exclui, com persistência", async () => {
     const registros = registrosEmMemoria("mestre");
     await renderApp({ api: apiC(mestre), registros });
     await abrirSecao("Planejamento");
-    await screen.findByLabelText("Coluna Sessão 1");
-    const board = () => registros.dados.find(r => r.kind === "board")!;
-    expect(board().visibility).toBe("private");
-    fireEvent.change(screen.getByLabelText("Nome da nova coluna"), { target: { value: "Julkoun" } });
-    fireEvent.click(screen.getByRole("button", { name: "Adicionar coluna" }));
-    await screen.findByLabelText("Coluna Julkoun");
-    const col1 = within(screen.getByLabelText("Coluna Sessão 1"));
-    fireEvent.change(col1.getByLabelText("Título do novo cartão"), { target: { value: "O bar" } });
-    fireEvent.click(col1.getByRole("button", { name: "Adicionar cartão" }));
-    await col1.findByLabelText("Título do cartão O bar");
+    await screen.findByLabelText("Seção Seção 1");
+    const plano = () => registros.dados.find(r => r.kind === "board" && !(r.meta as { permanente?: boolean }).permanente)!;
+    expect(registros.dados.filter(r => r.kind === "board").map(r => r.title).sort()).toEqual(["Anotações permanentes", "Sessão 1"]);
+    expect(plano().visibility).toBe("private");
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar coluna" }));            // sem pedir nome
+    await screen.findByLabelText("Seção Seção 2");
+    const sec1 = within(screen.getByLabelText("Seção Seção 1"));
+    fireEvent.change(sec1.getByLabelText("Título do novo cartão"), { target: { value: "O bar" } });
+    fireEvent.click(sec1.getByRole("button", { name: "Adicionar cartão" }));
+    await sec1.findByLabelText("Título do cartão O bar");
     expect(registros.dados.filter(r => r.kind === "scene").map(r => r.title)).toEqual(["O bar"]);
     expect(registros.dados.find(r => r.kind === "scene")!.visibility).toBe("private");
-    await waitFor(() => expect((board().meta as { colunas: { titulo: string; cartoes: string[] }[] }).colunas.map(c => c.cartoes.length)).toEqual([1, 0]));
-    expect(screen.getByRole("button", { name: "Excluir coluna Sessão 1" }).hasAttribute("disabled")).toBe(true);   // coluna com cartão não é excluída
+    await waitFor(() => expect((plano().meta as { colunas: { secoes: { cartoes: string[] }[] }[] }).colunas.map(c => c.secoes[0].cartoes.length)).toEqual([1, 0]));
+    expect(screen.getByRole("button", { name: "Excluir seção Seção 1" })).toBeTruthy();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Excluir cartão O bar" }));
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Excluir coluna Sessão 1" }).hasAttribute("disabled")).toBe(false));
   });
   it("editar o cartão dentro do planejamento (sem nova aba) salva sozinho; o planejamento nunca é publicado", async () => {
     const registros = registrosEmMemoria("mestre", "u1", [
@@ -162,9 +161,8 @@ describe("Planejamento (mestre)", () => {
   it("conflito de versão não sobrescreve: mostra aviso e recarrega", async () => {
     const registros = registrosEmMemoria("mestre", "u1", [reg({ id: "b1", kind: "board", title: "Quadro", meta: { colunas: [{ id: "k", titulo: "A", cartoes: [] }] } })]);
     await renderApp({ api: apiC(mestre), registros });
-    await abrirSecao("Planejamento"); await screen.findByLabelText("Coluna A");
+    await abrirSecao("Planejamento"); await screen.findByLabelText("Seção A");
     registros.dados[0] = { ...registros.dados[0], version: 7 };      // outra aba/aparelho gravou antes
-    fireEvent.change(screen.getByLabelText("Nome da nova coluna"), { target: { value: "B" } });
     fireEvent.click(screen.getByRole("button", { name: "Adicionar coluna" }));
     expect((await screen.findByText(/Outra pessoa alterou/)).getAttribute("role")).toBe("alert");
   });

@@ -1,112 +1,119 @@
-// Quadro de Planejamento: funções puras.
+// Quadro de Planejamento: colunas -> seções -> cartões (funções puras).
 import { describe, expect, it } from "vitest";
-import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverCartao, moverColuna, novaColuna, removerCartao, renomearColuna, soltarCartao, soltarColuna, proximoNomeColuna, moverParaNovaColuna, todosCartoes, redimensionarColuna, LARGURA_MAX, LARGURA_MIN, type Quadro } from "./quadro";
+import { LARGURA_MAX, LARGURA_MIN, adicionarCartao, alternarTituloGrande, colunaDaSecao, excluirSecao, excluirSecoes, lerQuadro, moverCartao, novaColuna, novaSecaoDepois, proximoNomeSecao, redimensionarColuna, removerCartao, renomearSecao, soltarCartao, soltarSecao, todasSecoes, todosCartoes, type Quadro } from "./quadro";
 
-const q = (): Quadro => ({ colunas: [{ id: "a", titulo: "Sessão 5", cartoes: ["x", "y"] }, { id: "b", titulo: "Floresta", cartoes: ["z"] }, { id: "c", titulo: "Vazia", cartoes: [] }] });
+/** Coluna c1: seções a (x,y) e b (z); coluna c2: seção c (vazia). */
+const q = (): Quadro => ({ colunas: [
+  { id: "c1", secoes: [{ id: "a", titulo: "Julkoun", cartoes: ["x", "y"] }, { id: "b", titulo: "Estrada", cartoes: ["z"] }] },
+  { id: "c2", secoes: [{ id: "c", titulo: "Floresta", cartoes: [] }] },
+] });
+const ordem = (x: Quadro) => x.colunas.map(c => c.secoes.map(s => s.id));
+const cartoes = (x: Quadro) => x.colunas.map(c => c.secoes.map(s => s.cartoes));
 
 describe("lerQuadro", () => {
-  it("lê o formato válido e descarta o inválido sem lançar", () => {
-    expect(lerQuadro({ colunas: q().colunas }).colunas).toHaveLength(3);
-    for (const m of [null, undefined, {}, { colunas: "x" }, { colunas: [{ id: 1 }] }]) expect(lerQuadro(m).colunas).toEqual([]);
+  it("lê o formato novo e descarta o inválido sem lançar", () => {
+    expect(lerQuadro({ colunas: q().colunas }).colunas).toHaveLength(2);
+    for (const m of [null, undefined, {}, { colunas: "x" }, { colunas: [{ id: 1 }] }, { colunas: [{ id: "k" }] }]) expect(lerQuadro(m).colunas).toEqual([]);
   });
-  it("cartão repetido em duas colunas só vale na primeira", () => {
-    expect(todosCartoes(lerQuadro({ colunas: [{ id: "a", titulo: "A", cartoes: ["x"] }, { id: "b", titulo: "B", cartoes: ["x", "y"] }] }))).toEqual(["x", "y"]);
+  it("formato antigo (coluna com título e cartões) vira coluna com UMA seção, sem perder nada, mantendo a largura", () => {
+    const r = lerQuadro({ colunas: [{ id: "k1", titulo: "Sessão 5", cartoes: ["s1", "s2"], largura: 450 }, { id: "k2", titulo: "Floresta", cartoes: [] }] });
+    expect(r.colunas[0]).toEqual({ id: "k1", largura: 450, secoes: [{ id: "k1-s", titulo: "Sessão 5", cartoes: ["s1", "s2"] }] });
+    expect(r.colunas[1].secoes[0]).toMatchObject({ titulo: "Floresta", cartoes: [] });
+  });
+  it("cartão repetido só vale na primeira ocorrência; ids repetidos e largura inválida são tratados", () => {
+    const r = lerQuadro({ colunas: [{ id: "a", largura: 5000, secoes: [{ id: "s", titulo: "A", cartoes: ["x"] }, { id: "s", titulo: "dup", cartoes: [] }, { id: "t", titulo: "B", cartoes: ["x", "y"], grande: true }] }, { id: "a", secoes: [] }] });
+    expect(r.colunas).toHaveLength(1); expect(r.colunas[0].largura).toBe(LARGURA_MAX);
+    expect(todosCartoes(r)).toEqual(["x", "y"]); expect(r.colunas[0].secoes.map(s => s.id)).toEqual(["s", "t"]); expect(r.colunas[0].secoes[1].grande).toBe(true);
   });
 });
 
-describe("colunas", () => {
-  it("cria, renomeia e recusa nomes vazios", () => {
-    expect(novaColuna(q(), "  Estrada ", "n").colunas.at(-1)).toEqual({ id: "n", titulo: "Estrada", cartoes: [] });
-    expect(novaColuna(q(), "  ").colunas).toHaveLength(3);
-    expect(renomearColuna(q(), "a", "Sessão 6").colunas[0].titulo).toBe("Sessão 6");
-    expect(renomearColuna(q(), "a", " ").colunas[0].titulo).toBe("Sessão 5");
+describe("seções e colunas", () => {
+  it("nova seção entra logo abaixo da seção pedida, na mesma coluna, com nome automático único", () => {
+    const r = novaSecaoDepois(q(), "a", undefined, "n");
+    expect(ordem(r)).toEqual([["a", "n", "b"], ["c"]]); expect(r.colunas[0].secoes[1].titulo).toBe("Seção 4");
+    expect(proximoNomeSecao({ colunas: [{ id: "1", secoes: [{ id: "s", titulo: "Seção 2", cartoes: [] }] }] })).toBe("Seção 3");
+    expect(novaSecaoDepois(q(), "nao")).toEqual(q());
   });
-  it("só exclui coluna vazia: cartões nunca somem junto", () => {
-    expect(excluirColuna(q(), "a").colunas).toHaveLength(3);
-    expect(excluirColuna(q(), "c").colunas.map(c => c.id)).toEqual(["a", "b"]);
+  it("nova coluna nasce no fim com uma seção; com nome informado usa o nome", () => {
+    const r = novaColuna(q(), undefined, { coluna: "k", secao: "s" });
+    expect(r.colunas.at(-1)).toEqual({ id: "k", secoes: [{ id: "s", titulo: "Seção 4", cartoes: [] }] });
+    expect(novaColuna(q(), "  Cena  ").colunas.at(-1)!.secoes[0].titulo).toBe("Cena");
   });
-  it("reordena colunas e respeita as pontas", () => {
-    expect(moverColuna(q(), "a", 1).colunas.map(c => c.id)).toEqual(["b", "a", "c"]);
-    expect(moverColuna(q(), "a", -1)).toEqual(q()); expect(moverColuna(q(), "c", 1)).toEqual(q());
+  it("renomear, título grande liga e desliga, largura com limites", () => {
+    expect(renomearSecao(q(), "a", "Taverna").colunas[0].secoes[0].titulo).toBe("Taverna");
+    expect(renomearSecao(q(), "a", " ").colunas[0].secoes[0].titulo).toBe("Julkoun");
+    const g = alternarTituloGrande(q(), "a"); expect(g.colunas[0].secoes[0].grande).toBe(true);
+    expect(alternarTituloGrande(g, "a").colunas[0].secoes[0]).not.toHaveProperty("grande");
+    expect(redimensionarColuna(q(), "c1", 5).colunas[0].largura).toBe(LARGURA_MIN);
+    expect(redimensionarColuna(q(), "c1", 480).colunas[0].largura).toBe(480); expect(redimensionarColuna(q(), "nao", 480)).toEqual(q());
+  });
+  it("excluirSecao só exclui seção vazia; a coluna que ficar sem seções some", () => {
+    expect(excluirSecao(q(), "a")).toEqual(q());
+    expect(ordem(excluirSecao(q(), "c"))).toEqual([["a", "b"]]);
+  });
+  it("excluirSecoes remove seções inteiras e devolve os cartões para apagar as páginas", () => {
+    const r = excluirSecoes(q(), ["a", "c"]);
+    expect(ordem(r.quadro)).toEqual([["b"]]); expect(r.cartoes).toEqual(["x", "y"]);
+    expect(excluirSecoes(q(), ["nao"])).toEqual({ quadro: q(), cartoes: [] });
+    expect(excluirSecoes(q(), ["a", "b"]).cartoes.sort()).toEqual(["x", "y", "z"]);
   });
 });
 
 describe("cartões", () => {
-  it("adiciona sem duplicar e remove", () => {
-    expect(adicionarCartao(q(), "c", "w").colunas[2].cartoes).toEqual(["w"]);
-    expect(adicionarCartao(q(), "c", "x")).toEqual(q());   // já existe em outra coluna
+  it("adiciona sem duplicar, remove e move com posição", () => {
+    expect(cartoes(adicionarCartao(q(), "c", "w"))[1][0]).toEqual(["w"]);
+    expect(adicionarCartao(q(), "c", "x")).toEqual(q());
     expect(todosCartoes(removerCartao(q(), "x"))).toEqual(["y", "z"]);
-  });
-  it("move para outra coluna na posição pedida, sem perder nem duplicar", () => {
     const m = moverCartao(q(), "x", "b", 0);
-    expect(m.colunas[0].cartoes).toEqual(["y"]); expect(m.colunas[1].cartoes).toEqual(["x", "z"]);
-    expect(todosCartoes(m).sort()).toEqual(["x", "y", "z"]);
-    expect(moverCartao(q(), "x", "inexistente")).toEqual(q()); expect(moverCartao(q(), "nao", "b")).toEqual(q());
-  });
-  it("sobe, desce e passa para a coluna vizinha", () => {
-    expect(deslocarCartao(q(), "y", "cima").colunas[0].cartoes).toEqual(["y", "x"]);
-    expect(deslocarCartao(q(), "x", "baixo").colunas[0].cartoes).toEqual(["y", "x"]);
-    expect(deslocarCartao(q(), "x", "cima")).toEqual(q());
-    expect(deslocarCartao(q(), "y", "direita").colunas.map(c => c.cartoes)).toEqual([["x"], ["z", "y"], []]);
-    expect(deslocarCartao(q(), "x", "esquerda")).toEqual(q());
+    expect(cartoes(m)[0]).toEqual([["y"], ["x", "z"]]); expect(todosCartoes(m).sort()).toEqual(["x", "y", "z"]);
+    expect(moverCartao(q(), "x", "nao")).toEqual(q()); expect(moverCartao(q(), "nao", "b")).toEqual(q());
   });
 });
 
 describe("soltarCartao (arrastar e soltar)", () => {
-  it("solta sobre cartão de outra coluna na posição dele; sobre coluna vazia vai ao fim", () => {
-    expect(soltarCartao(q(), "x", "z").colunas.map(c => c.cartoes)).toEqual([["y"], ["x", "z"], []]);
-    expect(soltarCartao(q(), "x", "col:c").colunas.map(c => c.cartoes)).toEqual([["y"], ["z"], ["x"]]);
-    expect(soltarCartao(q(), "x", "col:b").colunas[1].cartoes).toEqual(["z", "x"]);
+  it("sobre outro cartão: entra na posição dele (mesma seção, outra seção)", () => {
+    expect(cartoes(soltarCartao(q(), "x", "y"))[0][0]).toEqual(["y", "x"]);
+    expect(cartoes(soltarCartao(q(), "y", "x"))[0][0]).toEqual(["y", "x"]);
+    expect(cartoes(soltarCartao(q(), "x", "z"))[0]).toEqual([["y"], ["x", "z"]]);
   });
-  it("reordena na mesma coluna nos dois sentidos", () => {
-    expect(soltarCartao(q(), "x", "y").colunas[0].cartoes).toEqual(["y", "x"]);
-    expect(soltarCartao(q(), "y", "x").colunas[0].cartoes).toEqual(["y", "x"]);
+  it("sobre a lista de uma seção ('sec:'), vai para o fim, inclusive seção vazia em outra coluna", () => {
+    expect(cartoes(soltarCartao(q(), "x", "sec:c"))[1]).toEqual([["x"]]);
+    expect(cartoes(soltarCartao(q(), "x", "sec:b"))[0][1]).toEqual(["z", "x"]);
   });
-  it("alvo ausente, igual ao ativo ou inexistente não muda nada nem perde cartões", () => {
-    for (const alvo of [null, undefined, "x", "nao", "col:nao"]) expect(soltarCartao(q(), "x", alvo)).toEqual(q());
+  it("sobre o '+' abaixo de uma seção: cria uma seção nova logo abaixo já com o cartão", () => {
+    const r = soltarCartao(q(), "x", "abaixo:a", { secao: "n" });
+    expect(ordem(r)).toEqual([["a", "n", "b"], ["c"]]); expect(cartoes(r)[0]).toEqual([["y"], ["x"], ["z"]]); expect(todosCartoes(r).sort()).toEqual(["x", "y", "z"]);
+  });
+  it("sobre 'nova-coluna': cria coluna no fim com seção contendo o cartão, sem perder nem duplicar", () => {
+    const r = soltarCartao(q(), "z", "nova-coluna", { coluna: "k", secao: "s" });
+    expect(r.colunas.at(-1)).toEqual({ id: "k", secoes: [{ id: "s", titulo: "Seção 4", cartoes: ["z"] }] }); expect(todosCartoes(r).sort()).toEqual(["x", "y", "z"]);
+  });
+  it("alvo ausente, igual ao ativo ou inexistente não muda nada", () => {
+    for (const alvo of [null, undefined, "x", "nao", "sec:nao", "abaixo:nao"]) expect(soltarCartao(q(), "x", alvo)).toEqual(q());
     expect(soltarCartao(q(), "nao", "z")).toEqual(q());
   });
 });
 
-describe("colunas arrastáveis e nova coluna sem nome", () => {
-  it("soltarColuna reordena sobre outra coluna, sobre a lista dela ou sobre um cartão dela", () => {
-    expect(soltarColuna(q(), "a", "coluna:b").colunas.map(c => c.id)).toEqual(["b", "a", "c"]);
-    expect(soltarColuna(q(), "c", "col:a").colunas.map(c => c.id)).toEqual(["c", "a", "b"]);
-    expect(soltarColuna(q(), "a", "z").colunas.map(c => c.id)).toEqual(["b", "a", "c"]);          // z está na coluna b
-    expect(soltarColuna(q(), "a", "nova-coluna").colunas.map(c => c.id)).toEqual(["b", "c", "a"]);
+describe("soltarSecao (arrastar seções entre colunas e empilhar)", () => {
+  it("reordena na mesma coluna nos dois sentidos", () => {
+    expect(ordem(soltarSecao(q(), "a", "secao:b"))).toEqual([["b", "a"], ["c"]]);
+    expect(ordem(soltarSecao(q(), "b", "secao:a"))).toEqual([["b", "a"], ["c"]]);
   });
-  it("soltarColuna ignora alvo ausente, a própria coluna ou desconhecido, sem perder cartões", () => {
-    for (const alvo of [null, undefined, "coluna:a", "col:a", "x", "coluna:nao"]) expect(soltarColuna(q(), "a", alvo)).toEqual(q());
-    expect(soltarColuna(q(), "nao", "coluna:b")).toEqual(q());
+  it("passa para outra coluna (antes da seção alvo, ou abaixo dela com 'abaixo:') e a coluna que esvaziar some", () => {
+    expect(ordem(soltarSecao(q(), "c", "secao:a"))).toEqual([["c", "a", "b"]]);
+    expect(ordem(soltarSecao(q(), "c", "abaixo:a"))).toEqual([["a", "c", "b"]]);
+    expect(ordem(soltarSecao(q(), "b", "sec:c"))).toEqual([["a"], ["b", "c"]]);
+    expect(ordem(soltarSecao(q(), "a", "z"))).toEqual([["b", "a"], ["c"]]);
   });
-  it("nomes automáticos nunca repetem e a nova coluna nasce com o cartão arrastado", () => {
-    expect(proximoNomeColuna(q())).toBe("Coluna 4");
-    expect(proximoNomeColuna({ colunas: [{ id: "1", titulo: "Coluna 2", cartoes: [] }] })).toBe("Coluna 3");
-    const m = moverParaNovaColuna(q(), "x", undefined, "n");
-    expect(m.colunas.at(-1)).toEqual({ id: "n", titulo: "Coluna 4", cartoes: ["x"] });
-    expect(m.colunas[0].cartoes).toEqual(["y"]); expect(todosCartoes(m).sort()).toEqual(["x", "y", "z"]);
-    expect(moverParaNovaColuna(q(), "nao")).toEqual(q());
+  it("'nova-coluna' leva a seção (com seus cartões) para uma coluna nova no fim", () => {
+    const r = soltarSecao(q(), "b", "nova-coluna", { coluna: "k" });
+    expect(ordem(r)).toEqual([["a"], ["c"], ["b"]]); expect(todosCartoes(r).sort()).toEqual(["x", "y", "z"]);
+    expect(colunaDaSecao(r, "b")?.id).toBe("k");
   });
-  it("soltar um cartão sobre a coluna arrastável manda o cartão para o fim dela", () => {
-    expect(soltarCartao(q(), "x", "coluna:b").colunas[1].cartoes).toEqual(["z", "x"]);
-  });
-});
-
-describe("largura das colunas", () => {
-  it("redimensiona só a coluna pedida, com limites, sem tocar nos cartões", () => {
-    const r = redimensionarColuna(q(), "a", 480);
-    expect(r.colunas[0]).toEqual({ id: "a", titulo: "Sessão 5", cartoes: ["x", "y"], largura: 480 });
-    expect(r.colunas[1].largura).toBeUndefined();
-    expect(redimensionarColuna(q(), "a", 5).colunas[0].largura).toBe(LARGURA_MIN);
-    expect(redimensionarColuna(q(), "a", 99999).colunas[0].largura).toBe(LARGURA_MAX);
-    expect(redimensionarColuna(q(), "nao", 400)).toEqual(q()); expect(redimensionarColuna(q(), "a", NaN)).toEqual(q());
-  });
-  it("a largura sobrevive a ler, mover cartões e renomear; valores inválidos são descartados ou limitados", () => {
-    const base = redimensionarColuna(q(), "a", 450);
-    expect(lerQuadro({ colunas: base.colunas }).colunas[0].largura).toBe(450);
-    expect(moverCartao(base, "x", "b").colunas[0].largura).toBe(450);
-    expect(renomearColuna(base, "a", "Novo").colunas[0].largura).toBe(450);
-    expect(lerQuadro({ colunas: [{ id: "1", titulo: "T", cartoes: [], largura: "larga" }] }).colunas[0].largura).toBeUndefined();
-    expect(lerQuadro({ colunas: [{ id: "1", titulo: "T", cartoes: [], largura: 5000 }] }).colunas[0].largura).toBe(LARGURA_MAX);
+  it("alvo inválido ou a própria seção não muda nada; nunca perde cartões", () => {
+    for (const alvo of [null, undefined, "secao:a", "secao:nao", "sec:a"]) expect(soltarSecao(q(), "a", alvo)).toEqual(q());
+    expect(soltarSecao(q(), "nao", "secao:a")).toEqual(q());
+    expect(todasSecoes(soltarSecao(q(), "a", "secao:c"))).toHaveLength(3);
+    expect(todosCartoes(soltarSecao(q(), "a", "secao:c")).sort()).toEqual(["x", "y", "z"]);
   });
 });
