@@ -1,5 +1,5 @@
 // Cliente Supabase único. Configuração por variáveis de ambiente do Vite (ver .env.example).
-// Sem variáveis, `supabase` é null e o app funciona em modo visitante (nada é simulado).
+// Sem variáveis, `supabase` é null e o aplicativo não abre (exige login; nada é simulado).
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;

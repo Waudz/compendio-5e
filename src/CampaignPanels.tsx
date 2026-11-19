@@ -33,12 +33,9 @@ function useAction() {
   return { busy, msg, setMsg, run };
 }
 
-function NeedLogin({ title, onOpen }: { title: string; onOpen: (s: TabSpec) => void }) {
-  const { status } = useAuth();
-  return <div className="auth"><h1>{title}</h1>
-    <div className="notice">{status === "unconfigured" ? "O login ainda não está configurado neste ambiente. Campanhas exigem conta." : incomingInvite() ? "Você recebeu um convite de campanha. Entre ou crie uma conta para aceitá-lo; o convite será mantido." : "Entre na sua conta para criar campanhas ou entrar em uma com um convite."}</div>
-    {status !== "unconfigured" && <div className="links"><button className="btn-primary" onClick={() => onOpen({ kind: "conta", ref: "perfil" })}>Entrar ou criar conta</button></div>}
-  </div>;
+/** Sem API de campanhas (só ocorre fora da porta de entrada, ex.: testes ou erro de configuração). */
+function NeedLogin({ title }: { title: string; onOpen?: (s: TabSpec) => void }) {
+  return <div className="auth"><h1>{title}</h1><div className="notice" role="status">Conta necessária para usar campanhas.</div></div>;
 }
 
 /** Hub: campanhas das quais participo, criar, entrar por convite, definir a ativa. */
@@ -78,7 +75,7 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
     void acceptInvite(invite);
   }, [api, invite, acceptInvite]);
 
-  if (!api) return <NeedLogin title="Campanhas" onOpen={onOpen}/>;
+  if (!api) return <NeedLogin title="Campanhas"/>;
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -148,7 +145,7 @@ export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec)
   }, [api, id, mem?.role]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void load(); }, [load]);
 
-  if (!api) return <NeedLogin title="Campanha" onOpen={onOpen}/>;
+  if (!api) return <NeedLogin title="Campanha"/>;
   if (!mem) return <div className="auth"><h1>Campanha</h1><div className="notice">Você não participa desta campanha (ou ela foi removida).</div></div>;
   const c = mem.campaign;
 
