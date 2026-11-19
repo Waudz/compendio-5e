@@ -276,3 +276,37 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .cartao-topo.arrastavel button{cursor:pointer}
 .alca{width:28px;height:28px}.alca-coluna{width:28px;height:30px}
 .cartao{padding-top:10px}
+
+/* colunas: espaço fixo e redimensionável; os cartões acompanham a largura */
+.quadro{gap:18px}
+.coluna{flex:0 0 300px;min-width:0;position:relative}
+.coluna-redim{position:absolute;top:8px;bottom:8px;right:-11px;width:12px;cursor:col-resize;touch-action:none;display:flex;align-items:center;justify-content:center;border-radius:6px;z-index:3}
+.coluna-redim::after{content:"";width:3px;height:36px;border-radius:2px;background:var(--line);opacity:.5;transition:opacity .15s,background .15s}
+.coluna-redim:hover::after,.coluna-redim:focus-visible::after,.coluna.redimensionando .coluna-redim::after{opacity:1;background:var(--accent)}
+.coluna.redimensionando{user-select:none}
+@media(max-width:700px){.coluna{max-width:calc(100cqw - 8px)}}
+/* conteúdo inteiro do cartão (somente leitura) */
+.cartao-linha{display:flex;align-items:flex-start;gap:4px}.cartao-linha .cartao-abrir{flex:1;min-width:0}
+.cartao-topo{flex-direction:column;align-items:stretch;padding-right:0}
+.cartao-linha{padding-right:26px}
+.cartao-conteudo{cursor:pointer;margin-top:6px;font-size:13px;line-height:1.45;color:var(--text);overflow-wrap:anywhere}
+.conteudo-leve p{margin:0 0 6px;color:inherit}.conteudo-leve a{color:var(--accent)}.conteudo-leve code{background:var(--hover);border-radius:4px;padding:0 4px}
+.conteudo-leve .cl-h1,.conteudo-leve .cl-h2,.conteudo-leve .cl-h3{margin:8px 0 4px;color:var(--text);font-weight:650}
+.conteudo-leve .cl-h1{font-size:1.35em}.conteudo-leve .cl-h2{font-size:1.15em}.conteudo-leve .cl-h3{font-size:1em}
+.conteudo-leve .cl-item{display:flex;gap:6px;margin:0 0 4px}.conteudo-leve .cl-marca{flex:none;min-width:1.1em;color:var(--muted)}
+.conteudo-leve blockquote{margin:0 0 6px;padding-left:8px;border-left:3px solid var(--line);color:var(--text-2)}
+.conteudo-leve pre{margin:0 0 6px;padding:6px 8px;background:var(--bg,var(--hover));border-radius:6px;overflow:auto}
+.conteudo-leve .cl-filhos{margin-left:14px}
+
+/* cartão simplificado: título no cabeçalho, texto como corpo, rodapé só com excluir */
+.cartao-titulo{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--text);font:inherit;font-weight:650;padding:3px 6px;margin-left:-6px}
+.cartao-titulo:hover{border-color:var(--line)}.cartao-titulo:focus{border-color:var(--accent);outline:none;background:var(--panel)}
+.cartao-corpo{margin-top:4px}
+.cartao-corpo .cartao-conteudo{margin-top:2px;padding:2px 0;border-radius:6px;min-height:22px}.cartao-corpo .cartao-conteudo:hover{background:var(--hover)}
+.cartao-corpo .page-editor{border:0;background:transparent;padding:0;min-height:0}
+.cartao-corpo .bn-editor,.cartao-corpo .ProseMirror{padding-inline:0!important}
+.cartao-rodape{display:flex;justify-content:flex-end;margin-top:4px}
+.estado{flex:none;font-size:11px;color:var(--muted)}.estado.sujo{color:#e5a13a}.estado-erro{background:transparent;border:1px solid #e5484d;color:#e5484d;border-radius:5px;padding:1px 6px;cursor:pointer}
+
+.cartao-corpo .bn-editor,.cartao-corpo .ProseMirror{font-size:14px!important}
+.cartao-corpo .cartao-conteudo{font-size:14px}

@@ -1,6 +1,6 @@
 // Quadro de Planejamento: funções puras.
 import { describe, expect, it } from "vitest";
-import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverCartao, moverColuna, novaColuna, removerCartao, renomearColuna, soltarCartao, soltarColuna, proximoNomeColuna, moverParaNovaColuna, todosCartoes, type Quadro } from "./quadro";
+import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverCartao, moverColuna, novaColuna, removerCartao, renomearColuna, soltarCartao, soltarColuna, proximoNomeColuna, moverParaNovaColuna, todosCartoes, redimensionarColuna, LARGURA_MAX, LARGURA_MIN, type Quadro } from "./quadro";
 
 const q = (): Quadro => ({ colunas: [{ id: "a", titulo: "Sessão 5", cartoes: ["x", "y"] }, { id: "b", titulo: "Floresta", cartoes: ["z"] }, { id: "c", titulo: "Vazia", cartoes: [] }] });
 
@@ -89,5 +89,24 @@ describe("colunas arrastáveis e nova coluna sem nome", () => {
   });
   it("soltar um cartão sobre a coluna arrastável manda o cartão para o fim dela", () => {
     expect(soltarCartao(q(), "x", "coluna:b").colunas[1].cartoes).toEqual(["z", "x"]);
+  });
+});
+
+describe("largura das colunas", () => {
+  it("redimensiona só a coluna pedida, com limites, sem tocar nos cartões", () => {
+    const r = redimensionarColuna(q(), "a", 480);
+    expect(r.colunas[0]).toEqual({ id: "a", titulo: "Sessão 5", cartoes: ["x", "y"], largura: 480 });
+    expect(r.colunas[1].largura).toBeUndefined();
+    expect(redimensionarColuna(q(), "a", 5).colunas[0].largura).toBe(LARGURA_MIN);
+    expect(redimensionarColuna(q(), "a", 99999).colunas[0].largura).toBe(LARGURA_MAX);
+    expect(redimensionarColuna(q(), "nao", 400)).toEqual(q()); expect(redimensionarColuna(q(), "a", NaN)).toEqual(q());
+  });
+  it("a largura sobrevive a ler, mover cartões e renomear; valores inválidos são descartados ou limitados", () => {
+    const base = redimensionarColuna(q(), "a", 450);
+    expect(lerQuadro({ colunas: base.colunas }).colunas[0].largura).toBe(450);
+    expect(moverCartao(base, "x", "b").colunas[0].largura).toBe(450);
+    expect(renomearColuna(base, "a", "Novo").colunas[0].largura).toBe(450);
+    expect(lerQuadro({ colunas: [{ id: "1", titulo: "T", cartoes: [], largura: "larga" }] }).colunas[0].largura).toBeUndefined();
+    expect(lerQuadro({ colunas: [{ id: "1", titulo: "T", cartoes: [], largura: 5000 }] }).colunas[0].largura).toBe(LARGURA_MAX);
   });
 });
