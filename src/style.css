@@ -372,3 +372,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .mobile-simple .mobile-menu-heading button{background:none;border:0;color:var(--text);padding:6px}
   .mobile-simple .mobile-menu-groups{display:flex;flex-direction:column;gap:3px;padding:12px 4px;border-top:1px solid var(--line);color:var(--text-2)}
 }
+
+/* O mesmo controle de rolagem do app também atua na navegação mobile independente. */
+@media(max-width:700px){
+  .mobile-simple .mobile-topbar,.mobile-simple .mobile-bottom-nav{transition:transform .22s ease,visibility 0s;will-change:transform}
+  .chrome-hidden .mobile-simple .mobile-topbar{transform:translateY(-100%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s}
+  .chrome-hidden .mobile-simple .mobile-bottom-nav{transform:translateY(100%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s}
+}
+@media(prefers-reduced-motion:reduce){
+  .mobile-simple .mobile-topbar,.mobile-simple .mobile-bottom-nav,.chrome-hidden .mobile-simple .mobile-topbar,.chrome-hidden .mobile-simple .mobile-bottom-nav{transition:none!important}
+}
