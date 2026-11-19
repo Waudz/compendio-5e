@@ -6,16 +6,21 @@ import { CSS } from "@dnd-kit/utilities";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ClipboardList, GripVertical, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCampaigns } from "./CampaignsContext";
-import { primeiroParagrafo, resumirTexto } from "./inicio";
+import { primeiroParagrafo, resumirTexto, type BlocoTexto } from "./inicio";
 import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverColuna, novaColuna, novoId, removerCartao, renomearColuna, soltarCartao, type Quadro } from "./quadro";
 import { validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
-import { avisarRegistros } from "./registrosStore";
+import { avisarRegistros, useVersaoRegistros } from "./registrosStore";
+import { EditorLazy } from "./EditorLazy";
 import type { TabSpec } from "./workspace";
 
 export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) => void } = {}) {
   const { active } = useCampaigns(), api = useRegistros();
   const cid = active?.campaign.id;
+  const alteracoes = useVersaoRegistros();
+  const [expandido, setExpandido] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const ultimaVersao = useRef(alteracoes);
   const [board, setBoard] = useState<Registro | null>(null), [cenas, setCenas] = useState<Record<string, Registro>>({});
   const [carregado, setCarregado] = useState(false), [erro, setErro] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
   const fila = useRef<Promise<unknown>>(Promise.resolve());   // grava o quadro em ordem, uma operação por vez (versão otimista)
@@ -36,7 +41,8 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
     }
     setErro(null); versao.current = quadro.version; boardRef.current = quadro; setBoard(quadro); setCenas(Object.fromEntries(s.data.map(r => [r.id, r]))); setCarregado(true);
   }, [api, cid]);
-  useEffect(() => { setCarregado(false); setBoard(null); void carregar(); }, [carregar]);
+  useEffect(() => { setCarregado(false); setBoard(null); setExpandido(null); void carregar(); }, [carregar]);
+  useEffect(() => { if (ultimaVersao.current === alteracoes) return; ultimaVersao.current = alteracoes; if (!expandido && fila.current) void fila.current.then(() => carregar()); }, [alteracoes, expandido, carregar]);
 
   if (!active) return <div className="content"><h1>Planejamento</h1><div className="notice" role="status">O Planejamento pertence a uma campanha. Escolha uma campanha ativa na barra lateral.</div></div>;
   if (active.role !== "mestre") return <div className="content"><h1>Planejamento</h1><div className="notice" role="status">O Planejamento é exclusivo do mestre desta campanha.</div></div>;
@@ -58,7 +64,7 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
     const bad = validarTitulo(titulo); if (bad) { setAviso(bad); return false; }
     const r = await api.create({ kind: "scene", campaignId: active.campaign.id, title: titulo, visibility: "private" });
     if (!r.ok) { setAviso(r.error); return false; }
-    setCenas(c => ({ ...c, [r.data.id]: r.data })); gravar(q => adicionarCartao(q, colunaId, r.data.id)); return true;
+    setCenas(c => ({ ...c, [r.data.id]: r.data })); setExpandido(r.data.id); gravar(q => adicionarCartao(q, colunaId, r.data.id)); return true;
   };
   const excluirCartao = async (id: string) => {
     const r = await api.remove(id); if (!r.ok) { setAviso(r.error); return; }
@@ -66,12 +72,14 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
   };
   const soltar = (e: DragEndEvent) => gravar(q => soltarCartao(q, String(e.active.id), e.over ? String(e.over.id) : null));
   const abrir = (r: Registro) => onOpenContent?.({ kind: "documento", ref: r.id, title: r.title });
+  const abrirMenu = (e: React.MouseEvent, id: string) => { e.preventDefault(); setMenu({ id, x: e.clientX, y: e.clientY }); };
 
   return <div className="content planejamento" data-testid="planejamento">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Planejamento</h1>
     <p>Prepare as sessões em colunas livres. Cada cartão é uma página privada sua; reorganizar o quadro não move nem duplica a página.</p>
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
+    {menu && <div className="cartao-menu-contexto" role="menu" style={{ position: "fixed", left: Math.min(menu.x, window.innerWidth - 230), top: Math.min(menu.y, window.innerHeight - 65), zIndex: 1000, padding: 8, background: "var(--surface, #20252d)", border: "1px solid #64748b", borderRadius: 8 }}><button className="btn-secondary" role="menuitem" onClick={() => { const r = cenas[menu.id]; if (r) abrir(r); setMenu(null); }}>Abrir em nova aba</button><button className="icon" aria-label="Fechar menu" onClick={() => setMenu(null)}>×</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando o planejamento…</p>}
     {carregado && board && <DndContext sensors={sensores} collisionDetection={closestCorners} onDragEnd={soltar}><div className="quadro" role="list" aria-label="Colunas do planejamento">
@@ -83,8 +91,9 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
           <button className="icon" aria-label={`Excluir coluna ${col.titulo}`} title={col.cartoes.length ? "Esvazie a coluna para excluí-la" : "Excluir coluna"} disabled={col.cartoes.length > 0} onClick={() => gravar(q => excluirColuna(q, col.id))}><Trash2 size={14}/></button>
         </header>
         <ListaColuna colId={col.id} ids={col.cartoes.filter(id => cenas[id])}>{col.cartoes.map((id, i) => { const c = cenas[id]; if (!c) return null; const t = primeiroParagrafo(c.content); return <Ordenavel key={id} id={id} alca={`Arrastar o cartão ${c.title}`}>
-          <button className="cartao-abrir" onClick={() => abrir(c)}><strong>{c.title}</strong>{t && <span className="cartao-previa">{resumirTexto(t, 140)}</span>}</button>
-          <div className="cartao-acoes">
+          <div onContextMenu={e => abrirMenu(e, id)}><button className="cartao-abrir" aria-expanded={expandido === id} onClick={() => { setMenu(null); setExpandido(expandido === id ? null : id); }}><strong>{c.title}</strong>{t && <span className="cartao-previa">{resumirTexto(t, 140)}</span>}</button>
+          {expandido === id && <EditorCartao key={id} registro={c} api={api} onSaved={r => { setCenas(prev => ({ ...prev, [id]: r })); avisarRegistros(); }} onClose={() => setExpandido(null)}/>}
+          </div><div className="cartao-acoes">
             <button className="icon" aria-label={`Subir ${c.title}`} disabled={i === 0} onClick={() => gravar(q => deslocarCartao(q, id, "cima"))}><ArrowUp size={13}/></button>
             <button className="icon" aria-label={`Descer ${c.title}`} disabled={i === col.cartoes.length - 1} onClick={() => gravar(q => deslocarCartao(q, id, "baixo"))}><ArrowDown size={13}/></button>
             <button className="icon" aria-label={`Mover ${c.title} para a coluna anterior`} disabled={ci === 0} onClick={() => gravar(q => deslocarCartao(q, id, "esquerda"))}><ArrowLeft size={13}/></button>
@@ -121,4 +130,30 @@ function Ordenavel({ id, alca, children }: { id: string; alca: string; children:
   const s = useSortable({ id });
   return <li ref={s.setNodeRef} className={s.isDragging ? "cartao arrastando" : "cartao"} style={{ transform: CSS.Transform.toString(s.transform), transition: s.transition }}>
     <button type="button" className="alca" aria-label={alca} {...s.attributes} {...s.listeners}><GripVertical size={14}/></button>{children}</li>;
+}
+
+/** Editor rico no próprio cartão, sem trocar de aba. */
+function EditorCartao({ registro, api, onSaved, onClose }: { registro: Registro; api: NonNullable<ReturnType<typeof useRegistros>>; onSaved: (r: Registro) => void; onClose: () => void }) {
+  const [titulo, setTitulo] = useState(registro.title);
+  const [blocos, setBlocos] = useState<BlocoTexto[]>(registro.content);
+  const [editou, setEditou] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [atual, setAtual] = useState(registro);
+  const sujo = editou || titulo !== atual.title;
+  const fechar = () => { if (!sujo || window.confirm("Descartar alterações não salvas deste cartão?")) onClose(); };
+  const salvar = async () => {
+    const invalido = validarTitulo(titulo); if (invalido) { setErro(invalido); return; }
+    setSalvando(true); setErro(null);
+    const r = await api.update(atual.id, atual.version, { title: titulo, content: blocos });
+    setSalvando(false);
+    if (!r.ok) { setErro(r.error); return; }
+    setAtual(r.data); setEditou(false); onSaved(r.data);
+  };
+  return <div className="cartao-editor" style={{ padding: "12px 4px", minWidth: 0 }} onKeyDown={e => e.stopPropagation()}>
+    <label>Título<input value={titulo} maxLength={120} onChange={e => setTitulo(e.target.value)}/></label>
+    <div className="campo-editor"><span className="campo-rotulo">Conteúdo</span><EditorLazy inicial={atual.content} rotulo={`Conteúdo de ${atual.title}`} onChange={b => { setBlocos(b); setEditou(true); }}/></div>
+    {erro && <p role="alert" className="notice err">{erro}</p>}
+    <div className="row"><button className="btn-primary" type="button" disabled={salvando} onClick={() => void salvar()}>{salvando ? "Salvando…" : "Salvar"}</button><button type="button" className="btn-secondary" onClick={fechar}>Recolher</button></div>
+  </div>;
 }
