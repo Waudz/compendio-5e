@@ -20,7 +20,7 @@
   --flexlayout-color-drag2:#d2ac6a;--flexlayout-color-drag2-background:rgba(210,172,106,.14);
   --flexlayout-color-drag-rect:#e6ebf1;--flexlayout-color-drag-rect-background:#1c2836;--flexlayout-color-drag-rect-border:#d2ac6a;
   --flexlayout-color-edge-marker:rgba(210,172,106,.22);--flexlayout-color-edge-icon:#d2ac6a;
-  --flexlayout-font-family:inherit;--flexlayout-font-size:14px;--flexlayout-splitter-size:6px;--flexlayout-splitter-active-size:6px;
+  --flexlayout-font-family:inherit;--flexlayout-font-size:12.5px;--flexlayout-splitter-size:6px;--flexlayout-splitter-active-size:6px;
 }
 .flexlayout__tabset_selected .flexlayout__tab_button--selected,.flexlayout__tab_button--selected{box-shadow:inset 0 2px 0 #d2ac6a}
 .flexlayout__tabset_selected{box-shadow:inset 0 0 0 1px rgba(210,172,106,.35)}
@@ -53,3 +53,11 @@
 
 /* Nunca há grupos empilhados: esconde os marcadores de borda superior/inferior. */
 .flexlayout__edge_rect_top,.flexlayout__edge_rect_bottom{display:none}
+
+/* Abas: tamanho intermediário (~32px de altura, texto 12,5px, largura pelo conteúdo). */
+.flexlayout__tabset_tabbar_outer{min-height:32px}
+.flexlayout__tab_button{min-height:32px;padding:0 6px 0 12px;gap:6px;font-size:12.5px;line-height:1}
+.flexlayout__tab_button_trailing{padding:3px;margin-left:2px;border-radius:4px}
+.flexlayout__tab_button_trailing svg{width:14px;height:14px}
+.flexlayout__tab_button--unselected .flexlayout__tab_button_trailing{opacity:.7}
+.flexlayout__tab_button_trailing:hover{opacity:1}

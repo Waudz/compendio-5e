@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: '22'
       - name: Instalar dependências
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Verificar TypeScript e build
         run: npm run build
       - name: Executar testes
