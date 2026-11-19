@@ -22,3 +22,26 @@ describe("isolamento do laboratório", () => {
     for (const d of ["@blocknote/core", "@blocknote/react", "@blocknote/mantine", "@mantine/core", "@mantine/hooks"]) expect(pkg.dependencies[d]).toMatch(/^\d+\.\d+\.\d+$/);   // versões fixadas
   });
 });
+
+describe("ajustes do quadro (PR D): aparência, cartões altos e controles", () => {
+  const css = readFileSync("src/lab/lab.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const board = readFileSync("src/lab/Board.tsx", "utf8");
+  it("cartão expandido não tem borda, brilho nem fundo próprios: expandir muda só altura e conteúdo", () => {
+    expect(css).not.toMatch(/\.lab-card\.expanded\s*\{/);
+    expect(css).not.toMatch(/\.lab-card[^{}]*\{[^}]*box-shadow/);            // nenhum brilho em cartões (só no cartão flutuante do arrasto)
+    expect(css).not.toMatch(/\.lab-card\.expanded[^{}]*\{[^}]*(border|background|box-shadow|outline)/);
+  });
+  it("feedback do arrasto discreto: espaço tracejado fino, sem preenchimento azul; foco visível por teclado preservado", () => {
+    expect(css).toMatch(/\.lab-ghost\{[^}]*border:1px dashed var\(--muted\)[^}]*background:transparent/);
+    expect(css).not.toMatch(/\.lab-ghost\{[^}]*accent-faint/);
+    expect(css).toMatch(/\.lab-card button:focus-visible\{outline:2px solid var\(--accent\)/);
+    expect(css).toMatch(/\.lab-ghost\{max-height:72px/);                       // cartão alto: espaço reservado compacto
+  });
+  it("destino do arrasto = o que está sob o ponteiro, com cantos como reserva (cartões altos, teclado)", () => {
+    expect(board).toMatch(/pointerWithin\(args\)/); expect(board).toMatch(/hits\.length \? hits : closestCorners\(args\)/); expect(board).toMatch(/collisionDetection=\{collision\}/);
+  });
+  it("o quadro (candidato à interface final) não carrega controles de teste do laboratório", () => {
+    for (const proibido of ["Medir", "Documento de 500", "Exportar JSON", "Carregar JSON", "Ida e volta", "Inserir tabela", "performance.now", "manyCards", "data-lab"]) expect(board, proibido).not.toContain(proibido);
+    expect(board).not.toMatch(/from "\.\/(Lab|EditorBench|mount)"/);
+  });
+});

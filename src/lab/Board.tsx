@@ -3,7 +3,7 @@
 // - Arrastar e soltar (@dnd-kit, MIT): só pela ALÇA do cartão (mouse, toque com pressão longa e teclado); o corpo do cartão e o editor nunca iniciam arrasto.
 //   Os botões ↑ ↓ ← → continuam como alternativa. O cartão referencia uma página: mover o cartão nunca altera a página.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { closestCorners, DndContext, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, useDroppable, useSensor, useSensors, type Announcements, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
+import { closestCorners, DndContext, pointerWithin, DragOverlay, KeyboardSensor, MouseSensor, TouchSensor, useDroppable, useSensor, useSensors, type Announcements, type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronDown, ChevronRight, GripVertical, Pencil } from "lucide-react";
@@ -15,6 +15,8 @@ import { Preview } from "./Preview";
 import { columnOf, moveCard, moveCardTo, pageOf, previewText, sampleBoard, setCardMode, updatePage, type Board as BoardData, type Card, type Dir, type LabBlock, type Page } from "./model";
 
 const colId = (id: string) => `col:${id}`;
+/** Destino do arrasto: o que está SOB o ponteiro (previsível com cartões altos); fora de qualquer alvo, o mais próximo pelos cantos. */
+const collision: CollisionDetection = args => { const hits = pointerWithin(args); return hits.length ? hits : closestCorners(args); };
 const isColId = (id: unknown): id is string => typeof id === "string" && id.startsWith("col:");
 
 function CardEditor({ page, onSave, onCancel }: { page: Page; onSave: (blocks: LabBlock[]) => void; onCancel: () => void }) {
@@ -120,7 +122,7 @@ export function Board({ initial, onEvent }: { initial?: BoardData; onEvent?: (s:
 
   return <div className="lab-board" aria-label={board.title}>
     <h2 className="lab-title">{board.title}</h2>
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onStart} onDragOver={onOver} onDragEnd={onEnd} onDragCancel={onCancel}
+    <DndContext sensors={sensors} collisionDetection={collision} onDragStart={onStart} onDragOver={onOver} onDragEnd={onEnd} onDragCancel={onCancel}
       accessibility={{ announcements, screenReaderInstructions: { draggable: "Para mover o cartão, foque a alça e pressione Espaço. Use as setas para escolher o destino, Espaço para soltar e Esc para cancelar. Os botões de seta do cartão também movem." } }}>
       <div className="lab-cols">{board.columns.map((col, ci) => {
         const seen = (pid: string) => board.columns.reduce((n, c) => n + c.cards.filter(k => k.pageId === pid).length, 0) > 1;

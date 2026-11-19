@@ -24,7 +24,7 @@
 .lab-count{color:var(--muted);font-weight:400;font-size:12px}
 .lab-cards{display:flex;flex-direction:column;gap:8px}
 .lab-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
-.lab-card.expanded{border-color:var(--accent)}
+/* cartão expandido = mesma aparência do fechado: expandir muda só a altura e o conteúdo (sem borda azul, brilho ou fundo próprio) */
 .lab-card header{display:flex;align-items:center;gap:6px;justify-content:space-between}
 .lab-toggle{display:flex;align-items:center;gap:4px;border:0!important;background:transparent!important;padding:2px 0!important;text-align:left;min-width:0}
 .lab-toggle strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -55,13 +55,13 @@
 .lab-grip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .lab-card header{gap:4px}
 .lab-card header .lab-toggle{flex:1 1 auto}
-.lab-ghost{opacity:.35;border:2px dashed var(--accent);background:var(--accent-faint)}      /* onde o cartão será solto */
+.lab-ghost{opacity:.55;border:1px dashed var(--muted);background:transparent}      /* onde o cartão será solto (discreto) */
 .lab-ghost>*{visibility:hidden}
-.lab-overlay{box-shadow:0 10px 24px rgba(0,0,0,.45);border-color:var(--accent);cursor:grabbing;opacity:.95}
-.lab-over{border-color:var(--accent)}
+.lab-overlay{box-shadow:0 6px 14px rgba(0,0,0,.3);cursor:grabbing;opacity:.95}
+.lab-over{background:var(--accent-faint)}
 .lab-cards{min-height:48px}
-.lab-cards.lab-empty{border:2px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;min-height:72px}
-.lab-over .lab-cards.lab-empty{border-color:var(--accent);background:var(--accent-faint)}
+.lab-cards.lab-empty{border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;min-height:72px}
+.lab-over .lab-cards.lab-empty{border-color:var(--muted)}
 .lab-drop-hint{margin:0;color:var(--muted);font-size:12px}
 .lab-shortcut{margin-left:6px;font-size:10px;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 4px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.lab-card,.lab-cards,.lab-ghost{transition:none!important;animation:none!important}}
@@ -71,3 +71,7 @@
 .lab-card:hover .lab-moves,.lab-card:focus-within .lab-moves{opacity:1;pointer-events:auto}
 @media (hover:none){.lab-moves{position:static;opacity:1;pointer-events:auto}}
 .lab-overlay .lab-moves{display:none}
+/* foco visível por teclado em todos os controles do cartão (a alça, o título, os botões de seta e as ações) */
+.lab-card button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* cartão alto sendo arrastado: o espaço reservado no destino é compacto (o conteúdo continua intacto, só escondido), para a coluna não "pular" */
+.lab-ghost{max-height:72px;overflow:hidden}
