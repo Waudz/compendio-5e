@@ -7,7 +7,9 @@ import { Action, Actions, DockLocation, Model, RowNode, TabNode, TabSetNode, typ
 export const MAX_GROUPS = 3;
 export const MIN_GROUP_WIDTH = 220;
 
-export type Kind = "secao" | "conta" | "campanha" | "ficha" | "npc" | "documento";
+// Um único lugar define os tipos de aba: para criar um novo (ex.: cena, encontro) basta acrescentar uma linha aqui e o painel correspondente.
+const kindLabel = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento" } as const;
+export type Kind = keyof typeof kindLabel;
 export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean };
 export type Page = "campanhas" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
 
@@ -20,8 +22,7 @@ export const sections: { page: Page; title: string; icon: typeof Users }[] = [
   { page: "compendio", title: "Compêndio", icon: ScrollText },
   { page: "documentos", title: "Documentos", icon: FileText },
 ];
-export const kinds: Kind[] = ["secao", "conta", "campanha", "ficha", "npc", "documento"];
-const kindLabel: Record<Kind, string> = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento" };
+export const kinds = Object.keys(kindLabel) as Kind[];
 
 /** Id próprio da aba: `kind:ref` (ex.: secao:personagens, ficha:lydia). Uma entidade = uma aba. */
 export const tabId = (s: Pick<TabSpec, "kind" | "ref">) => `${s.kind}:${s.ref}`;
