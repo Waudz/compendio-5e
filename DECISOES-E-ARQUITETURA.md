@@ -73,7 +73,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 - Evitar manter dezenas de abas ocultas executando efeitos caros. Dados do jogo devem sincronizar mesmo se a aba não estiver visível.
 - Confirmar/evitar perda de alterações não salvas ao fechar aba, trocar campanha ou navegar.
 
-**Biblioteca de layout:** FlexLayout foi experimentado em demonstração e considerado poderoso demais; se usado, restringir rigorosamente ao comportamento acima. Alternativa: `react-resizable-panels` + `dnd-kit`. **A escolha final da biblioteca não está fechada**; priorizar menor complexidade real.
+**Biblioteca de layout:** a referência de workspace deve ser reproduzida com alta fidelidade nas interações aprovadas: arrastar/reordenar abas, criar/mover entre grupos, redimensionar, menu de contexto, indicadores de soltura, menu lateral e restauração. **Não simplificar essas interações por conveniência técnica.** A restrição é exclusivamente não empilhar grupos verticalmente (somente colunas lado a lado, até três). Preferir biblioteca de docking consolidada, configurada para impedir grupos horizontais; avaliar FlexLayout e alternativas antes de substituir a implementação manual. A escolha final depende de protótipo e testes.
 
 ## 6. Celular e PWA
 
@@ -178,7 +178,11 @@ A existência de ideias no repositório antigo **não as transforma em requisito
 6. Ao comunicar progresso, ser **curto, direto e objetivo**. O usuário prefere agir/testar, não ler relatórios longos.
 7. **Não gerar imagens para mockups de layout**: usar descrições curtas, esquemas textuais ou protótipos funcionais.
 
-## 13. Questões ainda abertas
+## 13. Atualização de estratégia do workspace (19/11/2026)
+
+O usuário esclareceu que gostou de quase todas as interações do aplicativo de referência, inclusive **arrastar abas, redimensionar grupos e menu lateral**. A simplificação anterior foi excessiva. Não excluir recursos do workspace por serem difíceis de implementar. Preservar o comportamento da referência, exceto grupos empilhados um sobre o outro. Os PRs de remendos de drag-and-drop devem ser reavaliados antes de integrar: preferir uma substituição estrutural testada a acumular patches. Se a migração exceder a capacidade das ferramentas atuais ou apresentar erros repetidos, preparar prompt de transferência ao Claude Code com critérios de aceitação.
+
+## 14. Questões ainda abertas
 
 - Definição final do mecanismo de docking/arraste e da navegação móvel.
 - Modelo de entidades/tabs (seções versus fichas e registros específicos), com deep links.
