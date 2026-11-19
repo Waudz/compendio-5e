@@ -135,15 +135,17 @@ describe("campanha (detalhes, mestre x jogador)", () => {
   const invites: Invite[] = [{ id: "i1", code: "ABCDEFGHIJKL", expires_at: "2030-01-01T00:00:00Z", max_uses: 5, uses: 1 }];
   const openCampaign = async (name: string) => { await openMobile("Campanhas"); const li = (await screen.findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); };
 
-  it("mestre: edita informações, gerencia papéis, remove e administra convites", async () => {
+  it("mestre: edita informações, remove jogadores e administra convites", async () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: structuredClone(members), invites: structuredClone(invites) });
     mount(api); await openCampaign("Festival da Lua");
     expect(await screen.findByText("Bia")).toBeTruthy(); expect(screen.getByText(/convite=ABCDEFGHIJKL/)).toBeTruthy();
     fill("Nome", "Festival Renomeado"); fireEvent.click(screen.getByRole("button", { name: "Salvar informações" }));
     await waitFor(() => expect(api.update).toHaveBeenCalledWith("c1", "Festival Renomeado", "desc Festival da Lua"));
     expect(await screen.findByRole("heading", { name: "Festival Renomeado" })).toBeTruthy();
-    fireEvent.click(await screen.findByRole("button", { name: "Tornar mestre" }));
-    await waitFor(() => expect(api.setRole).toHaveBeenCalledWith("c1", "u2", "mestre"));
+    expect(screen.queryByRole("button", { name: "Tornar mestre" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Tornar jogador" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sair da campanha" })).toBeNull();
+    expect(api.setRole).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole("button", { name: "Criar convite" }));
     expect(await screen.findByText(/convite=NEWCODE12345/)).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "Revogar" })[0]);
@@ -163,12 +165,13 @@ describe("campanha (detalhes, mestre x jogador)", () => {
     expect(screen.getByText("desc Costa Rubra")).toBeTruthy();
   });
 
-  it("recusa do servidor aparece como erro e não quebra a tela", async () => {
+  it("mestre único: nenhum participante pode receber promoção pela interface", async () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: structuredClone(members), invites: [] });
-    api.setRole.mockResolvedValueOnce({ ok: false, error: "A campanha precisa ter pelo menos um mestre." });
     mount(api); await openCampaign("Festival da Lua");
-    fireEvent.click(await screen.findByRole("button", { name: "Tornar mestre" }));
-    expect((await screen.findByRole("alert")).textContent).toMatch(/pelo menos um mestre/);
+    expect(await screen.findByText("Bia")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Tornar mestre" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Tornar jogador" })).toBeNull();
+    expect(api.setRole).not.toHaveBeenCalled();
   });
 
   it("excluir campanha exige confirmação", async () => {
