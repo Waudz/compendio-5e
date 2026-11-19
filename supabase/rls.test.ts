@@ -173,3 +173,34 @@ describe("isolamento entre campanhas e exclusão", () => {
     expect((await rpc(ids.caio, "create_campaign", "C20", "")).error).toMatch(/limite_campanhas/);
   });
 });
+
+describe("migrações em banco que já tinha contas (backfill de perfis)", () => {
+  it("cria perfil para contas anteriores e é idempotente", async () => {
+    const old = new PGlite();
+    await old.exec(stub);
+    await old.query("insert into auth.users (id, email) values ($1, 'antiga@exemplo.com')", [ids.ana]);   // antes das migrações: sem gatilho, sem perfil
+    const files = readdirSync(dir).filter(f => f.endsWith(".sql")).sort();
+    for (const f of files) await old.exec(readFileSync(join(dir, f), "utf8"));
+    expect((await old.query("select display_name from public.profiles where id = $1", [ids.ana])).rows).toEqual([{ display_name: "antiga" }]);
+    await old.exec(readFileSync(join(dir, files[files.length - 1]), "utf8"));                              // reaplicar não quebra
+    expect((await old.query("select count(*)::int as n from public.profiles")).rows).toEqual([{ n: 1 }]);
+  });
+});
+
+describe("auditoria estrutural", () => {
+  it("toda função SECURITY DEFINER fixa search_path vazio", async () => {
+    const r = await db.query<{ proname: string; proconfig: string[] | null }>("select proname, proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prosecdef");
+    expect(r.rows.length).toBeGreaterThan(0);
+    for (const f of r.rows) expect(f.proconfig, f.proname).toContain("search_path=\"\"");
+  });
+  it("nenhuma função do schema public é executável por anon; só as de uso do app por authenticated", async () => {
+    const r = await db.query<{ proname: string; anon: boolean; auth: boolean }>("select proname, has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'");
+    expect(r.rows.filter(f => f.anon)).toEqual([]);
+    expect(r.rows.filter(f => f.auth).map(f => f.proname).sort()).toEqual(["create_campaign", "create_invite", "is_master", "is_member", "join_campaign", "set_member_role", "shares_campaign"]);
+  });
+  it("RLS está ativa em todas as tabelas do schema public", async () => {
+    const r = await db.query<{ relname: string; relrowsecurity: boolean }>("select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'");
+    expect(r.rows.length).toBe(4);
+    expect(r.rows.filter(t => !t.relrowsecurity)).toEqual([]);
+  });
+});
