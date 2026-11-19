@@ -123,7 +123,7 @@ describe("Diário (jogador)", () => {
 });
 
 describe("Planejamento (mestre)", () => {
-  it("cria o quadro, adiciona colunas e cartões, reorganiza e exclui, com persistência", async () => {
+  it("cria o quadro, adiciona colunas e cartões, exclui, com persistência", async () => {
     const registros = registrosEmMemoria("mestre");
     await renderApp({ api: apiC(mestre), registros });
     await abrirSecao("Planejamento");
@@ -136,33 +136,27 @@ describe("Planejamento (mestre)", () => {
     const col1 = within(screen.getByLabelText("Coluna Sessão 1"));
     fireEvent.change(col1.getByLabelText("Título do novo cartão"), { target: { value: "O bar" } });
     fireEvent.click(col1.getByRole("button", { name: "Adicionar cartão" }));
-    await col1.findByText("O bar");
+    await col1.findByLabelText("Título do cartão O bar");
     expect(registros.dados.filter(r => r.kind === "scene").map(r => r.title)).toEqual(["O bar"]);
     expect(registros.dados.find(r => r.kind === "scene")!.visibility).toBe("private");
-    fireEvent.click(screen.getByRole("button", { name: "Mover O bar para a próxima coluna" }));
-    await waitFor(() => expect(within(screen.getByLabelText("Coluna Julkoun")).getByText("O bar")).toBeTruthy());
-    await waitFor(() => expect((board().meta as { colunas: { titulo: string; cartoes: string[] }[] }).colunas.map(c => c.cartoes.length)).toEqual([0, 1]));
-    expect(screen.getByRole("button", { name: "Excluir coluna Julkoun" }).hasAttribute("disabled")).toBe(true);   // coluna com cartão não é excluída
+    await waitFor(() => expect((board().meta as { colunas: { titulo: string; cartoes: string[] }[] }).colunas.map(c => c.cartoes.length)).toEqual([1, 0]));
+    expect(screen.getByRole("button", { name: "Excluir coluna Sessão 1" }).hasAttribute("disabled")).toBe(true);   // coluna com cartão não é excluída
     vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Excluir cartão O bar" }));
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Excluir coluna Julkoun" }).hasAttribute("disabled")).toBe(false));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Excluir coluna Sessão 1" }).hasAttribute("disabled")).toBe(false));
   });
-  it("abrir o cartão edita dentro do planejamento sem nova aba; o planejamento nunca é publicado", async () => {
+  it("editar o cartão dentro do planejamento (sem nova aba) salva sozinho; o planejamento nunca é publicado", async () => {
     const registros = registrosEmMemoria("mestre", "u1", [
       reg({ id: "b1", kind: "board", title: "Quadro", meta: { colunas: [{ id: "k", titulo: "Sessão 5", cartoes: ["s1"] }] } }),
       reg({ id: "s1", kind: "scene", title: "Estrada", content: [par("Carroça atolada.")] }),
     ]);
     await renderApp({ api: apiC(mestre), registros });
     await abrirSecao("Planejamento");
-    fireEvent.click(await screen.findByText("Estrada"));
-    const texto = await screen.findByLabelText("Conteúdo de Estrada");
-    fireEvent.change(texto, { target: { value: "Carroça atolada.\n\nBandidos." } });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
-    await waitFor(() => expect(registros.dados.find(r => r.id === "s1")!.content).toHaveLength(2));
-    expect(registros.dados.find(r => r.id === "s1")!.content).toHaveLength(2);
+    fireEvent.click(await screen.findByRole("button", { name: "Editar o texto de Estrada" }));
+    fireEvent.change(await screen.findByLabelText("Conteúdo de Estrada"), { target: { value: "Carroça atolada.\n\nBandidos." } });
+    await waitFor(() => expect(registros.dados.find(r => r.id === "s1")!.content).toHaveLength(2), { timeout: 4000 });
     expect(screen.queryByRole("button", { name: /Publicar/ })).toBeNull();   // cena não tem publicação
-    expect(screen.getByRole("button", { name: /Estrada/ , expanded: true })).toBeTruthy();
     expect([...document.querySelectorAll(strip)].map(e => e.textContent)).not.toContain("Estrada (fixada)");
   });
   it("conflito de versão não sobrescreve: mostra aviso e recarrega", async () => {

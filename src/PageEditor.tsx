@@ -19,10 +19,12 @@ export type PageEditorProps = {
   onChange?: (blocos: BlocoTexto[]) => void;
   editavel?: boolean;
   rotulo?: string;
+  /** Coloca o cursor no editor ao montar (ex.: clicar no texto de um cartão para editar). */
+  focar?: boolean;
 };
 
-export default function PageEditor({ inicial, onChange, editavel = true, rotulo = "Conteúdo da página" }: PageEditorProps) {
-  const editor = useCreateBlockNote({ schema, initialContent: inicial.length ? (inicial as never) : undefined });
+export default function PageEditor({ inicial, onChange, editavel = true, rotulo = "Conteúdo da página", focar = false }: PageEditorProps) {
+  const editor = useCreateBlockNote({ schema, initialContent: inicial.length ? (inicial as never) : undefined, ...(focar && { autofocus: "end" as const }) });
   const cb = useRef(onChange); useEffect(() => { cb.current = onChange; }, [onChange]);
   return <div className="page-editor" role="group" aria-label={rotulo}>
     <BlockNoteView editor={editor as never} theme="dark" editable={editavel} onChange={() => cb.current?.(editor.document as unknown as BlocoTexto[])}/>

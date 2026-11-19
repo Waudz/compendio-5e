@@ -17,7 +17,7 @@ export function formatarDataHarptos(d: Partial<DataHarptos> | null | undefined):
 }
 
 /** Bloco de conteúdo no formato do editor (BlockNote): só os campos que o Início lê. */
-export type BlocoTexto = { type?: string; content?: unknown; children?: unknown };
+export type BlocoTexto = { type?: string; props?: Record<string, unknown>; content?: unknown; children?: unknown };
 export type EntradaDiario = {
   id: string; titulo: string;
   dataSessao?: DataHarptos | null;

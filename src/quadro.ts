@@ -1,8 +1,11 @@
 // Quadro de Planejamento: colunas livres com cartões em lista vertical. Funções puras (sem React, sem rede).
 // O quadro guarda só a ORDEM (ids de cenas); reorganizar nunca altera as páginas originais. Mestre apenas.
-export type Coluna = { id: string; titulo: string; cartoes: string[] };
+export type Coluna = { id: string; titulo: string; cartoes: string[]; largura?: number };
 export type Quadro = { colunas: Coluna[] };
 export const MAX_COLUNAS = 20, MAX_CARTOES_POR_COLUNA = 100;
+/** Largura das colunas em pixels: todos os cartões da coluna acompanham. */
+export const LARGURA_PADRAO = 300, LARGURA_MIN = 220, LARGURA_MAX = 900;
+export const limitarLargura = (w: number) => Math.round(Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, w)));
 
 let seq = 0;
 export const novoId = () => `c${Date.now().toString(36)}${(seq++).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -14,7 +17,8 @@ export function lerQuadro(meta: unknown): Quadro {
   const vistos = new Set<string>();
   return { colunas: cols.slice(0, MAX_COLUNAS).flatMap(c => {
     const o = c as Partial<Coluna>; if (!o || typeof o.id !== "string" || typeof o.titulo !== "string" || !Array.isArray(o.cartoes)) return [];
-    return [{ id: o.id, titulo: o.titulo.slice(0, 80), cartoes: o.cartoes.filter((x): x is string => typeof x === "string" && !vistos.has(x) && !!vistos.add(x)).slice(0, MAX_CARTOES_POR_COLUNA) }];
+    const largura = typeof o.largura === "number" && Number.isFinite(o.largura) ? limitarLargura(o.largura) : undefined;
+    return [{ id: o.id, titulo: o.titulo.slice(0, 80), cartoes: o.cartoes.filter((x): x is string => typeof x === "string" && !vistos.has(x) && !!vistos.add(x)).slice(0, MAX_CARTOES_POR_COLUNA), ...(largura !== undefined && { largura }) }];
   }) };
 }
 
@@ -79,3 +83,7 @@ export function soltarColuna(q: Quadro, colunaId: string, alvo: string | null | 
   if (de < 0 || para < 0 || de === para) return q;
   const cs = [...q.colunas]; const [c] = cs.splice(de, 1); cs.splice(para, 0, c); return { colunas: cs };
 }
+
+/** Define a largura de uma coluna (limitada ao mínimo e ao máximo). Os cartões dela não mudam. */
+export const redimensionarColuna = (q: Quadro, id: string, largura: number): Quadro =>
+  Number.isFinite(largura) && q.colunas.some(c => c.id === id) ? { colunas: q.colunas.map(c => c.id === id ? { ...c, largura: limitarLargura(largura) } : c) } : q;
