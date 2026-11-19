@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
 import { MAX_DESCRIPTION, MAX_NAME, validateCampaign, validateCode, type Invite, type Member, type Res } from "./campaigns";
@@ -46,6 +46,38 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
   const { api, memberships, loading, error, activeId, setActive, refresh } = useCampaigns();
   const [name, setName] = useState(""), [desc, setDesc] = useState(""), [code, setCode] = useState(incomingInvite);
   const create = useAction(), join = useAction();
+  const [autoJoinError, setAutoJoinError] = useState<string | null>(null);
+  const [autoJoining, setAutoJoining] = useState(false);
+  const autoAttempted = useRef<string | null>(null);
+  const invite = incomingInvite();
+
+  const acceptInvite = useCallback(async (inviteCode: string) => {
+    if (!api) return;
+    const bad = validateCode(inviteCode);
+    if (bad) { setAutoJoinError(bad); return; }
+    setAutoJoining(true);
+    setAutoJoinError(null);
+    try {
+      const result = await api.join(inviteCode);
+      if (!result.ok) { setAutoJoinError(result.error); return; }
+      clearIncomingInvite();
+      setCode("");
+      await refresh();
+      setActive(result.data);
+      onOpen({ kind: "campanha", ref: result.data });
+    } catch {
+      setAutoJoinError("Não foi possível aceitar o convite. Tente novamente.");
+    } finally {
+      setAutoJoining(false);
+    }
+  }, [api, refresh, setActive, onOpen]);
+
+  useEffect(() => {
+    if (!api || !invite || autoAttempted.current === invite) return;
+    autoAttempted.current = invite;
+    void acceptInvite(invite);
+  }, [api, invite, acceptInvite]);
+
   if (!api) return <NeedLogin title="Campanhas" onOpen={onOpen}/>;
 
   const onCreate = async (e: FormEvent) => {
@@ -83,11 +115,15 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
     <Notice m={create.msg}/>
 
     <h2>Entrar com convite</h2>
-    {incomingInvite() && <p>Recebemos um link de convite. Confirme a entrada na campanha abaixo.</p>}
-    <form noValidate onSubmit={onJoin}>
+    {invite ? <div role="status" aria-live="polite">
+      {autoJoining ? <p>Aceitando convite e abrindo campanha…</p> : autoJoinError ? <>
+        <div className="notice err" role="alert">{autoJoinError}</div>
+        <button className="btn-secondary" disabled={autoJoining} onClick={() => void acceptInvite(invite)}>Tentar novamente</button>
+      </> : <p>Preparando entrada na campanha…</p>}
+    </div> : <form noValidate onSubmit={onJoin}>
       <label>Código ou link do convite<input value={code} autoComplete="off" autoCapitalize="characters" onChange={e => setCode(e.target.value)}/></label>
-      <button className="btn-primary" disabled={join.busy}>{join.busy ? "Entrando…" : "Entrar na campanha"}</button></form>
-    <Notice m={join.msg}/>
+      <button className="btn-primary" disabled={join.busy}>{join.busy ? "Entrando…" : "Entrar na campanha"}</button></form>}
+    {!invite && <Notice m={join.msg}/>}
   </div>;
 }
 
