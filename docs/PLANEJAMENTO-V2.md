@@ -205,8 +205,11 @@ Mudança em relação à versão anterior (necessária): a **migração de arqui
 
 Fichas e Iniciativa continuam vindo antes dos Documentos avançados.
 
-## 9. Pontos ainda abertos (não bloqueiam a etapa 1)
-- Exclusão de **conta** e destino de personagens/participações/histórico (seção 7).
-- Confirmar que **moedas não são copiadas** da ficha pessoal ao vincular (seção 3.2, decorrência de "não misturar"); o equipamento inicial é copiado.
-- Prazo de retenção da lixeira de personagens.
+## 9. Decisões adicionais (19/11/2026) e pontos abertos
+**Aprovadas:**
+- **Carteira zerada ao vincular:** ao vincular um personagem a uma campanha, a carteira da participação começa em zero (as moedas da ficha pessoal nunca são copiadas); o equipamento inicial continua sendo copiado (3.2).
+- **Lixeira de personagens sem exclusão automática por prazo:** o personagem excluído (D1) permanece na lixeira até o dono restaurá-lo; não há expurgo por tempo. (Exclusão física, se um dia existir, será decisão separada.)
+- **Exclusão de conta: será discutida ANTES de qualquer implementação** (destino de personagens, participações, notas e histórico de campanhas; hoje `campaigns.created_by` é `on delete restrict`). Nada que dependa dela deve ser implementado antes dessa conversa.
+
+**Ainda abertos:**
 - Cadastro restrito a convidados: **adiado**, como definido.

@@ -210,7 +210,7 @@ O usuário esclareceu que gostou de quase todas as interações do aplicativo de
 - Modelo de entidades/tabs (seções versus fichas e registros específicos), com deep links.
 - Estratégia de sincronização e migração segura do legado.
 - ~~Escopo de acesso visitante~~ resolvido: login obrigatório.
-- **D1–D6 aprovadas em 19/11/2026** (exclusão lógica; arquivamento de participações; vínculos opcionais sem transferência de propriedade; visibilidade de fichas; `notes` como base dos documentos; moedas por campanha). Pendentes: exclusão de **conta** vs histórico de campanha, cópia de moedas ao vincular (hoje: não copiar) e retenção da lixeira (`PLANEJAMENTO-V2.md` §9).
+- **D1–D6 aprovadas em 19/11/2026**, com: carteira **zerada** ao vincular personagem à campanha; lixeira de personagens **sem exclusão automática por prazo**. **Pendente, a discutir antes de implementar:** exclusão de **conta** vs histórico de campanha (`PLANEJAMENTO-V2.md` §9).
 - Como publicar/mostrar previews e testar no celular em cada PR.
 - Quais funções legadas devem ser reaproveitadas, reescritas ou descartadas após auditoria.
 
