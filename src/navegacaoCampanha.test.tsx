@@ -133,9 +133,8 @@ describe("Planejamento", () => {
     fireEvent.click(within(menu()).getByRole("button", { name: "Planejamento" }));
     expect(tabs()).toContain("Planejamento");
     expect(await screen.findByRole("heading", { name: "Planejamento" })).toBeTruthy();
-    expect(screen.getByTestId("planejamento-vazio").textContent).toMatch(/Nenhuma sessão planejada/);
-    expect(document.querySelector(".content")!.textContent).not.toMatch(/laborat|Medir|Documento de 500/i);
-    expect(within(document.querySelector(".content") as HTMLElement).queryAllByRole("button")).toHaveLength(0);   // nada de botões fingindo funcionalidade
+    expect(screen.getByRole("heading", { name: "Planejamento" })).toBeTruthy();   // sem API de registros neste teste: aviso honesto, sem dados
+    expect(document.querySelector(".content")!.textContent).toMatch(/Conta necessária/);
   });
   it("jogador não recebe ferramentas exclusivas do mestre", async () => {
     await montar([mA, mB], "cb");
@@ -150,7 +149,7 @@ describe("Planejamento", () => {
     localStorage.setItem(storageKey({ user: me.id, campaign: "cb", device: "navegador" }), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", id: "grupo-1", weight: 100, active: true, selected: 0, children: [{ type: "tab", id: "secao:planejamento" }] }] } }));
     await renderApp({ api: api([mA, mB]) });
     expect(await screen.findByText(/exclusivo do mestre/)).toBeTruthy();
-    expect(screen.queryByTestId("planejamento-vazio")).toBeNull();
+    expect(screen.queryByTestId("planejamento")).toBeNull();
   });
 });
 

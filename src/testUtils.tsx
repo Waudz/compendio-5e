@@ -7,6 +7,9 @@ import { AuthGate } from "./AuthGate";
 import { AuthProvider } from "./AuthContext";
 import { CampaignsProvider } from "./CampaignsContext";
 import type { CampaignApi } from "./campaigns";
+import type { CapaApi } from "./capa";
+import type { RegistrosApi } from "./registros";
+import { RegistrosProvider } from "./RegistrosContext";
 
 /** localStorage em memória, com length/key como o real (necessário para a limpeza por prefixo). */
 export function memoryStorage() {
@@ -38,10 +41,10 @@ export function fakeAuth(user: User | null) {
 export const emptyCampaignApi = () => ({ list: async () => ({ ok: true, data: [] }) }) as unknown as CampaignApi;
 
 /** Monta o aplicativo completo (porta de entrada + espaço de trabalho). Com usuário, espera o menu aparecer. */
-export async function renderApp(opts: { user?: User | null; api?: CampaignApi; auth?: ReturnType<typeof fakeAuth> } = {}) {
+export async function renderApp(opts: { user?: User | null; api?: CampaignApi; auth?: ReturnType<typeof fakeAuth>; registros?: RegistrosApi; capa?: CapaApi } = {}) {
   const auth = opts.auth ?? fakeAuth(opts.user === undefined ? me : opts.user);
   const api = opts.api ?? emptyCampaignApi();
-  const view = render(<AuthProvider client={auth.client}><CampaignsProvider apiFactory={() => api}><AuthGate><App/></AuthGate></CampaignsProvider></AuthProvider>);
+  const view = render(<AuthProvider client={auth.client}><CampaignsProvider apiFactory={() => api}><AuthGate>{opts.registros || opts.capa ? <RegistrosProvider api={opts.registros ?? null} capa={opts.capa ?? null}><App/></RegistrosProvider> : <App/>}</AuthGate></CampaignsProvider></AuthProvider>);
   if (opts.user !== null) await screen.findByRole("navigation", { name: "Menu principal" });
   return { ...view, auth, api };
 }

@@ -26,3 +26,13 @@ Configuração (sem ela o aplicativo não abre, pois exige login): copie `.env.e
 | `docs/FUNDACAO-REGISTROS.md` | Contratos de registros/links/versões e critérios de segurança. |
 
 Migrações SQL versionadas ficam em `supabase/migrations` (reversões em `supabase/rollback`). Mudar o banco exige autorização explícita; nada é aplicado automaticamente.
+
+
+## Ver e testar localmente (modo de demonstração)
+
+```powershell
+npm ci
+npm run dev
+```
+
+Abra `http://localhost:5173/compendio-5e/?demo=mestre` (ou `?demo=jogador`). Os dados ficam no localStorage do navegador e são compartilhados entre os dois papéis: publique um registro como mestre e confira como jogador. O modo existe só no `npm run dev` e não entra no build de produção. Ele não usa Supabase; a persistência real do Diário, do Planejamento e da capa depende da migração proposta em `docs/propostas/0006_registros_meta.sql` (e da 0005), ainda não aplicada.

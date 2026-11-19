@@ -2,7 +2,11 @@
 // Capa, Diário e Personagens ainda não têm módulo/persistência: cada seção recebe uma fonte opcional (ver inicio.ts) e,
 // sem ela, mostra um estado honesto "ainda não disponível". Nada aqui inventa dados nem cria um segundo Diário.
 import { Image as ImageIcon, ScrollText, Users } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useAventureiros } from "./AventureirosContext";
+import { useCapa, useRegistros } from "./RegistrosContext";
+import { validarCapa } from "./capa";
+import { fonteDiario, useVersaoRegistros } from "./registrosStore";
 import { CampaignPanel, Notice, useAction } from "./CampaignPanels";
 import { useCampaigns } from "./CampaignsContext";
 import { MAX_DESCRIPTION, MAX_NAME, validateCampaign, type Res } from "./campaigns";
@@ -26,10 +30,27 @@ function useFonte<T>(chave: string, carregar: (() => Promise<Res<T>>) | null): L
   return carregar ? st : null;
 }
 
-function Capa({ isMaster }: { isMaster: boolean }) {
-  return <section className="home-cover" aria-label="Capa da campanha" data-testid="inicio-capa">
-    <div className="home-cover-empty"><ImageIcon size={26} aria-hidden="true"/><span>Sem capa</span>
-      {isMaster && <small>A escolha da imagem de capa depende do armazenamento de imagens, ainda não disponível.</small>}</div>
+function Capa({ campaignId, isMaster }: { campaignId: string; isMaster: boolean }) {
+  const api = useCapa();
+  const [url, setUrl] = useState<string | null>(null), [pronto, setPronto] = useState(false), [msg, setMsg] = useState<string | null>(null), [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!api) { setPronto(true); return; } let vivo = true; setPronto(false);
+    api.obter(campaignId).then(r => { if (!vivo) return; if (r.ok) setUrl(r.data); else setMsg(r.error); setPronto(true); });
+    return () => { vivo = false; };
+  }, [api, campaignId]);
+  const escolher = async (f: File | undefined) => {
+    if (!f || !api) return; const bad = validarCapa(f); if (bad) { setMsg(bad); return; }
+    setBusy(true); setMsg(null); const r = await api.definir(campaignId, f); setBusy(false);
+    if (r.ok) setUrl(r.data); else setMsg(r.error);
+  };
+  const remover = async () => { if (!api) return; setBusy(true); setMsg(null); const r = await api.remover(campaignId); setBusy(false); if (r.ok) setUrl(null); else setMsg(r.error); };
+  return <section className="home-cover-wrap" aria-label="Capa da campanha" data-testid="inicio-capa">
+    <div className="home-cover">{url ? <img src={url} alt="Capa da campanha"/> : <div className="home-cover-empty"><ImageIcon size={26} aria-hidden="true"/><span>{pronto ? "Sem capa" : "Carregando…"}</span></div>}</div>
+    {isMaster && api && <div className="home-cover-actions row">
+      <label className="btn-secondary file-btn">{url ? "Substituir capa" : "Adicionar capa"}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={busy} onChange={e => { void escolher(e.target.files?.[0]); e.target.value = ""; }}/></label>
+      {url && <button className="btn-secondary" disabled={busy} onClick={() => void remover()}>Remover capa</button>}
+      {busy && <span className="muted" role="status">Enviando…</span>}</div>}
+    {msg && <div className="notice err" role="alert">{msg}</div>}
   </section>;
 }
 
@@ -67,7 +88,8 @@ function NomeDescricao({ id, onOpen }: { id: string; onOpen: (s: TabSpec, mode?:
 
 export function DiarioPrevia({ campaignId, isMaster, fonte, onOpenContent }: { campaignId: string; isMaster: boolean; fonte?: FonteDiario; onOpenContent: (s: TabSpec) => void }) {
   const papel = isMaster ? "mestre" : "jogador";
-  const st = useFonte(`${campaignId}|${papel}`, fonte ? () => fonte.maisRecente(campaignId, papel) : null);
+  const v = useVersaoRegistros();   // recarrega a prévia quando o Diário muda
+  const st = useFonte(`${campaignId}|${papel}|${v}`, fonte ? () => fonte.maisRecente(campaignId, papel) : null);
   let corpo;
   if (!st) corpo = <p className="muted" data-testid="diario-indisponivel">O Diário ainda não está disponível nesta versão.</p>;
   else if (st.s === "carregando") corpo = <p className="muted" role="status">Carregando o Diário…</p>;
@@ -78,12 +100,12 @@ export function DiarioPrevia({ campaignId, isMaster, fonte, onOpenContent }: { c
     else {
       const data = formatarDataHarptos(e.dataSessao), texto = primeiroParagrafo(e.conteudo);
       corpo = <article className="home-diario-entry">
-        <h3>{e.titulo}</h3>{data && <time className="muted">{data}</time>}
+        <h3>{e.titulo}</h3>{data && <time className="muted">{data}</time>}{isMaster && !e.publicada && <span className="badge" title="Só você vê este registro">Rascunho</span>}
         {texto && <p>{resumirTexto(texto)}</p>}
         <button className="btn-link" onClick={() => onOpenContent({ kind: "documento", ref: e.id, title: e.titulo })}>Ver registro completo</button></article>;
     }
   }
-  return <section className="home-sec" aria-label="Diário"><h2><ScrollText size={16} aria-hidden="true"/> Último registro do Diário</h2>{corpo}</section>;
+  return <section className="home-sec" aria-label="Diário"><h2><ScrollText size={16} aria-hidden="true"/> Diário</h2>{corpo}</section>;
 }
 
 export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId: string; fonte?: FonteAventureiros; onOpenContent: (s: TabSpec) => void }) {
@@ -107,15 +129,17 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
 }) {
   const { api, memberships } = useCampaigns();
   const mem = memberships.find(m => m.campaign.id === id);
+  const regApi = useRegistros(), fonteAv = useAventureiros();
+  const diarioFonte = useMemo(() => diario ?? (regApi ? fonteDiario(regApi) : undefined), [diario, regApi]);
   const [gerir, setGerir] = useState(false);   // participantes/convites só são carregados quando a seção é aberta (evita consultas à toa)
   if (!api) return <div className="auth"><h1>Campanha</h1><div className="notice" role="status">Conta necessária para usar campanhas.</div></div>;
   if (!mem) return <div className="auth"><h1>Campanha</h1><div className="notice" role="status">Você não participa desta campanha (ou ela foi removida).</div></div>;
   const isMaster = mem.role === "mestre";
   return <div className="home" data-testid="campanha-inicio">
-    <Capa isMaster={isMaster}/>
+    <Capa campaignId={id} isMaster={isMaster}/>
     <NomeDescricao id={id} onOpen={onOpen}/>
-    <DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diario} onOpenContent={onOpenContent}/>
-    <Aventureiros campaignId={id} fonte={aventureiros} onOpenContent={onOpenContent}/>
+    <DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>
+    <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/>
     <details className="home-manage" onToggle={e => setGerir((e.currentTarget as HTMLDetailsElement).open)}><summary>{isMaster ? "Gerenciar campanha" : "Participantes"}</summary>
       {gerir && <CampaignPanel id={id} onOpen={onOpen} embedded/>}</details>
   </div>;

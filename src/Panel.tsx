@@ -4,6 +4,7 @@ import type { NavMode } from "./navigation";
 import { CampaignsPanel } from "./CampaignPanels";
 import { CampaignHome } from "./CampaignHome";
 import { PlanningPanel } from "./Planning";
+import { DiarioPanel, RegistroPagina } from "./Diario";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 const demo: Partial<Record<string, TabSpec[]>> = {
@@ -21,7 +22,9 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   if (kind === "campanha") return <div className="content"><CampaignHome id={id} onOpen={onOpen} onOpenContent={onOpenContent}/></div>;
   if (kind === "secao" && id === "campanhas") return <div className="content"><CampaignsPanel onOpen={onOpen}/></div>;
-  if (kind === "secao" && id === "planejamento") return <PlanningPanel/>;
+  if (kind === "secao" && id === "planejamento") return <PlanningPanel onOpenContent={onOpenContent}/>;
+  if (kind === "secao" && id === "diario") return <DiarioPanel onOpenContent={onOpenContent}/>;
+  if (kind === "documento") return <RegistroPagina id={id}/>;
   const title = defaultTitle({ kind, ref: id });
   const items = kind === "secao" ? demo[id] : undefined;
   return <div className="content">

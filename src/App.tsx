@@ -11,6 +11,7 @@ import { NavItem } from "./NavItem";
 import { closeTabs, isPinned, navigate, openContentLink as openContent, otherNormalTabs, setPinned, type NavMode } from "./navigation";
 import { UnsavedContext, useUnsavedRegistry } from "./unsaved";
 import { findTab } from "./workspace";
+import { tituloDe, useVersaoRegistros } from "./registrosStore";
 import { Panel } from "./Panel";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
 import { closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type Kind, type TabSpec } from "./workspace";
@@ -51,6 +52,7 @@ function Workspace({ userId }: { userId: string }) {
   const [, redraw] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const registrosV = useVersaoRegistros();   // títulos de registros abertos mudam o rótulo das abas
   const mobile = useMobile();
   const chromeHidden = useChromeHidden(mobile);
   const good = useRef(model.toJson());
@@ -156,8 +158,9 @@ function Workspace({ userId }: { userId: string }) {
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
     const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
+    if (c?.kind === "documento" && c.ref) return tituloDe(c.ref) ?? n.getName();
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
-  }, [memberships]);
+  }, [memberships, registrosV]);
   labelRef.current = id => { const t = findTab(model, id); return t ? titleOf(t) : id; };
   const renderTab = useCallback((n: TabNode, v: { content: ReactNode; leading?: ReactNode }) => {
     v.content = <>{titleOf(n)}{isPinned(n) && <span className="sr-only"> (fixada)</span>}</>;   // marca visual + texto acessível

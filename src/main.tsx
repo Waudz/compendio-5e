@@ -4,5 +4,13 @@ import App from "./App";
 import { AuthGate } from "./AuthGate";
 import { AuthProvider } from "./AuthContext";
 import { CampaignsProvider } from "./CampaignsContext";
+import { RegistrosProvider } from "./RegistrosContext";
 import "./style.css";
-ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode><AuthProvider><CampaignsProvider><AuthGate><App /></AuthGate></CampaignsProvider></AuthProvider></React.StrictMode>);
+
+const root = ReactDOM.createRoot(document.getElementById("root")!);
+const demo = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("demo") : null;   // só em `npm run dev`; removido do build de produção
+if (demo === "mestre" || demo === "jogador") {
+  void import("./dev/demo").then(({ DemoRoot }) => root.render(<React.StrictMode><DemoRoot papel={demo}/></React.StrictMode>));
+} else {
+  root.render(<React.StrictMode><AuthProvider><CampaignsProvider><RegistrosProvider><AuthGate><App /></AuthGate></RegistrosProvider></CampaignsProvider></AuthProvider></React.StrictMode>);
+}
