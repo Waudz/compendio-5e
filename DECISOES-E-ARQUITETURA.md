@@ -2,7 +2,7 @@
 
 > Documento de referência para qualquer pessoa ou IA que trabalhe no projeto. Atualizar quando uma decisão mudar. Não confundir **decidido**, **proposto** e **implementado**.
 >
-> Última revisão: 19/11/2026. Fonte: decisões das conversas de planejamento. Este arquivo registra intenção de produto; **não é prova de que algo já esteja implementado ou testado**.
+> **Planejamento v2 (campanhas isoladas, personagens pessoais, documentos, encontros e loot): `docs/PLANEJAMENTO-V2.md`; as decisões dele prevalecem sobre os trechos antigos abaixo que conflitem.** Última revisão: 19/11/2026. Fonte: decisões das conversas de planejamento. Este arquivo registra intenção de produto; **não é prova de que algo já esteja implementado ou testado**.
 
 ## 1. Objetivo e princípios
 
@@ -56,6 +56,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 - O **catálogo geral do Compêndio** (regras, magias, itens e monstros permitidos) não pertence a uma campanha e pode ter consulta de visitante.
 - Na troca de campanha, resolver edições não salvas, cancelar/invalidar consultas antigas e restaurar abas próprias da campanha.
 - Aplicar isolamento também no **banco/RLS**, não apenas na interface.
+- **Campanha = ambiente independente** (como contas de CNPJs diferentes num login único): dados, permissões, encontros, documentos, registros e histórico próprios. Hoje só o **layout** e as tabelas de campanha/notas estão isoladas; cada módulo novo precisa de tabelas com `campaign_id`, RLS e testes multi-conta (ver `PLANEJAMENTO-V2.md`, seções 2 e 6). Caches, IndexedDB e buscas usam chave `[usuário, campanha]` e são limpos no logout e na troca de campanha.
 
 ## 5. Desktop: menu lateral e workspace
 
@@ -105,6 +106,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 ### Personagens
 - Criador, edição, progressão/níveis, ficha, atributos, perícias, equipamentos, inventário, PV, recursos e magias.
 - A ficha é fonte operacional de personagem; regras e itens do catálogo são referências, não substituem estado de inventário.
+- **O personagem pertence ao usuário** (identidade + estado-base pessoal) e participa de campanhas por vínculos com estado próprio; o mestre edita o estado da participação na sua campanha, nunca a identidade nem o personagem pessoal. Sem campanha ativa, criação e administração pessoais continuam. Arquitetura em `PLANEJAMENTO-V2.md`, seção 3.
 - Prioridade de migração após base de workspace, campanhas/autenticação e permissões.
 
 ### Iniciativa
@@ -114,13 +116,13 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 
 ### Encontros
 - Preparação/organização de encontros pelo mestre e vínculo com a iniciativa.
-- Evitar árvores, fluxos de loot e administração excessiva se não melhorarem a sessão.
+- Pertence à campanha ativa. Cada encontro reúne participantes/monstros, NPCs, cenário, dificuldade, notas, loot planejado e histórico/resultado; pode não ter combate. A Iniciativa inicia combate a partir de um encontro; o mestre confirma o loot encontrado e o atribui a personagens com registro (nada automático por morte de monstro). Ver `PLANEJAMENTO-V2.md`, seção 5. (Substitui a antiga restrição a fluxos de loot.)
 - O código legado possui ideias/implementações locais ainda não validadas; **não copiar automaticamente**.
 
 ### Compêndio
 - **Uma seção principal** para consulta com subáreas/filtros próprios: **Magias, Monstros, Itens e Regras**.
 - Pesquisa e leitura rápidas, sem misturar consulta com operações de ficha.
-- Catálogo geral disponível a visitantes onde direitos/permissões permitirem.
+- Catálogo geral (SRD 2014) somente leitura, disponível a **qualquer conta autenticada** (sem visitantes).
 - **Bestiário para jogadores:** mestre controla por campanha uma permissão simples de visibilidade do catálogo; encontros privados e segredos do mestre nunca são revelados por essa opção.
 
 ### Enciclopédia da campanha
@@ -130,14 +132,13 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 - Respeitar RLS e visibilidade no servidor.
 
 ### Documentos
-- Documentos e referências da campanha, compartilhados segundo permissões.
-- Não misturar documentos de campanhas distintas.
+- Concentra anotações (sistema único de notas, `0004_notas.sql`), páginas, quadros, bancos/Kanban, calendários, anexos e backup, com filtros por escopo, tipo, vínculo e visibilidade. Anotações pertencem ao usuário, são privadas por padrão e podem ter vínculos opcionais; o mestre não ganha acesso às privadas. Sem campanha ativa só as anotações pessoais. Não misturar documentos de campanhas distintas. Ver `PLANEJAMENTO-V2.md`, seção 4.
 
 ## 8. Mestre, jogador e visitante
 
 - **Mestre:** administra campanha, personagens conforme regras definidas, encontros, iniciativa, enciclopédia, publicação e permissões.
 - **Jogador:** acessa suas fichas e conteúdo compartilhado, sem enxergar notas secretas, encontros privados ou dados administrativos do mestre.
-- **Visitante (sem login):** consulta conteúdo geral permitido; acesso a iniciativas locais sem conta foi uma capacidade do app antigo, mas **precisa de decisão específica para a 2.0**, não assumir migração automática.
+- **Visitante:** **não existe na 2.0** — o aplicativo exige login (decisão de 19/11/2026). O cadastro segue aberto; restringi-lo a convidados fica para depois. O código ainda tem modo visitante a remover (etapa 1 do plano).
 - Autorizações reais devem existir no Supabase/RLS; esconder botão não é proteção.
 
 ## 9. O que NÃO desenvolver agora
@@ -176,6 +177,8 @@ A existência de ideias no repositório antigo **não as transforma em requisito
 6. **Compêndio, Iniciativa, Encontros, Enciclopédia e Documentos**, por fatias pequenas integradas.
 7. **PWA instalável**, otimização e refinamento móvel.
 
+**Ordem atual de entregas (a partir de 19/11/2026): `PLANEJAMENTO-V2.md`, seção 7.**
+
 **Estado conhecido na data desta nota:**
 - PR #1: estrutura inicial — integrado.
 - PR #2: colunas — integrado, CI reportou sucesso no PR.
@@ -183,7 +186,8 @@ A existência de ideias no repositório antigo **não as transforma em requisito
 - PR #4: refatoração do workspace, testes de restauração e ajuste móvel — **aberto na última verificação**, não afirmar que foi mesclado.
 - Workspace reescrito sobre FlexLayout (branch `feat/workspace-flexlayout`, ver seção 5). Substitui o arraste HTML5 manual; o PR #7 e as branches de remendos ficam obsoletos.
 - A URL pública do Pages **não teve funcionamento confirmado** nesta conversa.
-- Autenticação Supabase: camada de cliente pronta (PR A, ver seção 5); **não testada contra um projeto real** (faltam credenciais). Migração SQL com RLS e camada de dados de campanhas prontas (PR B), testadas em Postgres em memória, não no Supabase real; interface de campanhas pronta (PR C), exercitada só com API simulada nos testes; personagens e PWA também não.
+- Atualização 19/11/2026: PRs #8–#19 integrados; `main` com CI e Pages verdes; migrações `0001`–`0004` aplicadas ao projeto `gwcttjlxzelzjhbuitmi` (não reaplicar). Notas têm banco e RLS, mas ainda sem cliente nem interface.
+- (Histórico) Autenticação Supabase: camada de cliente pronta (PR A, ver seção 5); **não testada contra um projeto real** (faltam credenciais). Migração SQL com RLS e camada de dados de campanhas prontas (PR B), testadas em Postgres em memória, não no Supabase real; interface de campanhas pronta (PR C), exercitada só com API simulada nos testes; personagens e PWA também não.
 
 ## 12. Como continuar em novas conversas
 
@@ -205,7 +209,8 @@ O usuário esclareceu que gostou de quase todas as interações do aplicativo de
 - Arraste por toque no celular e acessibilidade por teclado das ações de mover abas (hoje só pelo menu de contexto com mouse).
 - Modelo de entidades/tabs (seções versus fichas e registros específicos), com deep links.
 - Estratégia de sincronização e migração segura do legado.
-- Escopo exato de acesso visitante e de iniciativa sem login.
+- ~~Escopo de acesso visitante~~ resolvido: login obrigatório.
+- Decisões D1–D6 de `PLANEJAMENTO-V2.md` (exclusão de personagem vinculado, saída de jogador, anotação ganhar campanha depois, visibilidade de fichas entre jogadores, documentos sobre `notes`, granularidade de loot/moedas).
 - Como publicar/mostrar previews e testar no celular em cada PR.
 - Quais funções legadas devem ser reaproveitadas, reescritas ou descartadas após auditoria.
 

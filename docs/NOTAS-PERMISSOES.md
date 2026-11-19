@@ -1,6 +1,6 @@
 # Notas e diário — contratos preliminares
 
-Os contratos TypeScript (`src/notePermissions.ts`) servem só à interface. A autorização real está no banco: `supabase/migrations/0004_notas.sql` (**preparada e testada em Postgres em memória; NÃO aplicada à produção**). Ainda não existe editor nem acesso a `notes` pelo cliente.
+Os contratos TypeScript (`src/notePermissions.ts`) servem só à interface. A autorização real está no banco: `supabase/migrations/0004_notas.sql` (testada em Postgres em memória e **aplicada** ao projeto `gwcttjlxzelzjhbuitmi` em 19/11/2026, junto com a `0003`; não reaplicar). Ainda não existe editor nem acesso a `notes` pelo cliente.
 
 ## Visibilidade
 - `private`: somente autor.

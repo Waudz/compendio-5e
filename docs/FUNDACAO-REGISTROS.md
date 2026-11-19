@@ -1,6 +1,6 @@
 # Fundação de registros — proposta v1
 
-Status: **contratos iniciais, sem persistência, sem migração e sem publicação**.
+Status: contratos iniciais. **Atualização 19/11/2026:** notas já têm persistência e RLS (`0004`, aplicada); o restante segue sem tabelas. Planejamento consolidado e ordem de entregas em `PLANEJAMENTO-V2.md`.
 
 ## Decisões confirmadas
 - Aplicativo requer autenticação. Não investir em experiência de visitante agora.
