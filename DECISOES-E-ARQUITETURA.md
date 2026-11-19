@@ -79,6 +79,10 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 
 **Persistência:** chave `compendio5e:workspace:v2:<usuario>:<campanha>:<dispositivo>` (hoje `visitante/demo/navegador`, preparada para usuário e campanha reais), envelope `{version:2, layout}`. Ao carregar, o layout é reconstruído por `sanitizeLayout` (ids válidos, sem abas repetidas, pesos positivos, no máximo 3 grupos, linhas aninhadas achatadas); dado irrecuperável volta ao layout padrão. O esquema v1 (`compendio5e:workspace:columns:v1`) é migrado.
 
+**Identidade visual:** azul-grafite (`--bg #141D27`, `--panel #202C39`) com destaque **turquesa `#00CEC8`**; toda a paleta fica em variáveis CSS no topo de `src/style.css`. Texto sobre fundo turquesa usa `--on-accent`. Sem gradientes nem efeitos neon.
+
+**Autenticação (Supabase) — camada de cliente:** `src/supabase.ts` cria o cliente único a partir de `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (ver `.env.example`; `.env*` fora do git). Sem variáveis válidas (ou com chave `service_role`/`sb_secret_`, ou URL fora de `*.supabase.co`) o cliente é `null` e o app roda só como visitante; nada é simulado. `src/auth.ts` concentra validação, tradução de erros para pt-BR e chamadas ao SDK; `AuthContext.tsx` mantém `status` (`unconfigured | loading | guest | authenticated`), sessão persistida pelo SDK (PKCE, `detectSessionInUrl`) e o estado de recuperação de senha; `AccountPanel.tsx` é a aba `conta:perfil` (entrar, criar conta, reenviar confirmação, recuperar e alterar senha, sair), aberta pelo menu lateral dentro do workspace. Confirmação de e-mail e recuperação redirecionam para `origin + BASE_URL`; esse endereço precisa estar em *Authentication > URL Configuration* do projeto. A `service_role` nunca entra no frontend. Autorização de dados virá de RLS (PR B), não da interface.
+
 ## 6. Celular e PWA
 
 - **Um único projeto e base de dados**, não dois aplicativos separados.
@@ -171,7 +175,7 @@ A existência de ideias no repositório antigo **não as transforma em requisito
 - PR #4: refatoração do workspace, testes de restauração e ajuste móvel — **aberto na última verificação**, não afirmar que foi mesclado.
 - Workspace reescrito sobre FlexLayout (branch `feat/workspace-flexlayout`, ver seção 5). Substitui o arraste HTML5 manual; o PR #7 e as branches de remendos ficam obsoletos.
 - A URL pública do Pages **não teve funcionamento confirmado** nesta conversa.
-- Não há integração Supabase, personagens reais nem PWA da 2.0 ainda.
+- Autenticação Supabase: camada de cliente pronta (PR A, ver seção 5); **não testada contra um projeto real** (faltam credenciais). Campanhas, RLS e convites ainda não existem; personagens e PWA também não.
 
 ## 12. Como continuar em novas conversas
 

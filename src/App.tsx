@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
-import { BookOpen, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, LogIn, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
+import { useAuth } from "./AuthContext";
 import { ContextMenu, type MenuItem, type MenuState } from "./ContextMenu";
 import { useChromeHidden } from "./chromeHide";
 import { Mobile } from "./Mobile";
@@ -28,6 +29,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const mobile = useMobile();
+  const logged = useAuth().status === "authenticated";
   const chromeHidden = useChromeHidden(mobile);
   const good = useRef(model.toJson());
   const handled = useRef<Event | null>(null);
@@ -91,7 +93,10 @@ export default function App() {
       <nav aria-label="Menu principal">{sections.map(({ page, title, icon: Icon }) =>
         <button key={page} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} onClick={() => open({ kind: "secao", ref: page })} title={title}>
           <Icon size={19}/>{!collapsed && <span>{title}</span>}
-        </button>)}</nav>
+        </button>)}
+        <button className={activeId === "conta:perfil" ? "nav-item account selected" : "nav-item account"} onClick={() => open({ kind: "conta", ref: "perfil" })} title={logged ? "Conta" : "Entrar"}>
+          {logged ? <UserRound size={19}/> : <LogIn size={19}/>}{!collapsed && <span>{logged ? "Conta" : "Entrar"}</span>}
+        </button></nav>
       <button className="collapse" onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
         {collapsed ? <ChevronRight size={18}/> : <><ChevronLeft size={18}/> Recolher menu</>}
       </button>
