@@ -19,7 +19,7 @@ describe("validações e mensagens", () => {
     expect(validateCode("abc")).not.toBeNull(); expect(validateCode("abcd-efgh ijkl")).toBeNull();
     expect(normalizeCode(" abcd-efgh ijkl ")).toBe("ABCDEFGHIJKL");
   });
-  it.each([["convite_invalido", /Convite inválido/], ["sem_permissao", /mestre/], ["ultimo_mestre", /pelo menos um mestre/], ["limite_campanhas", /limite/], ["TypeError: Failed to fetch", /Sem conexão/], ["algo interno: relation x", /Não foi possível/]])(
+  it.each([["convite_invalido", /Convite inválido/], ["sem_permissao", /mestre/], ["ultimo_mestre", /não pode sair/], ["mestre_unico", /único mestre/], ["limite_campanhas", /limite/], ["TypeError: Failed to fetch", /Sem conexão/], ["algo interno: relation x", /Não foi possível/]])(
     "traduz %s", (m, re) => { const t = erroCampanha({ message: m }); expect(t).toMatch(re); expect(t).not.toMatch(/relation/); });
 });
 
@@ -54,7 +54,7 @@ describe("createCampaignApi", () => {
     const client = { from: () => { throw new TypeError("Failed to fetch"); }, rpc: async () => { throw new TypeError("Failed to fetch"); } } as unknown as SupabaseClient;
     const api = createCampaignApi(client, "u1");
     expect(await api.list()).toEqual({ ok: false, error: expect.stringMatching(/Sem conexão/) });
-    expect(await api.setRole("c", "u", "mestre")).toEqual({ ok: false, error: expect.stringMatching(/Sem conexão/) });
+    expect(await api.createInvite("c")).toEqual({ ok: false, error: expect.stringMatching(/Sem conexão/) });
   });
   it("lista participantes com mestres primeiro e nome padrão", async () => {
     const f = fake({ data: [
@@ -62,8 +62,5 @@ describe("createCampaignApi", () => {
       { user_id: "a", role: "mestre", joined_at: "", profiles: null }] });
     const r = await createCampaignApi(f.client, "u1").members("c1");
     expect(r.ok && r.data.map(m => [m.user_id, m.display_name])).toEqual([["a", "Participante"], ["b", "Bia"]]);
-  });
-  it("setRole ok", async () => {
-    const f = fake({ data: null }); expect(await createCampaignApi(f.client, "u").setRole("c", "u2", "jogador")).toEqual({ ok: true, data: true });
   });
 });

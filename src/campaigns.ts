@@ -17,14 +17,14 @@ export function erroCampanha(e: unknown): string {
   const table: [string, string][] = [
     ["convite_invalido", "Convite inválido, expirado ou esgotado."],
     ["sem_permissao", "Apenas o mestre pode fazer isso."],
-    ["ultimo_mestre", "A campanha precisa ter pelo menos um mestre."],
+    ["ultimo_mestre", "O mestre não pode sair da campanha; exclua a campanha se não precisar mais dela."],
+    ["mestre_unico", "Cada campanha tem um único mestre: o criador."],
+    ["campanha_inexistente", "Campanha não encontrada."],
     ["nome_invalido", `O nome deve ter de 1 a ${MAX_NAME} caracteres.`],
     ["descricao_invalida", `A descrição pode ter até ${MAX_DESCRIPTION} caracteres.`],
     ["limite_campanhas", "Você atingiu o limite de campanhas criadas."],
     ["limite_convites", "Há convites ativos demais. Revogue algum antes de criar outro."],
-    ["participante_inexistente", "Esse participante não está na campanha."],
-    ["papel_invalido", "Papel inválido."],
-    ["nao_autenticado", "Entre na sua conta para continuar."],
+        ["nao_autenticado", "Entre na sua conta para continuar."],
     ["jwt expired", "Sua sessão expirou. Entre novamente."],
     ["failed to fetch", "Sem conexão com o servidor. Tente de novo."],
     ["network", "Sem conexão com o servidor. Tente de novo."],
@@ -73,10 +73,6 @@ export function createCampaignApi(client: SupabaseClient, userId: string) {
       return { data: rows.map(r => ({ user_id: r.user_id, role: r.role, joined_at: r.joined_at, display_name: r.profiles?.display_name || "Participante" }))
         .sort((a, b) => (a.role === b.role ? a.display_name.localeCompare(b.display_name, "pt-BR") : a.role === "mestre" ? -1 : 1)), error: null };
     }),
-    setRole: async (id: string, uid: string, role: Role): Promise<Res<true>> => {
-      try { const r = await client.rpc("set_member_role", { p_campaign_id: id, p_user_id: uid, p_role: role }); return r.error ? { ok: false, error: erroCampanha(r.error) } : { ok: true, data: true }; }
-      catch (e) { return { ok: false, error: erroCampanha(e) }; }
-    },
     removeMember: (id: string, uid: string) => wrap<true>(async () => {
       const r = await client.from("campaign_members").delete().eq("campaign_id", id).eq("user_id", uid).select("user_id");
       return r.error ? { data: null, error: r.error } : r.data?.length ? { data: true as const, error: null } : { data: null, error: { message: "sem_permissao" } };
