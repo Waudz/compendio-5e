@@ -104,3 +104,11 @@ Clique normal reutiliza aba não fixada · seleciona aba compatível já aberta 
 
 ## 9. Ordem sugerida
 1. Protótipo de `pinned` (nativo × `config`) e **correção do bug de divisão** (causa-raiz + persistência de painéis vazios + testes), por ser independente da navegação. 2. `navigate` + menu lateral (clique, Ctrl/Cmd, botão do meio, menu). 3. Fixar/desafixar nas abas + persistência. 4. Alterações não salvas (API + fechar/substituir). 5. Celular. 6. Acessibilidade e revisão final. Cada passo com testes; um PR único ou dois (bug + navegação), conforme sua preferência.
+
+## 10. Estado de implementação (atualizado após o desenvolvimento)
+- **PR 1 — `fix/divisao-aba-unica`:** correção da divisão com aba única (seção 4) **implementada**: `classifyDrop`/`allowDrop` (única fonte para indicadores, menu e ação), `prepareMove` (ação atômica que mantém o painel de origem vazio via `enableDeleteWhenEmpty:false`, atributo documentado), `normalizeEmptyPanels` (o painel que recebe aba volta ao padrão: fechar a última aba o remove), painéis vazios preservados ao salvar/restaurar, e o peso padrão (100), omitido pelo FlexLayout, agora é gravado.
+- **PR 2 — `feat/navegacao-abas-fixadas`:** navegação **implementada** (`src/navigation.ts`, `NavItem.tsx`, `unsaved.tsx`, `Mobile.tsx`). Decisões tomadas na implementação:
+  - **Fixação própria (`config.pinned`)**, não o `pinned` nativo do FlexLayout: o nativo agrupa as fixadas no início da faixa, impede fechá-las pela interface e arrastá-las para fora do painel, o que contraria as decisões aprovadas.
+  - **Aba com alterações não salvas é tratada como a fixada na reutilização:** não é substituída; reutiliza-se outra aba normal e limpa do painel ou cria-se uma nova (a confirmação fica para fechar). Isto ajusta o item 5 da seção 3.1 ("abre em nova aba").
+  - Aberturas programáticas (criar/entrar em campanha, abrir pelo convite) usam **nova aba**: nunca substituem a aba em uso de surpresa. Trocar de campanha e sair da conta pedem confirmação se há alterações.
+  - Ao fundir os dois PRs há conflitos mecânicos em `App.tsx`, `persistence.ts` e `style.css`; a resolução testada (281 testes) está na branch `integracao/pr1-pr2-referencia`.
