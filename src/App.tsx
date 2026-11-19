@@ -3,6 +3,7 @@ import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexla
 import { BookOpen, ChevronLeft, ChevronRight, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
 import { ContextMenu, type MenuItem, type MenuState } from "./ContextMenu";
+import { useChromeHidden } from "./chromeHide";
 import { Mobile } from "./Mobile";
 import { Panel } from "./Panel";
 import { loadLayout, saveLayout } from "./persistence";
@@ -27,6 +28,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const mobile = useMobile();
+  const chromeHidden = useChromeHidden(mobile);
   const good = useRef(model.toJson());
   const handled = useRef<Event | null>(null);
   const refresh = useCallback(() => redraw(n => n + 1), []);
@@ -82,7 +84,7 @@ export default function App() {
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={() => { closeGroup(model, node.getId()); onModelChange(model); }}><X size={14}/></button>);
   }, [model, onModelChange]);
 
-  return <div className="app">
+  return <div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
       <div className="campaign" title="Campanha demonstrativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>Festival da Lua</strong></>}</div>
