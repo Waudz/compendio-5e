@@ -13,10 +13,10 @@ import { UnsavedContext, useUnsavedRegistry } from "./unsaved";
 import { findTab } from "./workspace";
 import { Panel } from "./Panel";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
-import { MAX_GROUPS, closeGroup, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, openTab, sections, type Kind, type TabSpec } from "./workspace";
+import { closeGroup, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, openTab, prepareMove, sections, type Kind, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
-const allowedActions = new Set([Actions.ADD_TAB, Actions.DELETE_TAB, Actions.SELECT_TAB, Actions.MOVE_NODE, Actions.DELETE_TABSET, Actions.SET_ACTIVE_TABSET, Actions.ADJUST_WEIGHTS]);
+const allowedActions = new Set([Actions.GROUP, Actions.ADD_TAB, Actions.DELETE_TAB, Actions.SELECT_TAB, Actions.MOVE_NODE, Actions.DELETE_TABSET, Actions.SET_ACTIVE_TABSET, Actions.ADJUST_WEIGHTS]);
 const mobileQuery = "(max-width:700px)";
 
 function useMobile() {
@@ -62,6 +62,7 @@ function Workspace({ userId }: { userId: string }) {
 
   // Toda mudança passa por aqui: valida a restrição de colunas (reverte se violada) e persiste.
   const onModelChange = useCallback((m: Model) => {
+    if (normalizeEmptyPanels(m)) return;   // painel que recebeu aba deixa de ser "vazio intencional"; a ação de correção volta aqui
     const json = m.toJson();
     if (!isColumnsOnly(json)) { setModel(createModel(good.current)); return; }
     good.current = json; saveLayout(json, scopeRef.current); refresh();
@@ -74,7 +75,7 @@ function Workspace({ userId }: { userId: string }) {
       const g = model.getNodeById(a.data.node as string), ids = g instanceof TabSetNode ? g.getChildren().map(c => c.getId()) : [];
       if (ids.some(unsaved.api.isDirty)) { unsaved.api.guard(ids, () => { model.doAction(a); }); return undefined; }
     }
-    return a;
+    return prepareMove(model, a);   // recusa/ajusta movimentos (divisão com aba única)
   }, [model, unsaved.api]);
   // Navegação: clique normal reutiliza a aba atual (se não fixada e sem alterações); "nova aba" preserva as existentes.
   const open = useCallback((s: TabSpec, mode: NavMode = "reuse") => { navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api]);
@@ -105,12 +106,11 @@ function Workspace({ userId }: { userId: string }) {
     if (node instanceof TabNode) {
       const id = node.getId(), g = node.getParent() as TabSetNode, i = gs.indexOf(g);
       const left = gs[i - 1], right = gs[i + 1];
-      const full = groupCount(model) >= MAX_GROUPS && g.getChildren().length > 1;
       items = [
         { label: "Mover para a coluna à esquerda", disabled: !left, onSelect: run(() => moveToGroup(model, id, left.getId())) },
         { label: "Mover para a coluna à direita", disabled: !right, onSelect: run(() => moveToGroup(model, id, right.getId())) },
-        { label: "Abrir em nova coluna à esquerda", disabled: full || (i === 0 && g.getChildren().length === 1), onSelect: run(() => moveToNewColumn(model, id, "left")) },
-        { label: "Abrir em nova coluna à direita", disabled: full || (i === gs.length - 1 && g.getChildren().length === 1), onSelect: run(() => moveToNewColumn(model, id, "right")) },
+        { label: "Abrir em nova coluna à esquerda", disabled: !canMoveToNewColumn(model, id, "left"), onSelect: run(() => moveToNewColumn(model, id, "left")) },
+        { label: "Abrir em nova coluna à direita", disabled: !canMoveToNewColumn(model, id, "right"), onSelect: run(() => moveToNewColumn(model, id, "right")) },
         "-",
         { label: "Fechar aba", onSelect: guarded([id], () => closeTab(model, id)) },
         { label: "Fechar outras abas normais", disabled: otherNormalTabs(model, id).length === 0, onSelect: guarded(otherNormalTabs(model, id), () => closeTabs(model, otherNormalTabs(model, id))) },
@@ -151,7 +151,9 @@ function Workspace({ userId }: { userId: string }) {
   }, [titleOf]);
   const activeTab = model.getActiveTabset()?.getSelectedNode();
   const activeId = activeTab instanceof TabNode ? activeTab.getId() : "";
-  const placeholder = useCallback(() => <div className="empty"><h1>Área de trabalho</h1><p>Escolha uma seção no menu lateral.</p></div>, []);
+  // Painel vazio (criado por divisão): clicar nele o torna o painel ativo, para onde vai a próxima seção aberta pelo menu.
+  const placeholder = useCallback((g: TabSetNode) => <div className="empty" onPointerDown={() => { model.doAction(Actions.setActiveTabset(g.getId())); refresh(); }}>
+    <h1>Painel vazio</h1><p>Escolha uma seção no menu lateral ou arraste uma aba para cá.</p></div>, [model, refresh]);
   const renderSet = useCallback((node: TabSetNode | { getType(): string }, v: { buttons: ReactNode[] }) => {
     if (node instanceof TabSetNode && groupCount(model) > 1)
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={guarded(node.getChildren().map(c => c.getId()), () => closeGroup(model, node.getId()))}><X size={14}/></button>);
