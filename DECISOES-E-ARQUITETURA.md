@@ -66,7 +66,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 - Cada coluna contém várias abas; clicar em aba alterna o conteúdo daquela coluna.
 - **Apenas colunas verticais**, até **três** no layout normal. **Proibidas subdivisões horizontais (em cima/embaixo), layout em 1/4 de tela, janelas flutuantes e docking complexo.**
 - Colunas podem ser redimensionadas. Abas podem ser arrastadas entre colunas; criar coluna nova ao separar aba, respeitando limite e largura mínima útil.
-- Clicar no menu lateral abre/focaliza a seção na **coluna ativa**, sem substituir outra aba. Evitar duplicar a mesma entidade indevidamente.
+- ~~Clicar no menu lateral abre a seção na coluna ativa, sem substituir outra aba.~~ **Substituído (19/11/2026):** clique normal seleciona a aba compatível já aberta ou **reutiliza a aba atual não fixada**; abas fixadas nunca são substituídas automaticamente; botão direito (nesta aba / nova aba / nova aba fixada), Ctrl/Cmd+clique e botão do meio abrem em nova aba interna; fixar/desafixar é propriedade da aba; alterações não salvas protegidas antes de substituir/fechar; celular com toque prolongado e botão de opções. Detalhes e proposta técnica: `docs/NAVEGACAO-ABAS.md` (**planejado, nada implementado**). Evitar duplicar a mesma entidade continua valendo.
 - Itens concretos (ex.: ficha de Lydia, NPC Sabine, magia específica) devem ter **identificadores próprios** para coexistir como abas; não modelar tudo apenas pelo nome da seção.
 - Abrir em nova aba/coluna via **botão direito** sobre alvos apropriados; considerar clique do meio. Não interceptar contexto de campos editáveis.
 - Qualquer conteúdo pode ocupar qualquer coluna. **Não criar painel lateral direito fixo de referência.**
@@ -205,6 +205,7 @@ O usuário esclareceu que gostou de quase todas as interações do aplicativo de
 
 ## 14. Questões ainda abertas
 
+- **Bug conhecido (19/11/2026):** não é possível dividir a tela arrastando a única aba aberta (o modelo apaga o painel de origem esvaziado); causa e correção em `docs/NAVEGACAO-ABAS.md` §4, a corrigir junto da navegação por abas.
 - Navegação móvel definitiva (hoje: grupo ativo + barra inferior; sem seletor de grupo além de botões simples).
 - Arraste por toque no celular e acessibilidade por teclado das ações de mover abas (hoje só pelo menu de contexto com mouse).
 - Modelo de entidades/tabs (seções versus fichas e registros específicos), com deep links.

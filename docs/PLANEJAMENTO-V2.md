@@ -38,6 +38,8 @@ Resumo de D1–D6:
 | Moedas e inventário | **Não existem** | |
 | Encontros, combate, loot | **Não existem** | |
 | Links bidirecionais, busca, histórico, offline | **Só contratos** (`records.ts`: `RecordLink`, `decideVersion`, `PendingOperation`) | sem tabelas, sem IndexedDB |
+| Navegação por abas (reutilizar, fixar, menu de contexto, atalhos) | **Decidida, não implementada** (`docs/NAVEGACAO-ABAS.md`); hoje o clique no menu apenas seleciona ou acrescenta abas | |
+| Dividir tela arrastando a única aba | **Bug conhecido** (causa confirmada; correção proposta) | `NAVEGACAO-ABAS.md` §4 |
 | Cache/IndexedDB, PWA | **Não existem** | hoje só `localStorage` (layout e campanha ativa) |
 
 Riscos de isolamento no cliente (**tratados na Etapa 1, PR #21**): layout guarda só ids (sem títulos) e é apagado no logout/troca de conta; abas de campanha sem acesso caem no rótulo genérico; `cacheKey(usuário, campanha, …)` definida em `src/scope.ts`. **Continua valendo para os módulos futuros:** todo painel trata "sem acesso" e "inexistente" com a mesma tela, e todo cache novo usa `cacheKey` e é limpo no logout e na troca de campanha (ver 6).
@@ -187,6 +189,7 @@ Mudança em relação à versão anterior (necessária): a **migração de arqui
 | # | Etapa | Depende de |
 |---|---|---|
 | 1 | **Login obrigatório + base de isolamento** (porta de login, remover visitante, layout só com ids, helper de chaves de cache) — **implementada no PR #21 (aguardando integração)** | — |
+| 1b | **Navegação por abas e divisão de painéis** (reutilizar/fixar abas, menu de contexto, atalhos, celular, alterações não salvas) **+ correção do bug de divisão com aba única** — proposta em `NAVEGACAO-ABAS.md`, **aguardando aprovação**; independente do banco | 1 |
 | 2 | **Notas — arquitetura (`0005`: audiências, vínculos, edição do autor)** + camada de dados + testes de regressão | 1, `0004` |
 | 3 | **Notas — interface em Documentos** (lista, editor, vínculos, compartilhamento explícito, filtros) | 2 |
 | 4 | **`campaign_settings`** (moedas ativas, PV dos colegas) + aba Campanhas | 1 |
