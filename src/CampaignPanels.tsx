@@ -7,7 +7,7 @@ import { useUnsaved } from "./unsaved";
 import type { TabSpec } from "./workspace";
 
 type Msg = { kind: "ok" | "err"; text: string } | null;
-const Notice = ({ m }: { m: Msg }) => m ? <div className={`notice ${m.kind}`} role={m.kind === "err" ? "alert" : "status"}>{m.text}</div> : null;
+export const Notice = ({ m }: { m: Msg }) => m ? <div className={`notice ${m.kind}`} role={m.kind === "err" ? "alert" : "status"}>{m.text}</div> : null;
 const dateBr = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
 export const inviteUrl = (code: string) => {
   const url = new URL(import.meta.env.BASE_URL, window.location.origin);
@@ -22,7 +22,7 @@ const clearIncomingInvite = () => {
 };
 
 /** Executa uma ação assíncrona com bloqueio de duplo clique e mensagem de resultado. */
-function useAction() {
+export function useAction() {
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState<Msg>(null);
   const run = useCallback(async <T,>(fn: () => Promise<Res<T>>, okText?: string): Promise<Res<T> | null> => {
     if (busy) return null;
@@ -128,7 +128,7 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec, mode?: NavMode
 }
 
 /** Detalhes de uma campanha: dados básicos, participantes e convites. */
-export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec, mode?: NavMode) => void }) {
+export function CampaignPanel({ id, onOpen, embedded = false }: { id: string; onOpen: (s: TabSpec, mode?: NavMode) => void; embedded?: boolean }) {
   const { api, memberships, activeId, setActive, refresh } = useCampaigns();
   const unsaved = useUnsaved();
   const { user } = useAuth();
@@ -162,7 +162,7 @@ export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec,
   const act = async (fn: () => Promise<Res<unknown>>, okText: string, target = people) => { const r = await target.run(fn, okText); if (r?.ok) { await load(); await refresh(); } };
   const leave = async (uid: string) => { const r = await people.run(() => api.removeMember(id, uid), "Feito."); if (r?.ok) { if (uid === user?.id && activeId === id) setActive(null); await refresh(); } };
 
-  return <div className="auth wide"><h1>{c.name}</h1>
+  return <div className={embedded ? "campaign-admin" : "auth wide"}>{!embedded && <><h1>{c.name}</h1>
     <p><span className="badge">{isMaster ? "Mestre" : "Jogador"}</span>{c.id === activeId ? <span className="badge on">Ativa</span> : <button className="btn-link" onClick={async () => { if (await unsaved.confirmAll()) setActive(id); }}>Tornar ativa</button>}</p>
 
     <h2>Informações</h2>
@@ -172,6 +172,8 @@ export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec,
       <button className="btn-secondary" disabled={save.busy}>{save.busy ? "Salvando…" : "Salvar informações"}</button></form>
       : <p>{c.description || "Sem descrição."}</p>}
     <Notice m={save.msg}/>
+
+</>}
 
     <h2>Participantes</h2>
     {loadErr && <div className="notice err" role="alert">{loadErr} <button className="btn-link" onClick={() => void load()}>Tentar de novo</button></div>}

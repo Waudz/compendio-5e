@@ -174,3 +174,24 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .dlg h2{margin:0 0 8px;font-size:16px}.dlg p{margin:0 0 6px;color:var(--text-2);font-size:14px}.dlg ul{margin:6px 0 12px;padding-left:18px;font-size:14px}
 .dlg .row{display:flex;gap:8px;flex-wrap:wrap}
 .empty h1{font-size:18px;margin:0 0 8px}
+
+.home{display:flex;flex-direction:column;gap:22px;max-width:960px}
+.home-cover{border-radius:12px;overflow:hidden;border:1px solid var(--line);aspect-ratio:21/6;min-height:110px;background:var(--panel);display:flex}
+.home-cover img{width:100%;height:100%;object-fit:cover}
+.home-cover-empty{margin:auto;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);text-align:center;padding:12px}
+.home-name{font-size:clamp(24px,4vw,34px);margin:0 0 6px}
+.home-desc{max-width:70ch;white-space:pre-wrap;margin:0 0 10px}
+.home .muted,.home small.muted{color:var(--muted)}
+.home-form{display:flex;flex-direction:column;gap:12px;max-width:560px}
+.home-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text-2)}
+.home-form input,.home-form textarea{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 11px;font:inherit;font-size:14px}
+.home-sec h2{display:flex;align-items:center;gap:7px;font-size:15px;margin:0 0 10px}
+.home-diario-entry h3{margin:0 0 2px;font-size:16px}.home-diario-entry time{display:block;font-size:12px;margin-bottom:6px}
+.home-diario-entry p{max-width:70ch;margin:0 0 6px}
+.home-party{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.home-char{width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.home-char:hover{border-color:var(--accent)}
+.home-char img,.home-portrait{flex:none;width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--hover);display:inline-flex;align-items:center;justify-content:center;font-weight:650}
+.home-char span:last-child{display:flex;flex-direction:column;min-width:0}.home-char strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.home-char small{color:var(--muted)}
+.home-manage{border-top:1px solid var(--line);padding-top:12px}.home-manage summary{cursor:pointer;font-size:14px;color:var(--text-2)}
+.campaign-admin{max-width:720px}.campaign-admin h2{font-size:15px;margin:22px 0 8px}

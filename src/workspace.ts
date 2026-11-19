@@ -1,7 +1,7 @@
 // Estado e operações puras do workspace (sem React, sem localStorage).
 // O layout é SEMPRE: linha raiz -> de 1 a 3 grupos (tabsets) lado a lado -> abas.
 // Nunca há linha dentro de coluna (grupos empilhados), popout, flutuantes ou bordas.
-import { BookOpen, Castle, ClipboardList, FileText, ScrollText, Shield, Swords, Users } from "lucide-react";
+import { BookMarked, BookOpen, Castle, ClipboardList, FileText, ScrollText, Shield, Swords, Users } from "lucide-react";
 import { Action, Actions, DockLocation, Model, RowNode, TabNode, TabSetNode, type DropInfo, type IJsonModel, type IJsonTabNode, type IJsonTabSetNode, type Node } from "flexlayout-react";
 
 export const MAX_GROUPS = 3;
@@ -11,13 +11,14 @@ export const MIN_GROUP_WIDTH = 220;
 const kindLabel = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento" } as const;
 export type Kind = keyof typeof kindLabel;
 export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean };
-export type Page = "campanhas" | "planejamento" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
+export type Page = "campanhas" | "planejamento" | "diario" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
 
 export type Section = { page: Page; title: string; icon: typeof Users; masterOnly?: boolean };
 /** Itens do menu principal. "Campanhas" NÃO está aqui: a gestão de campanhas fica no seletor junto à campanha ativa (ver `campaignsHub`). */
 export const sections: Section[] = [
   { page: "personagens", title: "Personagens", icon: Users },
   { page: "planejamento", title: "Planejamento", icon: ClipboardList, masterOnly: true },
+  { page: "diario", title: "Diário", icon: BookMarked },
   { page: "iniciativa", title: "Iniciativa", icon: Swords },
   { page: "encontros", title: "Encontros", icon: Shield },
   { page: "enciclopedia", title: "Enciclopédia", icon: BookOpen },
@@ -29,6 +30,12 @@ export const campaignsHub: Section = { page: "campanhas", title: "Campanhas", ic
 const knownSections: Section[] = [campaignsHub, ...sections];
 /** Seções do menu para o papel atual: o Planejamento só aparece para o mestre de uma campanha ativa. */
 export const visibleSections = (isMaster: boolean): Section[] => sections.filter(s => !s.masterOnly || isMaster);
+/** Ordem do menu do desktop por papel (Início vem antes, separado). Sem campanha ativa (papel null) mantém todas as seções comuns. */
+const menuOrder: Record<"mestre" | "jogador", Page[]> = {
+  mestre: ["planejamento", "diario", "iniciativa", "encontros", "personagens", "enciclopedia", "documentos", "compendio"],
+  jogador: ["personagens", "diario", "enciclopedia", "documentos", "compendio"],
+};
+export const desktopSections = (role: "mestre" | "jogador" | null): Section[] => role ? menuOrder[role].map(p => sections.find(s => s.page === p)!) : visibleSections(false);
 export const kinds = Object.keys(kindLabel) as Kind[];
 
 /** Id próprio da aba: `kind:ref` (ex.: secao:personagens, ficha:lydia). Uma entidade = uma aba. */
@@ -57,6 +64,15 @@ export const defaultLayout = (): IJsonModel => ({
   borders: [],
   layout: { type: "row", children: [{ type: "tabset", id: "grupo-1", weight: 100, active: true, selected: 0, children: [tabJson({ kind: "secao", ref: "personagens" })] }] },
 });
+
+/** Layout sem nenhuma aba (um painel vazio). */
+export const emptyLayout = (): IJsonModel => ({ ...defaultLayout(), layout: { type: "row", children: [{ type: "tabset", id: "grupo-1", weight: 100, active: true, children: [] }] } });
+/** Primeira vez numa campanha (sem layout salvo): o espaço de trabalho nasce só com o Início, que é uma aba comum (pode ser fechada, movida e não reabre sozinha). */
+export function firstVisitModel(campaignId: string, title?: string): Model {
+  const m = createModel(emptyLayout());
+  openTab(m, { kind: "campanha", ref: campaignId, title });
+  return m;
+}
 
 /** true se o JSON respeita a restrição de produto: só colunas, 1 a 3 grupos, sem nada fora do layout principal. */
 export function isColumnsOnly(json: IJsonModel): boolean {

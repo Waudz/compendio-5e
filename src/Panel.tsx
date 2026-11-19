@@ -1,7 +1,8 @@
 import { BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
-import { CampaignPanel, CampaignsPanel } from "./CampaignPanels";
+import { CampaignsPanel } from "./CampaignPanels";
+import { CampaignHome } from "./CampaignHome";
 import { PlanningPanel } from "./Planning";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
@@ -18,7 +19,7 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   onOpenContent: (s: TabSpec) => void;            // link interno de conteúdo: sempre aba permanente, sem substituir a origem
 }) {
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
-  if (kind === "campanha") return <div className="content"><CampaignPanel id={id} onOpen={onOpen}/></div>;
+  if (kind === "campanha") return <div className="content"><CampaignHome id={id} onOpen={onOpen} onOpenContent={onOpenContent}/></div>;
   if (kind === "secao" && id === "campanhas") return <div className="content"><CampaignsPanel onOpen={onOpen}/></div>;
   if (kind === "secao" && id === "planejamento") return <PlanningPanel/>;
   const title = defaultTitle({ kind, ref: id });
