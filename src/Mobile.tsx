@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Actions, type Model, TabNode } from "flexlayout-react";
-import { ArrowLeft, BookOpen, Castle, ChevronDown, House, Menu, NotebookPen, Swords, UserRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Castle, ChevronDown, House, Menu, NotebookPen, Swords, UserRound, ScrollText, X } from "lucide-react";
 import { type NavMode } from "./navigation";
 import { Panel } from "./Panel";
 import { OrigemAbaContext } from "./abrirEmAba";
@@ -56,10 +56,14 @@ export function Mobile({ model, onOpen, onOpenContent, onChange, titleOf }: Prop
     navigate(home);
   };
   const isPage = (ref: string) => selectedId === `secao:${ref}`;
+  const isMaster = active?.role === "mestre";
   const navItems = [
     { label: "Início", icon: House, spec: home, selected: selectedId === (active ? `campanha:${active.campaign.id}` : "secao:campanhas") },
     { label: "Anotações", icon: NotebookPen, spec: { kind: "secao", ref: "planejamento" } as TabSpec, selected: isPage("planejamento"), disabled: active?.role !== "mestre" },
-    { label: "Combate", icon: Swords, spec: { kind: "secao", ref: "iniciativa" } as TabSpec, selected: isPage("iniciativa") },
+    isMaster
+      ? { label: "Iniciativa", icon: Swords, spec: { kind: "secao", ref: "iniciativa" } as TabSpec, selected: isPage("iniciativa") }
+      : { label: "Ficha", icon: UserRound, spec: { kind: "secao", ref: "personagens" } as TabSpec, selected: isPage("personagens") || selectedId.startsWith("ficha:") },
+    { label: "Compêndio", icon: ScrollText, spec: { kind: "secao", ref: "compendio" } as TabSpec, selected: isPage("compendio") },
   ];
   return <div className="mobile mobile-simple">
     <header className="mobile-topbar">
