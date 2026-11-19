@@ -26,16 +26,17 @@ describe("workspace (interface)", () => {
     expect(tabNames()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
   });
 
-  it("abre ficha por botão do conteúdo (id ficha:ID, sem duplicar) e persiste o layout", async () => {
+  it("abre ficha por link de conteúdo (id ficha:ID, aba permanente, sem duplicar) e persiste o layout", async () => {
     mobile = true; // o jsdom não mede tamanhos, então o conteúdo do FlexLayout não é desenhado; a visão simples usa o mesmo estado
     await renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));                 // clique normal: reutiliza a aba atual
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Ficha: Lydia"]);
+    fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));                 // link de conteúdo: nova aba permanente, origem preservada
+    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
     more("Personagens");
     fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));                 // já aberta: seleciona, não duplica
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Ficha: Lydia", "Personagens"]);
-    const ids = saved().layout.children[0].children.map((t: { id: string }) => t.id);
-    expect(ids).toEqual(["ficha:lydia", "secao:personagens"]);
+    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
+    const tabsSaved = saved().layout.children[0].children as { id: string; pinned?: boolean }[];
+    expect(tabsSaved.map(t => t.id)).toEqual(["secao:personagens", "ficha:lydia"]);
+    expect(tabsSaved.map(t => t.pinned === true)).toEqual([false, true]);
   });
 
   it("restaura as abas salvas ao montar de novo", async () => {

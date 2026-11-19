@@ -11,7 +11,11 @@ const demo: Partial<Record<string, TabSpec[]>> = {
 };
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
-export function Panel({ kind, entity: id, onOpen }: { kind: Kind; entity: string; onOpen: (s: TabSpec, mode?: NavMode) => void }) {
+export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
+  kind: Kind; entity: string;
+  onOpen: (s: TabSpec, mode?: NavMode) => void;   // abertura administrativa/de menu (modo explícito; padrão: reutilizar a aba)
+  onOpenContent: (s: TabSpec) => void;            // link interno de conteúdo: sempre aba permanente, sem substituir a origem
+}) {
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   if (kind === "campanha") return <div className="content"><CampaignPanel id={id} onOpen={onOpen}/></div>;
   if (kind === "secao" && id === "campanhas") return <div className="content"><CampaignsPanel onOpen={onOpen}/></div>;
@@ -21,7 +25,7 @@ export function Panel({ kind, entity: id, onOpen }: { kind: Kind; entity: string
     <div className="eyebrow">COMPÊNDIO 5e / DEMONSTRAÇÃO</div>
     <h1>{title}</h1>
     <p>Estrutura inicial. Os dados reais serão integrados nas próximas etapas.</p>
-    {items && <div className="demo-actions">{items.map(s => <button key={`${s.kind}:${s.ref}`} onClick={() => onOpen(s)}>Abrir {s.title}</button>)}</div>}
+    {items && <div className="demo-actions">{items.map(s => <button key={`${s.kind}:${s.ref}`} onClick={() => onOpenContent(s)}>Abrir {s.title}</button>)}</div>}
     <div className="placeholder"><BookOpen size={30}/><strong>{title}</strong><span>Área reservada para a funcionalidade.</span></div>
   </div>;
 }

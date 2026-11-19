@@ -1,7 +1,7 @@
 // Navegação por abas (lógica pura): reutilizar, selecionar, abrir em nova aba, fixar e persistir só ids + `pinned`.
 import { describe, expect, it } from "vitest";
 import { Actions, type Model } from "flexlayout-react";
-import { isPinned, navigate, otherNormalTabs, setPinned } from "./navigation";
+import { isPinned, navigate, openContentLink, otherNormalTabs, setPinned } from "./navigation";
 import { loadLayout, saveLayout, storageKey, type Scope } from "./persistence";
 import { closeTab, createModel, findTab, groups, isColumnsOnly, moveToNewColumn, openTab, sanitizeLayout } from "./workspace";
 
@@ -167,5 +167,66 @@ describe("sequências aleatórias de navegação", () => {
       navigate(m, sec(r), "reuse");
       expect(flat(m)).toEqual(expect.arrayContaining(["secao:personagens", "secao:iniciativa"]));
     }
+  });
+});
+
+describe("link interno de conteúdo (openContentLink)", () => {
+  const doc = (ref: string) => ({ kind: "documento" as const, ref, title: `Doc ${ref}` });
+  it("cria aba permanente (pinned) logo após a origem, sem substituir nem fechar nada", () => {
+    const m = createModel(); openTab(m, sec("iniciativa"));
+    const r = openContentLink(m, doc("a"), "secao:personagens");
+    expect(r).toEqual({ action: "created", tabId: "documento:a" });
+    expect(flat(m)).toEqual(["secao:personagens", "documento:a", "secao:iniciativa"]);
+    expect(isPinned(findTab(m, "documento:a")!)).toBe(true); expect(isPinned(findTab(m, "secao:personagens")!)).toBe(false);
+    expect(groups(m)[0].getSelectedNode()?.getId()).toBe("documento:a");
+  });
+  it("não depende do modo 'reuse': a origem normal e a aba selecionada nunca são trocadas", () => {
+    const m = createModel();
+    openContentLink(m, doc("a"), "secao:personagens"); openContentLink(m, doc("b"), "documento:a");
+    expect(flat(m)).toEqual(["secao:personagens", "documento:a", "documento:b"]);
+  });
+  it("registro já aberto: seleciona onde está, sem duplicar e sem alterar a fixação", () => {
+    const m = createModel(); navigate(m, doc("a"), "new");                      // aberta pelo menu, normal
+    m.doAction(Actions.selectTab("secao:personagens"));
+    expect(openContentLink(m, doc("a"), "secao:personagens").action).toBe("selected");
+    expect(flat(m)).toEqual(["secao:personagens", "documento:a"]); expect(isPinned(findTab(m, "documento:a")!)).toBe(false);
+    expect(groups(m)[0].getSelectedNode()?.getId()).toBe("documento:a");
+  });
+  it("com vários painéis: abre no painel da origem; já aberto em outro painel, seleciona lá", () => {
+    const m = createModel(); openTab(m, sec("iniciativa")); moveToNewColumn(m, "secao:iniciativa", "right");
+    m.doAction(Actions.setActiveTabset(groups(m)[0].getId()));                  // painel ativo é o da esquerda, mas a origem está à direita
+    openContentLink(m, doc("a"), "secao:iniciativa");
+    expect(ids(m)).toEqual([["secao:personagens"], ["secao:iniciativa", "documento:a"]]);
+    openContentLink(m, doc("a"), "secao:personagens");
+    expect(ids(m)).toEqual([["secao:personagens"], ["secao:iniciativa", "documento:a"]]);
+    expect(m.getActiveTabset()).toBe(groups(m)[1]);
+  });
+  it("sem origem informada usa o painel ativo, no fim", () => {
+    const m = createModel(); openTab(m, sec("iniciativa"));
+    openContentLink(m, doc("a"));
+    expect(flat(m)).toEqual(["secao:personagens", "secao:iniciativa", "documento:a"]);
+  });
+  it("a aba permanente sobrevive ao clique normal do menu e a mudança de título não a desfixa", () => {
+    const m = createModel(); openContentLink(m, doc("a"), "secao:personagens");
+    navigate(m, sec("encontros"), "reuse");
+    expect(flat(m)).toEqual(["secao:encontros", "documento:a"]);
+    openContentLink(m, { ...doc("a"), title: "Novo título" }, "secao:encontros");
+    expect(isPinned(findTab(m, "documento:a")!)).toBe(true); expect(findTab(m, "documento:a")!.getName()).toBe("Novo título");
+  });
+  it("campanhas diferentes têm espaços de trabalho isolados: o link de uma não aparece na outra", () => {
+    const st = memory(), a = scope("u1", "camp-a"), b = scope("u1", "camp-b");
+    const ma = createModel(loadLayout(a, st)); openContentLink(ma, doc("a"), "secao:personagens"); saveLayout(ma.toJson(), a, st);
+    expect(flat(createModel(loadLayout(a, st)))).toEqual(["secao:personagens", "documento:a"]);
+    expect(flat(createModel(loadLayout(b, st)))).toEqual(["secao:personagens"]);
+    expect([...st.d.keys()].some(k => k.includes("camp-a")) && [...st.d.keys()].every(k => !k.includes("Doc a"))).toBe(true);
+  });
+  it("persistência: ids + pinned (sem títulos); tipo desconhecido (versão futura) é descartado sem quebrar o resto", () => {
+    const st = memory(), s = scope("u1"), m = createModel(); openContentLink(m, doc("a"), "secao:personagens");
+    saveLayout(m.toJson(), s, st);
+    const env = JSON.parse(st.d.get(storageKey(s))!);
+    expect(env.layout.children[0].children.map((t: { id: string; pinned?: boolean; name?: string }) => [t.id, t.pinned === true, t.name])).toEqual([["secao:personagens", false, undefined], ["documento:a", true, undefined]]);
+    env.layout.children[0].children.push({ id: "cena:futura-1", pinned: true });
+    const ok = sanitizeLayout(env)!; expect(flat(createModel(ok))).toEqual(["secao:personagens", "documento:a"]);
+    expect(isPinned(findTab(createModel(ok), "documento:a")!)).toBe(true);
   });
 });
