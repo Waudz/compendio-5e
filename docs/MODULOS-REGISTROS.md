@@ -30,3 +30,6 @@ Decisão de baixo risco: o quadro é UMA nota `board` por campanha (ordem em `me
 
 ## O que ainda depende de desenvolvimento
 Ficha completa do personagem (atributos, magias, inventário), upload de imagens dentro do editor, arrastar cartões, vínculos entre páginas, registros rápidos/pendências, exportação de sessão, Iniciativa/Encontros/Enciclopédia/Documentos/Compêndio.
+
+## Validação real das políticas (antes de aplicar 0005/0006 em produção)
+Os testes PGlite simulam o Storage; não substituem um teste real. `scripts/validar-supabase-0006.mjs` roda 20 verificações contra um projeto Supabase **isolado de teste** (migrações 0001–0006 aplicadas nele): envio/leitura/exclusão no bucket por participante, mestre e estranho, caminhos e tipos inválidos, limite de 5 MiB, capa, e a RLS de diário, cena, quadro e personagem. Usa só a chave pública e 3 contas informadas por variável de ambiente (instruções no cabeçalho do arquivo); limpa o que criou. Resultado esperado: todas PASS; qualquer FAIL bloqueia a aplicação em produção.
