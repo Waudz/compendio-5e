@@ -49,11 +49,18 @@ values ('campaign-assets', 'campaign-assets', false, 5242880, array['image/jpeg'
 on conflict (id) do nothing;
 
 -- Leitura: quem participa da campanha dona do caminho. Envio: participante, só em <campanha>/<uuid>. Exclusão: o mestre ou quem enviou.
+-- IMPORTANTE: o Postgres NÃO garante a ordem de avaliação de AND. Estas políticas valem para TODAS as linhas de storage.objects (outros buckets
+-- incluídos); o cast ::uuid só pode ocorrer depois de o nome casar com o padrão, por isso o CASE. Sem ele, um nome fora do padrão em outro bucket
+-- poderia gerar erro de cast e quebrar o acesso de authenticated a esses arquivos. Dono do objeto: owner_id (text; `owner` é obsoleto no Supabase).
 create policy campaign_assets_select on storage.objects for select to authenticated
-  using (bucket_id = 'campaign-assets' and name ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}$' and public.is_member(((storage.foldername(name))[1])::uuid));
+  using (bucket_id = 'campaign-assets' and case
+    when name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    then public.is_member(((storage.foldername(name))[1])::uuid) else false end);
 create policy campaign_assets_insert on storage.objects for insert to authenticated
-  with check (bucket_id = 'campaign-assets' and name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-              and public.is_member(((storage.foldername(name))[1])::uuid));
+  with check (bucket_id = 'campaign-assets' and case
+    when name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    then public.is_member(((storage.foldername(name))[1])::uuid) else false end);
 create policy campaign_assets_delete on storage.objects for delete to authenticated
-  using (bucket_id = 'campaign-assets' and name ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}$'
-         and (owner = auth.uid() or public.is_master(((storage.foldername(name))[1])::uuid)));
+  using (bucket_id = 'campaign-assets' and case
+    when name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    then (owner_id = auth.uid()::text or public.is_master(((storage.foldername(name))[1])::uuid)) else false end);

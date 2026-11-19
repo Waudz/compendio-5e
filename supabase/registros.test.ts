@@ -161,6 +161,11 @@ describe("storage: bucket campaign-assets", () => {
     expect((await as(U.dora, "select name from storage.objects where name = $1", [`${C1}/${UUID(10)}`])).rows).toHaveLength(0);
     expect((await as(null, "select name from storage.objects")).error).toBeTruthy();         // anônimo: sem acesso
   });
+  it("objetos de OUTROS buckets com nome fora do padrão não geram erro de cast nem ficam acessíveis (a política não vaza para eles)", async () => {
+    await db.exec("insert into storage.buckets (id, name) values ('outro', 'outro') on conflict do nothing; insert into storage.objects (bucket_id, name, owner_id) values ('outro', 'nao-e-uuid/arquivo.txt', null), ('campaign-assets', 'lixo-sem-padrao', null)");
+    const r = await as(U.bia, "select name from storage.objects where name in ('nao-e-uuid/arquivo.txt', 'lixo-sem-padrao')");
+    expect(r.error).toBeUndefined(); expect(r.rows).toEqual([]);
+  });
   it("só quem enviou ou o mestre apaga", async () => {
     expect((await as(U.caio, "delete from storage.objects where name = $1 returning id", [`${C1}/${UUID(10)}`])).rows).toHaveLength(0);
     expect((await as(U.bia, "delete from storage.objects where name = $1 returning id", [`${C1}/${UUID(10)}`])).rows).toHaveLength(1);
