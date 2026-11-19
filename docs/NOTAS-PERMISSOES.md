@@ -1,59 +1,46 @@
-# Notas e diário — contratos preliminares
+# Notas e diário — permissões, persistência e evolução
 
-Os contratos TypeScript (`src/notePermissions.ts`) servem só à interface. A autorização real está no banco: `supabase/migrations/0004_notas.sql` (testada em Postgres em memória e **aplicada** ao projeto `gwcttjlxzelzjhbuitmi` em 19/11/2026, junto com a `0003`; não reaplicar). Ainda não existe editor nem acesso a `notes` pelo cliente.
+Status: **banco implementado e aplicado** (`supabase/migrations/0004_notas.sql`, no projeto `gwcttjlxzelzjhbuitmi` em 19/11/2026, junto com a `0003`; não reaplicar; reversão em `supabase/rollback/0004_notas_down.sql`). **Ainda não existem cliente de dados nem interface de notas.** O modelo de vínculos e de compartilhamento por audiência (decisão D3) é **planejado e ainda não existe no banco** (seção 4). Testes: `supabase/notas.test.ts` (32 casos, várias contas e papéis, Postgres em memória).
 
-## Visibilidade
-- `private`: somente autor.
-- `master`: autor e mestre participante da campanha.
-- `campaign`: autor e participantes da campanha.
-- `selected`: autor e participantes selecionados explicitamente.
-- Sem campanha: somente autor, independentemente da visibilidade declarada.
-- Um mestre não tem acesso automático a notas privadas de outro autor.
-- Edição inicial: apenas autor; compartilhamento não concede edição.
+## 1. Regras vigentes (`0004`)
 
-## Requisitos para futura implementação SQL
-- Aplicar RLS a notas e permissões no servidor; verificar pertencimento atual à campanha em cada consulta.
-- Nunca confiar em `isCampaignMaster`, `isCampaignMember` ou `allowedUserIds` enviados pelo navegador para autorizar acesso.
-- Definir política de transferência/remoção de notas ao sair da campanha, antes de criar persistência.
-- Proteger links, busca, prévias e histórico com a mesma política da nota de origem.
-- Proibir escalonamento de privilégios por atualização de `owner_id`, `campaign_id` ou listas de compartilhamento.
-- Não criar funcionalidades de visitante; conteúdo universal é consultável por qualquer conta autenticada.
+**Visibilidade** (`notes.visibility`): `private` (só o autor), `master` (autor e mestre da campanha), `campaign` (autor e participantes), `selected` (autor e participantes escolhidos em `note_shares`). Nota sem campanha só pode ser `private`. **O mestre não lê nota privada de jogador**; nada é compartilhado automaticamente.
 
-## A seguir
-A `0004` está aplicada. Qualquer mudança nas regras de notas exige nova migração revisada, testes de regressão (a suíte `supabase/notas.test.ts` é a referência) e autorização explícita antes de aplicar.
+**Leitura:** uma regra única, `note_readable(...)` / `can_read_note(id)`: o autor sempre; os demais só se a nota é de campanha e não privada, **o leitor participa agora**, **o autor também participa agora** e a visibilidade permite (`master` exige ser o mestre; `selected` exige estar em `note_shares`). `can_read_note` devolve `false` igual para nota inexistente e inacessível. Links, busca e histórico futuros devem usá-la nas próprias políticas.
 
-## Persistência e RLS (migração 0004) — estado
+**Escrita:** só o autor insere, edita, exclui e compartilha. `owner_id`, `campaign_id`, `id`, `created_at` e `version` não são graváveis por clientes (privilégio de coluna), e um gatilho recusa troca de dono/campanha até para papéis privilegiados. Limites: 5000 notas por usuário, 50 selecionados por nota, título 1–120 e corpo até 50000 caracteres.
 
-Tabelas `notes` (autor, campanha opcional, título, corpo, visibilidade, `version`) e `note_shares` (selecionados).
-- **Leitura:** `note_readable(...)`/`can_read_note(id)` é a única regra: autor sempre; os demais só se `visibility <> 'private'`, a nota é de campanha, **o leitor participa agora**, **o autor também participa** e (`campaign` | `master` e leitor é o mestre | `selected` e leitor está em `note_shares`). Mestre não lê nota privada de jogador.
-- **Escrita:** só o autor insere, edita, exclui e compartilha. `owner_id`, `campaign_id`, `id`, `created_at` e `version` não são graváveis por clientes (privilégio de coluna) e um gatilho recusa troca de dono/campanha até para papéis privilegiados. Nota sem campanha só pode ser `private`.
-- **Selecionados:** destinatário tem de participar da campanha; não vale para o próprio autor; máx. 50; mudar a visibilidade de `selected` apaga a lista (voltar a `selected` não a restaura).
-- **Concorrência:** o servidor incrementa `version`; o cliente envia `update ... where id = ? and version = ?` e **0 linhas = conflito** (nada é sobrescrito em silêncio).
-- **Quem sai ou é removido da campanha (política CONFIRMADA pelo responsável):** nada é apagado; o autor continua lendo e excluindo as suas notas, mas não as edita fora da campanha; o compartilhamento fica **inativo** (mestre e demais deixam de ver) e volta a valer se ele reentrar. *Alternativas:* (a) apagar as notas compartilhadas ao sair; (b) mantê-las visíveis à mesa; (c) converter para privadas na saída. A escolhida é a única que não apaga dados nem entrega dados de quem saiu.
-- **Exclusão:** excluir campanha apaga suas notas (cascata); excluir a conta apaga as notas da conta. Mestre não exclui nem modera notas de jogadores.
-- **Busca, links e histórico (próximas etapas):** qualquer tabela/consulta futura deve usar `can_read_note(id)` na própria política (ou `exists` sobre `notes`, já filtrado pela RLS), nunca guardar título/prévia em tabelas sem essa verificação. `can_read_note` devolve `false` igual para nota inexistente e inacessível.
-- **Reversão:** `supabase/rollback/0004_notas_down.sql` (apaga todas as notas: faça backup antes).
-- **Testes:** `supabase/notas.test.ts` (32 casos, várias contas e papéis).
+**Selecionados:** o destinatário precisa participar da campanha e não pode ser o autor; mudar a visibilidade de `selected` apaga a lista (voltar a `selected` não a restaura).
 
-## Revisão de segurança da 0004 (achados e decisões)
+**Concorrência:** o servidor incrementa `version`; o cliente atualiza com `where id = ? and version = ?` e **0 linhas = conflito** (nada é sobrescrito em silêncio).
 
-Corrigidos antes de qualquer aplicação:
-1. **Oráculo no limite de compartilhamentos.** O gatilho de limite rodava ANTES da checagem de RLS; quem tentasse compartilhar uma nota alheia (conhecendo o UUID) receberia "limite" ou "RLS" conforme a nota tivesse ≥50 compartilhamentos. Agora é `AFTER INSERT`: forasteiros recebem sempre o erro genérico de RLS.
-2. **Menos `SECURITY DEFINER`.** Os gatilhos passaram a `SECURITY INVOKER` (a RLS vale dentro deles). Restam 4 funções definer, todas com `search_path` vazio, sem acesso para `anon`: `is_note_owner`, `note_readable`, `can_read_note`, `can_share_note`.
-3. **Linha de compartilhamento suspensa.** Um selecionado via o id de uma nota cujo autor já saiu da campanha. Agora só vê a própria linha enquanto a nota é legível para ele.
-4. **Abuso de armazenamento.** Limite de 5000 notas por usuário (e 50 compartilhamentos por nota).
+**Quem sai ou é removido da campanha (política confirmada):** nada é apagado. O autor continua lendo e excluindo as próprias notas, mas **hoje não as edita fora da campanha**; o compartilhamento fica **suspenso** (mestre e demais deixam de ver) e volta a valer se ele reentrar. (Alternativas descartadas: apagar ao sair; manter visível à mesa; converter em privadas.) **Exclusão:** apagar a campanha apaga suas notas (cascata); apagar a conta apaga as notas da conta (o destino disso será discutido antes de implementar a exclusão de contas). O mestre não exclui nem modera notas de jogadores.
 
-Verificado e sem vazamento: funções expostas por `/rpc` (`note_readable` com argumentos forjados nunca dá `true` a quem não participa nem a quem não é mestre; `can_share_note`/`is_note_owner` só dizem "sim" ao dono; `can_read_note` responde igual para nota inexistente e inacessível); erros idênticos para nota/campanha/destinatário inexistente ou alheio; predicados de usuário (`like`, divisão por zero, `count`, `max`, `exists`) não enxergam linhas barradas pela RLS; owner/campaign/version/created_at não graváveis; gatilho barra troca de dono mesmo com privilégio total; `anon` sem nenhum acesso.
+## 2. Revisão de segurança da `0004`
+Corrigido antes de aplicar: (1) o limite de compartilhamentos rodava antes da RLS e servia de oráculo → agora `AFTER INSERT`; (2) gatilhos passaram a `SECURITY INVOKER`, restando 4 funções `SECURITY DEFINER` com `search_path` vazio e sem acesso para `anon` (`is_note_owner`, `note_readable`, `can_read_note`, `can_share_note`); (3) o selecionado só vê a própria linha de compartilhamento enquanto a nota é legível para ele; (4) limite de 5000 notas por usuário.
 
-Riscos residuais conhecidos (aceitos ou para etapas futuras):
-- `note_readable` aceita argumentos arbitrários (necessário para valer em políticas e em `INSERT ... RETURNING`); só revela o que o chamador já sabe (a própria participação e papel).
-- Quem foi removido e volta por convite recupera acesso às notas `campaign`/`selected` ainda existentes (coerente com a política de reentrada).
-- Mensagens de erro de `CHECK`/FK podem exibir a linha que o PRÓPRIO usuário tentou gravar (dado dele).
-- **Não** adicionar `notes`/`note_shares` à publicação do Realtime sem nova revisão.
-- Links, busca e histórico (Etapa C) devem usar `can_read_note` nas próprias políticas; nunca armazenar título/prévia fora de tabelas protegidas.
+Verificado sem vazamento: funções expostas por `/rpc` com argumentos forjados; erros idênticos para nota, campanha ou destinatário inexistente ou alheio; predicados de usuário (`like`, divisão por zero, agregações, `exists`) não enxergam linhas barradas pela RLS; `anon` sem acesso.
 
-## Evolução planejada (decisão D3, 19/11/2026) — NÃO implementada
+Riscos residuais aceitos: `note_readable` aceita argumentos arbitrários (necessário em políticas e `INSERT … RETURNING`) e só revela o que o chamador já sabe; quem é removido e volta por convite recupera o acesso às notas `campaign`/`selected` que ainda existam; mensagens de `CHECK`/FK podem mostrar a linha que o próprio usuário tentou gravar; **não** incluir `notes`/`note_shares` (nem futuras audiências) na publicação do Realtime sem nova revisão.
 
-Decidido: sistema único de anotações do usuário; **vínculos opcionais e múltiplos** (personagens, campanhas, NPCs, locais, encontros…) que **não transferem propriedade nem compartilham**; compartilhar é ação explícita; autor mantém acesso e edição ao sair da campanha ou quando o personagem morre/é trocado/excluído. A proposta anterior de mudar `campaign_id` de `NULL` para uma campanha foi **rejeitada**.
+## 3. Contratos de interface
+`src/notePermissions.ts` (`canReadNote`, `canEditNote`) serve **só à apresentação**; nunca autoriza nada. Nunca confiar em `isCampaignMaster`, `isCampaignMember` ou `allowedUserIds` enviados pelo navegador. A edição por outros além do autor não existe (compartilhar não concede edição).
 
-Impacto sobre a `0004` (detalhes em `PLANEJAMENTO-V2.md` §4.4): hoje `campaign_id` (único e imutável) faz o papel de origem, de público e de pré-condição de escrita, e a nota pessoal não pode ser compartilhada. Para D3 será preciso, em migração futura: separar **audiências** (por campanha, com escopo e destinatários) de `campaign_id` (que fica como origem informativa); criar `record_links` (sem efeito de acesso, legíveis só se `can_read_note(nota)`); e **permitir que o autor edite as próprias notas mesmo fora da campanha** (hoje o `with check` de `notes_update` exige participação — comportamento que D3 muda). O que vale **hoje**: mestre não lê nota privada; compartilhamento suspenso enquanto o autor está fora; vínculos ainda não existem.
+## 4. Evolução planejada (decisão D3) — NÃO implementada
+**Decidido:** sistema único de anotações do usuário; **vínculos opcionais e múltiplos** (personagens, campanhas, NPCs, locais, encontros…) que **não transferem propriedade nem compartilham**; compartilhar é ação explícita; o autor mantém acesso e **edição** ao sair da campanha ou quando o personagem morre, é trocado ou excluído. A proposta de mudar `campaign_id` de `NULL` para uma campanha foi **rejeitada**.
+
+**Incompatibilidades da `0004` com D3** (hoje `campaign_id`, único e imutável, faz de origem, de público e de pré-condição de escrita):
+
+| Ponto na `0004` | Conflito | Mudança necessária (migração futura `0005`) |
+|---|---|---|
+| `check (campaign_id is not null or visibility = 'private')` | nota pessoal não pode ser compartilhada | relaxar; visibilidade passa a derivar das **audiências** |
+| `campaign_id` imutável e único | impede compartilhar a mesma nota em várias campanhas, ou depois, sem mover a propriedade | manter como "campanha de origem" informativa, sem poder de acesso; acesso só por audiências |
+| `note_shares (note_id, user_id)` sem campanha | `selected` precisa saber em qual campanha o destinatário participa | acrescentar `campaign_id` (preenchido das notas existentes) |
+| `notes_update`: `with check (campaign_id is null or is_member(campaign_id))` | **autor fora da campanha não edita as próprias notas**, contra D3 | editar a própria nota não exige participação; só compartilhar para uma campanha exige participação atual |
+| `notes_insert` exige participação | criar nota pessoal vinculada depois depende de vínculos, não de `campaign_id` | criação livre; participação só para audiência |
+| `note_readable(nid, owner, campaign, vis)` | lê colunas da própria linha | reescrever lendo audiências (mesma assinatura de `can_read_note`) |
+| `visibility` na tabela | duas fontes de verdade | período de transição com a coluna derivada por gatilho; remoção só em migração posterior |
+
+**Modelo planejado:** **audiências** `(note_id, campaign_id, scope: master | campaign | selected)` mais destinatários `(note_id, campaign_id, user_id)`; uma nota pode ter várias audiências. Regras herdadas: leitor e autor participam **agora**; compartilhamento suspenso enquanto o autor está fora; limites de 50 destinatários e 5000 notas; só o autor compartilha. **Vínculos** `record_links(note_id, target_kind, target_id, target_campaign_id?, created_by)`: só o autor escreve, apenas para alvos que ele pode ler; a linha só é legível se `can_read_note(nota)`; título e existência do alvo vêm da RLS do próprio alvo; backlinks só mostram vínculos cuja nota **e** cujo alvo o leitor pode ler; **nenhum efeito de acesso**; sem cascata do alvo para a nota (alvo removido deixa o vínculo "pendente").
+
+**Caminho:** migração **aditiva** que (1) cria audiências e vínculos, (2) preenche audiências das notas existentes com campanha e visibilidade ≠ privada, (3) troca as funções de leitura, (4) relaxa a escrita do autor, (5) mantém `campaign_id`/`visibility` por compatibilidade e traz reversão. Os 32 testes atuais viram a suíte de regressão; os de "autor fora da campanha não edita" serão **substituídos**. Risco principal: alterar regra de leitura em produção sem reabrir vazamento.
