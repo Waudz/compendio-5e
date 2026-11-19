@@ -12,6 +12,7 @@ import { validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
 import { avisarRegistros, useVersaoRegistros } from "./registrosStore";
 import { EditorLazy } from "./EditorLazy";
+import { useUnsavedGuard } from "./unsaved";
 import type { TabSpec } from "./workspace";
 
 export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) => void } = {}) {
@@ -19,6 +20,8 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
   const cid = active?.campaign.id;
   const alteracoes = useVersaoRegistros();
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [cartaoSujo, setCartaoSujo] = useState(false);
+  const mudarExpandido = (id: string | null) => { if (expandido !== id && cartaoSujo && !window.confirm("Descartar alterações não salvas deste cartão?")) return; setCartaoSujo(false); setExpandido(id); };
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const ultimaVersao = useRef(alteracoes);
   const [board, setBoard] = useState<Registro | null>(null), [cenas, setCenas] = useState<Record<string, Registro>>({});
@@ -64,7 +67,7 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
     const bad = validarTitulo(titulo); if (bad) { setAviso(bad); return false; }
     const r = await api.create({ kind: "scene", campaignId: active.campaign.id, title: titulo, visibility: "private" });
     if (!r.ok) { setAviso(r.error); return false; }
-    setCenas(c => ({ ...c, [r.data.id]: r.data })); setExpandido(r.data.id); gravar(q => adicionarCartao(q, colunaId, r.data.id)); return true;
+    setCenas(c => ({ ...c, [r.data.id]: r.data })); mudarExpandido(r.data.id); gravar(q => adicionarCartao(q, colunaId, r.data.id)); return true;
   };
   const excluirCartao = async (id: string) => {
     const r = await api.remove(id); if (!r.ok) { setAviso(r.error); return; }
@@ -72,7 +75,7 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
   };
   const soltar = (e: DragEndEvent) => gravar(q => soltarCartao(q, String(e.active.id), e.over ? String(e.over.id) : null));
   const abrir = (r: Registro) => onOpenContent?.({ kind: "documento", ref: r.id, title: r.title });
-  const abrirMenu = (e: React.MouseEvent, id: string) => { e.preventDefault(); setMenu({ id, x: e.clientX, y: e.clientY }); };
+  const abrirMenu = (e: React.MouseEvent, id: string) => { if ((e.target as HTMLElement).closest("input,textarea,[contenteditable=true]")) return; e.preventDefault(); setMenu({ id, x: e.clientX, y: e.clientY }); };
 
   return <div className="content planejamento" data-testid="planejamento">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
@@ -91,8 +94,8 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
           <button className="icon" aria-label={`Excluir coluna ${col.titulo}`} title={col.cartoes.length ? "Esvazie a coluna para excluí-la" : "Excluir coluna"} disabled={col.cartoes.length > 0} onClick={() => gravar(q => excluirColuna(q, col.id))}><Trash2 size={14}/></button>
         </header>
         <ListaColuna colId={col.id} ids={col.cartoes.filter(id => cenas[id])}>{col.cartoes.map((id, i) => { const c = cenas[id]; if (!c) return null; const t = primeiroParagrafo(c.content); return <Ordenavel key={id} id={id} alca={`Arrastar o cartão ${c.title}`}>
-          <div onContextMenu={e => abrirMenu(e, id)}><button className="cartao-abrir" aria-expanded={expandido === id} onClick={() => { setMenu(null); if (expandido !== id) setExpandido(id); }}><strong>{c.title}</strong>{t && <span className="cartao-previa">{resumirTexto(t, 140)}</span>}</button>
-          {expandido === id && <EditorCartao key={id} registro={c} api={api} onSaved={r => { setCenas(prev => ({ ...prev, [id]: r })); avisarRegistros(); }} onClose={() => setExpandido(null)}/>}
+          <div onContextMenu={e => abrirMenu(e, id)}><button className="cartao-abrir" aria-expanded={expandido === id} onClick={() => { setMenu(null); if (expandido !== id) mudarExpandido(id); }}><strong>{c.title}</strong>{t && <span className="cartao-previa">{resumirTexto(t, 140)}</span>}</button>
+          {expandido === id && <EditorCartao key={id} registro={c} api={api} onSaved={r => { setCenas(prev => ({ ...prev, [id]: r })); avisarRegistros(); }} onDirty={setCartaoSujo} onClose={() => mudarExpandido(null)}/>}
           </div><div className="cartao-acoes">
             <button className="icon" aria-label={`Subir ${c.title}`} disabled={i === 0} onClick={() => gravar(q => deslocarCartao(q, id, "cima"))}><ArrowUp size={13}/></button>
             <button className="icon" aria-label={`Descer ${c.title}`} disabled={i === col.cartoes.length - 1} onClick={() => gravar(q => deslocarCartao(q, id, "baixo"))}><ArrowDown size={13}/></button>
@@ -133,7 +136,7 @@ function Ordenavel({ id, alca, children }: { id: string; alca: string; children:
 }
 
 /** Editor rico no próprio cartão, sem trocar de aba. */
-function EditorCartao({ registro, api, onSaved, onClose }: { registro: Registro; api: NonNullable<ReturnType<typeof useRegistros>>; onSaved: (r: Registro) => void; onClose: () => void }) {
+function EditorCartao({ registro, api, onSaved, onDirty, onClose }: { registro: Registro; api: NonNullable<ReturnType<typeof useRegistros>>; onSaved: (r: Registro) => void; onDirty: (dirty: boolean) => void; onClose: () => void }) {
   const [titulo, setTitulo] = useState(registro.title);
   const [blocos, setBlocos] = useState<BlocoTexto[]>(registro.content);
   const [editou, setEditou] = useState(false);
@@ -141,7 +144,9 @@ function EditorCartao({ registro, api, onSaved, onClose }: { registro: Registro;
   const [erro, setErro] = useState<string | null>(null);
   const [atual, setAtual] = useState(registro);
   const sujo = editou || titulo !== atual.title;
-  const fechar = () => { if (!sujo || window.confirm("Descartar alterações não salvas deste cartão?")) onClose(); };
+  useUnsavedGuard(`planejamento-cartao:${registro.id}`, sujo);
+  useEffect(() => { onDirty(sujo); return () => onDirty(false); }, [sujo, onDirty]);
+  const fechar = () => onClose();
   const salvar = async () => {
     const invalido = validarTitulo(titulo); if (invalido) { setErro(invalido); return; }
     setSalvando(true); setErro(null);
