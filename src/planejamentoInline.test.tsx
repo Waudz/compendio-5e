@@ -70,7 +70,7 @@ describe("cartão simplificado: texto no cartão, salvamento automático", () =>
     expect((await screen.findByRole("button", { name: "Editar o texto de Estrada" })).textContent).toContain("Carroça atolada.");
     const texto = await editarCartao("Estrada");
     expect(abas()).toEqual(abasAntes);
-    expect(screen.getByRole("listitem", { name: "Coluna Sessão 5" }).contains(texto)).toBe(true);
+    expect(texto.closest("section")?.getAttribute("aria-label")).toBe("Seção Sessão 5");   // o cartão continua na própria seção
     for (const nome of ["Salvar", "Recolher", "Descartar alterações"]) expect(screen.queryByRole("button", { name: nome })).toBeNull();
     expect(screen.queryByLabelText("Título")).toBeNull();
     fireEvent.change(texto, { target: { value: "Carroça atolada.\n\nBandidos." } });
@@ -287,21 +287,22 @@ describe("sincronização entre grupos de abas (sem F5)", () => {
     await A().findByRole("button", { name: "Editar o texto de Estrada" }); await B().findByLabelText("Título");
     fireEvent.click(B().getByRole("button", { name: "Excluir" })); fireEvent.click(B().getByRole("button", { name: "Confirmar exclusão" }));
     await waitFor(() => expect(A().queryByRole("button", { name: "Editar o texto de Estrada" })).toBeNull());
-    await waitFor(() => expect((registros.dados.find(r => r.kind === "board")!.meta as { colunas: { cartoes: string[] }[] }).colunas[0].cartoes).toEqual(["s1"]));
+    await waitFor(() => expect((registros.dados.find(r => r.kind === "board")!.meta as { colunas: { secoes: { cartoes: string[] }[] }[] }).colunas[0].secoes[0].cartoes).toEqual(["s1"]));
   });
 });
 
 describe("criar sem nome e conteúdo inteiro", () => {
-  it("coluna e cartão podem ser criados sem digitar nome (nomes automáticos, editáveis); o novo cartão já abre para escrever", async () => {
+  it("coluna, seção e cartão são criados sem digitar nome (nomes automáticos, editáveis); o novo cartão já abre para escrever", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar coluna" }));
-    await screen.findByRole("listitem", { name: "Coluna Coluna 3" });
-    fireEvent.click(within(screen.getByRole("listitem", { name: "Coluna Coluna 3" })).getByRole("button", { name: "Adicionar cartão" }));
+    const nova = await screen.findByLabelText("Seção Seção 3");
+    fireEvent.click(within(nova).getByRole("button", { name: "Adicionar cartão" }));
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene" && r.title === "Novo cartão")).toBe(true));
     expect(await screen.findByLabelText("Conteúdo de Novo cartão")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Adicionar coluna" }));
-    await screen.findByRole("listitem", { name: "Coluna Coluna 4" });
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar seção abaixo de Seção 3" }));   // seção nova embaixo, na mesma coluna
+    const abaixo = await screen.findByLabelText("Seção Seção 4");
+    expect(abaixo.closest("[data-coluna]")).toBe(screen.getByLabelText("Seção Seção 3").closest("[data-coluna]"));
   });
   it("o cartão mostra o CONTEÚDO inteiro (títulos, parágrafos, listas) com a formatação, não só o primeiro parágrafo", async () => {
     const registros = registrosEmMemoria("mestre", me.id, [
@@ -316,36 +317,181 @@ describe("criar sem nome e conteúdo inteiro", () => {
 });
 
 describe("colunas redimensionáveis", () => {
-  const colunas = (r: ReturnType<typeof registrosEmMemoria>) => (r.dados.find(x => x.kind === "board")!.meta as { colunas: { id: string; titulo: string; largura?: number; cartoes: string[] }[] }).colunas;
-  it("teclado e arraste ajustam a largura da coluna, que acompanha todos os cartões e persiste", async () => {
+  const colunas = (r: ReturnType<typeof registrosEmMemoria>) => (r.dados.find(x => x.kind === "board")!.meta as { colunas: { id: string; largura?: number; secoes: { cartoes: string[] }[] }[] }).colunas;
+  const faixa = (i: number) => document.querySelectorAll("[data-coluna]")[i] as HTMLElement;
+  const alca = (i: number) => within(faixa(i)).getByRole("separator", { name: "Redimensionar a coluna" });
+  it("teclado e arraste ajustam a largura da coluna, que acompanha todas as seções e cartões e persiste", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
-    const col = await screen.findByRole("listitem", { name: "Coluna Sessão 5" });
-    expect(col.style.width).toBe("300px");
-    const sep = within(col).getByRole("separator", { name: "Redimensionar a coluna Sessão 5" });
-    fireEvent.keyDown(sep, { key: "ArrowRight" }); fireEvent.keyDown(sep, { key: "ArrowRight" });
-    await waitFor(() => expect(screen.getByRole("listitem", { name: "Coluna Sessão 5" }).style.width).toBe("340px"));
+    await screen.findAllByRole("separator", { name: "Redimensionar a coluna" });
+    expect(faixa(0).style.width).toBe("300px");
+    fireEvent.keyDown(alca(0), { key: "ArrowRight" }); fireEvent.keyDown(alca(0), { key: "ArrowRight" });
+    await waitFor(() => expect(faixa(0).style.width).toBe("340px"));
     await waitFor(() => expect(colunas(registros)[0].largura).toBe(340));
-    expect(colunas(registros)[0].cartoes).toEqual(["s1", "s2"]);
-    const sep2 = within(screen.getByRole("listitem", { name: "Coluna Sessão 5" })).getByRole("separator");
-    sep2.setPointerCapture = () => {};
-    fireEvent.pointerDown(sep2, { clientX: 400, pointerId: 1 }); fireEvent.pointerMove(sep2, { clientX: 1000, pointerId: 1 });
-    expect(screen.getByRole("listitem", { name: "Coluna Sessão 5" }).style.width).toBe("900px");
+    expect(colunas(registros)[0].secoes[0].cartoes).toEqual(["s1", "s2"]);
+    const a = alca(0); a.setPointerCapture = () => {};
+    fireEvent.pointerDown(a, { clientX: 400, pointerId: 1 }); fireEvent.pointerMove(a, { clientX: 1000, pointerId: 1 });
+    expect(faixa(0).style.width).toBe("900px");
     expect(colunas(registros)[0].largura).toBe(340);
-    fireEvent.pointerUp(sep2, { clientX: 1000, pointerId: 1 });
+    fireEvent.pointerUp(a, { clientX: 1000, pointerId: 1 });
     await waitFor(() => expect(colunas(registros)[0].largura).toBe(900));
-    fireEvent.keyDown(within(screen.getByRole("listitem", { name: "Coluna Sessão 5" })).getByRole("separator"), { key: "ArrowLeft" });
+    fireEvent.keyDown(alca(0), { key: "ArrowLeft" });
     await waitFor(() => expect(colunas(registros)[0].largura).toBe(880));
     expect(colunas(registros)[1].largura).toBeUndefined();
     r.unmount(); cleanup();
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
-    expect((await screen.findByRole("listitem", { name: "Coluna Sessão 5" })).style.width).toBe("880px");
+    await screen.findAllByRole("separator", { name: "Redimensionar a coluna" });
+    expect(faixa(0).style.width).toBe("880px");
   });
   it("limite mínimo: não encolhe abaixo de 220px", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
-    const sep = within(await screen.findByRole("listitem", { name: "Coluna Floresta" })).getByRole("separator");
-    for (let i = 0; i < 8; i++) fireEvent.keyDown(sep, { key: "ArrowLeft" });
+    await screen.findAllByRole("separator", { name: "Redimensionar a coluna" });
+    for (let i = 0; i < 8; i++) fireEvent.keyDown(alca(1), { key: "ArrowLeft" });
     await waitFor(() => expect(colunas(registros)[1].largura).toBe(220));
+  });
+});
+
+describe("seções: título grande, seleção com o mouse e exclusão inteira", () => {
+  const plano = (r: ReturnType<typeof registrosEmMemoria>) => r.dados.find(x => x.id === "b1")!.meta as { colunas: { secoes: { id: string; titulo: string; grande?: boolean; cartoes: string[] }[] }[] };
+  it("o botão de título grande liga e desliga e persiste", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    const b = await screen.findByRole("button", { name: "Título grande na seção Sessão 5" });
+    expect(b.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(b);
+    await waitFor(() => expect(plano(registros).colunas[0].secoes[0].grande).toBe(true));
+    expect(screen.getByRole("button", { name: "Título grande na seção Sessão 5" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Título grande na seção Sessão 5" }));
+    await waitFor(() => expect(plano(registros).colunas[0].secoes[0].grande).toBeUndefined());
+  });
+  it("clicar no cabeçalho seleciona a seção; Ctrl+clique soma; Esc limpa; a barra mostra a contagem", async () => {
+    await renderApp({ api: apiC(), registros: registrosEmMemoria("mestre", me.id, dados()) }); await abrirPlanejamento();
+    const s1 = await screen.findByLabelText("Seção Sessão 5"), s2 = screen.getByLabelText("Seção Floresta");
+    fireEvent.click(s1.querySelector("header")!);
+    expect(s1.getAttribute("data-selecionada")).toBe("true"); expect(screen.getByRole("toolbar", { name: "Seções selecionadas" }).textContent).toContain("1 seção selecionada");
+    fireEvent.click(s2.querySelector("header")!, { ctrlKey: true });
+    expect(s2.getAttribute("data-selecionada")).toBe("true"); expect(screen.getByRole("toolbar").textContent).toContain("2 seções selecionadas");
+    fireEvent.click(s2.querySelector("header")!, { ctrlKey: true }); expect(s2.getAttribute("data-selecionada")).toBe("false");
+    fireEvent.keyDown(window, { key: "Escape" }); expect(screen.queryByRole("toolbar")).toBeNull();
+  });
+  it("excluir a seção inteira apaga a seção E os cartões dela (com confirmação); cancelar não faz nada", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    await screen.findByLabelText("Seção Sessão 5");
+    const conf = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
+    expect(conf.mock.calls[0][0]).toMatch(/2 cartões/); expect(registros.dados.some(r => r.id === "s1")).toBe(true);
+    conf.mockReturnValue(true); fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
+    await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
+    await waitFor(() => expect(screen.queryByLabelText("Seção Sessão 5")).toBeNull());
+    await waitFor(() => expect(plano(registros).colunas.map(c => c.secoes.map(s => s.titulo))).toEqual([["Floresta"]]));
+  });
+  it("selecionar várias seções e excluir todas de uma vez (botão da barra); seção vazia exclui sem confirmar", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    const s1 = await screen.findByLabelText("Seção Sessão 5"), s2 = screen.getByLabelText("Seção Floresta");
+    const conf = vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(s2.querySelector("header")!); fireEvent.click(screen.getByRole("button", { name: "Excluir seção" }));
+    await waitFor(() => expect(screen.queryByLabelText("Seção Floresta")).toBeNull());
+    expect(conf).not.toHaveBeenCalled();                                                        // vazia: sem confirmação
+    fireEvent.click(s1.querySelector("header")!); fireEvent.keyDown(window, { key: "Delete" });  // atalho Delete
+    await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
+    expect(conf).toHaveBeenCalledTimes(1);
+  });
+  it("se apagar um cartão falha, a seção e o cartão continuam no quadro (nada se perde)", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    const real = registros.remove; registros.remove = async id => id === "s2" ? { ok: false as const, error: SEM_CONEXAO } : real(id);
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    await screen.findByLabelText("Seção Sessão 5");
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
+    expect(await screen.findByText(/Não foi possível excluir 1 cartão/)).toBeTruthy();
+    expect(screen.getByLabelText("Seção Sessão 5")).toBeTruthy();
+    await waitFor(() => expect(plano(registros).colunas[0].secoes[0].cartoes).toEqual(["s2"]));
+  });
+  it("o '+' abaixo da seção cria a próxima seção na mesma coluna, sem pedir nome", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    fireEvent.click(await screen.findByRole("button", { name: "Adicionar seção abaixo de Sessão 5" }));
+    await waitFor(() => expect(plano(registros).colunas[0].secoes.map(s => s.titulo)).toEqual(["Sessão 5", "Seção 3"]));
+  });
+});
+
+describe("planejamentos e anotações permanentes", () => {
+  const boards = (r: ReturnType<typeof registrosEmMemoria>) => r.dados.filter(x => x.kind === "board");
+  it("sempre existem as anotações permanentes (primeiro) e ao menos um planejamento; o chip ativo é o da sessão", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    const nav = await screen.findByRole("navigation", { name: "Planejamentos" });
+    expect(within(nav).getAllByRole("button")[0].textContent).toBe("Anotações permanentes");               // fixas, sempre primeiro
+    expect(boards(registros).some(b => (b.meta as { permanente?: boolean }).permanente)).toBe(true);
+    expect((within(nav).getByLabelText("Nome do planejamento") as HTMLInputElement).value).toBe("Quadro");   // o planejamento existente continua ativo
+  });
+  it("novo planejamento cria um quadro vazio e troca para ele; voltar mostra o anterior com seus cartões", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    await screen.findByLabelText("Seção Sessão 5");
+    fireEvent.click(screen.getByRole("button", { name: "Novo planejamento" }));
+    await screen.findByLabelText("Seção Seção 1");
+    expect(screen.queryByLabelText("Seção Sessão 5")).toBeNull();                          // outro planejamento: outras seções
+    expect(boards(registros).map(b => b.title)).toContain("Sessão 2");
+    fireEvent.click(screen.getByRole("button", { name: "Quadro" }));
+    expect(await screen.findByLabelText("Seção Sessão 5")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Editar o texto de Estrada" })).toBeTruthy();
+  });
+  it("as anotações permanentes têm quadro próprio, que não aparece nos planejamentos", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    await screen.findByLabelText("Seção Sessão 5");
+    fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
+    const sec = await screen.findByLabelText("Seção Anotações");
+    fireEvent.change(within(sec).getByLabelText("Título do novo cartão"), { target: { value: "Cultos de Daggerford" } });
+    fireEvent.click(within(sec).getByRole("button", { name: "Adicionar cartão" }));
+    await within(sec).findByLabelText("Título do cartão Cultos de Daggerford");
+    expect(screen.queryByRole("button", { name: /Excluir o planejamento/ })).toBeNull();      // permanentes não se excluem
+    fireEvent.click(screen.getByRole("button", { name: "Quadro" }));
+    await screen.findByLabelText("Seção Sessão 5");
+    expect(screen.queryByLabelText("Título do cartão Cultos de Daggerford")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
+    expect(await screen.findByLabelText("Título do cartão Cultos de Daggerford")).toBeTruthy();   // continua lá
+  });
+  it("renomear o planejamento ativo; excluir pede confirmação e apaga os cartões dele", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    const nome = await screen.findByLabelText("Nome do planejamento") as HTMLInputElement;
+    fireEvent.change(nome, { target: { value: "Sessão 4 — Daggerford" } }); fireEvent.blur(nome);
+    await waitFor(() => expect(registros.dados.find(r => r.id === "b1")!.title).toBe("Sessão 4 — Daggerford"));
+    const conf = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(screen.getByRole("button", { name: "Excluir o planejamento Sessão 4 — Daggerford" }));
+    expect(conf.mock.calls[0][0]).toMatch(/2 cartões/); expect(registros.dados.some(r => r.id === "b1")).toBe(true);
+    conf.mockReturnValue(true); fireEvent.click(screen.getByRole("button", { name: "Excluir o planejamento Sessão 4 — Daggerford" }));
+    await waitFor(() => expect(registros.dados.some(r => r.id === "b1")).toBe(false));
+    expect(registros.dados.some(r => r.kind === "scene")).toBe(false);
+    expect(await screen.findByLabelText("Nome do planejamento")).toBeTruthy();               // um novo planejamento é criado: nunca fica sem nenhum
+  });
+  it("o planejamento escolhido é lembrado ao recarregar; trocar com rascunho não salvo pergunta antes", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    await screen.findByLabelText("Seção Sessão 5");
+    fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
+    await screen.findByLabelText("Seção Anotações");
+    r.unmount(); cleanup();
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    expect(await screen.findByLabelText("Seção Anotações")).toBeTruthy();                    // voltou onde parou
+  });
+  it("trocar de planejamento com texto que NÃO conseguiu salvar pergunta antes de descartar", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    const real = registros.update; registros.update = async (id, v, p) => id === "s1" ? { ok: false as const, error: SEM_CONEXAO } : real(id, v, p);
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    fireEvent.change(await editarCartao("Julkoun"), { target: { value: "texto que não salva" } });
+    await screen.findByText(/Sem conexão/, undefined, AUTO);
+    const conf = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
+    await waitFor(() => expect(conf).toHaveBeenCalled());
+    expect(screen.getByLabelText("Seção Sessão 5")).toBeTruthy();                           // ficou onde estava, com o texto
+    expect((screen.getByLabelText("Conteúdo de Julkoun") as HTMLTextAreaElement).value).toBe("texto que não salva");
+    conf.mockReturnValue(true); fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
+    expect(await screen.findByLabelText("Seção Anotações")).toBeTruthy();
   });
 });
