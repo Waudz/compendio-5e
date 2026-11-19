@@ -73,7 +73,11 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 - Evitar manter dezenas de abas ocultas executando efeitos caros. Dados do jogo devem sincronizar mesmo se a aba não estiver visível.
 - Confirmar/evitar perda de alterações não salvas ao fechar aba, trocar campanha ou navegar.
 
-**Biblioteca de layout:** a referência de workspace deve ser reproduzida com alta fidelidade nas interações aprovadas: arrastar/reordenar abas, criar/mover entre grupos, redimensionar, menu de contexto, indicadores de soltura, menu lateral e restauração. **Não simplificar essas interações por conveniência técnica.** A restrição é exclusivamente não empilhar grupos verticalmente (somente colunas lado a lado, até três). Preferir biblioteca de docking consolidada, configurada para impedir grupos horizontais; avaliar FlexLayout e alternativas antes de substituir a implementação manual. A escolha final depende de protótipo e testes.
+**Biblioteca de layout (decidido e implementado):** **FlexLayout** (`flexlayout-react` 0.11) renderiza grupos, abas, arraste, indicadores de soltura e divisórias; as regras do produto ficam em código próprio e testado. Avaliação: dockview e rc-dock também docam, mas o FlexLayout oferece o gancho `Model.setOnAllowDrop`, `onAction` e `onContextMenu`, que permitem impor o limite e a proibição de empilhar sem remendos. Restrições aplicadas em três camadas: (1) `allowDrop` rejeita soltura em cima/embaixo e esquerda/direita acima de 3 grupos (o FlexLayout então oferece o centro ou outra posição válida); (2) `onAction` só aceita adicionar/fechar/selecionar/mover aba, fechar grupo, ativar grupo e ajustar pesos (sem popout, flutuante, maximizar, bordas); (3) `isColumnsOnly` valida o modelo após cada mudança e reverte ao último estado bom. Divisórias, indicadores e menu de contexto usam o tema escuro/dourado do projeto.
+
+**Modelo de abas:** id próprio `tipo:ref` (`secao:personagens`, `ficha:ID`, `npc:ID`, `documento:ID`); abrir uma entidade já aberta apenas foca a aba existente. Abrir pelo menu lateral adiciona ao grupo ativo sem substituir nada. Arquivos: `src/workspace.ts` (operações puras e regras), `src/persistence.ts` (armazenamento, validação, migração), `src/App.tsx` + `Mobile.tsx`, `ContextMenu.tsx`, `Panel.tsx` (interface).
+
+**Persistência:** chave `compendio5e:workspace:v2:<usuario>:<campanha>:<dispositivo>` (hoje `visitante/demo/navegador`, preparada para usuário e campanha reais), envelope `{version:2, layout}`. Ao carregar, o layout é reconstruído por `sanitizeLayout` (ids válidos, sem abas repetidas, pesos positivos, no máximo 3 grupos, linhas aninhadas achatadas); dado irrecuperável volta ao layout padrão. O esquema v1 (`compendio5e:workspace:columns:v1`) é migrado.
 
 ## 6. Celular e PWA
 
@@ -165,6 +169,7 @@ A existência de ideias no repositório antigo **não as transforma em requisito
 - PR #2: colunas — integrado, CI reportou sucesso no PR.
 - PR #3: workflow de GitHub Pages — integrado; usuário ativou Pages em Settings.
 - PR #4: refatoração do workspace, testes de restauração e ajuste móvel — **aberto na última verificação**, não afirmar que foi mesclado.
+- Workspace reescrito sobre FlexLayout (branch `feat/workspace-flexlayout`, ver seção 5). Substitui o arraste HTML5 manual; o PR #7 e as branches de remendos ficam obsoletos.
 - A URL pública do Pages **não teve funcionamento confirmado** nesta conversa.
 - Não há integração Supabase, personagens reais nem PWA da 2.0 ainda.
 
@@ -184,7 +189,8 @@ O usuário esclareceu que gostou de quase todas as interações do aplicativo de
 
 ## 14. Questões ainda abertas
 
-- Definição final do mecanismo de docking/arraste e da navegação móvel.
+- Navegação móvel definitiva (hoje: grupo ativo + barra inferior; sem seletor de grupo além de botões simples).
+- Arraste por toque no celular e acessibilidade por teclado das ações de mover abas (hoje só pelo menu de contexto com mouse).
 - Modelo de entidades/tabs (seções versus fichas e registros específicos), com deep links.
 - Estratégia de sincronização e migração segura do legado.
 - Escopo exato de acesso visitante e de iniciativa sem login.
