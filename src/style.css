@@ -35,3 +35,17 @@
   .resizer:hover { background:#47617b99; color:#e6ebf1; }
   .pane { min-width:0; }
 }
+
+@media(min-width:701px) {
+  .workspace { position:relative; }
+  .new-column-drop {
+    position:absolute; z-index:10; top:47px; bottom:0; right:0;
+    width:clamp(110px,18%,260px); display:flex; flex-direction:column;
+    justify-content:center; align-items:center; gap:12px;
+    padding:18px; text-align:center; color:#d5e4f4;
+    background:#263b51e8; border:2px dashed #8eb7e7;
+    font-size:13px; pointer-events:auto;
+  }
+  .new-column-drop.active { background:#365779f5; border-color:#d2ac6a; }
+}
+@media(max-width:700px) { .new-column-drop { display:none; } }
