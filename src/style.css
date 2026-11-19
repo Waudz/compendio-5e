@@ -26,6 +26,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .brand svg{color:var(--accent);flex-shrink:0}.brand strong{font-size:17px}.brand span{color:var(--accent)}
 .campaign{height:72px;padding:16px 20px;display:flex;flex-direction:column;justify-content:center;gap:5px;border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap}
 .campaign small,.eyebrow{color:var(--muted);font-size:11px;letter-spacing:.12em}.campaign strong{font-size:13px}
+.campaign{flex-direction:row;align-items:center;gap:6px}
+.campaign-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px;text-align:left;background:transparent;border:0;color:inherit;padding:4px 6px;margin:-4px -6px;border-radius:6px;overflow:hidden}
+.campaign-main strong{overflow:hidden;text-overflow:ellipsis}
+.campaign-main:hover,.campaign-main.selected{background:var(--hover)}
+.campaign-switch{flex:none;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--text-2)}
+.campaign-switch:hover{background:var(--hover);border-color:var(--line)}
 .sidebar nav{padding:12px 9px;display:flex;flex-direction:column;gap:4px}
 .nav-item{width:100%;display:flex;align-items:center;gap:13px;padding:11px;background:transparent;color:var(--text-2);border:0;border-radius:7px;text-align:left;white-space:nowrap}
 .nav-item svg{flex-shrink:0}.nav-item:hover{background:var(--hover);color:var(--text)}
@@ -33,7 +39,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .collapse{margin:auto 9px 12px;display:flex;align-items:center;gap:9px;padding:11px;border:0;background:transparent;color:var(--text-2);text-align:left;white-space:nowrap;border-radius:7px}
 .collapse:hover{background:var(--hover);color:var(--text)}
 /* Menu recolhido: sem bloco de campanha vazio; marca, ícones e botão centralizados na mesma coluna. */
-.sidebar.collapsed .campaign{display:none}
+.sidebar.collapsed .campaign{height:auto;padding:10px 0;justify-content:center}.sidebar.collapsed .campaign-main{flex:none;align-items:center;margin:0;padding:6px}
 .sidebar.collapsed .brand{justify-content:center;padding:0}
 .sidebar.collapsed nav{padding:12px 9px;align-items:center}
 .sidebar.collapsed .nav-item{justify-content:center;width:44px;height:44px;padding:0;gap:0}

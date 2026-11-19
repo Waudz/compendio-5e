@@ -1,7 +1,7 @@
 // Estado e operações puras do workspace (sem React, sem localStorage).
 // O layout é SEMPRE: linha raiz -> de 1 a 3 grupos (tabsets) lado a lado -> abas.
 // Nunca há linha dentro de coluna (grupos empilhados), popout, flutuantes ou bordas.
-import { BookOpen, Castle, FileText, ScrollText, Shield, Swords, Users } from "lucide-react";
+import { BookOpen, Castle, ClipboardList, FileText, ScrollText, Shield, Swords, Users } from "lucide-react";
 import { Action, Actions, DockLocation, Model, RowNode, TabNode, TabSetNode, type DropInfo, type IJsonModel, type IJsonTabNode, type IJsonTabSetNode, type Node } from "flexlayout-react";
 
 export const MAX_GROUPS = 3;
@@ -11,17 +11,24 @@ export const MIN_GROUP_WIDTH = 220;
 const kindLabel = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento" } as const;
 export type Kind = keyof typeof kindLabel;
 export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean };
-export type Page = "campanhas" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
+export type Page = "campanhas" | "planejamento" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
 
-export const sections: { page: Page; title: string; icon: typeof Users }[] = [
-  { page: "campanhas", title: "Campanhas", icon: Castle },
+export type Section = { page: Page; title: string; icon: typeof Users; masterOnly?: boolean };
+/** Itens do menu principal. "Campanhas" NÃO está aqui: a gestão de campanhas fica no seletor junto à campanha ativa (ver `campaignsHub`). */
+export const sections: Section[] = [
   { page: "personagens", title: "Personagens", icon: Users },
+  { page: "planejamento", title: "Planejamento", icon: ClipboardList, masterOnly: true },
   { page: "iniciativa", title: "Iniciativa", icon: Swords },
   { page: "encontros", title: "Encontros", icon: Shield },
   { page: "enciclopedia", title: "Enciclopédia", icon: BookOpen },
   { page: "compendio", title: "Compêndio", icon: ScrollText },
   { page: "documentos", title: "Documentos", icon: FileText },
 ];
+/** Gestão de campanhas (criar, entrar, ativar): continua sendo uma seção válida (abas salvas, convites, seletor), mas não é item do menu principal do desktop. */
+export const campaignsHub: Section = { page: "campanhas", title: "Campanhas", icon: Castle };
+const knownSections: Section[] = [campaignsHub, ...sections];
+/** Seções do menu para o papel atual: o Planejamento só aparece para o mestre de uma campanha ativa. */
+export const visibleSections = (isMaster: boolean): Section[] => sections.filter(s => !s.masterOnly || isMaster);
 export const kinds = Object.keys(kindLabel) as Kind[];
 
 /** Id próprio da aba: `kind:ref` (ex.: secao:personagens, ficha:lydia). Uma entidade = uma aba. */
@@ -31,11 +38,11 @@ export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   const i = id.indexOf(":");
   const kind = id.slice(0, i) as Kind, ref = id.slice(i + 1);
   if (i < 1 || !kinds.includes(kind) || !/^[\w-]{1,64}$/.test(ref)) return null;
-  if (kind === "secao" && !sections.some(s => s.page === ref)) return null;
+  if (kind === "secao" && !knownSections.some(s => s.page === ref)) return null;
   return { kind, ref };
 };
 export const defaultTitle = (s: TabSpec) =>
-  s.title?.trim().slice(0, 40) || (s.kind === "conta" ? "Conta" : s.kind === "campanha" ? "Campanha" : s.kind === "secao" ? sections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
+  s.title?.trim().slice(0, 40) || (s.kind === "conta" ? "Conta" : s.kind === "campanha" ? "Campanha" : s.kind === "secao" ? knownSections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
 
 const global: IJsonModel["global"] = {
   tabEnableClose: true, tabEnableRename: false, tabEnablePopout: false, tabEnablePopoutIcon: false, tabEnableFloat: false,

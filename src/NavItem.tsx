@@ -22,12 +22,12 @@ export function useLongPress(onLongPress: (x: number, y: number) => void, ms = 5
 }
 
 /** Item de navegação: clique normal reutiliza; Ctrl/Cmd+clique e botão do meio abrem nova aba; botão direito, tecla de menu e toque prolongado abrem o menu. */
-export function NavItem({ spec, className, title, children, onNavigate, onMenu }: {
-  spec: TabSpec; className: string; title: string; children: ReactNode;
+export function NavItem({ spec, className, title, ariaLabel, children, onNavigate, onMenu }: {
+  spec: TabSpec; className: string; title: string; ariaLabel?: string; children: ReactNode;
   onNavigate: (s: TabSpec, mode: NavMode) => void; onMenu: (s: TabSpec, x: number, y: number) => void;
 }) {
   const lp = useLongPress((x, y) => onMenu(spec, x, y));
-  return <button className={className} title={title} {...lp.handlers}
+  return <button className={className} title={title} aria-label={ariaLabel} {...lp.handlers}
     onClick={e => { if (lp.consumeClick()) { e.preventDefault(); return; } onNavigate(spec, e.ctrlKey || e.metaKey ? "new" : "reuse"); }}
     onMouseDown={e => { if (e.button === 1) e.preventDefault(); }}      // evita o autoscroll do botão do meio
     onAuxClick={e => { if (e.button === 1) { e.preventDefault(); onNavigate(spec, "new"); } }}

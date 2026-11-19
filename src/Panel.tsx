@@ -2,6 +2,7 @@ import { BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
 import { CampaignPanel, CampaignsPanel } from "./CampaignPanels";
+import { PlanningPanel } from "./Planning";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 const demo: Partial<Record<string, TabSpec[]>> = {
@@ -19,6 +20,7 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   if (kind === "campanha") return <div className="content"><CampaignPanel id={id} onOpen={onOpen}/></div>;
   if (kind === "secao" && id === "campanhas") return <div className="content"><CampaignsPanel onOpen={onOpen}/></div>;
+  if (kind === "secao" && id === "planejamento") return <PlanningPanel/>;
   const title = defaultTitle({ kind, ref: id });
   const items = kind === "secao" ? demo[id] : undefined;
   return <div className="content">

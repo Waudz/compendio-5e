@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
-import { BookOpen, ChevronLeft, ChevronRight, Pin, UserRound, X } from "lucide-react";
+import { BookOpen, Castle, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -13,7 +13,7 @@ import { UnsavedContext, useUnsavedRegistry } from "./unsaved";
 import { findTab } from "./workspace";
 import { Panel } from "./Panel";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
-import { closeGroup, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, openTab, prepareMove, sections, type Kind, type TabSpec } from "./workspace";
+import { closeGroup, campaignsHub, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, openTab, prepareMove, visibleSections, type Kind, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
 const allowedActions = new Set([Actions.GROUP, Actions.ADD_TAB, Actions.DELETE_TAB, Actions.SELECT_TAB, Actions.MOVE_NODE, Actions.DELETE_TABSET, Actions.SET_ACTIVE_TABSET, Actions.ADJUST_WEIGHTS]);
@@ -38,7 +38,7 @@ export default function App() {
 function Workspace({ userId }: { userId: string }) {
   // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
   const { status } = useAuth();
-  const { active, activeId: campaignId, memberships } = useCampaigns();
+  const { active, activeId: campaignId, memberships, setActive } = useCampaigns();
   const scope: Scope = { user: userId, campaign: campaignId ?? "nenhuma", device: "navegador" };
   const scopeKey = `${scope.user}|${scope.campaign}|${scope.device}`;
   const scopeRef = useRef(scope); scopeRef.current = scope;
@@ -97,6 +97,14 @@ function Workspace({ userId }: { userId: string }) {
     { label: "Abrir em nova aba", onSelect: () => openMenu(s, "new") },
     { label: "Abrir em nova aba fixada", onSelect: () => openMenu(s, "newPinned") },
   ] }), [openMenu]);
+
+  /** Seletor discreto junto à campanha ativa: trocar (protegendo alterações não salvas) e acesso à gestão de campanhas. Cada campanha tem o seu layout. */
+  const showCampaignMenu = (x: number, y: number) => setMenu({ x, y, items: [
+    ...memberships.map(m => ({ label: m.campaign.id === active?.campaign.id ? `${m.campaign.name} (ativa)` : m.campaign.name, disabled: m.campaign.id === active?.campaign.id,
+      onSelect: () => { void unsaved.api.confirmAll().then(ok => { if (ok) setActive(m.campaign.id); }); } })),
+    ...(memberships.length ? ["-" as const] : []),
+    { label: "Gerenciar campanhas…", onSelect: () => openMenu({ kind: "secao", ref: campaignsHub.page }) },
+  ] });
 
   const contextMenu = useCallback((node: TabNode | TabSetNode | { getType(): string }, e: React.MouseEvent) => {
     e.preventDefault();
@@ -164,8 +172,17 @@ function Workspace({ userId }: { userId: string }) {
   return <UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
-      <div className="campaign" title="Campanha ativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}</div>
-      <nav aria-label="Menu principal">{sections.map(({ page, title, icon: Icon }) =>
+      <div className="campaign">
+        <NavItem spec={active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: campaignsHub.page }}
+          className={activeId === (active ? `campanha:${active.campaign.id}` : `secao:${campaignsHub.page}`) ? "campaign-main selected" : "campaign-main"}
+          title={active ? `Campanha ativa: ${active.campaign.name} (abrir o Início)` : "Nenhuma campanha ativa: escolher ou criar"}
+          ariaLabel={active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar"} onNavigate={openMenu} onMenu={showNavMenu}>
+          {collapsed ? <Castle size={19} aria-hidden="true"/> : <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}
+        </NavItem>
+        {!collapsed && <button className="campaign-switch" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
+          onClick={e => { const r = e.currentTarget.getBoundingClientRect(); showCampaignMenu(r.left, r.bottom); }}><ChevronsUpDown size={16} aria-hidden="true"/></button>}
+      </div>
+      <nav aria-label="Menu principal">{(mobile ? [campaignsHub, ...visibleSections(active?.role === "mestre")] : visibleSections(active?.role === "mestre")).map(({ page, title, icon: Icon }) =>
         <NavItem key={page} spec={{ kind: "secao", ref: page }} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} title={title} onNavigate={openMenu} onMenu={showNavMenu}>
           <Icon size={19}/>{!collapsed && <span>{title}</span>}
         </NavItem>)}
@@ -180,7 +197,7 @@ function Workspace({ userId }: { userId: string }) {
       {mobile
         ? <Mobile model={model} onOpen={openMenu} onOpenContent={openContentLink} onChange={() => onModelChange(model)} titleOf={titleOf}
             onClose={id => guarded([id], () => closeTab(model, id))()} onTabMenu={(t, x, y) => showTabMenu(t, x, y)}
-            onNewTab={(x, y) => setMenu({ x, y, items: sections.map(({ page, title }) => ({ label: title, onSelect: () => openMenu({ kind: "secao", ref: page }, "new") })) })}/>
+            onNewTab={(x, y) => setMenu({ x, y, items: [campaignsHub, ...visibleSections(active?.role === "mestre")].map(({ page, title }) => ({ label: title, onSelect: () => openMenu({ kind: "secao", ref: page }, "new") })) })}/>
         : <Layout model={model} factory={factory} onAction={onAction} onModelChange={onModelChange} onContextMenu={contextMenu}
             onRenderTab={renderTab} onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize/>}
     </main>
