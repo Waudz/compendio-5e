@@ -1,4 +1,4 @@
-// Planejamento (só o mestre). VÁRIOS PLANEJAMENTOS (ex.: "Sessão 1", "Sessão 2") + as ANOTAÇÕES PERMANENTES, que valem para a campanha toda.
+// Anotações pessoais para mestre e jogador. VÁRIOS PLANEJAMENTOS (ex.: "Sessão 1", "Sessão 2") + as ANOTAÇÕES PERMANENTES, que valem para a campanha toda.
 // Cada planejamento é um quadro: COLUNAS lado a lado (largura ajustável) -> SEÇÕES empilhadas (título próprio, normal ou grande) -> CARTÕES (páginas privadas).
 // O cartão é só o texto: título no cabeçalho, conteúdo inteiro abaixo; clique no texto para editar ali mesmo (salva sozinho). O rascunho vive aqui no painel:
 // mover, arrastar, trocar de planejamento ou clicar em outro cartão nunca perde o que foi digitado; se o salvamento falhar o texto continua na tela.
@@ -31,8 +31,9 @@ const ehPermanente = (b: Registro) => (b.meta as { permanente?: unknown }).perma
 const quadroInicial = (titulo: string) => ({ colunas: [{ id: novoId(), secoes: [{ id: novoId(), titulo, cartoes: [] }] }] });
 /** Criação das anotações permanentes e do primeiro planejamento: UMA vez por campanha mesmo com várias leituras simultâneas (StrictMode, dois grupos abertos). */
 const emCriacao = new Map<string, Promise<{ ok: true; data: Registro[] } | { ok: false; error: string }>>();
-function garantirPlanos(api: NonNullable<ReturnType<typeof useRegistros>>, cid: string, falta: { permanente: boolean; plano: boolean }) {
-  let p = emCriacao.get(cid);
+function garantirPlanos(api: NonNullable<ReturnType<typeof useRegistros>>, cid: string, uid: string, falta: { permanente: boolean; plano: boolean }) {
+  const key = `${uid}:${cid}`;
+  let p = emCriacao.get(key);
   if (!p) {
     p = (async () => {
       const novos: Registro[] = [];
@@ -40,7 +41,7 @@ function garantirPlanos(api: NonNullable<ReturnType<typeof useRegistros>>, cid: 
       if (falta.plano) { const c = await api.create({ kind: "board", campaignId: cid, title: "Sessão 1", visibility: "private", meta: quadroInicial("Seção 1") }); if (!c.ok) return c; novos.push(c.data); }
       return { ok: true as const, data: novos };
     })();
-    emCriacao.set(cid, p); void p.finally(() => emCriacao.delete(cid));
+    emCriacao.set(key, p); void p.finally(() => emCriacao.delete(key));
   }
   return p;
 }
@@ -75,7 +76,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     let lista = [...b.data];
     const falta = { permanente: !lista.some(ehPermanente), plano: !lista.some(x => !ehPermanente(x)) };
     if (falta.permanente || falta.plano) {
-      const c = await garantirPlanos(api, cid, falta);
+      const c = await garantirPlanos(api, cid, user?.id ?? "anonimo", falta);
       if (!c.ok) { setErro(c.error); setCarregado(true); return; }
       lista = [...lista, ...c.data.filter(n => !lista.some(o => o.id === n.id))];
     }
@@ -87,7 +88,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     setErro(null); setBoards(lista); setBoardId(atual.id);
     setCenas(prev => { const novo = Object.fromEntries(s.data.map(r => [r.id, r])); for (const id of Object.keys(edRef.current)) if (prev[id] && !novo[id]) novo[id] = prev[id]; return novo; });   // cartão com rascunho nunca some numa recarga
     setCarregado(true);
-  }, [api, cid, chave]);
+  }, [api, cid, chave, user?.id]);
   useEffect(() => { setCarregado(false); setBoards([]); setBoardId(null); setEd({}); setSel([]); void carregar(); }, [carregar]);
   useEffect(() => () => { timers.current.forEach(clearTimeout); timers.current.clear(); }, []);
 
@@ -230,9 +231,8 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     prox = prox ?? resto[0]; setBoards(lista); boardIdRef.current = prox?.id ?? null; setBoardId(prox?.id ?? null); if (prox) gravarPlanoSalvo(chave, prox.id);
   };
 
-  if (!active) return <div className="content"><h1>Planejamento</h1><div className="notice" role="status">O Planejamento pertence a uma campanha. Escolha uma campanha ativa na barra lateral.</div></div>;
-  if (active.role !== "mestre") return <div className="content"><h1>Planejamento</h1><div className="notice" role="status">O Planejamento é exclusivo do mestre desta campanha.</div></div>;
-  if (!api) return <div className="content"><h1>Planejamento</h1><div className="notice" role="status">Conta necessária para usar o Planejamento.</div></div>;
+  if (!active) return <div className="content"><h1>Anotações</h1><div className="notice" role="status">As anotações pertencem a uma campanha. Escolha uma campanha ativa na barra lateral.</div></div>;
+  if (!api) return <div className="content"><h1>Anotações</h1><div className="notice" role="status">Conta necessária para usar Anotações.</div></div>;
 
   const quadro: Quadro = lerQuadro(board?.meta);
   const novoCartao = async (secaoId: string, titulo: string) => {
@@ -253,11 +253,11 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
 
   return <div className="content planejamento" data-testid="planejamento">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
-    <h1>Planejamento</h1>
+    <h1>Anotações</h1>
     {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
-    {!carregado && <p className="muted" role="status">Carregando o planejamento…</p>}
+    {!carregado && <p className="muted" role="status">Carregando anotações…</p>}
     {sel.length > 0 && <div className="selecao-barra" role="toolbar" aria-label="Seções selecionadas"><strong>{sel.length} {sel.length === 1 ? "seção selecionada" : "seções selecionadas"}</strong>
       <button className="btn-secondary danger" onClick={() => void excluirSecoesUI(sel)}><Trash2 size={14} aria-hidden="true"/> Excluir {sel.length === 1 ? "seção" : "seções"}</button>
       <button className="btn-secondary" onClick={() => setSel([])}>Limpar seleção</button></div>}
