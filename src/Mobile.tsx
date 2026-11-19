@@ -1,50 +1,99 @@
+import { useEffect, useRef, useState } from "react";
 import { Actions, type Model, TabNode } from "flexlayout-react";
-import { MoreHorizontal, Pin, Plus, X } from "lucide-react";
-import { useLongPress } from "./NavItem";
-import { isPinned, type NavMode } from "./navigation";
+import { ArrowLeft, BookOpen, Castle, ChevronDown, House, Menu, NotebookPen, Swords, UserRound, X } from "lucide-react";
+import { type NavMode } from "./navigation";
 import { Panel } from "./Panel";
 import { OrigemAbaContext } from "./abrirEmAba";
-import { activeGroup, groups, type Kind, type TabSpec } from "./workspace";
+import { activeGroup, groups, visibleSections, type Kind, type TabSpec } from "./workspace";
+import { useCampaigns } from "./CampaignsContext";
 
 type Props = {
   model: Model; onChange: () => void; titleOf: (t: TabNode) => string;
   onOpen: (s: TabSpec, mode?: NavMode) => void;
   onOpenContent: (s: TabSpec, originTabId?: string) => void;
-  onClose: (tabId: string) => void;                                  // já protegido contra alterações não salvas
+  onClose: (tabId: string) => void;
   onTabMenu: (t: TabNode, x: number, y: number) => void;
   onNewTab: (x: number, y: number) => void;
 };
 
-/** Uma aba do celular: toque seleciona; toque prolongado e o botão "Opções" abrem o mesmo menu (sem depender do toque prolongado). */
-function MobileTab({ tab, active, title, onSelect, onMenu, onClose }: { tab: TabNode; active: boolean; title: string; onSelect: () => void; onMenu: (x: number, y: number) => void; onClose: () => void }) {
-  const lp = useLongPress(onMenu), pinned = isPinned(tab);
-  return <div className={`${active ? "m-tab active" : "m-tab"}${pinned ? " pinned" : ""}`}>
-    <button role="tab" aria-selected={active} {...lp.handlers} onContextMenu={e => { e.preventDefault(); onMenu(e.clientX, e.clientY); }}
-      onClick={() => { if (!lp.consumeClick()) onSelect(); }}>
-      {pinned && <Pin size={12} className="pin-icon" aria-hidden="true"/>}{title}{pinned && <span className="sr-only"> (fixada)</span>}
-    </button>
-    <button className="opt" aria-label={`Opções de ${title}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); onMenu(r.left, r.bottom); }}><MoreHorizontal size={14}/></button>
-    <button className="x" aria-label={`Fechar ${title}`} onClick={onClose}><X size={14}/></button>
-  </div>;
-}
-
-/** Celular: sem arraste nem colunas lado a lado. Mostra só o grupo ativo (abas + conteúdo); os outros grupos ficam acessíveis por seletor. */
-export function Mobile({ model, onOpen, onOpenContent, onChange, titleOf, onClose, onTabMenu, onNewTab }: Props) {
-  const all = groups(model), group = activeGroup(model);
+/** Mobile usa navegação de tela cheia. O modelo de abas continua preservado, mas sem barra visível. */
+export function Mobile({ model, onOpen, onOpenContent, onChange, titleOf }: Props) {
+  const { active } = useCampaigns();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const history = useRef<string[]>([]);
+  const [canBack, setCanBack] = useState(false);
+  const group = activeGroup(model);
   const selected = group?.getSelectedNode();
-  const tabs = (group?.getChildren() ?? []).filter((c): c is TabNode => c instanceof TabNode);
-  const act = (a: ReturnType<typeof Actions.selectTab>) => { model.doAction(a); onChange(); };
-  return <div className={all.length > 1 ? "mobile has-groups" : "mobile"}><div className="m-head">
-    {all.length > 1 && <div className="m-groups" role="group" aria-label="Colunas">{all.map((g, i) =>
-      <button key={g.getId()} aria-pressed={g === group} onClick={() => act(Actions.setActiveTabset(g.getId()))}>Coluna {i + 1}</button>)}</div>}
-    <div className="m-tabs" role="tablist">
-      {tabs.map(t => <MobileTab key={t.getId()} tab={t} active={t === selected} title={titleOf(t)} onSelect={() => act(Actions.selectTab(t.getId()))}
-        onMenu={(x, y) => onTabMenu(t, x, y)} onClose={() => onClose(t.getId())}/>)}
-      <button className="m-new" aria-label="Nova aba" onClick={e => { const r = e.currentTarget.getBoundingClientRect(); onNewTab(r.left, r.bottom); }}><Plus size={14}/><span>Nova aba</span></button>
+  const selectedId = selected instanceof TabNode ? selected.getId() : "";
+  const all = groups(model);
+  const home: TabSpec = active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: "campanhas" };
+  const sections = visibleSections(active?.role === "mestre");
+  const navigate = (spec: TabSpec) => { setMenuOpen(false); onOpen(spec); };
+  useEffect(() => {
+    if (!selectedId) return;
+    const h = history.current;
+    if (h[h.length - 1] !== selectedId) {
+      h.push(selectedId);
+      if (h.length > 40) h.shift();
+    }
+    setCanBack(h.length > 1);
+  }, [selectedId]);
+  const goBack = () => {
+    const h = history.current;
+    if (h.length < 2) { navigate(home); return; }
+    h.pop();
+    while (h.length) {
+      const id = h[h.length - 1];
+      const node = model.getNodeById(id);
+      if (node instanceof TabNode) {
+        model.doAction(Actions.selectTab(id));
+        onChange();
+        setCanBack(h.length > 1);
+        return;
+      }
+      h.pop();
+    }
+    navigate(home);
+  };
+  const isPage = (ref: string) => selectedId === `secao:${ref}`;
+  const navItems = [
+    { label: "Início", icon: House, spec: home, selected: selectedId === (active ? `campanha:${active.campaign.id}` : "secao:campanhas") },
+    { label: "Anotações", icon: NotebookPen, spec: { kind: "secao", ref: "planejamento" } as TabSpec, selected: isPage("planejamento"), disabled: active?.role !== "mestre" },
+    { label: "Combate", icon: Swords, spec: { kind: "secao", ref: "iniciativa" } as TabSpec, selected: isPage("iniciativa") },
+  ];
+  return <div className="mobile mobile-simple">
+    <header className="mobile-topbar">
+      <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!canBack && !selectedId}><ArrowLeft size={20}/></button>
+      <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{selected instanceof TabNode ? titleOf(selected) : "Compêndio 5e"}</span></div>
+      <button className="mobile-icon-btn" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/></button>
+    </header>
+    <div className="mobile-screen">
+      {selected instanceof TabNode
+        ? <OrigemAbaContext.Provider value={selected.getId()}><Panel key={selected.getId()} kind={selected.getConfig().kind as Kind} entity={selected.getConfig().ref} onOpen={onOpen} onOpenContent={s => onOpenContent(s, selected.getId())}/></OrigemAbaContext.Provider>
+        : <div className="mobile-start">
+            <h1>Compêndio 5e</h1>
+            <p>{active ? active.campaign.name : "Escolha uma campanha para começar."}</p>
+            <div className="mobile-shortcuts">
+              <button onClick={() => navigate(home)}><Castle size={20}/> {active ? "Abrir campanha" : "Campanhas"}</button>
+              {sections.filter(s => s.page === "planejamento" || s.page === "iniciativa" || s.page === "personagens").map(s => <button key={s.page} onClick={() => navigate({ kind: "secao", ref: s.page })}><s.icon size={20}/>{s.title}</button>)}
+            </div>
+          </div>}
     </div>
-    </div>
-    {selected instanceof TabNode
-      ? <OrigemAbaContext.Provider value={selected.getId()}><Panel key={selected.getId()} kind={selected.getConfig().kind as Kind} entity={selected.getConfig().ref} onOpen={onOpen} onOpenContent={s => onOpenContent(s, selected.getId())}/></OrigemAbaContext.Provider>
-      : <div className="empty"><h1>Área de trabalho</h1><p>Escolha uma seção no menu.</p></div>}
+    <nav className="mobile-bottom-nav" aria-label="Navegação mobile">
+      {navItems.map(item => <button key={item.label} disabled={item.disabled} className={item.selected ? "active" : ""} aria-current={item.selected ? "page" : undefined} onClick={() => navigate(item.spec)}><item.icon size={22}/><span>{item.label}</span></button>)}
+      <button className={menuOpen ? "active" : ""} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/><span>Menu</span></button>
+    </nav>
+    {menuOpen && <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
+      <div className="mobile-menu-sheet" role="dialog" aria-label="Menu de navegação" onClick={e => e.stopPropagation()}>
+        <div className="mobile-menu-heading"><strong>Menu</strong><button aria-label="Fechar menu" onClick={() => setMenuOpen(false)}><X size={22}/></button></div>
+        <button onClick={() => navigate(home)}><House size={20}/> Início</button>
+        <button onClick={() => navigate({ kind: "secao", ref: "campanhas" })}><Castle size={20}/> Gerenciar campanhas</button>
+        {sections.map(s => <button key={s.page} onClick={() => navigate({ kind: "secao", ref: s.page })}><s.icon size={20}/>{s.title}</button>)}
+        <button onClick={() => navigate({ kind: "conta", ref: "perfil" })}><UserRound size={20}/> Conta</button>
+        {all.length > 1 && <div className="mobile-menu-groups"><ChevronDown size={16}/> Grupos de trabalho
+          {all.map((g, i) => <button key={g.getId()} onClick={() => { model.doAction(Actions.setActiveTabset(g.getId())); onChange(); setMenuOpen(false); }}>Grupo {i + 1}</button>)}
+        </div>}
+      </div>
+    </div>}
   </div>;
 }
