@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, ChevronLeft, ChevronRight, GripVertical, PanelRight, X } from "lucide-react";
-import { key, restore, sections, type Page, type Workspace } from "./workspace";
+import { key, makeId, restore, sections, type Page, type Workspace } from "./workspace";
 
 export default function App() {
   const [workspace, setWorkspace] = useState<Workspace>(restore);
