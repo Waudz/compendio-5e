@@ -3,11 +3,12 @@ import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexla
 import { BookOpen, ChevronLeft, ChevronRight, LogIn, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
 import { useAuth } from "./AuthContext";
+import { useCampaigns } from "./CampaignsContext";
 import { ContextMenu, type MenuItem, type MenuState } from "./ContextMenu";
 import { useChromeHidden } from "./chromeHide";
 import { Mobile } from "./Mobile";
 import { Panel } from "./Panel";
-import { loadLayout, saveLayout } from "./persistence";
+import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
 import { MAX_GROUPS, closeGroup, closeOthers, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, openTab, sections, type Kind, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
@@ -24,25 +25,44 @@ function useMobile() {
 }
 
 export default function App() {
-  const [model, setModel] = useState<Model>(() => createModel(loadLayout()));
+  // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
+  const { status, user } = useAuth();
+  const { active, activeId: campaignId, memberships } = useCampaigns();
+  const scope: Scope = { user: status === "authenticated" && user ? user.id : "visitante", campaign: campaignId ?? "nenhuma", device: "navegador" };
+  const scopeKey = `${scope.user}|${scope.campaign}|${scope.device}`;
+  const scopeRef = useRef(scope); scopeRef.current = scope;
+  const [model, setModel] = useState<Model>(() => createModel(loadLayout(scope)));
+  const [modelKey, setModelKey] = useState(scopeKey);
   const [, redraw] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const mobile = useMobile();
-  const logged = useAuth().status === "authenticated";
+  const logged = status === "authenticated";
   const chromeHidden = useChromeHidden(mobile);
   const good = useRef(model.toJson());
   const handled = useRef<Event | null>(null);
   const refresh = useCallback(() => redraw(n => n + 1), []);
+  if (modelKey !== scopeKey) {
+    const fresh = !hasSavedLayout(scope), m = createModel(loadLayout(scope));
+    // Primeira vez nesta campanha: o espaço de trabalho já abre na aba dela (ex.: logo após entrar por convite).
+    if (fresh && scope.campaign !== "nenhuma") openTab(m, { kind: "campanha", ref: scope.campaign, title: memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name });
+    good.current = m.toJson(); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
 
   // Toda mudança passa por aqui: valida a restrição de colunas (reverte se violada) e persiste.
   const onModelChange = useCallback((m: Model) => {
     const json = m.toJson();
     if (!isColumnsOnly(json)) { setModel(createModel(good.current)); return; }
-    good.current = json; saveLayout(json); refresh();
+    good.current = json; saveLayout(json, scopeRef.current); refresh();
   }, [refresh]);
   const onAction = useCallback((a: Action) => allowedActions.has(a.type) ? a : undefined, []);
   const open = useCallback((s: TabSpec) => { openTab(model, s); onModelChange(model); }, [model, onModelChange]);
+  const inviteOpenedScope = useRef<string | null>(null);
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has("convite") || status === "loading") return;
+    if (inviteOpenedScope.current === scopeKey) return;
+    inviteOpenedScope.current = scopeKey;
+    open({ kind: "secao", ref: "campanhas" });
+  }, [open, status, scopeKey]);
   const run = (fn: () => void) => () => { fn(); onModelChange(model); };
   const closeMenu = useCallback(() => setMenu(null), []);
 
@@ -89,7 +109,7 @@ export default function App() {
   return <div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
-      <div className="campaign" title="Campanha demonstrativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>Festival da Lua</strong></>}</div>
+      <div className="campaign" title="Campanha ativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : logged ? "Nenhuma" : "Visitante"}</strong></>}</div>
       <nav aria-label="Menu principal">{sections.map(({ page, title, icon: Icon }) =>
         <button key={page} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} onClick={() => open({ kind: "secao", ref: page })} title={title}>
           <Icon size={19}/>{!collapsed && <span>{title}</span>}

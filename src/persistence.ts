@@ -4,7 +4,7 @@ import { defaultLayout, sanitizeLayout, tabId, sections } from "./workspace";
 
 export const VERSION = 2;
 export type Scope = { user: string; campaign: string; device: string };
-export const defaultScope: Scope = { user: "visitante", campaign: "demo", device: "navegador" };
+export const defaultScope: Scope = { user: "visitante", campaign: "nenhuma", device: "navegador" };
 export const storageKey = (s: Scope = defaultScope) => `compendio5e:workspace:v${VERSION}:${s.user}:${s.campaign}:${s.device}`;
 export const legacyKey = "compendio5e:workspace:columns:v1";
 
@@ -36,6 +36,11 @@ export function loadLayout(scope: Scope = defaultScope, store: Store | null = sa
     }
   } catch { /* dados corrompidos: cai no padrão */ }
   return defaultLayout();
+}
+
+/** Já existe layout salvo (v2) para este escopo? */
+export function hasSavedLayout(scope: Scope = defaultScope, store: Store | null = safeStore()): boolean {
+  try { return !!store?.getItem(storageKey(scope)); } catch { return false; }
 }
 
 export function saveLayout(layout: IJsonModel, scope: Scope = defaultScope, store: Store | null = safeStore()): void {
