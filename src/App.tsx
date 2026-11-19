@@ -29,8 +29,8 @@ function restore(): Workspace {
         if (!section || typeof t.id !== "string" || t.id !== t.page || tabs.some(x => x.id === t.id)) return first;
         tabs.push({ id: t.id, page: t.page, title: section.title });
       }
-      if (tabs.length === 0) return first;
-      columns.push({ id: col.id, tabs, active: tabs.some(t => t.id === col.active) ? col.active : tabs[0].id, width: col.width });
+      
+      columns.push({ id: col.id, tabs, active: tabs.some(t => t.id === col.active) ? col.active : (tabs[0]?.id || ""), width: col.width });
     }
     if (new Set(columns.flatMap(c => c.tabs.map(t => t.id))).size !== columns.reduce((n,c) => n+c.tabs.length,0)) return first;
     const sum = columns.reduce((n,c) => n+c.width,0);
@@ -86,7 +86,7 @@ export default function App() {
     columns = [...columns.map(c => ({ ...c, width: width })), { id, tabs: [tab], active: tabId, width }];
     return { columns, focused: id };
   });
-  const startResize = (index: number, event: React.PointerEvent<HTMLDivElement>) => {
+  const startResize = (index: number, event: import("react").PointerEvent<HTMLDivElement>) => {
     if (!container.current) return;
     event.preventDefault();
     const bounds = container.current.getBoundingClientRect();
