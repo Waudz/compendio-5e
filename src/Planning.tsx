@@ -91,7 +91,7 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
           <button className="icon" aria-label={`Excluir coluna ${col.titulo}`} title={col.cartoes.length ? "Esvazie a coluna para excluí-la" : "Excluir coluna"} disabled={col.cartoes.length > 0} onClick={() => gravar(q => excluirColuna(q, col.id))}><Trash2 size={14}/></button>
         </header>
         <ListaColuna colId={col.id} ids={col.cartoes.filter(id => cenas[id])}>{col.cartoes.map((id, i) => { const c = cenas[id]; if (!c) return null; const t = primeiroParagrafo(c.content); return <Ordenavel key={id} id={id} alca={`Arrastar o cartão ${c.title}`}>
-          <div onContextMenu={e => abrirMenu(e, id)}><button className="cartao-abrir" aria-expanded={expandido === id} onClick={() => { setMenu(null); setExpandido(expandido === id ? null : id); }}><strong>{c.title}</strong>{t && <span className="cartao-previa">{resumirTexto(t, 140)}</span>}</button>
+          <div onContextMenu={e => abrirMenu(e, id)}><button className="cartao-abrir" aria-expanded={expandido === id} onClick={() => { setMenu(null); if (expandido !== id) setExpandido(id); }}><strong>{c.title}</strong>{t && <span className="cartao-previa">{resumirTexto(t, 140)}</span>}</button>
           {expandido === id && <EditorCartao key={id} registro={c} api={api} onSaved={r => { setCenas(prev => ({ ...prev, [id]: r })); avisarRegistros(); }} onClose={() => setExpandido(null)}/>}
           </div><div className="cartao-acoes">
             <button className="icon" aria-label={`Subir ${c.title}`} disabled={i === 0} onClick={() => gravar(q => deslocarCartao(q, id, "cima"))}><ArrowUp size={13}/></button>
