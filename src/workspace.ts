@@ -14,7 +14,7 @@ export const sections: { page: Page; title: string; icon: typeof Users }[] = [
 ];
 export const key = "compendio5e:workspace:columns:v1";
 export const first: Workspace = { columns: [{ id: "col-1", tabs: [{ id: "personagens", page: "personagens", title: "Personagens" }], active: "personagens", width: 100 }], focused: "col-1" };
-const makeId = () => crypto.randomUUID();
+export const makeId = () => crypto.randomUUID();
 export function restore(): Workspace {
   try {
     const data: unknown = JSON.parse(localStorage.getItem(key) || "null");
