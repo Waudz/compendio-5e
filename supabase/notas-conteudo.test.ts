@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
+import { storageStub } from "./stub-storage";
 
 const dir = join(__dirname, "migrations"), rollbackDir = join(__dirname, "rollback");
 const bnFixture = () => readFileSync(join(__dirname, "fixtures", "blocknote-0.57.0-documento.json"), "utf8");   // saída REAL de editor.document (BlockNote 0.57.0, mesmo do PR #28)
@@ -17,8 +18,8 @@ grant usage on schema auth to anon, authenticated; grant execute on function aut
 grant usage on schema public to anon, authenticated;
 alter default privileges in schema public grant all on tables to anon, authenticated;
 alter default privileges in schema public grant all on functions to anon, authenticated;
-`;
-const files = () => readdirSync(dir).filter(f => f.endsWith(".sql")).sort();
+` + storageStub;
+const files = () => readdirSync(dir).filter(f => f.endsWith(".sql") && f < "0006").sort();   // a suíte da 0005 não inclui a 0006 (tem teste próprio)
 const sql = (f: string) => readFileSync(join(dir, f), "utf8");
 const UUID = "11111111-2222-4333-8444-555555555555";
 

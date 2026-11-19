@@ -11,9 +11,16 @@ export type Res<T> = { ok: true; data: T } | { ok: false; error: string };
 
 export const MAX_NAME = 80, MAX_DESCRIPTION = 1000;
 
+/** Mensagem única para banco sem a migração necessária: a interface mostra isto em vez de uma lista vazia. */
+export const ERRO_SCHEMA = "O banco de dados ainda não recebeu a atualização (migração) necessária para este recurso. Avise o administrador; nenhum dado foi perdido.";
+
 /** Mensagem em português para erros das funções SQL e da API; nunca expõe detalhes internos. */
 export function erroCampanha(e: unknown): string {
-  const m = ((e as { message?: string } | null)?.message ?? "").toLowerCase();
+  const err = e as { message?: string; code?: string } | null;
+  const m = (err?.message ?? "").toLowerCase(), code = err?.code ?? "";
+  // Esquema do banco desatualizado (migração pendente): coluna/tabela/função inexistente. NUNCA tratar como "lista vazia".
+  if (["42703", "42P01", "42883", "PGRST200", "PGRST202", "PGRST204", "PGRST205"].includes(code) || /schema cache|column .* does not exist|relation .* does not exist|could not find the .* column/.test(m)) return ERRO_SCHEMA;
+  if (code === "42501" || /row-level security|permission denied/.test(m)) return "Você não tem permissão para esta operação.";
   const table: [string, string][] = [
     ["convite_invalido", "Convite inválido, expirado ou esgotado."],
     ["sem_permissao", "Apenas o mestre pode fazer isso."],
@@ -24,7 +31,9 @@ export function erroCampanha(e: unknown): string {
     ["descricao_invalida", `A descrição pode ter até ${MAX_DESCRIPTION} caracteres.`],
     ["limite_campanhas", "Você atingiu o limite de campanhas criadas."],
     ["limite_convites", "Há convites ativos demais. Revogue algum antes de criar outro."],
-        ["nao_autenticado", "Entre na sua conta para continuar."],
+        ["tipo_exclusivo_do_mestre", "Apenas o mestre pode criar este tipo de registro."],
+    ["conteudo_", "O conteúdo do registro foi recusado pelo servidor (formato inválido)."],
+    ["nao_autenticado", "Entre na sua conta para continuar."],
     ["jwt expired", "Sua sessão expirou. Entre novamente."],
     ["failed to fetch", "Sem conexão com o servidor. Tente de novo."],
     ["network", "Sem conexão com o servidor. Tente de novo."],

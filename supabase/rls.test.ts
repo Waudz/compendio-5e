@@ -5,6 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
+import { storageStub } from "./stub-storage";
 
 const dir = join(__dirname, "migrations");
 let db: PGlite;
@@ -20,7 +21,7 @@ grant usage on schema public to anon, authenticated;
 -- Como no Supabase: tabelas e funções novas nascem acessíveis a anon/authenticated (as migrações precisam revogar).
 alter default privileges in schema public grant all on tables to anon, authenticated;
 alter default privileges in schema public grant all on functions to anon, authenticated;
-`;
+` + storageStub;
 
 /** Executa como um usuário autenticado (ou anônimo). Devolve linhas, ou { error } com a mensagem do Postgres. */
 async function as(uid: string | null, sql: string, params: unknown[] = []): Promise<{ rows: Record<string, unknown>[]; error?: string }> {

@@ -9,6 +9,14 @@ import type { Registro } from "./registros";
 import { registrosEmMemoria } from "./registrosMemoria";
 import { me, memoryStorage, renderApp } from "./testUtils";
 
+// O BlockNote real é carregado sob demanda e testado à parte (editorRico.test.tsx); aqui um editor mínimo com o mesmo contrato.
+vi.mock("./PageEditor", async () => {
+  const { paraBlocos, deBlocos } = await import("./registros");
+  return { default: ({ inicial, onChange, editavel = true, rotulo }: { inicial: never[]; onChange?: (b: never[]) => void; editavel?: boolean; rotulo?: string }) => editavel
+    ? <textarea aria-label={rotulo} defaultValue={deBlocos(inicial)} onChange={e => onChange?.(paraBlocos(e.target.value) as never[])}/>
+    : <div>{deBlocos(inicial).split(/\n\n/).map((p, i) => <p key={i}>{p}</p>)}</div> };
+});
+
 const mestre: Membership = { role: "mestre", campaign: { id: "ca", name: "Mesa dos Dragões", description: "Desc.", created_at: "" } };
 const jogador: Membership = { role: "jogador", campaign: { id: "ca", name: "Mesa dos Dragões", description: "Desc.", created_at: "" } };
 const apiC = (m: Membership) => ({ list: async () => ({ ok: true, data: [m] }) }) as unknown as CampaignApi;
@@ -70,12 +78,11 @@ describe("Diário (mestre)", () => {
     expect((await screen.findByText(/título deve ter/i))).toBeTruthy();
     expect(registros.dados[0].version).toBe(1);
   });
-  it("registro com imagem não é editado pelo editor simples (nada se perde); excluir pede confirmação", async () => {
-    const registros = registrosEmMemoria("mestre", "u1", [reg({ id: "d1", kind: "diary", title: "Com imagem", content: [{ type: "image" }, par("texto")] })]);
+  it("excluir pede confirmação e vai para a lixeira", async () => {
+    const registros = registrosEmMemoria("mestre", "u1", [reg({ id: "d1", kind: "diary", title: "Apagar", content: [par("texto")] })]);
     await renderApp({ api: apiC(mestre), registros });
-    await abrirSecao("Diário"); fireEvent.click(await screen.findByText("Com imagem"));
-    expect(await screen.findByText(/não preserva|ainda não preserva/)).toBeTruthy(); expect(screen.queryByLabelText("Texto do registro")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Excluir" }));
+    await abrirSecao("Diário"); fireEvent.click(await screen.findByText("Apagar"));
+    fireEvent.click(await screen.findByRole("button", { name: "Excluir" }));
     expect(registros.dados).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
     await waitFor(() => expect(registros.dados).toHaveLength(0));

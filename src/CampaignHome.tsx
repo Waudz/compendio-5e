@@ -4,6 +4,7 @@
 import { Image as ImageIcon, ScrollText, Users } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAventureiros } from "./AventureirosContext";
+import { fontePersonagens } from "./perfilPersonagem";
 import { useCapa, useRegistros } from "./RegistrosContext";
 import { validarCapa } from "./capa";
 import { fonteDiario, useVersaoRegistros } from "./registrosStore";
@@ -18,16 +19,16 @@ import type { TabSpec } from "./workspace";
 type Load<T> = { s: "carregando" } | { s: "erro"; msg: string } | { s: "ok"; data: T };
 
 /** Carrega uma vez por (fonte, campanha); recarrega quando a chave muda. Sem fonte: nunca chama nada. */
-function useFonte<T>(chave: string, carregar: (() => Promise<Res<T>>) | null): Load<T> | null {
-  const [st, setSt] = useState<Load<T>>({ s: "carregando" });
+function useFonte<T>(chave: string, carregar: (() => Promise<Res<T>>) | null): (Load<T> & { recarregar: () => void }) | null {
+  const [st, setSt] = useState<Load<T>>({ s: "carregando" }), [tick, setTick] = useState(0);
   useEffect(() => {
     if (!carregar) return;
     let vivo = true; setSt({ s: "carregando" });
     carregar().then(r => { if (vivo) setSt(r.ok ? { s: "ok", data: r.data } : { s: "erro", msg: r.error }); })
       .catch(() => { if (vivo) setSt({ s: "erro", msg: "Não foi possível carregar." }); });
     return () => { vivo = false; };
-  }, [chave]); // eslint-disable-line react-hooks/exhaustive-deps
-  return carregar ? st : null;
+  }, [chave, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  return carregar ? { ...st, recarregar: () => setTick(n => n + 1) } : null;
 }
 
 function Capa({ campaignId, isMaster }: { campaignId: string; isMaster: boolean }) {
@@ -93,7 +94,7 @@ export function DiarioPrevia({ campaignId, isMaster, fonte, onOpenContent }: { c
   let corpo;
   if (!st) corpo = <p className="muted" data-testid="diario-indisponivel">O Diário ainda não está disponível nesta versão.</p>;
   else if (st.s === "carregando") corpo = <p className="muted" role="status">Carregando o Diário…</p>;
-  else if (st.s === "erro") corpo = <div className="notice err" role="alert">{st.msg}</div>;
+  else if (st.s === "erro") corpo = <div className="notice err" role="alert">{st.msg} <button className="btn-link" onClick={st.recarregar}>Tentar de novo</button></div>;
   else {
     const e: EntradaDiario | null = st.data ? maisRecenteVisivel([st.data], papel) : null;   // defesa: jogador nunca vê não publicada
     if (!e) corpo = <p className="muted" data-testid="diario-vazio">Nenhum registro no Diário ainda.</p>;
@@ -113,7 +114,7 @@ export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId:
   let corpo;
   if (!st) corpo = <p className="muted" data-testid="aventureiros-indisponivel">Os personagens ainda não estão disponíveis nesta versão.</p>;
   else if (st.s === "carregando") corpo = <p className="muted" role="status">Carregando aventureiros…</p>;
-  else if (st.s === "erro") corpo = <div className="notice err" role="alert">{st.msg}</div>;
+  else if (st.s === "erro") corpo = <div className="notice err" role="alert">{st.msg} <button className="btn-link" onClick={st.recarregar}>Tentar de novo</button></div>;
   else if (st.data.length === 0) corpo = <p className="muted" data-testid="aventureiros-vazio">Nenhum aventureiro vinculado a esta campanha.</p>;
   else corpo = <ul className="home-party">{st.data.map((a: Aventureiro) => <li key={a.id}>
     <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} aria-label={`Abrir ficha de ${a.nome}`}>
@@ -129,7 +130,8 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
 }) {
   const { api, memberships } = useCampaigns();
   const mem = memberships.find(m => m.campaign.id === id);
-  const regApi = useRegistros(), fonteAv = useAventureiros();
+  const regApi = useRegistros(), capaApi = useCapa(), fonteCtx = useAventureiros();
+  const fonteAv = useMemo(() => fonteCtx ?? (regApi ? fontePersonagens(regApi, capaApi) : null), [fonteCtx, regApi, capaApi]);
   const diarioFonte = useMemo(() => diario ?? (regApi ? fonteDiario(regApi) : undefined), [diario, regApi]);
   const [gerir, setGerir] = useState(false);   // participantes/convites só são carregados quando a seção é aberta (evita consultas à toa)
   if (!api) return <div className="auth"><h1>Campanha</h1><div className="notice" role="status">Conta necessária para usar campanhas.</div></div>;
