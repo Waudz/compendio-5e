@@ -31,7 +31,7 @@ export function hasSavedLayout(scope: Scope, store: Store | null = safeStore()):
 export function minimalLayout(layout: IJsonModel) {
   return { type: "row", children: (layout.layout.children ?? []).map(g => {
     const set = g as { id?: string; weight?: number; selected?: number; active?: boolean; children?: { id?: string }[] };
-    return { type: "tabset", id: set.id, weight: set.weight, selected: set.selected, active: set.active === true, children: (set.children ?? []).map(t => ({ type: "tab", id: t.id })) };
+    return { type: "tabset", id: set.id, weight: set.weight ?? 100, selected: set.selected, active: set.active === true, children: (set.children ?? []).map(t => ({ type: "tab", id: t.id })) };
   }) };
 }
 

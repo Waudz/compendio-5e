@@ -66,6 +66,18 @@ describe("workspace (interface)", () => {
     expect(tabNames()).toEqual(["Personagens"]);
   });
 
+  it("aba única: \"nova coluna\" divide a tela, o painel vazio é salvo e a próxima seção o preenche", async () => {
+    await renderApp();
+    fireEvent.contextMenu(screen.getByText("Personagens", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" }));
+    const item = screen.getByRole("menuitem", { name: "Abrir em nova coluna à direita" });
+    expect((item as HTMLButtonElement).disabled).toBe(false);                    // antes estava desabilitado com aba única
+    fireEvent.click(item);
+    const groupsSaved = () => saved().layout.children as { children: { id: string }[] }[];
+    expect(groupsSaved().map(g => g.children.length).sort()).toEqual([0, 1]);   // painel vazio persistido
+    fireEvent.click(nav("Iniciativa"));                                           // o painel vazio é o ativo: recebe a seção
+    expect(groupsSaved().map(g => g.children.map(t => t.id))).toEqual([["secao:iniciativa"], ["secao:personagens"]]);
+  });
+
   it("menu de contexto fecha com Escape", async () => {
     await renderApp();
     fireEvent.contextMenu(screen.getByText("Personagens", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" }));
