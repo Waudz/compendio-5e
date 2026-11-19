@@ -88,7 +88,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 
 **Mestre único (migração `0003_mestre_unico.sql`, substitui a promoção de mestres da 0001):** cada campanha tem exatamente um mestre, o criador (`created_by`). Garantido no banco por índice único parcial (`role = 'mestre'`), gatilho `guard_single_master` (criador = mestre, qualquer outro = jogador) e política `members_delete` (o criador não sai nem é removido; a exclusão da campanha em cascata continua possível). A função `set_member_role` foi removida; não há promoção nem rebaixamento. Jogadores saem sozinhos, o mestre remove jogadores, administra convites e exclui a campanha. Um usuário pode criar até 20 campanhas e ser mestre de umas e jogador de outras. A migração normaliza dados antigos (criador volta a ser mestre; outros mestres viram jogadores) e é idempotente.
 
-**Notas (migração `0004_notas.sql`, preparada, não aplicada):** ver `docs/NOTAS-PERMISSOES.md`. Visibilidade `private | master | campaign | selected` aplicada por RLS com verificação de participação atual de leitor e autor; mestre não lê notas privadas de jogadores; dono e campanha imutáveis; controle otimista por `version`; reversão em `supabase/rollback/`.
+**Notas (migração `0004_notas.sql`, APLICADA ao projeto `gwcttjlxzelzjhbuitmi` em 19/11/2026):** ver `docs/NOTAS-PERMISSOES.md`. **O modelo de vínculos e compartilhamento por audiência (decisão D3) ainda NÃO existe no banco: exige uma migração futura (`0005`), analisada em `PLANEJAMENTO-V2.md` §4.4.** Visibilidade `private | master | campaign | selected` aplicada por RLS com verificação de participação atual de leitor e autor; mestre não lê notas privadas de jogadores; dono e campanha imutáveis; controle otimista por `version`; reversão em `supabase/rollback/`.
 
 **Campanhas na interface:** seção "Campanhas" (aba `secao:campanhas`) lista as campanhas do usuário, cria campanha e entra por convite; cada campanha abre em uma aba própria `campanha:ID` (dados básicos, participantes, convites, exclusão com confirmação). Mestre vê e usa os controles de administração; jogador vê só leitura e "Sair da campanha". A UI apenas esconde o que não cabe ao papel: a autorização real é da RLS/funções SQL. **Uma campanha ativa por vez** (`CampaignsContext`, guardada em `compendio5e:active-campaign:<usuario>` e descartada se o usuário deixar de participar). O espaço de trabalho (layout) é carregado por **usuário + campanha ativa + dispositivo**: trocar de campanha troca o layout (a nova começa com o padrão); visitante usa o escopo `visitante/nenhuma`. "Abrir" uma campanha não a ativa; "Tornar ativa" troca o espaço de trabalho. O nome da campanha no menu lateral vem da campanha ativa.
 
@@ -106,7 +106,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 ### Personagens
 - Criador, edição, progressão/níveis, ficha, atributos, perícias, equipamentos, inventário, PV, recursos e magias.
 - A ficha é fonte operacional de personagem; regras e itens do catálogo são referências, não substituem estado de inventário.
-- **O personagem pertence ao usuário** (identidade + estado-base pessoal) e participa de campanhas por vínculos com estado próprio; o mestre edita o estado da participação na sua campanha, nunca a identidade nem o personagem pessoal. Sem campanha ativa, criação e administração pessoais continuam. Arquitetura em `PLANEJAMENTO-V2.md`, seção 3.
+- **O personagem pertence ao usuário** (identidade + estado-base pessoal) e participa de campanhas por vínculos com estado próprio; o mestre edita o estado da participação na sua campanha, nunca a identidade nem o personagem pessoal. Sem campanha ativa, criação e administração pessoais continuam. Exclusão de personagem é **lógica** (D1); saída/remoção de jogador **arquiva** a participação e a restauração não sobrescreve o estado preservado (D2); outros jogadores veem só nome, retrato e nível, e o mestre decide se veem PV (D4). Arquitetura em `PLANEJAMENTO-V2.md`, seção 3 (**planejada, nada implementado**).
 - Prioridade de migração após base de workspace, campanhas/autenticação e permissões.
 
 ### Iniciativa
@@ -132,7 +132,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 - Respeitar RLS e visibilidade no servidor.
 
 ### Documentos
-- Concentra anotações (sistema único de notas, `0004_notas.sql`), páginas, quadros, bancos/Kanban, calendários, anexos e backup, com filtros por escopo, tipo, vínculo e visibilidade. Anotações pertencem ao usuário, são privadas por padrão e podem ter vínculos opcionais; o mestre não ganha acesso às privadas. Sem campanha ativa só as anotações pessoais. Não misturar documentos de campanhas distintas. Ver `PLANEJAMENTO-V2.md`, seção 4.
+- Concentra anotações (sistema único de notas, `0004_notas.sql`), páginas, quadros, bancos/Kanban, calendários, anexos e backup, com filtros por escopo, tipo, vínculo e visibilidade. Anotações pertencem ao usuário, são privadas por padrão e podem ter vínculos opcionais e múltiplos (personagens, campanhas, NPCs, locais, encontros…) que **não transferem propriedade nem compartilham**; compartilhar é ação explícita. Morte, troca ou exclusão de personagem nunca apaga anotações. O mestre não ganha acesso às privadas. `notes` é a base única (D5). Sem campanha ativa só as anotações pessoais. Não misturar documentos de campanhas distintas. Ver `PLANEJAMENTO-V2.md`, seção 4.
 
 ## 8. Mestre, jogador e visitante
 
@@ -144,7 +144,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 ## 9. O que NÃO desenvolver agora
 
 Não adicionar sem reavaliação explícita:
-- sistema complexo de lojas, compras/vendas, moedas ou comércio;
+- sistema complexo de lojas, compras/vendas, comércio, economia complexa ou taxas de câmbio personalizadas (**exceção aprovada em D6:** saldo das cinco moedas oficiais 5e 2014 no inventário, com moedas ativas configuradas por campanha, e distribuição de loot confirmada pelo mestre — ver `PLANEJAMENTO-V2.md` §5);
 - distribuição de loot e inventários coletivos complexos;
 - combate totalmente automatizado;
 - mapa tático/VTT e movimentação de tokens;
@@ -210,7 +210,7 @@ O usuário esclareceu que gostou de quase todas as interações do aplicativo de
 - Modelo de entidades/tabs (seções versus fichas e registros específicos), com deep links.
 - Estratégia de sincronização e migração segura do legado.
 - ~~Escopo de acesso visitante~~ resolvido: login obrigatório.
-- Decisões D1–D6 de `PLANEJAMENTO-V2.md` (exclusão de personagem vinculado, saída de jogador, anotação ganhar campanha depois, visibilidade de fichas entre jogadores, documentos sobre `notes`, granularidade de loot/moedas).
+- **D1–D6 aprovadas em 19/11/2026** (exclusão lógica; arquivamento de participações; vínculos opcionais sem transferência de propriedade; visibilidade de fichas; `notes` como base dos documentos; moedas por campanha). Pendentes: exclusão de **conta** vs histórico de campanha, cópia de moedas ao vincular (hoje: não copiar) e retenção da lixeira (`PLANEJAMENTO-V2.md` §9).
 - Como publicar/mostrar previews e testar no celular em cada PR.
 - Quais funções legadas devem ser reaproveitadas, reescritas ou descartadas após auditoria.
 

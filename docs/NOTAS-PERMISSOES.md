@@ -20,7 +20,7 @@ Os contratos TypeScript (`src/notePermissions.ts`) servem só à interface. A au
 - Não criar funcionalidades de visitante; conteúdo universal é consultável por qualquer conta autenticada.
 
 ## A seguir
-Projetar e revisar esquema SQL + testes RLS em ambiente de desenvolvimento antes de pedir autorização para aplicar migrações à produção.
+A `0004` está aplicada. Qualquer mudança nas regras de notas exige nova migração revisada, testes de regressão (a suíte `supabase/notas.test.ts` é a referência) e autorização explícita antes de aplicar.
 
 ## Persistência e RLS (migração 0004) — estado
 
@@ -51,3 +51,9 @@ Riscos residuais conhecidos (aceitos ou para etapas futuras):
 - Mensagens de erro de `CHECK`/FK podem exibir a linha que o PRÓPRIO usuário tentou gravar (dado dele).
 - **Não** adicionar `notes`/`note_shares` à publicação do Realtime sem nova revisão.
 - Links, busca e histórico (Etapa C) devem usar `can_read_note` nas próprias políticas; nunca armazenar título/prévia fora de tabelas protegidas.
+
+## Evolução planejada (decisão D3, 19/11/2026) — NÃO implementada
+
+Decidido: sistema único de anotações do usuário; **vínculos opcionais e múltiplos** (personagens, campanhas, NPCs, locais, encontros…) que **não transferem propriedade nem compartilham**; compartilhar é ação explícita; autor mantém acesso e edição ao sair da campanha ou quando o personagem morre/é trocado/excluído. A proposta anterior de mudar `campaign_id` de `NULL` para uma campanha foi **rejeitada**.
+
+Impacto sobre a `0004` (detalhes em `PLANEJAMENTO-V2.md` §4.4): hoje `campaign_id` (único e imutável) faz o papel de origem, de público e de pré-condição de escrita, e a nota pessoal não pode ser compartilhada. Para D3 será preciso, em migração futura: separar **audiências** (por campanha, com escopo e destinatários) de `campaign_id` (que fica como origem informativa); criar `record_links` (sem efeito de acesso, legíveis só se `can_read_note(nota)`); e **permitir que o autor edite as próprias notas mesmo fora da campanha** (hoje o `with check` de `notes_update` exige participação — comportamento que D3 muda). O que vale **hoje**: mestre não lê nota privada; compartilhamento suspenso enquanto o autor está fora; vínculos ainda não existem.
