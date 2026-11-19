@@ -52,6 +52,13 @@ export default function App() {
   }, [refresh]);
   const onAction = useCallback((a: Action) => allowedActions.has(a.type) ? a : undefined, []);
   const open = useCallback((s: TabSpec) => { openTab(model, s); onModelChange(model); }, [model, onModelChange]);
+  const inviteOpened = useRef(false);
+  useEffect(() => {
+    if (inviteOpened.current || !new URLSearchParams(window.location.search).has("convite")) return;
+    if (status === "loading") return;
+    inviteOpened.current = true;
+    open({ kind: "secao", ref: "campanhas" });
+  }, [open, status]);
   const run = (fn: () => void) => () => { fn(); onModelChange(model); };
   const closeMenu = useCallback(() => setMenu(null), []);
 
