@@ -3,7 +3,7 @@ import { useAuth } from "./AuthContext";
 import { createCampaignApi, type CampaignApi, type Membership } from "./campaigns";
 
 export type CampaignsValue = {
-  api: CampaignApi | null;           // null: visitante ou Supabase não configurado
+  api: CampaignApi | null;           // null: sem sessão ou Supabase não configurado
   memberships: Membership[];
   loading: boolean;
   error: string | null;

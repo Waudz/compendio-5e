@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
-import { BookOpen, ChevronLeft, ChevronRight, LogIn, UserRound, X } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -24,11 +24,18 @@ function useMobile() {
   return mobile;
 }
 
+/** Só existe com sessão. `key` por usuário: trocar de conta descarta TODO o estado do espaço de trabalho (nada vaza entre contas). */
 export default function App() {
-  // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
   const { status, user } = useAuth();
+  if (status !== "authenticated" || !user) return null;
+  return <Workspace key={user.id} userId={user.id}/>;
+}
+
+function Workspace({ userId }: { userId: string }) {
+  // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
+  const { status } = useAuth();
   const { active, activeId: campaignId, memberships } = useCampaigns();
-  const scope: Scope = { user: status === "authenticated" && user ? user.id : "visitante", campaign: campaignId ?? "nenhuma", device: "navegador" };
+  const scope: Scope = { user: userId, campaign: campaignId ?? "nenhuma", device: "navegador" };
   const scopeKey = `${scope.user}|${scope.campaign}|${scope.device}`;
   const scopeRef = useRef(scope); scopeRef.current = scope;
   const [model, setModel] = useState<Model>(() => createModel(loadLayout(scope)));
@@ -37,7 +44,6 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const mobile = useMobile();
-  const logged = status === "authenticated";
   const chromeHidden = useChromeHidden(mobile);
   const good = useRef(model.toJson());
   const handled = useRef<Event | null>(null);
@@ -98,6 +104,12 @@ export default function App() {
     return <Panel kind={c.kind} entity={c.ref} onOpen={open}/>;
   }, [open]);
 
+  // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
+  const titleOf = useCallback((n: TabNode) => {
+    const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
+    return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
+  }, [memberships]);
+  const renderTab = useCallback((n: TabNode, v: { content: ReactNode }) => { v.content = titleOf(n); }, [titleOf]);
   const activeTab = model.getActiveTabset()?.getSelectedNode();
   const activeId = activeTab instanceof TabNode ? activeTab.getId() : "";
   const placeholder = useCallback(() => <div className="empty"><h1>Área de trabalho</h1><p>Escolha uma seção no menu lateral.</p></div>, []);
@@ -109,13 +121,13 @@ export default function App() {
   return <div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
-      <div className="campaign" title="Campanha ativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : logged ? "Nenhuma" : "Visitante"}</strong></>}</div>
+      <div className="campaign" title="Campanha ativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}</div>
       <nav aria-label="Menu principal">{sections.map(({ page, title, icon: Icon }) =>
         <button key={page} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} onClick={() => open({ kind: "secao", ref: page })} title={title}>
           <Icon size={19}/>{!collapsed && <span>{title}</span>}
         </button>)}
-        <button className={activeId === "conta:perfil" ? "nav-item account selected" : "nav-item account"} onClick={() => open({ kind: "conta", ref: "perfil" })} title={logged ? "Conta" : "Entrar"}>
-          {logged ? <UserRound size={19}/> : <LogIn size={19}/>}{!collapsed && <span>{logged ? "Conta" : "Entrar"}</span>}
+        <button className={activeId === "conta:perfil" ? "nav-item account selected" : "nav-item account"} onClick={() => open({ kind: "conta", ref: "perfil" })} title="Conta">
+          <UserRound size={19}/>{!collapsed && <span>Conta</span>}
         </button></nav>
       <button className="collapse" onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
         {collapsed ? <ChevronRight size={18}/> : <><ChevronLeft size={18}/> Recolher menu</>}
@@ -123,9 +135,9 @@ export default function App() {
     </aside>
     <main className="workspace">
       {mobile
-        ? <Mobile model={model} onOpen={open} onChange={() => onModelChange(model)}/>
+        ? <Mobile model={model} onOpen={open} onChange={() => onModelChange(model)} titleOf={titleOf}/>
         : <Layout model={model} factory={factory} onAction={onAction} onModelChange={onModelChange} onContextMenu={contextMenu}
-            onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize/>}
+            onRenderTab={renderTab} onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize/>}
     </main>
     {menu && <ContextMenu menu={menu} onClose={closeMenu}/>}
   </div>;

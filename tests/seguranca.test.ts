@@ -28,6 +28,14 @@ describe("segredos no repositório", () => {
     expect(pages).toMatch(/VITE_SUPABASE_ANON_KEY: sb_publishable_[A-Za-z0-9_-]+\s/);
     expect(pages).not.toMatch(/rastreador|pdjzahpxjrlbqqtzkfdr/);   // projeto antigo
   });
+  it("não há modo visitante no código do app (login obrigatório)", () => {
+    const code = files.filter(f => /[\\/]src[\\/][^\\/]+\.(ts|tsx)$/.test(f) && !/\.test\./.test(f) && !/testUtils/.test(f));
+    const hits = code.filter(f => /visitante|\bguest\b/i.test(text(f))).map(f => f.replace(root, "").replace(/\\/g, "/"));
+    expect(hits).toEqual(["/src/localData.ts"]);   // só a limpeza de chaves antigas do modo visitante
+  });
+  it("o layout persistido não grava títulos nem nomes", () => {
+    expect(text(join(root, "src/persistence.ts"))).toMatch(/minimalLayout\(layout\)/);
+  });
   it(".env* local nunca é versionado", () => {
     expect(text(join(root, ".gitignore"))).toMatch(/^\.env\.local$/m);
   });

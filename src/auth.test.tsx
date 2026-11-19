@@ -4,7 +4,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { AuthProvider } from "./AuthContext";
 import { AccountPanel } from "./AccountPanel";
-import App from "./App";
+import { AuthGate } from "./AuthGate";
+import { memoryStorage, renderApp } from "./testUtils";
 import { createAuthApi, traduzirErro, validateEmail, validatePassword } from "./auth";
 import { isUsableConfig } from "./supabase";
 
@@ -81,20 +82,20 @@ describe("createAuthApi", () => {
 
 describe("AuthProvider + AccountPanel", () => {
   beforeEach(() => {
-    const mem = new Map<string, string>();
-    vi.stubGlobal("localStorage", { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => { mem.set(k, v); } });
+    vi.stubGlobal("localStorage", memoryStorage());
     vi.stubGlobal("matchMedia", (q: string) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {} }));
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   });
   afterEach(cleanup);
-  const mount = (f: ReturnType<typeof fakeClient> | null) => render(<AuthProvider client={f?.client ?? null}><AccountPanel/></AuthProvider>);
+  const mount = (f: ReturnType<typeof fakeClient> | null) => render(<AuthProvider client={f?.client ?? null}><AuthGate><AccountPanel/></AuthGate></AuthProvider>);
   const fill = (label: string, v: string) => fireEvent.change(screen.getByLabelText(label), { target: { value: v } });
 
-  it("sem Supabase configurado: modo visitante, sem formulário", () => {
+  it("sem Supabase configurado: o app não abre (sem visitante, sem formulário)", () => {
     mount(null);
-    expect(screen.getByText(/Modo visitante/)).toBeTruthy(); expect(screen.queryByLabelText("E-mail")).toBeNull();
+    expect(screen.getByText(/Ambiente não configurado/)).toBeTruthy(); expect(screen.queryByLabelText("E-mail")).toBeNull();
+    expect(screen.queryByRole("navigation")).toBeNull();
   });
-  it("mostra carregamento e depois o formulário de login (visitante)", async () => {
+  it("mostra carregamento e depois o formulário de login (porta de entrada)", async () => {
     mount(fakeClient());
     expect(screen.getByText(/Carregando sessão/)).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Entrar" })).toBeTruthy();
@@ -133,7 +134,7 @@ describe("AuthProvider + AccountPanel", () => {
     fill("E-mail", "a@b.co"); fireEvent.click(screen.getByRole("button", { name: "Recuperar senha" }));
     await waitFor(() => expect(f.auth.resetPasswordForEmail).toHaveBeenCalled());
   });
-  it("sessão persistida: abre já logado, e sair volta ao visitante", async () => {
+  it("sessão persistida: abre já logado, e sair volta à porta de entrada", async () => {
     const f = fakeClient({}, { user }); mount(f);
     expect(await screen.findByText("ana@exemplo.com")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Sair" }));
@@ -151,14 +152,14 @@ describe("AuthProvider + AccountPanel", () => {
     fill("Repita a nova senha", "novasenha1"); fireEvent.click(screen.getByRole("button", { name: "Salvar senha" }));
     await waitFor(() => expect(f.auth.updateUser).toHaveBeenCalledWith({ password: "novasenha1" }));
   });
-  it("falha ao ler a sessão (rede) cai em visitante com aviso", async () => {
+  it("falha ao ler a sessão (rede) cai na porta de entrada com aviso", async () => {
     const f = fakeClient({ getSession: vi.fn(async () => { throw new TypeError("Failed to fetch"); }) });
     mount(f);
     expect((await screen.findByRole("alert")).textContent).toMatch(/Sem conexão/);
   });
-  it("o app abre a aba Conta pelo menu lateral (modo visitante)", () => {
-    render(<App/>);
-    fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
+  it("o app abre a aba Conta pelo menu lateral (autenticado)", async () => {
+    await renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Conta" }));
     expect(document.querySelector(".flexlayout__tabset_tabbar_inner")?.textContent).toMatch(/Conta/);
   });
 });

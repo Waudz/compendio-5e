@@ -81,7 +81,7 @@ export function sanitizeLayout(data: unknown): IJsonModel | null {
       const p = parseTabId(t?.id);
       if (!p || seen.has(`${p.kind}:${p.ref}`)) continue;
       seen.add(`${p.kind}:${p.ref}`);
-      tabs.push(tabJson({ ...p, title: typeof t.name === "string" ? t.name : undefined }));
+      tabs.push(tabJson(p));   // nomes guardados são ignorados: o layout persiste só ids
     }
     if (!tabs.length) continue;
     const w = Number(s.weight);

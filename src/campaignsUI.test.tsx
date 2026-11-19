@@ -3,10 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import App from "./App";
+import { AuthGate } from "./AuthGate";
 import { AuthProvider } from "./AuthContext";
 import { CampaignsProvider, activeKey } from "./CampaignsContext";
 import { normalizeCode, type Campaign, type CampaignApi, type Invite, type Member, type Membership, type Res } from "./campaigns";
 import { storageKey } from "./persistence";
+import { memoryStorage } from "./testUtils";
 
 const me = { id: "me", email: "eu@exemplo.com" } as User;
 const camp = (id: string, name: string): Campaign => ({ id, name, description: `desc ${name}`, created_at: "2026-01-01T00:00:00Z" });
@@ -35,7 +37,7 @@ const authClient = (user: User | null) => ({ auth: {
 } }) as unknown as SupabaseClient;
 
 function mount(api: ReturnType<typeof fakeApi> | null, user: User | null = me) {
-  return render(<AuthProvider client={authClient(user)}><CampaignsProvider apiFactory={() => api as unknown as CampaignApi}><App/></CampaignsProvider></AuthProvider>);
+  return render(<AuthProvider client={authClient(user)}><CampaignsProvider apiFactory={() => api as unknown as CampaignApi}><AuthGate><App/></AuthGate></CampaignsProvider></AuthProvider>);
 }
 const nav = (name: string) => within(screen.getByRole("navigation", { name: "Menu principal" })).getByRole("button", { name });
 /** O jsdom não mede tamanhos, então o conteúdo do FlexLayout não é desenhado: usamos a visão simples (celular), que usa o mesmo estado e os mesmos painéis. */
@@ -43,20 +45,20 @@ const openMobile = async (section: string) => { fireEvent.click(await screen.fin
 const fill = (label: string | RegExp, v: string) => fireEvent.change(screen.getByLabelText(label), { target: { value: v } });
 
 beforeEach(() => {
-  const mem = new Map<string, string>();
-  vi.stubGlobal("localStorage", { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => { mem.set(k, v); }, removeItem: (k: string) => { mem.delete(k); } });
+  vi.stubGlobal("localStorage", memoryStorage());
   vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("max-width"), media: q, addEventListener() {}, removeEventListener() {} }));
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
 afterEach(cleanup);
 
 describe("campanhas (interface)", () => {
-  it("visitante: a seção pede login e não chama o servidor", async () => {
-    mount(null, null);
-    fireEvent.click(await screen.findByRole("button", { name: "Campanhas" }));
-    expect(await screen.findByText(/Entre na sua conta para criar campanhas/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Entrar ou criar conta" }));
+  it("sem sessão: só a porta de entrada aparece (nenhuma parte do app) e o servidor de campanhas não é chamado", async () => {
+    const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Segredo") }] });
+    mount(api, null);
     expect(await screen.findByRole("heading", { name: "Entrar" })).toBeTruthy();
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.queryByText("Segredo")).toBeNull();
+    expect(api.list).not.toHaveBeenCalled();
   });
 
   it("lista campanhas do usuário com papel, e estado vazio", async () => {
@@ -112,7 +114,7 @@ describe("campanhas (interface)", () => {
     await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Costa Rubra"));
     await openMobile("Campanhas");
     await waitFor(() => expect(screen.getAllByText("Ativa")).toHaveLength(1));
-    // cada campanha tem o seu layout salvo, e o do visitante é outro
+    // cada campanha tem o seu layout salvo
     expect(localStorage.getItem(storageKey({ user: "me", campaign: "c2", device: "navegador" }))).not.toBeNull();
     expect(localStorage.getItem(storageKey({ user: "me", campaign: "c1", device: "navegador" }))).not.toBeNull();
   });
@@ -214,14 +216,14 @@ describe("convites por link", () => {
     expect(document.querySelector(".campaign strong")?.textContent).toBe("Mesa do Caio");
   });
 
-  it("visitante com link: pede login mantendo o convite e aceita automaticamente após autenticar", async () => {
+  it("sem sessão com link: a porta de entrada mantém o convite e aceita automaticamente após autenticar", async () => {
     withInvite();
     const f = { user: null as User | null };
     const listeners: ((e: string, s: { user: User } | null) => void)[] = [];
     const client = { auth: { getSession: async () => ({ data: { session: f.user ? { user: f.user } : null }, error: null }),
       onAuthStateChange: (l: (e: string, s: { user: User } | null) => void) => { listeners.push(l); return { data: { subscription: { unsubscribe() {} } } }; } } } as unknown as SupabaseClient;
     const api = fakeApi({ memberships: [], members: [] });
-    render(<AuthProvider client={client}><CampaignsProvider apiFactory={() => api as unknown as CampaignApi}><App/></CampaignsProvider></AuthProvider>);
+    render(<AuthProvider client={client}><CampaignsProvider apiFactory={() => api as unknown as CampaignApi}><AuthGate><App/></AuthGate></CampaignsProvider></AuthProvider>);
     expect(await screen.findByText(/Você recebeu um convite de campanha/)).toBeTruthy();
     expect(window.location.search).toBe("?convite=ABCDEFGHIJKL");   // a URL não é limpa antes de entrar
     listeners.forEach(l => l("SIGNED_IN", { user: me }));

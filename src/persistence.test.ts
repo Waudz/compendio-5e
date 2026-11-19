@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { VERSION, legacyKey, loadLayout, migrateV1, saveLayout, storageKey } from "./persistence";
+import { VERSION, loadLayout, saveLayout, storageKey } from "./persistence";
 import { createModel, defaultLayout, groups, isColumnsOnly, moveToNewColumn, openTab } from "./workspace";
 import { Actions } from "flexlayout-react";
 
@@ -46,15 +46,6 @@ describe("persistência", () => {
     const m = createModel(loadLayout(scope, mem({ [storageKey(scope)]: raw })));
     expect(groups(m).map(g => g.getChildren().map(c => c.getId()))).toEqual([["secao:personagens"], ["ficha:z"]]);
     expect(groups(m).every(g => g.getWeight() > 0)).toBe(true);
-  });
-  it("migra o esquema v1 (colunas) para o atual", () => {
-    const v1 = { columns: [
-      { id: "a", tabs: [{ id: "personagens", page: "personagens" }, { id: "iniciativa", page: "iniciativa" }], active: "iniciativa", width: 40 },
-      { id: "b", tabs: [{ id: "compendio", page: "compendio" }], active: "compendio", width: 60 }], focused: "b" };
-    expect(migrateV1(v1)).not.toBeNull();
-    const m = createModel(loadLayout(scope, mem({ [legacyKey]: JSON.stringify(v1) })));
-    expect(groups(m).map(g => g.getChildren().map(c => c.getId()))).toEqual([["secao:personagens", "secao:iniciativa"], ["secao:compendio"]]);
-    expect(groups(m)[0].getSelectedNode()?.getId()).toBe("secao:iniciativa");
   });
   it("armazenamento indisponível não derruba", () => {
     expect(loadLayout(scope, null)).toEqual(defaultLayout());

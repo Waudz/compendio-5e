@@ -146,3 +146,10 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .auth:not(.wide) .btn-primary:hover:not(:disabled){filter:brightness(1.08)}
 /* Confirmações não devem parecer um botão de ação. */
 .notice.ok{border-color:var(--line);box-shadow:inset 3px 0 0 var(--accent)}
+
+/* Porta de entrada (login obrigatório) */
+.gate{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 16px;background:var(--bg)}
+.gate-card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px 22px}
+.gate-brand{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--text)}.gate-brand svg{color:var(--accent)}.gate-brand span{color:var(--accent)}
+.gate .auth{max-width:none}.gate .auth h1{font-size:20px;margin:10px 0}
+.gate .auth input{background:var(--bg)}

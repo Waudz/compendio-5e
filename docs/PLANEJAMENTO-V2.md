@@ -27,7 +27,7 @@ Resumo de D1–D6:
 | Mestre único = criador; mestre não sai, exclui; jogador sai/é removido; 20 campanhas | **Implementado** (SQL + UI + testes) | `0001`, `0003`, `rls.test.ts` |
 | Convites por link, entrada automática | **Implementado** | `CampaignPanels.tsx`, `join_campaign` |
 | Autenticação, recuperação, sessão persistente | **Implementado** | `auth.ts`, `AuthContext.tsx` |
-| Login obrigatório | **Não implementado** — ainda existe modo visitante (`AuthStatus: guest`, escopo `visitante`, avisos em `AccountPanel`) | contradiz a decisão 1 |
+| Login obrigatório | **Implementado (Etapa 1, PR #21)**: `AuthGate` só monta o app com sessão; modo visitante removido (`AuthStatus: signedOut`) | `AuthGate.tsx`, `src/etapa1.test.tsx` |
 | Uma campanha ativa por vez | **Implementado no cliente** (`CampaignsContext`, `compendio5e:active-campaign:<usuário>`) | o servidor não tem noção de "ativa", e não deve ter |
 | Isolamento do **layout** por usuário+campanha+dispositivo | **Implementado** | `persistence.ts`, `App.tsx`; é só apresentação |
 | Isolamento real de **dados** por campanha | **Parcial**: só `campaigns`, `campaign_members`, `campaign_invites`, `notes`, `note_shares` (RLS + testes) | Personagens, Iniciativa, Encontros, Enciclopédia, Compêndio e Documentos são *placeholders* sem tabela |
@@ -40,10 +40,7 @@ Resumo de D1–D6:
 | Links bidirecionais, busca, histórico, offline | **Só contratos** (`records.ts`: `RecordLink`, `decideVersion`, `PendingOperation`) | sem tabelas, sem IndexedDB |
 | Cache/IndexedDB, PWA | **Não existem** | hoje só `localStorage` (layout e campanha ativa) |
 
-Riscos de isolamento já presentes no cliente:
-- O layout salvo guarda **títulos de abas** em `localStorage`; ficam no aparelho após logout. Guardar só ids e resolver títulos pela API (ou limpar o layout no logout).
-- Abas persistidas apontam para registros que podem deixar de ser acessíveis: todo painel trata "sem acesso" e "inexistente" com a mesma tela.
-- Ainda não há regra para **caches**: ver 6.
+Riscos de isolamento no cliente (**tratados na Etapa 1, PR #21**): layout guarda só ids (sem títulos) e é apagado no logout/troca de conta; abas de campanha sem acesso caem no rótulo genérico; `cacheKey(usuário, campanha, …)` definida em `src/scope.ts`. **Continua valendo para os módulos futuros:** todo painel trata "sem acesso" e "inexistente" com a mesma tela, e todo cache novo usa `cacheKey` e é limpo no logout e na troca de campanha (ver 6).
 
 ## 2. Modelo de escopos
 - **Universal**: SRD 2014 (`srd_*`), `select` para `authenticated`, nenhum `insert/update/delete` para clientes; carga por migração/seed. Nunca editado: personalização = cópia pessoal ou de campanha com `source_ref` (cópia independente).
@@ -189,7 +186,7 @@ Mudança em relação à versão anterior (necessária): a **migração de arqui
 
 | # | Etapa | Depende de |
 |---|---|---|
-| 1 | **Login obrigatório + base de isolamento** (porta de login, remover visitante, layout só com ids, helper de chaves de cache) | — |
+| 1 | **Login obrigatório + base de isolamento** (porta de login, remover visitante, layout só com ids, helper de chaves de cache) — **implementada no PR #21 (aguardando integração)** | — |
 | 2 | **Notas — arquitetura (`0005`: audiências, vínculos, edição do autor)** + camada de dados + testes de regressão | 1, `0004` |
 | 3 | **Notas — interface em Documentos** (lista, editor, vínculos, compartilhamento explícito, filtros) | 2 |
 | 4 | **`campaign_settings`** (moedas ativas, PV dos colegas) + aba Campanhas | 1 |
