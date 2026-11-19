@@ -7,6 +7,17 @@ import type { TabSpec } from "./workspace";
 type Msg = { kind: "ok" | "err"; text: string } | null;
 const Notice = ({ m }: { m: Msg }) => m ? <div className={`notice ${m.kind}`} role={m.kind === "err" ? "alert" : "status"}>{m.text}</div> : null;
 const dateBr = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
+export const inviteUrl = (code: string) => {
+  const url = new URL(import.meta.env.BASE_URL, window.location.origin);
+  url.searchParams.set("convite", code);
+  return url.toString();
+};
+const incomingInvite = () => new URLSearchParams(window.location.search).get("convite") ?? "";
+const clearIncomingInvite = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("convite");
+  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+};
 
 /** Executa uma ação assíncrona com bloqueio de duplo clique e mensagem de resultado. */
 function useAction() {
@@ -33,7 +44,7 @@ function NeedLogin({ title, onOpen }: { title: string; onOpen: (s: TabSpec) => v
 /** Hub: campanhas das quais participo, criar, entrar por convite, definir a ativa. */
 export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
   const { api, memberships, loading, error, activeId, setActive, refresh } = useCampaigns();
-  const [name, setName] = useState(""), [desc, setDesc] = useState(""), [code, setCode] = useState("");
+  const [name, setName] = useState(""), [desc, setDesc] = useState(""), [code, setCode] = useState(incomingInvite);
   const create = useAction(), join = useAction();
   if (!api) return <NeedLogin title="Campanhas" onOpen={onOpen}/>;
 
@@ -45,16 +56,17 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
   };
   const onJoin = async (e: FormEvent) => {
     e.preventDefault();
-    const bad = validateCode(code); if (bad) { join.setMsg({ kind: "err", text: bad }); return; }
-    const r = await join.run(() => api.join(code), "Você entrou na campanha.");
-    if (r?.ok) { setCode(""); await refresh(); }
+    const entered = code.includes("convite=") ? (() => { try { return new URL(code).searchParams.get("convite") ?? code; } catch { return code; } })() : code;
+    const bad = validateCode(entered); if (bad) { join.setMsg({ kind: "err", text: bad }); return; }
+    const r = await join.run(() => api.join(entered), "Você entrou na campanha.");
+    if (r?.ok) { setCode(""); clearIncomingInvite(); await refresh(); setActive(r.data); onOpen({ kind: "campanha", ref: r.data }); }
   };
 
   return <div className="auth wide"><h1>Campanhas</h1>
     <p>Apenas uma campanha fica ativa por vez; cada uma tem o seu espaço de trabalho.</p>
     {loading && memberships.length === 0 && <p role="status">Carregando campanhas…</p>}
     {error && <div className="notice err" role="alert">{error} <button className="btn-link" onClick={() => void refresh()}>Tentar de novo</button></div>}
-    {!loading && !error && memberships.length === 0 && <div className="notice">Você ainda não participa de nenhuma campanha. Crie uma ou entre com um código de convite.</div>}
+    {!loading && !error && memberships.length === 0 && <div className="notice">Você ainda não participa de nenhuma campanha. Crie uma ou entre com um convite.</div>}
     <ul className="camp-list">{memberships.map(({ campaign: c, role }) => <li key={c.id} className={c.id === activeId ? "camp active" : "camp"}>
       <div><strong>{c.name}</strong> <span className="badge">{role === "mestre" ? "Mestre" : "Jogador"}</span>{c.id === activeId && <span className="badge on">Ativa</span>}
         {c.description && <p>{c.description}</p>}</div>
@@ -70,9 +82,9 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
       <button className="btn-primary" disabled={create.busy}>{create.busy ? "Criando…" : "Criar campanha"}</button></form>
     <Notice m={create.msg}/>
 
-    <h2>Entrar com convite</h2>
+    <h2>Entrar com convite</h2>\n    {incomingInvite() && <p>Recebemos um link de convite. Confirme a entrada na campanha abaixo.</p>}
     <form noValidate onSubmit={onJoin}>
-      <label>Código do convite<input value={code} autoComplete="off" autoCapitalize="characters" onChange={e => setCode(e.target.value)}/></label>
+      <label>Código ou link do convite<input value={code} autoComplete="off" autoCapitalize="characters" onChange={e => setCode(e.target.value)}/></label>
       <button className="btn-primary" disabled={join.busy}>{join.busy ? "Entrando…" : "Entrar na campanha"}</button></form>
     <Notice m={join.msg}/>
   </div>;
@@ -137,11 +149,11 @@ export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec)
     <Notice m={people.msg}/>
 
     {isMaster && <><h2>Convites</h2>
-      <p>Quem entra por convite é sempre jogador. Compartilhe o código só com quem deve participar.</p>
+      <p>Quem entra por convite é sempre jogador. Compartilhe o link só com quem deve participar.</p>
       <ul className="camp-list">{invites.map(i => <li key={i.id} className="camp">
-        <div><code className="code">{i.code}</code> <span className="badge">{i.uses}/{i.max_uses} usos</span> <span className="badge">até {dateBr(i.expires_at)}</span></div>
+        <div><code className="code">{inviteUrl(i.code)}</code> <span className="badge">{i.uses}/{i.max_uses} usos</span> <span className="badge">até {dateBr(i.expires_at)}</span></div>
         <div className="row">
-          <button className="btn-secondary" onClick={() => void navigator.clipboard?.writeText(i.code)}>Copiar</button>
+          <button className="btn-secondary" onClick={() => void navigator.clipboard?.writeText(inviteUrl(i.code))}>Copiar link</button>
           <button className="btn-secondary" disabled={inv.busy} onClick={() => act(() => api.revokeInvite(i.id), "Convite revogado.", inv)}>Revogar</button></div></li>)}</ul>
       {invites.length === 0 && <p>Nenhum convite ativo.</p>}
       <button className="btn-primary" disabled={inv.busy} onClick={() => act(() => api.createInvite(id), "Convite criado.", inv)}>{inv.busy ? "Criando…" : "Criar convite"}</button>
