@@ -22,11 +22,11 @@ function useForm() {
 
 /** Nova senha (alterar senha na conta ou concluir a recuperação). */
 export function NewPasswordForm({ primary = false }: { primary?: boolean }) {
-  const { api } = useAuth();
+  const { api, endRecovery } = useAuth();
   const [password, setPassword] = useState(""), [again, setAgain] = useState("");
   const f = useForm();
   return <>
-    <form onSubmit={f.submit(() => f.run(validatePassword(password) ?? (password !== again ? "As senhas não coincidem." : null), () => api!.changePassword(password), r => { if (r.ok) { setPassword(""); setAgain(""); } }))}>
+    <form onSubmit={f.submit(() => f.run(validatePassword(password) ?? (password !== again ? "As senhas não coincidem." : null), () => api!.changePassword(password), r => { if (r.ok) { setPassword(""); setAgain(""); if (primary) endRecovery(); /* recuperação concluída: segue para o app */ } }))}>
       <label>Nova senha<input type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)}/></label>
       <label>Repita a nova senha<input type="password" autoComplete="new-password" value={again} onChange={e => setAgain(e.target.value)}/></label>
       <button className={primary ? "btn-primary" : "btn-secondary"} disabled={f.busy}>{primary ? (f.busy ? "Salvando…" : "Salvar senha") : "Alterar senha"}</button>

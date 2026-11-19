@@ -138,7 +138,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 
 - **Mestre:** administra campanha, personagens conforme regras definidas, encontros, iniciativa, enciclopédia, publicação e permissões.
 - **Jogador:** acessa suas fichas e conteúdo compartilhado, sem enxergar notas secretas, encontros privados ou dados administrativos do mestre.
-- **Visitante:** **não existe na 2.0** — o aplicativo exige login (decisão de 19/11/2026). O cadastro segue aberto; restringi-lo a convidados fica para depois. O código ainda tem modo visitante a remover (etapa 1 do plano).
+- **Visitante:** **não existe na 2.0** — o aplicativo exige login (decisão de 19/11/2026). O cadastro segue aberto; restringi-lo a convidados fica para depois. O modo visitante foi removido do código na Etapa 1 (PR #21).
 - Autorizações reais devem existir no Supabase/RLS; esconder botão não é proteção.
 
 ## 9. O que NÃO desenvolver agora

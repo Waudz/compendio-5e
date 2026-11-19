@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createAuthApi, traduzirErro, type AuthApi } from "./auth";
 import { clearLegacyLocalData, clearUserLocalData } from "./localData";
@@ -6,9 +6,9 @@ import { supabase } from "./supabase";
 
 /** unconfigured: sem Supabase (o app não abre); loading: lendo a sessão salva; signedOut: sem sessão (tela de login); authenticated: logado. */
 export type AuthStatus = "unconfigured" | "loading" | "signedOut" | "authenticated";
-export type AuthValue = { status: AuthStatus; user: User | null; recovery: boolean; loadError: string | null; api: AuthApi | null; client: SupabaseClient | null };
+export type AuthValue = { status: AuthStatus; user: User | null; recovery: boolean; endRecovery: () => void; loadError: string | null; api: AuthApi | null; client: SupabaseClient | null };
 
-const Ctx = createContext<AuthValue>({ status: "unconfigured", user: null, recovery: false, loadError: null, api: null, client: null });
+const Ctx = createContext<AuthValue>({ status: "unconfigured", user: null, recovery: false, endRecovery() {}, loadError: null, api: null, client: null });
 export const useAuth = () => useContext(Ctx);
 
 export function AuthProvider({ client = supabase, children }: { client?: SupabaseClient | null; children: ReactNode }) {
@@ -44,6 +44,7 @@ export function AuthProvider({ client = supabase, children }: { client?: Supabas
   }, [client]);
 
   const api = useMemo(() => client ? createAuthApi(client) : null, [client]);
-  const value = useMemo(() => ({ status, user, recovery, loadError, api, client: client ?? null }), [status, user, recovery, loadError, api, client]);
+  const endRecovery = useCallback(() => setRecovery(false), []);
+  const value = useMemo(() => ({ status, user, recovery, endRecovery, loadError, api, client: client ?? null }), [status, user, recovery, endRecovery, loadError, api, client]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

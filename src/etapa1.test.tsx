@@ -78,6 +78,23 @@ describe("porta de entrada: sem sessão, nada do aplicativo", () => {
   });
 });
 
+describe("recuperação de senha", () => {
+  it("ao salvar a nova senha, a recuperação termina e o app abre (não fica preso na tela de senha)", async () => {
+    const updateUser = vi.fn(async () => ({ data: {}, error: null }));
+    const auth = fakeAuth(null);
+    (auth.client as unknown as { auth: Record<string, unknown> }).auth.updateUser = updateUser;
+    render(<AuthProvider client={auth.client}><AuthGate><div data-testid="app">APP</div></AuthGate></AuthProvider>);
+    await screen.findByRole("heading", { name: "Entrar" });
+    await auth.emit("PASSWORD_RECOVERY", { user: me });
+    await screen.findByRole("heading", { name: "Definir nova senha" });
+    fireEvent.change(screen.getByLabelText("Nova senha"), { target: { value: "novasenha1" } });
+    fireEvent.change(screen.getByLabelText("Repita a nova senha"), { target: { value: "novasenha1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar senha" }));
+    expect(await screen.findByTestId("app")).toBeTruthy();
+    expect(updateUser).toHaveBeenCalledWith({ password: "novasenha1" });
+  });
+});
+
 describe("isolamento dos dados locais entre contas", () => {
   it("logout apaga tudo que pertence à conta e preserva o que é de outras contas ou não é do app", async () => {
     const a = layoutKey(me.id), b = layoutKey(other.id), act = `${KEY_PREFIX}active-campaign:${me.id}`;
