@@ -1,7 +1,7 @@
 // Diário: lista de registros de sessão (mestre: rascunhos e publicados; jogador: só publicados) e página de cada registro.
 // A mesma página (`RegistroPagina`) edita as cenas do Planejamento. O Diário é redigido manualmente pelo mestre; nada é resumido nem publicado sozinho.
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCampaigns } from "./CampaignsContext";
 import { EditorLazy } from "./EditorLazy";
 import { HARPTOS_MESES, formatarDataHarptos, primeiroParagrafo, resumirTexto, type BlocoTexto, type DataHarptos } from "./inicio";
@@ -53,7 +53,8 @@ const dataTxt = (r: Registro) => { const d = dataSessao(r); return d ? `${d.dia}
 
 /** Página de um registro (aba `documento:<id>`): diário ou cena. Mestre edita; jogador só lê o diário publicado. */
 export function RegistroPagina({ id }: { id: string }) {
-  const api = useRegistros(), { active } = useCampaigns();
+  const api = useRegistros(), { active } = useCampaigns(), versaoGlobal = useVersaoRegistros();
+  const ultimaVersao = useRef(versaoGlobal);
   const [reg, setReg] = useState<Registro | null | undefined>(undefined), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [titulo, setTitulo] = useState(""), [dia, setDia] = useState(""), [mes, setMes] = useState(""), [ano, setAno] = useState("");
   const [blocos, setBlocos] = useState<BlocoTexto[]>([]), [editou, setEditou] = useState(false), [chaveEditor, setChaveEditor] = useState(0);
@@ -72,6 +73,18 @@ export function RegistroPagina({ id }: { id: string }) {
   const diario = reg?.kind === "diary";
   const sujo = !!reg && mestre && (editou || titulo !== reg.title || `${dia}|${mes}|${ano}` !== dataTxt(reg));
   useUnsavedGuard(`documento:${id}`, sujo);
+  useEffect(() => {
+    if (ultimaVersao.current === versaoGlobal) return;
+    ultimaVersao.current = versaoGlobal;
+    if (!api || !reg) return;
+    let vivo = true;
+    void api.get(id).then(r => {
+      if (!vivo || !r.ok || !r.data || r.data.version === reg.version) return;
+      if (sujo) { setMsg({ ok: false, t: "Este registro foi alterado em outra aba. Salve ou descarte suas alterações antes de atualizar." }); return; }
+      aplicar(r.data); setChaveEditor(k => k + 1);
+    });
+    return () => { vivo = false; };
+  }, [versaoGlobal, api, id, reg, sujo, aplicar]);
 
   if (!api) return <div className="content"><Aviso t="Conta necessária."/></div>;
   if (erro) return <div className="content"><Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/></div>;
