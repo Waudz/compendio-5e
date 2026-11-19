@@ -6,7 +6,7 @@ import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCorners,
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ClipboardList, GripVertical, MoreHorizontal, Pin, Plus, Trash2, Type } from "lucide-react";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type KeyboardEvent as RKeyEvent, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent, type ReactNode } from "react";
+import { Fragment, createContext, useCallback, useContext, useEffect, useRef, useState, type KeyboardEvent as RKeyEvent, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -264,7 +264,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     {carregado && board && <DndContext sensors={sensores} collisionDetection={closestCorners} onDragEnd={soltar}><div className="quadro" role="list" aria-label="Colunas do planejamento" onClick={e => { if (e.target === e.currentTarget) setSel([]); }}>
       {quadro.colunas.map(col => <Coluna key={col.id} id={col.id} largura={col.largura ?? LARGURA_PADRAO} onLargura={w => gravar(q => redimensionarColuna(q, col.id, w))}>
         <SortableContext items={col.secoes.map(s => `secao:${s.id}`)} strategy={verticalListSortingStrategy}>
-          {col.secoes.map(s => <SecaoOrdenavel key={s.id} secao={s} selecionada={sel.includes(s.id)} aoClicar={e => clicarSecao(s.id, e)}
+          {col.secoes.map(s => <Fragment key={s.id}><SecaoOrdenavel secao={s} selecionada={sel.includes(s.id)} aoClicar={e => clicarSecao(s.id, e)}
             cabecalho={<header className={s.grande ? "secao-topo grande" : "secao-topo"} onClick={e => { if ((e.target as HTMLElement).closest("input, button")) return; clicarSecao(s.id, e); }}>
               <SecaoAlca titulo={s.titulo}/>
               <input className="secao-titulo" aria-label={`Nome da seção ${s.titulo}`} defaultValue={s.titulo} maxLength={80} onPointerDown={e => e.stopPropagation()}
@@ -305,8 +305,8 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
               </Ordenavel>;
             })}</ListaSecao>
             <NovoCartao onCriar={t => novoCartao(s.id, t)}/>
-            <MaisAbaixo secaoId={s.id} titulo={s.titulo} onClick={() => gravar(q => novaSecaoDepois(q, s.id))}/>
-          </SecaoOrdenavel>)}
+          </SecaoOrdenavel>
+          <MaisAbaixo secaoId={s.id} titulo={s.titulo} onClick={() => gravar(q => novaSecaoDepois(q, s.id))}/></Fragment>)}
         </SortableContext>
       </Coluna>)}
       <MaisColuna onClick={() => gravar(q => novaColuna(q))}/>
@@ -354,12 +354,12 @@ function NovoCartao({ onCriar }: { onCriar: (t: string) => Promise<boolean> }) {
 /** "+" tracejado e transparente: clicar cria uma coluna nova (sem pedir nome); soltar um cartão ou seção aqui cria a coluna já com ele. */
 function MaisColuna({ onClick }: { onClick: () => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: "nova-coluna" });
-  return <button ref={setNodeRef} type="button" className={isOver ? "mais mais-coluna sobre" : "mais mais-coluna"} aria-label="Adicionar coluna" title="Adicionar coluna (ou arraste um cartão até aqui)" onClick={onClick}><Plus size={18}/></button>;
+  return <button ref={setNodeRef} type="button" className={isOver ? "mais mais-coluna sobre" : "mais mais-coluna"} aria-label="Adicionar coluna" title="Adicionar coluna (ou arraste um cartão até aqui)" onClick={onClick}><Plus size={16} aria-hidden="true"/><span>Nova coluna</span></button>;
 }
 /** "+" tracejado embaixo de cada seção: clicar cria a próxima seção; soltar um cartão aqui cria a seção já com ele. */
 function MaisAbaixo({ secaoId, titulo, onClick }: { secaoId: string; titulo: string; onClick: () => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: `abaixo:${secaoId}` });
-  return <button ref={setNodeRef} type="button" className={isOver ? "mais mais-abaixo sobre" : "mais mais-abaixo"} aria-label={`Adicionar seção abaixo de ${titulo}`} title="Adicionar seção abaixo (ou arraste um cartão até aqui)" onClick={onClick}><Plus size={16}/></button>;
+  return <button ref={setNodeRef} type="button" className={isOver ? "mais mais-abaixo sobre" : "mais mais-abaixo"} aria-label={`Adicionar seção abaixo de ${titulo}`} title="Adicionar seção abaixo (ou arraste um cartão até aqui)" onClick={onClick}><Plus size={16} aria-hidden="true"/><span>Nova seção</span></button>;
 }
 
 /** Lista de cartões de uma seção: zona de soltura (inclusive seção vazia) e contexto de ordenação. */
