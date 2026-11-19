@@ -1,6 +1,6 @@
 // Quadro de Planejamento: funções puras.
 import { describe, expect, it } from "vitest";
-import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverCartao, moverColuna, novaColuna, removerCartao, renomearColuna, todosCartoes, type Quadro } from "./quadro";
+import { adicionarCartao, deslocarCartao, excluirColuna, lerQuadro, moverCartao, moverColuna, novaColuna, removerCartao, renomearColuna, soltarCartao, todosCartoes, type Quadro } from "./quadro";
 
 const q = (): Quadro => ({ colunas: [{ id: "a", titulo: "Sessão 5", cartoes: ["x", "y"] }, { id: "b", titulo: "Floresta", cartoes: ["z"] }, { id: "c", titulo: "Vazia", cartoes: [] }] });
 
@@ -49,5 +49,21 @@ describe("cartões", () => {
     expect(deslocarCartao(q(), "x", "cima")).toEqual(q());
     expect(deslocarCartao(q(), "y", "direita").colunas.map(c => c.cartoes)).toEqual([["x"], ["z", "y"], []]);
     expect(deslocarCartao(q(), "x", "esquerda")).toEqual(q());
+  });
+});
+
+describe("soltarCartao (arrastar e soltar)", () => {
+  it("solta sobre cartão de outra coluna na posição dele; sobre coluna vazia vai ao fim", () => {
+    expect(soltarCartao(q(), "x", "z").colunas.map(c => c.cartoes)).toEqual([["y"], ["x", "z"], []]);
+    expect(soltarCartao(q(), "x", "col:c").colunas.map(c => c.cartoes)).toEqual([["y"], ["z"], ["x"]]);
+    expect(soltarCartao(q(), "x", "col:b").colunas[1].cartoes).toEqual(["z", "x"]);
+  });
+  it("reordena na mesma coluna nos dois sentidos", () => {
+    expect(soltarCartao(q(), "x", "y").colunas[0].cartoes).toEqual(["y", "x"]);
+    expect(soltarCartao(q(), "y", "x").colunas[0].cartoes).toEqual(["y", "x"]);
+  });
+  it("alvo ausente, igual ao ativo ou inexistente não muda nada nem perde cartões", () => {
+    for (const alvo of [null, undefined, "x", "nao", "col:nao"]) expect(soltarCartao(q(), "x", alvo)).toEqual(q());
+    expect(soltarCartao(q(), "nao", "z")).toEqual(q());
   });
 });

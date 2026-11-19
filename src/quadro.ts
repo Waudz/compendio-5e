@@ -45,3 +45,14 @@ export function deslocarCartao(q: Quadro, cartaoId: string, direcao: "cima" | "b
   const viz = q.colunas[ci + (direcao === "esquerda" ? -1 : 1)];
   return viz ? moverCartao(q, cartaoId, viz.id, Math.min(i, viz.cartoes.length)) : q;
 }
+
+/** Resultado de arrastar `ativo` e soltar sobre `alvo`: o alvo é um cartão (entra na posição dele) ou uma coluna (`col:<id>`, vai para o fim). */
+export function soltarCartao(q: Quadro, ativo: string, alvo: string | null | undefined): Quadro {
+  if (!alvo || alvo === ativo || !todosCartoes(q).includes(ativo)) return q;
+  if (alvo.startsWith("col:")) { const c = alvo.slice(4); return q.colunas.some(x => x.id === c) ? moverCartao(q, ativo, c) : q; }
+  const dest = q.colunas.find(c => c.cartoes.includes(alvo)); if (!dest) return q;
+  const origem = q.colunas.find(c => c.cartoes.includes(ativo))!;
+  const i = dest.cartoes.indexOf(alvo), j = origem.cartoes.indexOf(ativo);
+  // mesma coluna: arrastar para baixo cai DEPOIS do alvo (como na lista visual); para cima, antes
+  return moverCartao(q, ativo, dest.id, origem.id === dest.id && j < i ? i : i);
+}
