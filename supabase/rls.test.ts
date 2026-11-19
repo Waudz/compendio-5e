@@ -210,7 +210,7 @@ describe("migrações em banco que já tinha contas (backfill de perfis)", () =>
     const files = readdirSync(dir).filter(f => f.endsWith(".sql")).sort();
     for (const f of files) await old.exec(readFileSync(join(dir, f), "utf8"));
     expect((await old.query("select display_name from public.profiles where id = $1", [ids.ana])).rows).toEqual([{ display_name: "antiga" }]);
-    await old.exec(readFileSync(join(dir, files[files.length - 1]), "utf8"));                              // reaplicar não quebra
+    await old.exec(readFileSync(join(dir, files.find(f => f.startsWith("0002"))!), "utf8"));                              // reaplicar não quebra
     expect((await old.query("select count(*)::int as n from public.profiles")).rows).toEqual([{ n: 1 }]);
   });
 });
@@ -224,11 +224,11 @@ describe("auditoria estrutural", () => {
   it("nenhuma função do schema public é executável por anon; só as de uso do app por authenticated", async () => {
     const r = await db.query<{ proname: string; anon: boolean; auth: boolean }>("select proname, has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'");
     expect(r.rows.filter(f => f.anon)).toEqual([]);
-    expect(r.rows.filter(f => f.auth).map(f => f.proname).sort()).toEqual(["create_campaign", "create_invite", "is_master", "is_member", "join_campaign", "shares_campaign"]);
+    expect(r.rows.filter(f => f.auth).map(f => f.proname).sort()).toEqual(["can_read_note", "can_share_note", "create_campaign", "create_invite", "is_master", "is_member", "is_note_owner", "join_campaign", "note_readable", "shares_campaign"]);
   });
   it("RLS está ativa em todas as tabelas do schema public", async () => {
     const r = await db.query<{ relname: string; relrowsecurity: boolean }>("select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'");
-    expect(r.rows.length).toBe(4);
+    expect(r.rows.length).toBe(6);
     expect(r.rows.filter(t => !t.relrowsecurity)).toEqual([]);
   });
 });
