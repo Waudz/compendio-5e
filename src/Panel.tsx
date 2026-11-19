@@ -1,5 +1,6 @@
 import { BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
+import type { NavMode } from "./navigation";
 import { CampaignPanel, CampaignsPanel } from "./CampaignPanels";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
@@ -10,7 +11,7 @@ const demo: Partial<Record<string, TabSpec[]>> = {
 };
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
-export function Panel({ kind, entity: id, onOpen }: { kind: Kind; entity: string; onOpen: (s: TabSpec) => void }) {
+export function Panel({ kind, entity: id, onOpen }: { kind: Kind; entity: string; onOpen: (s: TabSpec, mode?: NavMode) => void }) {
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   if (kind === "campanha") return <div className="content"><CampaignPanel id={id} onOpen={onOpen}/></div>;
   if (kind === "secao" && id === "campanhas") return <div className="content"><CampaignsPanel onOpen={onOpen}/></div>;
