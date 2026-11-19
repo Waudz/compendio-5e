@@ -83,7 +83,7 @@ language sql stable security definer set search_path = '' as $$
     where a.user_id = auth.uid() and b.user_id = uid)
 $$;
 
-create function public.touch_updated_at() returns trigger language plpgsql as $$
+create function public.touch_updated_at() returns trigger language plpgsql set search_path = '' as $
 begin new.updated_at := now(); return new; end $$;
 create trigger campaigns_touch before update on public.campaigns
   for each row execute function public.touch_updated_at();
