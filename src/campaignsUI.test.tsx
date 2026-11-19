@@ -8,6 +8,7 @@ import { AuthProvider } from "./AuthContext";
 import { CampaignsProvider, activeKey } from "./CampaignsContext";
 import { normalizeCode, type Campaign, type CampaignApi, type Invite, type Member, type Membership, type Res } from "./campaigns";
 import { storageKey } from "./persistence";
+import { inviteUrl } from "./CampaignPanels";
 import { memoryStorage } from "./testUtils";
 
 const me = { id: "me", email: "eu@exemplo.com" } as User;
@@ -197,7 +198,6 @@ describe("convites por link", () => {
   afterEach(() => window.history.pushState({}, "", "/"));
 
   it("mestre vê o link completo e o botão copia exatamente esse link", async () => {
-    window.history.pushState({}, "", "/compendio-5e/"); // simula a base do GitHub Pages (jsdom inicia em /)
     const writeText = vi.fn(async () => {}); vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: [], invites: [{ id: "i1", code: "ABCDEFGHIJKL", expires_at: "2030-01-01T00:00:00Z", max_uses: 5, uses: 0 }] });
     mount(api); await openMobile("Campanhas");
@@ -205,7 +205,8 @@ describe("convites por link", () => {
     { const d = (await screen.findByText("Gerenciar campanha")).closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); }
     expect(await screen.findByText(/\?convite=ABCDEFGHIJKL$/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Copiar link" }));
-    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^https?:\/\/[^/]+\/compendio-5e\/\?convite=ABCDEFGHIJKL$/));
+    expect(writeText).toHaveBeenCalledWith(inviteUrl("ABCDEFGHIJKL"));
+    expect(new URL(inviteUrl("ABCDEFGHIJKL")).searchParams.get("convite")).toBe("ABCDEFGHIJKL");
   });
 
   it("abrir o link logado: entra automaticamente como jogador, limpa a URL e abre a campanha", async () => {
