@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
+import { storageStub } from "./stub-storage";
 
 const dir = join(__dirname, "migrations");
 const U = { ana: "00000000-0000-0000-0000-00000000000a", bia: "00000000-0000-0000-0000-00000000000b", caio: "00000000-0000-0000-0000-00000000000c", dora: "00000000-0000-0000-0000-00000000000d" };
@@ -16,7 +17,7 @@ grant usage on schema auth to anon, authenticated; grant execute on function aut
 grant usage on schema public to anon, authenticated;
 alter default privileges in schema public grant all on tables to anon, authenticated;
 alter default privileges in schema public grant all on functions to anon, authenticated;
-`;
+` + storageStub;
 const migrations = () => readdirSync(dir).filter(f => f.endsWith(".sql")).sort().map(f => readFileSync(join(dir, f), "utf8"));
 
 let db: PGlite;
@@ -228,6 +229,7 @@ describe("migração reversível e auditoria", () => {
     const t = new PGlite(); await t.exec(stub);
     const ms = migrations(); for (const m of ms) await t.exec(m);
     const down = readFileSync(join(__dirname, "rollback", "0004_notas_down.sql"), "utf8");
+    await t.exec(readFileSync(join(__dirname, "rollback", "0006_registros_capa_personagens_down.sql"), "utf8"));   // a 0006 depende da 0005: reverte-se primeiro
     await t.exec(readFileSync(join(__dirname, "rollback", "0005_notas_conteudo_down.sql"), "utf8"));   // a 0005 depende de notes: reverte-se primeiro
     await t.exec(down);
     expect((await t.query("select count(*)::int as n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relname in ('notes', 'note_shares')")).rows).toEqual([{ n: 0 }]);
