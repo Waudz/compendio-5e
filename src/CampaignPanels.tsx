@@ -36,7 +36,7 @@ function useAction() {
 function NeedLogin({ title, onOpen }: { title: string; onOpen: (s: TabSpec) => void }) {
   const { status } = useAuth();
   return <div className="auth"><h1>{title}</h1>
-    <div className="notice">{status === "unconfigured" ? "O login ainda não está configurado neste ambiente. Campanhas exigem conta." : "Entre na sua conta para criar campanhas ou entrar em uma com um convite."}</div>
+    <div className="notice">{status === "unconfigured" ? "O login ainda não está configurado neste ambiente. Campanhas exigem conta." : incomingInvite() ? "Você recebeu um convite de campanha. Entre ou crie uma conta para aceitá-lo; o convite será mantido." : "Entre na sua conta para criar campanhas ou entrar em uma com um convite."}</div>
     {status !== "unconfigured" && <div className="links"><button className="btn-primary" onClick={() => onOpen({ kind: "conta", ref: "perfil" })}>Entrar ou criar conta</button></div>}
   </div>;
 }
@@ -82,7 +82,8 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
       <button className="btn-primary" disabled={create.busy}>{create.busy ? "Criando…" : "Criar campanha"}</button></form>
     <Notice m={create.msg}/>
 
-    <h2>Entrar com convite</h2>\n    {incomingInvite() && <p>Recebemos um link de convite. Confirme a entrada na campanha abaixo.</p>}
+    <h2>Entrar com convite</h2>
+    {incomingInvite() && <p>Recebemos um link de convite. Confirme a entrada na campanha abaixo.</p>}
     <form noValidate onSubmit={onJoin}>
       <label>Código ou link do convite<input value={code} autoComplete="off" autoCapitalize="characters" onChange={e => setCode(e.target.value)}/></label>
       <button className="btn-primary" disabled={join.busy}>{join.busy ? "Entrando…" : "Entrar na campanha"}</button></form>

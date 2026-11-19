@@ -8,7 +8,7 @@ import { ContextMenu, type MenuItem, type MenuState } from "./ContextMenu";
 import { useChromeHidden } from "./chromeHide";
 import { Mobile } from "./Mobile";
 import { Panel } from "./Panel";
-import { loadLayout, saveLayout, type Scope } from "./persistence";
+import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
 import { MAX_GROUPS, closeGroup, closeOthers, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, openTab, sections, type Kind, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
@@ -27,7 +27,7 @@ function useMobile() {
 export default function App() {
   // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
   const { status, user } = useAuth();
-  const { active, activeId: campaignId } = useCampaigns();
+  const { active, activeId: campaignId, memberships } = useCampaigns();
   const scope: Scope = { user: status === "authenticated" && user ? user.id : "visitante", campaign: campaignId ?? "nenhuma", device: "navegador" };
   const scopeKey = `${scope.user}|${scope.campaign}|${scope.device}`;
   const scopeRef = useRef(scope); scopeRef.current = scope;
@@ -42,7 +42,11 @@ export default function App() {
   const good = useRef(model.toJson());
   const handled = useRef<Event | null>(null);
   const refresh = useCallback(() => redraw(n => n + 1), []);
-  if (modelKey !== scopeKey) { const m = createModel(loadLayout(scope)); good.current = m.toJson(); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
+  if (modelKey !== scopeKey) {
+    const fresh = !hasSavedLayout(scope), m = createModel(loadLayout(scope));
+    // Primeira vez nesta campanha: o espaço de trabalho já abre na aba dela (ex.: logo após entrar por convite).
+    if (fresh && scope.campaign !== "nenhuma") openTab(m, { kind: "campanha", ref: scope.campaign, title: memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name });
+    good.current = m.toJson(); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
 
   // Toda mudança passa por aqui: valida a restrição de colunas (reverte se violada) e persiste.
   const onModelChange = useCallback((m: Model) => {

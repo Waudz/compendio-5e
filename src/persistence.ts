@@ -38,6 +38,11 @@ export function loadLayout(scope: Scope = defaultScope, store: Store | null = sa
   return defaultLayout();
 }
 
+/** Já existe layout salvo (v2) para este escopo? */
+export function hasSavedLayout(scope: Scope = defaultScope, store: Store | null = safeStore()): boolean {
+  try { return !!store?.getItem(storageKey(scope)); } catch { return false; }
+}
+
 export function saveLayout(layout: IJsonModel, scope: Scope = defaultScope, store: Store | null = safeStore()): void {
   try { store?.setItem(storageKey(scope), JSON.stringify({ version: VERSION, layout: layout.layout })); } catch { /* cota/privacidade */ }
 }

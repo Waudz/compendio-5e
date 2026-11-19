@@ -34,7 +34,7 @@ export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   return { kind, ref };
 };
 export const defaultTitle = (s: TabSpec) =>
-  s.title?.trim().slice(0, 40) || (s.kind === "conta" ? "Conta" : s.kind === "secao" ? sections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
+  s.title?.trim().slice(0, 40) || (s.kind === "conta" ? "Conta" : s.kind === "campanha" ? "Campanha" : s.kind === "secao" ? sections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
 
 const global: IJsonModel["global"] = {
   tabEnableClose: true, tabEnableRename: false, tabEnablePopout: false, tabEnablePopoutIcon: false, tabEnableFloat: false,

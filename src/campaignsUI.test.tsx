@@ -91,11 +91,11 @@ describe("campanhas (interface)", () => {
   it("entrar com convite: código inválido (local e do servidor) e válido", async () => {
     const api = fakeApi({ memberships: [] }); mount(api); await openMobile("Campanhas");
     await screen.findByText(/ainda não participa/);
-    fill("Código do convite", "123"); fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
+    fill("Código ou link do convite", "123"); fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/12 letras/); expect(api.join).not.toHaveBeenCalled();
-    fill("Código do convite", "ZZZZZZZZZZZZ"); fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
+    fill("Código ou link do convite", "ZZZZZZZZZZZZ"); fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/Convite inválido/));
-    fill("Código do convite", "abcd-efgh-ijkl"); fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
+    fill("Código ou link do convite", "abcd-efgh-ijkl"); fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
     expect(await screen.findByText("Mesa do Caio")).toBeTruthy();
   });
 
@@ -138,14 +138,14 @@ describe("campanha (detalhes, mestre x jogador)", () => {
   it("mestre: edita informações, gerencia papéis, remove e administra convites", async () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: structuredClone(members), invites: structuredClone(invites) });
     mount(api); await openCampaign("Festival da Lua");
-    expect(await screen.findByText("Bia")).toBeTruthy(); expect(screen.getByText("ABCDEFGHIJKL")).toBeTruthy();
+    expect(await screen.findByText("Bia")).toBeTruthy(); expect(screen.getByText(/convite=ABCDEFGHIJKL/)).toBeTruthy();
     fill("Nome", "Festival Renomeado"); fireEvent.click(screen.getByRole("button", { name: "Salvar informações" }));
     await waitFor(() => expect(api.update).toHaveBeenCalledWith("c1", "Festival Renomeado", "desc Festival da Lua"));
     expect(await screen.findByRole("heading", { name: "Festival Renomeado" })).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: "Tornar mestre" }));
     await waitFor(() => expect(api.setRole).toHaveBeenCalledWith("c1", "u2", "mestre"));
     fireEvent.click(await screen.findByRole("button", { name: "Criar convite" }));
-    expect(await screen.findByText("NEWCODE12345")).toBeTruthy();
+    expect(await screen.findByText(/convite=NEWCODE12345/)).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "Revogar" })[0]);
     await waitFor(() => expect(api.revokeInvite).toHaveBeenCalledWith("i1"));
   });
@@ -187,5 +187,79 @@ describe("campanha (detalhes, mestre x jogador)", () => {
     await openMobile("Campanhas");
     expect(nav).toBeDefined();
     expect(screen.queryByText("Festival da Lua")).toBeNull();
+  });
+});
+
+describe("convites por link", () => {
+  const withInvite = (code = "ABCDEFGHIJKL") => window.history.pushState({}, "", `/?convite=${code}`);
+  afterEach(() => window.history.pushState({}, "", "/"));
+
+  it("mestre vê o link completo e o botão copia exatamente esse link", async () => {
+    const writeText = vi.fn(async () => {}); vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: [], invites: [{ id: "i1", code: "ABCDEFGHIJKL", expires_at: "2030-01-01T00:00:00Z", max_uses: 5, uses: 0 }] });
+    mount(api); await openMobile("Campanhas");
+    fireEvent.click(within((await screen.findByText("Festival da Lua")).closest("li")!).getByRole("button", { name: "Abrir" }));
+    expect(await screen.findByText(/\?convite=ABCDEFGHIJKL$/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Copiar link" }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^https?:\/\/[^/]+\/compendio-5e\/\?convite=ABCDEFGHIJKL$/));
+  });
+
+  it("abrir o link logado: a tela de Campanhas abre sozinha com o código preenchido; confirmar entra como jogador, limpa a URL e abre a campanha", async () => {
+    withInvite();
+    const api = fakeApi({ memberships: [], members: [] }); mount(api);
+    const input = await screen.findByLabelText("Código ou link do convite") as HTMLInputElement;
+    expect(input.value).toBe("ABCDEFGHIJKL");
+    expect(screen.getByText(/Recebemos um link de convite/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
+    await waitFor(() => expect(api.join).toHaveBeenCalledWith("ABCDEFGHIJKL"));
+    expect(await screen.findByRole("heading", { name: "Mesa do Caio" })).toBeTruthy();   // entrou, ficou ativa e a aba dela abriu
+    expect(window.location.search).toBe("");
+    expect(document.querySelector(".campaign strong")?.textContent).toBe("Mesa do Caio");
+  });
+
+  it("visitante com link: pede login mantendo o convite; depois de entrar, o código continua lá", async () => {
+    withInvite();
+    const f = { user: null as User | null };
+    const listeners: ((e: string, s: { user: User } | null) => void)[] = [];
+    const client = { auth: { getSession: async () => ({ data: { session: f.user ? { user: f.user } : null }, error: null }),
+      onAuthStateChange: (l: (e: string, s: { user: User } | null) => void) => { listeners.push(l); return { data: { subscription: { unsubscribe() {} } } }; } } } as unknown as SupabaseClient;
+    const api = fakeApi({ memberships: [], members: [] });
+    render(<AuthProvider client={client}><CampaignsProvider apiFactory={() => api as unknown as CampaignApi}><App/></CampaignsProvider></AuthProvider>);
+    expect(await screen.findByText(/Você recebeu um convite de campanha/)).toBeTruthy();
+    expect(window.location.search).toBe("?convite=ABCDEFGHIJKL");   // a URL não é limpa antes de entrar
+    listeners.forEach(l => l("SIGNED_IN", { user: me }));
+    const input = await screen.findByLabelText("Código ou link do convite") as HTMLInputElement;
+    expect(input.value).toBe("ABCDEFGHIJKL");
+  });
+
+  it("aceita o link completo colado no campo", async () => {
+    const api = fakeApi({ memberships: [], members: [] }); mount(api); await openMobile("Campanhas");
+    await screen.findByText(/ainda não participa/);
+    fill("Código ou link do convite", "https://waudz.github.io/compendio-5e/?convite=abcdefghijkl");
+    fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
+    await waitFor(() => expect(api.join).toHaveBeenCalledWith("abcdefghijkl"));
+  });
+
+  it("convite expirado, esgotado ou revogado: erro claro, nada é criado, a URL permanece para nova tentativa", async () => {
+    withInvite("ZZZZZZZZZZZZ");
+    const api = fakeApi({ memberships: [], members: [] }); mount(api);
+    await screen.findByLabelText("Código ou link do convite");
+    fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Convite inválido, expirado ou esgotado/);
+    expect(screen.queryByText("Mesa do Caio")).toBeNull();
+  });
+
+  it("e-mails de confirmação e de recuperação preservam o convite no redirecionamento", async () => {
+    withInvite();
+    const { createAuthApi } = await import("./auth");
+    const signUp = vi.fn(async () => ({ data: { user: { identities: [{}] }, session: null }, error: null }));
+    const resetPasswordForEmail = vi.fn(async () => ({ data: {}, error: null }));
+    const api = createAuthApi({ auth: { signUp, resetPasswordForEmail } } as unknown as SupabaseClient);
+    await api.signUp("a@b.co", "12345678"); await api.requestReset("a@b.co");
+    expect((signUp.mock.calls[0] as unknown as [{ options: { emailRedirectTo: string } }])[0].options.emailRedirectTo).toMatch(/\?convite=ABCDEFGHIJKL$/);
+    expect((resetPasswordForEmail.mock.calls[0] as unknown as [string, { redirectTo: string }])[1].redirectTo).toMatch(/\?convite=ABCDEFGHIJKL$/);
+    withInvite("x; drop table");   // valor inválido nunca é propagado
+    await api.signUp("a@b.co", "12345678");
+    expect((signUp.mock.calls[1] as unknown as [{ options: { emailRedirectTo: string } }])[0].options.emailRedirectTo).not.toMatch(/convite/);
   });
 });
