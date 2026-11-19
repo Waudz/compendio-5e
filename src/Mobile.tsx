@@ -59,7 +59,7 @@ export function Mobile({ model, onOpen, onOpenContent, onChange, titleOf }: Prop
   const isMaster = active?.role === "mestre";
   const navItems = [
     { label: "Início", icon: House, spec: home, selected: selectedId === (active ? `campanha:${active.campaign.id}` : "secao:campanhas") },
-    { label: "Anotações", icon: NotebookPen, spec: { kind: "secao", ref: "planejamento" } as TabSpec, selected: isPage("planejamento"), disabled: active?.role !== "mestre" },
+    { label: "Anotações", icon: NotebookPen, spec: { kind: "secao", ref: "planejamento" } as TabSpec, selected: isPage("planejamento") },
     isMaster
       ? { label: "Iniciativa", icon: Swords, spec: { kind: "secao", ref: "iniciativa" } as TabSpec, selected: isPage("iniciativa") }
       : { label: "Ficha", icon: UserRound, spec: { kind: "secao", ref: "personagens" } as TabSpec, selected: isPage("personagens") || selectedId.startsWith("ficha:") },
