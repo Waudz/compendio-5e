@@ -179,9 +179,8 @@ export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec)
       <div><strong>{m.display_name}</strong>{m.user_id === user?.id && " (você)"} <span className="badge">{m.role === "mestre" ? "Mestre" : "Jogador"}</span></div>
       <div className="row">
         {isMaster && m.user_id !== user?.id && <>
-          <button className="btn-secondary" disabled={people.busy} onClick={() => act(() => api.setRole(id, m.user_id, m.role === "mestre" ? "jogador" : "mestre"), "Papel atualizado.")}>{m.role === "mestre" ? "Tornar jogador" : "Tornar mestre"}</button>
           <button className="btn-secondary" disabled={people.busy} onClick={() => leave(m.user_id)}>Remover</button></>}
-        {m.user_id === user?.id && <button className="btn-secondary" disabled={people.busy} onClick={() => leave(m.user_id)}>Sair da campanha</button>}
+        {m.user_id === user?.id && !isMaster && <button className="btn-secondary" disabled={people.busy} onClick={() => leave(m.user_id)}>Sair da campanha</button>}
       </div></li>)}</ul>
     <Notice m={people.msg}/>
 

@@ -115,8 +115,9 @@ describe("convites", () => {
 
 describe("papéis e participantes (escalonamento de privilégios)", () => {
   it("jogador não altera papéis, nem o próprio", async () => {
-    expect((await rpc(ids.bia, "set_member_role", camp, ids.bia, "mestre")).error).toMatch(/sem_permissao/);
+    expect((await rpc(ids.bia, "set_member_role", camp, ids.bia, "mestre")).error).toMatch(/does not exist/);   // a função de promoção foi removida
     expect((await as(ids.bia, "update public.campaign_members set role = 'mestre' where user_id = $1", [ids.bia])).error).toMatch(/permission denied/);
+    expect((await as(ids.bia, "insert into public.campaign_members (campaign_id, user_id, role) values ($1, $2, 'mestre')", [camp, ids.dora])).error).toMatch(/permission denied/);
   });
   it("jogador não edita nem apaga a campanha", async () => {
     expect((await as(ids.bia, "update public.campaigns set name = 'X' where id = $1 returning id", [camp])).rows).toEqual([]);
@@ -132,16 +133,24 @@ describe("papéis e participantes (escalonamento de privilégios)", () => {
     expect(r.rows).toEqual([{ name: "Festival da Lua II" }]);
     expect((await db.query("select updated_at > created_at as ok from public.campaigns where id = $1", [camp])).rows).toEqual([{ ok: true }]);
   });
-  it("mestre promove e rebaixa; papel inválido e usuário estranho são recusados", async () => {
-    expect((await rpc(ids.ana, "set_member_role", camp, ids.bia, "dono")).error).toMatch(/papel_invalido/);
-    expect((await rpc(ids.ana, "set_member_role", camp, ids.dora, "jogador")).error).toMatch(/participante_inexistente/);
-    await rpc(ids.ana, "set_member_role", camp, ids.bia, "mestre");
-    expect((await as(ids.bia, "select role from public.campaign_members where user_id = $1", [ids.bia])).rows).toEqual([{ role: "mestre" }]);
-    expect((await rpc(ids.ana, "set_member_role", camp, ids.bia, "jogador")).error).toBeUndefined();
+  it("ninguém é promovido: não existe função de papéis nem para o mestre", async () => {
+    expect((await rpc(ids.ana, "set_member_role", camp, ids.bia, "mestre")).error).toMatch(/does not exist/);
+    expect((await db.query("select count(*)::int as n from pg_proc where proname = 'set_member_role'")).rows).toEqual([{ n: 0 }]);
   });
-  it("a campanha nunca fica sem mestre", async () => {
-    expect((await rpc(ids.ana, "set_member_role", camp, ids.ana, "jogador")).error).toMatch(/ultimo_mestre/);
-    expect((await as(ids.ana, "delete from public.campaign_members where user_id = $1", [ids.ana])).error).toMatch(/ultimo_mestre/);
+  it("o banco rejeita um segundo mestre, mesmo com privilégio total (sem passar pela RLS)", async () => {
+    await expect(db.query("update public.campaign_members set role = 'mestre' where campaign_id = $1 and user_id = $2", [camp, ids.bia])).rejects.toThrow(/mestre_unico|campaign_members_single_master/);
+    await expect(db.query("insert into public.campaign_members (campaign_id, user_id, role) values ($1, $2, 'mestre')", [camp, ids.dora])).rejects.toThrow(/mestre_unico|campaign_members_single_master/);
+    await expect(db.query("update public.campaign_members set role = 'jogador' where campaign_id = $1 and user_id = $2", [camp, ids.ana])).rejects.toThrow(/ultimo_mestre|mestre_unico/);
+    expect((await db.query("select count(*)::int as n from public.campaign_members where campaign_id = $1 and role = 'mestre'", [camp])).rows).toEqual([{ n: 1 }]);
+  });
+  it("o índice único sozinho já impede dois mestres (defesa em profundidade)", async () => {
+    await db.exec("alter table public.campaign_members disable trigger campaign_members_single_master");
+    try { await expect(db.query("update public.campaign_members set role = 'mestre' where campaign_id = $1 and user_id = $2", [camp, ids.bia])).rejects.toThrow(/campaign_members_single_master|duplicate key/); }
+    finally { await db.exec("alter table public.campaign_members enable trigger campaign_members_single_master"); }
+  });
+  it("o mestre (criador) não sai nem é removido; a campanha continua com ele", async () => {
+    expect((await as(ids.ana, "delete from public.campaign_members where user_id = $1 and campaign_id = $2 returning user_id", [ids.ana, camp])).rows).toEqual([]);
+    expect((await as(ids.ana, "select role from public.campaign_members where user_id = $1 and campaign_id = $2", [ids.ana, camp])).rows).toEqual([{ role: "mestre" }]);
   });
   it("mestre remove participante", async () => {
     expect((await as(ids.ana, "delete from public.campaign_members where user_id = $1 returning user_id", [ids.bia])).rows).toHaveLength(1);
@@ -149,11 +158,30 @@ describe("papéis e participantes (escalonamento de privilégios)", () => {
   });
 });
 
+describe("várias campanhas por usuário", () => {
+  it("o mesmo usuário é mestre em umas e jogador em outras, e o mestre é sempre o criador", async () => {
+    const mine1 = (await rpc(ids.dora, "create_campaign", "Dora 1", "")).rows[0].r as string;
+    const mine2 = (await rpc(ids.dora, "create_campaign", "Dora 2", "")).rows[0].r as string;
+    const code2 = (await rpc(ids.dora, "create_invite", mine1, 5, 7)).rows[0].r as string;
+    await rpc(ids.caio, "join_campaign", code2);
+    const guest = (await rpc(ids.caio, "create_campaign", "Caio 1", "")).rows[0].r as string;
+    const roles = (await as(ids.caio, "select c.name, m.role from public.campaign_members m join public.campaigns c on c.id = m.campaign_id where m.user_id = $1 order by c.name", [ids.caio])).rows;
+    expect(roles).toEqual(expect.arrayContaining([{ name: "Dora 1", role: "jogador" }, { name: "Caio 1", role: "mestre" }]));
+    for (const id of [mine1, mine2, guest]) {
+      const r = (await db.query("select count(*)::int as n, bool_and(m.user_id = c.created_by) as creator from public.campaign_members m join public.campaigns c on c.id = m.campaign_id where m.campaign_id = $1 and m.role = 'mestre' group by m.campaign_id", [id])).rows[0];
+      expect(r).toEqual({ n: 1, creator: true });
+    }
+    expect((await as(ids.caio, "delete from public.campaign_members where user_id = $1 and campaign_id = $2 returning user_id", [ids.caio, mine1])).rows).toHaveLength(1);   // jogador sai
+    expect((await as(ids.dora, "delete from public.campaign_members where user_id = $1 and campaign_id = $2 returning user_id", [ids.dora, mine1])).rows).toEqual([]);          // mestre não sai
+    expect((await as(ids.dora, "delete from public.campaigns where id = $1 returning id", [mine2])).rows).toHaveLength(1);                                                      // mas exclui
+  });
+});
+
 describe("isolamento entre campanhas e exclusão", () => {
   it("mestre de uma campanha não administra outra", async () => {
     const other = (await rpc(ids.dora, "create_campaign", "Outra", "")).rows[0].r as string;
     expect((await rpc(ids.ana, "create_invite", other, 5, 7)).error).toMatch(/sem_permissao/);
-    expect((await rpc(ids.ana, "set_member_role", other, ids.ana, "mestre")).error).toMatch(/sem_permissao/);
+    expect((await as(ids.ana, "insert into public.campaign_members (campaign_id, user_id, role) values ($1, $2, 'jogador')", [other, ids.ana])).error).toMatch(/permission denied/);
     expect((await as(ids.ana, "select * from public.campaigns where id = $1", [other])).rows).toEqual([]);
     expect((await as(ids.ana, "update public.campaigns set name='x' where id = $1 returning id", [other])).rows).toEqual([]);
   });
@@ -168,9 +196,9 @@ describe("isolamento entre campanhas e exclusão", () => {
     expect((await as(ids.dora, "update public.profiles set id = $1 where id = $2", [ids.caio, ids.dora])).error).toMatch(/permission denied/);
   });
   it("limite de campanhas por usuário", async () => {
-    for (let i = 0; i < 19; i++) await rpc(ids.caio, "create_campaign", `C${i}`, "");
-    expect((await rpc(ids.caio, "create_campaign", "C19", "")).rows[0].r).toBeTruthy();
-    expect((await rpc(ids.caio, "create_campaign", "C20", "")).error).toMatch(/limite_campanhas/);
+    for (let i = 0; i < 19; i++) await rpc(ids.bia, "create_campaign", `C${i}`, "");
+    expect((await rpc(ids.bia, "create_campaign", "C19", "")).rows[0].r).toBeTruthy();
+    expect((await rpc(ids.bia, "create_campaign", "C20", "")).error).toMatch(/limite_campanhas/);
   });
 });
 
@@ -196,11 +224,29 @@ describe("auditoria estrutural", () => {
   it("nenhuma função do schema public é executável por anon; só as de uso do app por authenticated", async () => {
     const r = await db.query<{ proname: string; anon: boolean; auth: boolean }>("select proname, has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'");
     expect(r.rows.filter(f => f.anon)).toEqual([]);
-    expect(r.rows.filter(f => f.auth).map(f => f.proname).sort()).toEqual(["create_campaign", "create_invite", "is_master", "is_member", "join_campaign", "set_member_role", "shares_campaign"]);
+    expect(r.rows.filter(f => f.auth).map(f => f.proname).sort()).toEqual(["create_campaign", "create_invite", "is_master", "is_member", "join_campaign", "shares_campaign"]);
   });
   it("RLS está ativa em todas as tabelas do schema public", async () => {
     const r = await db.query<{ relname: string; relrowsecurity: boolean }>("select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'");
     expect(r.rows.length).toBe(4);
     expect(r.rows.filter(t => !t.relrowsecurity)).toEqual([]);
+  });
+});
+
+describe("migração 0003 sobre dados antigos", () => {
+  it("normaliza vários mestres e criador ausente, e depois aplica a regra", async () => {
+    const old = new PGlite();
+    await old.exec(stub);
+    const files = readdirSync(dir).filter(f => f.endsWith(".sql")).sort();
+    for (const f of files.filter(f => f < "0003")) await old.exec(readFileSync(join(dir, f), "utf8"));
+    for (const [n, id] of Object.entries(ids)) await old.query("insert into auth.users (id, email) values ($1, $2) on conflict do nothing", [id, `${n}@exemplo.com`]);
+    const cid = "00000000-0000-0000-0000-0000000000c1";
+    await old.query("insert into public.campaigns (id, name, created_by) values ($1, 'Antiga', $2)", [cid, ids.ana]);
+    await old.query("insert into public.campaign_members (campaign_id, user_id, role) values ($1, $2, 'mestre'), ($1, $3, 'mestre')", [cid, ids.bia, ids.caio]);   // criador fora, dois outros mestres
+    await old.exec(readFileSync(join(dir, files.find(f => f.startsWith("0003"))!), "utf8"));
+    expect((await old.query("select user_id, role from public.campaign_members where campaign_id = $1 order by role, user_id", [cid])).rows)
+      .toEqual([{ user_id: ids.bia, role: "jogador" }, { user_id: ids.caio, role: "jogador" }, { user_id: ids.ana, role: "mestre" }]);
+    await old.exec(readFileSync(join(dir, files.find(f => f.startsWith("0003"))!), "utf8"));   // idempotente
+    await expect(old.query("update public.campaign_members set role = 'mestre' where user_id = $1", [ids.bia])).rejects.toThrow();
   });
 });
