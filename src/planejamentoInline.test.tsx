@@ -276,3 +276,26 @@ describe("sincronização entre grupos de abas (sem F5)", () => {
     await waitFor(() => expect((registros.dados.find(r => r.kind === "board")!.meta as { colunas: { cartoes: string[] }[] }).colunas[0].cartoes).toEqual(["s1"]));
   });
 });
+
+describe("criar sem nome e prévia completa", () => {
+  it("coluna e cartão podem ser criados sem digitar nome (nomes automáticos, editáveis)", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    fireEvent.click(await screen.findByRole("button", { name: "Adicionar coluna" }));
+    await screen.findByRole("listitem", { name: "Coluna Coluna 3" });
+    fireEvent.click(within(screen.getByRole("listitem", { name: "Coluna Coluna 3" })).getByRole("button", { name: "Adicionar cartão" }));
+    await waitFor(() => expect(registros.dados.some(r => r.kind === "scene" && r.title === "Novo cartão")).toBe(true));
+    expect(await screen.findByLabelText("Conteúdo de Novo cartão")).toBeTruthy();          // já abre para editar
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar coluna" }));
+    await screen.findByRole("listitem", { name: "Coluna Coluna 4" });
+  });
+  it("a prévia do cartão recolhido mostra todas as linhas com texto (títulos e parágrafos), não só o primeiro parágrafo", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, [
+      { ...base, id: "b1", kind: "board", title: "Q", content: [], meta: { colunas: [{ id: "k", titulo: "A", cartoes: ["s1"] }] } },
+      { ...base, id: "s1", kind: "scene", title: "Daggerford", content: [{ type: "heading", content: [{ type: "text", text: "Titulo", styles: {} }] }, par("Ola, tudo bem?"), par(""), par("oi")] },
+    ]);
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    const previa = (await screen.findByRole("button", { name: /^Daggerford/ })).querySelector(".cartao-previa")!;
+    expect(previa.textContent).toBe("Titulo\nOla, tudo bem?\noi");
+  });
+});

@@ -1,6 +1,6 @@
 // Funções puras do Início: data de Harptos, primeiro parágrafo, resumo e visibilidade por papel.
 import { describe, expect, it } from "vitest";
-import { formatarDataHarptos, maisRecenteVisivel, primeiroParagrafo, resumirTexto, type EntradaDiario } from "./inicio";
+import { formatarDataHarptos, maisRecenteVisivel, previaTexto, primeiroParagrafo, resumirTexto, type EntradaDiario } from "./inicio";
 
 const txt = (text: string) => ({ type: "text", text, styles: {} });
 const par = (t: string) => ({ type: "paragraph", content: [txt(t)] });
@@ -44,4 +44,16 @@ describe("maisRecenteVisivel", () => {
   it("mestre vê a mais recente, mesmo não publicada", () => expect(maisRecenteVisivel(lista, "mestre")?.id).toBe("b"));
   it("jogador só vê publicadas", () => expect(maisRecenteVisivel(lista, "jogador")?.id).toBe("c"));
   it("sem entradas acessíveis => null", () => { expect(maisRecenteVisivel([e("x", false, "2026-01-01")], "jogador")).toBeNull(); expect(maisRecenteVisivel([], "mestre")).toBeNull(); });
+});
+
+describe("previaTexto (cartões e listas)", () => {
+  const h = (t: string) => ({ type: "heading", content: [txt(t)] });
+  it("inclui títulos e parágrafos (os dois primeiros blocos com texto), ignorando imagens e vazios", () => {
+    expect(previaTexto([{ type: "image" }, par(" "), h("Titulo"), par("Ola, tudo bem?"), par("terceiro")])).toBe("Titulo · Ola, tudo bem?");
+  });
+  it("só título, só lista, ou nada", () => {
+    expect(previaTexto([h("Só título")])).toBe("Só título");
+    expect(previaTexto([{ type: "bulletListItem", content: [txt("item")] }])).toBe("item");
+    expect(previaTexto([{ type: "image" }, par("")])).toBeNull(); expect(previaTexto(null)).toBeNull();
+  });
 });

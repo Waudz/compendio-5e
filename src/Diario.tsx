@@ -6,7 +6,7 @@ import { useAbrirEmAba } from "./abrirEmAba";
 import { ConflitoAviso } from "./ConflitoAviso";
 import { useCampaigns } from "./CampaignsContext";
 import { EditorLazy } from "./EditorLazy";
-import { HARPTOS_MESES, formatarDataHarptos, primeiroParagrafo, resumirTexto, type BlocoTexto, type DataHarptos } from "./inicio";
+import { HARPTOS_MESES, formatarDataHarptos, previaTexto, resumirTexto, type BlocoTexto, type DataHarptos } from "./inicio";
 import { dataSessao, ordenarDiario, publicado, validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
 import { avisarRegistros, novaOrigem, publicarExclusao, publicarRegistro, registrarTitulo, useSincronia, useVersaoRegistros } from "./registrosStore";
@@ -41,7 +41,7 @@ export function DiarioPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => 
     {!lista && !erro && <p role="status" className="muted">Carregando o Diário…</p>}
     {lista && lista.length === 0 && <p className="muted" data-testid="diario-lista-vazia">{mestre ? "Nenhum registro ainda. Crie o primeiro registro de sessão." : "O mestre ainda não publicou registros."}</p>}
     <ul className="registro-lista">{lista?.map(r => {
-      const d = formatarDataHarptos(dataSessao(r)), t = primeiroParagrafo(r.content);
+      const d = formatarDataHarptos(dataSessao(r)), t = previaTexto(r.content, 500, "\n");
       return <li key={r.id}><button className="registro-item" onClick={() => onOpenContent({ kind: "documento", ref: r.id, title: r.title })} onContextMenu={e => aoClicarDireito(e, { kind: "documento", ref: r.id, title: r.title })}>
         <strong>{r.title}</strong>
         <span className="muted">{d ?? "Sem data de sessão"}{mestre && <span className={publicado(r) ? "badge on" : "badge"}>{publicado(r) ? "Publicado" : "Rascunho"}</span>}</span>
