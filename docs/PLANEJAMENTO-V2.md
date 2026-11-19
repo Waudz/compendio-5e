@@ -1,7 +1,7 @@
 # Planejamento v2 — campanhas isoladas, personagens pessoais, documentos, encontros, loot e moedas
 
 Status: **decisões D1–D6 aprovadas (19/11/2026). Tudo abaixo é PLANEJAMENTO; só o que a seção 1 marca como "implementado" existe.** Substitui, sem apagar, as decisões anteriores que conflitem; o que não é citado aqui continua valendo (`DECISOES-E-ARQUITETURA.md`, `NOTAS-PERMISSOES.md`, `FUNDACAO-REGISTROS.md`).
-Base: `main` em `2b2d362` (CI e Pages verdes). Migrações `0001`–`0004` **já aplicadas** ao projeto `gwcttjlxzelzjhbuitmi` (não reaplicar). O projeto legado `rastreador-dnd` nunca é tocado. **Nenhuma migração nova foi escrita**; a `0005` só será escrita depois de nova autorização.
+Base: `main` em `2b2d362` (CI e Pages verdes). Migrações `0001`–`0004` **já aplicadas** ao projeto `gwcttjlxzelzjhbuitmi` (não reaplicar). O projeto legado `rastreador-dnd` nunca é tocado. A **`0005` (conteúdo estruturado das notas) foi PROPOSTA e NÃO está aplicada**; a numeração completa (`0005`–`0010+`) está em `supabase/migrations/LEIA-ME.md`. **A antiga reserva de `0005` para audiências foi substituída: as audiências de notas passam a ser a `0009`.**
 
 ## 0. Decisões (todas aprovadas)
 1. **Login obrigatório.** Sem visitante. Cadastro continua aberto (restrição a convidados fica para depois). Biblioteca universal: qualquer conta autenticada, somente leitura.
@@ -104,7 +104,7 @@ Compartilhar = o autor definir uma **audiência** por campanha. Modelo recomenda
 ### 4.4 Compatibilidade com o banco aplicado (`0004`) — análise
 A `0004` usa **um único `campaign_id` imutável** que acumula três papéis: (a) campanha de origem, (b) público do compartilhamento e (c) pré-condição de escrita. D3 exige separá-los. Incompatibilidades:
 
-| Ponto na `0004` | Conflito com D3 | Mudança necessária (planejada, `0005`) |
+| Ponto na `0004` | Conflito com D3 | Mudança necessária (planejada, `0009`) |
 |---|---|---|
 | `check (campaign_id is not null or visibility = 'private')` | nota pessoal (sem campanha) não pode ser compartilhada nem ter público | remover/relaxar; visibilidade passa a derivar das **audiências** |
 | `campaign_id` imutável e único | impede compartilhar a mesma nota em várias campanhas e impede compartilhar depois, **sem** mover a propriedade | manter imutável como "campanha de origem" (informativo, sem poder de acesso); acesso passa a vir só de audiências |
@@ -114,7 +114,7 @@ A `0004` usa **um único `campaign_id` imutável** que acumula três papéis: (a
 | `note_readable(nid, owner, campaign, vis)` | lê colunas da própria linha | reescrever lendo audiências (continua a regra única; `can_read_note` mantém assinatura) |
 | `visibility` na tabela | duas fontes de verdade (coluna e audiências) | período de transição: coluna vira derivada/legado, preenchida por gatilho; remoção só em migração posterior |
 
-Caminho recomendado: **migração aditiva** (`0005`) que (1) cria audiências e `record_links`, (2) preenche audiências a partir das notas existentes com `campaign_id` e `visibility <> 'private'`, (3) troca as funções de leitura, (4) relaxa a política de escrita do autor, (5) mantém `campaign_id`/`visibility` para compatibilidade e acrescenta reversão em `supabase/rollback/`. **Alternativa descartada:** permitir `NULL → campanha` (rejeitada em D3: transferiria a nota para uma campanha). Os 32 testes de `notas.test.ts` viram a **suíte de regressão** da `0005`; os testes de "autor fora da campanha não edita" serão **substituídos** (comportamento muda por D3 item 8).
+Caminho recomendado: **migração aditiva** (`0009`) que (1) cria audiências e `record_links`, (2) preenche audiências a partir das notas existentes com `campaign_id` e `visibility <> 'private'`, (3) troca as funções de leitura, (4) relaxa a política de escrita do autor, (5) mantém `campaign_id`/`visibility` para compatibilidade e acrescenta reversão em `supabase/rollback/`. **Alternativa descartada:** permitir `NULL → campanha` (rejeitada em D3: transferiria a nota para uma campanha). Os 32 testes de `notas.test.ts` viram a **suíte de regressão** da `0005`; os testes de "autor fora da campanha não edita" serão **substituídos** (comportamento muda por D3 item 8).
 
 ### 4.5 Organização da aba Documentos
 - Lista única com **filtros**: escopo (Pessoais | Campanha ativa), tipo, **personagem**, vínculo, visibilidade/público, etiqueta, pasta; busca (4.7). Árvore de pastas/páginas/subpáginas.
@@ -172,25 +172,25 @@ Tabelas (todas `campaign_id not null`, RLS de campanha, `campaign_id` imutável,
 
 | Migração (futura, ainda não escrita) | Depende de | Riscos |
 |---|---|---|
-| **`0005` notas: audiências + `record_links` + edição do autor fora da campanha** | `0004` aplicada | alterar regra de leitura já em produção (regressão: reaproveitar os 32 testes); backfill das audiências; período com duas fontes de verdade (`visibility`/`campaign_id` × audiências); rollback precisa restaurar o comportamento anterior; **não pode reabrir vazamento** de notas privadas |
+| **`0009` notas: audiências + `record_links` + edição do autor fora da campanha** (antiga "0005") | `0004` aplicada | alterar regra de leitura já em produção (regressão: reaproveitar os 32 testes); backfill das audiências; período com duas fontes de verdade (`visibility`/`campaign_id` × audiências); rollback precisa restaurar o comportamento anterior; **não pode reabrir vazamento** de notas privadas |
 | `campaign_settings` (+ preenchimento das campanhas existentes) | `0001`, `0003` | linha obrigatória por campanha (criar no `create_campaign` e backfill); só o mestre grava |
 | `srd_*` (bestiário, depois magias e itens) | — | licença/atribuição SRD; volume e formato dos dados; **separar dados descritivos de mecânicos** para a pendência D7 (visibilidade para jogadores) |
 | `characters`, `campaign_characters`, `character_events` | `campaign_settings`, `srd_*` (itens) | **maior risco de RLS**: mestre edita só o estado da própria campanha; resumo para jogadores sem vazar; restauração sem sobrescrita; exclusão lógica; participações arquivadas; chaves compostas |
 | `encounters`, `encounter_*`, `combats`, `loot_*`, `distribute_loot` | personagens, moedas, itens | atomicidade, auditoria, PV único, moedas desativadas, não misturar campanhas |
-| Histórico (`note_versions`) e busca | `0005` e personagens | FTS sob RLS; retenção; histórico não pode contornar a leitura atual |
-| Documentos avançados (`kind`, `parent_id`, blocos, bancos…) | `0005`, histórico | tamanho do conjunto; uma ferramenta por vez |
+| Histórico (`note_versions`) e busca | `0005`, `0009` e personagens | FTS sob RLS; retenção; histórico não pode contornar a leitura atual |
+| Documentos avançados (`parent_id`, bancos…; `kind` e blocos já na `0005`) | `0005`, histórico | tamanho do conjunto; uma ferramenta por vez |
 | Offline/IndexedDB | escrita online estável | conflitos; vazamento local; limpeza no logout |
 
 Riscos transversais: **exclusão de conta** vs retenção do histórico da campanha (`campaigns.created_by` é `on delete restrict`; personagens e participações de uma conta excluída precisam de regra — decidir antes de personagens); papel `archived` não pode manter acesso do jogador removido; `base_state` não pode vazar via resumo da party.
 
 ## 8. Ordem de implementação
-Mudança em relação à versão anterior (necessária): a **migração de arquitetura de notas (`0005`) passa a vir ANTES da interface de notas**, para a interface ser construída uma vez só sobre o modelo definitivo de audiências e vínculos; e **`campaign_settings`** entra cedo, pois moedas e visibilidade de PV dependem dela.
+Mudança em relação à versão anterior (necessária): a **migração de arquitetura de notas passa a vir ANTES da interface de notas** (conteúdo estruturado: `0005`; audiências e vínculos de compartilhamento: `0009`, depois do Planejamento), para a interface ser construída uma vez só sobre o modelo definitivo de audiências e vínculos; e **`campaign_settings`** entra cedo, pois moedas e visibilidade de PV dependem dela.
 
 | # | Etapa | Depende de |
 |---|---|---|
 | 1 | **Login obrigatório + base de isolamento** (porta de login, remover visitante, layout só com ids, helper de chaves de cache) — **implementada no PR #21 (aguardando integração)** | — |
 | 1b | **Navegação por abas e divisão de painéis** (reutilizar/fixar abas, menu de contexto, atalhos, celular, alterações não salvas) **+ correção do bug de divisão com aba única** — proposta em `NAVEGACAO-ABAS.md`, **aguardando aprovação**; independente do banco | 1 |
-| 2 | **Notas — arquitetura (`0005`: audiências, vínculos, edição do autor)** + camada de dados + testes de regressão | 1, `0004` |
+| 2 | **Notas — arquitetura (`0005`: conteúdo estruturado; `0009`: audiências, vínculos, edição do autor)** + camada de dados + testes de regressão | 1, `0004` |
 | 3 | **Notas — interface em Documentos** (lista, editor, vínculos, compartilhamento explícito, filtros) | 2 |
 | 4 | **`campaign_settings`** (moedas ativas, PV dos colegas) + aba Campanhas | 1 |
 | 5 | **Biblioteca universal SRD** (Compêndio: monstros; depois magias/itens) — pode andar em paralelo com 2–4 | 1 |

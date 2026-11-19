@@ -227,10 +227,11 @@ describe("migração reversível e auditoria", () => {
     const t = new PGlite(); await t.exec(stub);
     const ms = migrations(); for (const m of ms) await t.exec(m);
     const down = readFileSync(join(__dirname, "rollback", "0004_notas_down.sql"), "utf8");
+    await t.exec(readFileSync(join(__dirname, "rollback", "0005_notas_conteudo_down.sql"), "utf8"));   // a 0005 depende de notes: reverte-se primeiro
     await t.exec(down);
     expect((await t.query("select count(*)::int as n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relname in ('notes', 'note_shares')")).rows).toEqual([{ n: 0 }]);
     expect((await t.query("select count(*)::int as n from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname in ('can_read_note', 'can_share_note', 'is_note_owner', 'notes_before_update', 'note_shares_limit')")).rows).toEqual([{ n: 0 }]);
-    await t.exec(ms[ms.length - 1]);   // reaplica a última (0004)
+    await t.exec(ms.find((_, i) => i === 3)!); await t.exec(ms[4]);   // reaplica 0004 e depois 0005
     expect((await t.query("select count(*)::int as n from pg_class where relname = 'notes'")).rows).toEqual([{ n: 1 }]);
   });
   it("RLS ativa nas tabelas novas e funções novas sem acesso a anon", async () => {
