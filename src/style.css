@@ -153,3 +153,5 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .gate-brand{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--text)}.gate-brand svg{color:var(--accent)}.gate-brand span{color:var(--accent)}
 .gate .auth{max-width:none}.gate .auth h1{font-size:20px;margin:10px 0}
 .gate .auth input{background:var(--bg)}
+
+.empty h1{font-size:18px;margin:0 0 8px}
