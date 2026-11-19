@@ -134,13 +134,13 @@ describe("campanha (detalhes, mestre x jogador)", () => {
     { user_id: "me", role: "mestre", joined_at: "", display_name: "Eu" },
     { user_id: "u2", role: "jogador", joined_at: "", display_name: "Bia" }];
   const invites: Invite[] = [{ id: "i1", code: "ABCDEFGHIJKL", expires_at: "2030-01-01T00:00:00Z", max_uses: 5, uses: 1 }];
-  const openCampaign = async (name: string) => { await openMobile("Campanhas"); const li = (await screen.findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); };
+  const openCampaign = async (name: string) => { await openMobile("Campanhas"); const li = (await screen.findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); const sm = await screen.findByText(/^(Gerenciar campanha|Participantes)$/); const d = sm.closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); };
 
   it("mestre: edita informações, remove jogadores e administra convites", async () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: structuredClone(members), invites: structuredClone(invites) });
     mount(api); await openCampaign("Festival da Lua");
     expect(await screen.findByText("Bia")).toBeTruthy(); expect(screen.getByText(/convite=ABCDEFGHIJKL/)).toBeTruthy();
-    fill("Nome", "Festival Renomeado"); fireEvent.click(screen.getByRole("button", { name: "Salvar informações" }));
+    fireEvent.click(screen.getByRole("button", { name: "Editar informações" })); fill("Nome", "Festival Renomeado"); fireEvent.click(screen.getByRole("button", { name: "Salvar informações" }));
     await waitFor(() => expect(api.update).toHaveBeenCalledWith("c1", "Festival Renomeado", "desc Festival da Lua"));
     expect(await screen.findByRole("heading", { name: "Festival Renomeado" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Tornar mestre" })).toBeNull();
@@ -201,6 +201,7 @@ describe("convites por link", () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: [], invites: [{ id: "i1", code: "ABCDEFGHIJKL", expires_at: "2030-01-01T00:00:00Z", max_uses: 5, uses: 0 }] });
     mount(api); await openMobile("Campanhas");
     fireEvent.click(within((await screen.findByText("Festival da Lua")).closest("li")!).getByRole("button", { name: "Abrir" }));
+    { const d = (await screen.findByText("Gerenciar campanha")).closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); }
     expect(await screen.findByText(/\?convite=ABCDEFGHIJKL$/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Copiar link" }));
     expect(writeText).toHaveBeenCalledWith(expect.stringMatching(/^https?:\/\/[^/]+\/compendio-5e\/\?convite=ABCDEFGHIJKL$/));
@@ -266,7 +267,7 @@ describe("convites por link", () => {
 });
 
 describe("mestre único: sair e remover", () => {
-  const open = async (name: string) => { await openMobile("Campanhas"); const li = (await screen.findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); };
+  const open = async (name: string) => { await openMobile("Campanhas"); const li = (await screen.findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); const sm = await screen.findByText(/^(Gerenciar campanha|Participantes)$/); const d = sm.closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); };
 
   it("jogador pode sair voluntariamente; o mestre não aparece como removível", async () => {
     const api = fakeApi({ memberships: [{ role: "jogador", campaign: camp("c2", "Costa Rubra") }], members: [

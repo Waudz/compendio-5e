@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
-import { BookOpen, ChevronLeft, ChevronRight, Pin, UserRound, X } from "lucide-react";
+import { BookOpen, Castle, House as HomeIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -11,9 +11,10 @@ import { NavItem } from "./NavItem";
 import { closeTabs, isPinned, navigate, openContentLink as openContent, otherNormalTabs, setPinned, type NavMode } from "./navigation";
 import { UnsavedContext, useUnsavedRegistry } from "./unsaved";
 import { findTab } from "./workspace";
+import { tituloDe, useVersaoRegistros } from "./registrosStore";
 import { Panel } from "./Panel";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
-import { closeGroup, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, openTab, prepareMove, sections, type Kind, type TabSpec } from "./workspace";
+import { closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type Kind, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
 const allowedActions = new Set([Actions.GROUP, Actions.ADD_TAB, Actions.DELETE_TAB, Actions.SELECT_TAB, Actions.MOVE_NODE, Actions.DELETE_TABSET, Actions.SET_ACTIVE_TABSET, Actions.ADJUST_WEIGHTS]);
@@ -38,15 +39,20 @@ export default function App() {
 function Workspace({ userId }: { userId: string }) {
   // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
   const { status } = useAuth();
-  const { active, activeId: campaignId, memberships } = useCampaigns();
+  const { active, activeId: campaignId, memberships, setActive } = useCampaigns();
   const scope: Scope = { user: userId, campaign: campaignId ?? "nenhuma", device: "navegador" };
   const scopeKey = `${scope.user}|${scope.campaign}|${scope.device}`;
   const scopeRef = useRef(scope); scopeRef.current = scope;
-  const [model, setModel] = useState<Model>(() => createModel(loadLayout(scope)));
+  const [model, setModel] = useState<Model>(() => {
+    // Primeira vez nesta campanha (também no primeiro carregamento): só o Início. Layout salvo nunca é alterado.
+    if (!hasSavedLayout(scope) && scope.campaign !== "nenhuma") return firstVisitModel(scope.campaign, memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name);
+    return createModel(loadLayout(scope));
+  });
   const [modelKey, setModelKey] = useState(scopeKey);
   const [, redraw] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const registrosV = useVersaoRegistros();   // títulos de registros abertos mudam o rótulo das abas
   const mobile = useMobile();
   const chromeHidden = useChromeHidden(mobile);
   const good = useRef(model.toJson());
@@ -55,9 +61,8 @@ function Workspace({ userId }: { userId: string }) {
   const labelRef = useRef<(id: string) => string>(id => id);
   const unsaved = useUnsavedRegistry(id => labelRef.current(id));   // alterações não salvas por aba (editores registram)
   if (modelKey !== scopeKey) {
-    const fresh = !hasSavedLayout(scope), m = createModel(loadLayout(scope));
-    // Primeira vez nesta campanha: o espaço de trabalho já abre na aba dela (ex.: logo após entrar por convite).
-    if (fresh && scope.campaign !== "nenhuma") openTab(m, { kind: "campanha", ref: scope.campaign, title: memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name });
+    // Primeira vez nesta campanha: abre o Início (ex.: logo após entrar por convite).
+    const m = !hasSavedLayout(scope) && scope.campaign !== "nenhuma" ? firstVisitModel(scope.campaign, memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name) : createModel(loadLayout(scope));
     good.current = m.toJson(); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
 
   // Toda mudança passa por aqui: valida a restrição de colunas (reverte se violada) e persiste.
@@ -97,6 +102,15 @@ function Workspace({ userId }: { userId: string }) {
     { label: "Abrir em nova aba", onSelect: () => openMenu(s, "new") },
     { label: "Abrir em nova aba fixada", onSelect: () => openMenu(s, "newPinned") },
   ] }), [openMenu]);
+
+  const homeSpec: TabSpec = active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: campaignsHub.page };
+  /** Seletor discreto junto à campanha ativa: trocar (protegendo alterações não salvas) e acesso à gestão de campanhas. Cada campanha tem o seu layout. */
+  const showCampaignMenu = (x: number, y: number) => setMenu({ x, y, items: [
+    ...memberships.map(m => ({ label: m.campaign.id === active?.campaign.id ? `${m.campaign.name} (ativa)` : m.campaign.name, disabled: m.campaign.id === active?.campaign.id,
+      onSelect: () => { void unsaved.api.confirmAll().then(ok => { if (ok) setActive(m.campaign.id); }); } })),
+    ...(memberships.length ? ["-" as const] : []),
+    { label: "Gerenciar campanhas…", onSelect: () => openMenu({ kind: "secao", ref: campaignsHub.page }) },
+  ] });
 
   const contextMenu = useCallback((node: TabNode | TabSetNode | { getType(): string }, e: React.MouseEvent) => {
     e.preventDefault();
@@ -144,8 +158,9 @@ function Workspace({ userId }: { userId: string }) {
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
     const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
+    if (c?.kind === "documento" && c.ref) return tituloDe(c.ref) ?? n.getName();
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
-  }, [memberships]);
+  }, [memberships, registrosV]);
   labelRef.current = id => { const t = findTab(model, id); return t ? titleOf(t) : id; };
   const renderTab = useCallback((n: TabNode, v: { content: ReactNode; leading?: ReactNode }) => {
     v.content = <>{titleOf(n)}{isPinned(n) && <span className="sr-only"> (fixada)</span>}</>;   // marca visual + texto acessível
@@ -164,8 +179,21 @@ function Workspace({ userId }: { userId: string }) {
   return <UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
-      <div className="campaign" title="Campanha ativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}</div>
-      <nav aria-label="Menu principal">{sections.map(({ page, title, icon: Icon }) =>
+      <div className="campaign">
+        <NavItem spec={homeSpec}
+          className={activeId === (active ? `campanha:${active.campaign.id}` : `secao:${campaignsHub.page}`) ? "campaign-main selected" : "campaign-main"}
+          title={active ? `Campanha ativa: ${active.campaign.name} (abrir o Início)` : "Nenhuma campanha ativa: escolher ou criar"}
+          ariaLabel={active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar"} onNavigate={openMenu} onMenu={showNavMenu}>
+          {collapsed ? <Castle size={19} aria-hidden="true"/> : <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}
+        </NavItem>
+        {!collapsed && <button className="campaign-switch" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
+          onClick={e => { const r = e.currentTarget.getBoundingClientRect(); showCampaignMenu(r.left, r.bottom); }}><ChevronsUpDown size={16} aria-hidden="true"/></button>}
+      </div>
+      <nav aria-label="Menu principal">
+        {(active || !mobile) && <NavItem spec={homeSpec} className={activeId === tabId(homeSpec) ? "nav-item selected" : "nav-item"} title="Início" onNavigate={openMenu} onMenu={showNavMenu}>
+          <HomeIcon size={19}/>{!collapsed && <span>Início</span>}
+        </NavItem>}
+        {(mobile ? [campaignsHub, ...visibleSections(active?.role === "mestre")] : desktopSections(active?.role ?? null)).map(({ page, title, icon: Icon }) =>
         <NavItem key={page} spec={{ kind: "secao", ref: page }} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} title={title} onNavigate={openMenu} onMenu={showNavMenu}>
           <Icon size={19}/>{!collapsed && <span>{title}</span>}
         </NavItem>)}
@@ -180,7 +208,7 @@ function Workspace({ userId }: { userId: string }) {
       {mobile
         ? <Mobile model={model} onOpen={openMenu} onOpenContent={openContentLink} onChange={() => onModelChange(model)} titleOf={titleOf}
             onClose={id => guarded([id], () => closeTab(model, id))()} onTabMenu={(t, x, y) => showTabMenu(t, x, y)}
-            onNewTab={(x, y) => setMenu({ x, y, items: sections.map(({ page, title }) => ({ label: title, onSelect: () => openMenu({ kind: "secao", ref: page }, "new") })) })}/>
+            onNewTab={(x, y) => setMenu({ x, y, items: [...(active ? [{ label: "Início", onSelect: () => openMenu(homeSpec, "new") }] : []), ...[campaignsHub, ...visibleSections(active?.role === "mestre")].map(({ page, title }) => ({ label: title, onSelect: () => openMenu({ kind: "secao", ref: page }, "new") }))] })}/>
         : <Layout model={model} factory={factory} onAction={onAction} onModelChange={onModelChange} onContextMenu={contextMenu}
             onRenderTab={renderTab} onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize/>}
     </main>
