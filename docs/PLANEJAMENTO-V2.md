@@ -1,6 +1,6 @@
 # Planejamento v2 — estado, arquitetura planejada e roteiro
 
-Status em 19/11/2026, `main` após o PR #24: Etapa 1 (login obrigatório e isolamento local) e a navegação por abas com a divisão de painéis estão **implementadas e publicadas**. Todo o restante abaixo é **planejamento**, distinguido por "Planejado". Migrações `0001`–`0004` aplicadas ao projeto `gwcttjlxzelzjhbuitmi` (não reaplicar); **nenhuma migração nova foi escrita**; a `0005` só será escrita com autorização. O projeto legado `rastreador-dnd` nunca é tocado. Regras gerais: `DECISOES-E-ARQUITETURA.md`.
+Status em 19/11/2026, `main` após o PR #24: Etapa 1 (login obrigatório e isolamento local) e a navegação por abas com a divisão de painéis estão **implementadas e publicadas**. Todo o restante abaixo é **planejamento**, distinguido por "Planejado". Migrações `0001`–`0004` aplicadas ao projeto `gwcttjlxzelzjhbuitmi` (não reaplicar); **nenhuma migração nova foi escrita**; a `0005` (conteúdo estruturado das notas) está **proposta no PR #32 e NÃO aplicada**; as audiências de notas passam a ser a `0009` (ver `supabase/migrations/LEIA-ME.md`). O projeto legado `rastreador-dnd` nunca é tocado. Regras gerais: `DECISOES-E-ARQUITETURA.md`.
 
 ## 1. Decisões aprovadas
 1. **Login obrigatório**, sem visitante. Cadastro segue aberto (restringir a convidados fica para depois). Biblioteca universal: qualquer conta autenticada, somente leitura.
@@ -41,7 +41,7 @@ Status em 19/11/2026, `main` após o PR #24: Etapa 1 (login obrigatório e isola
 ### Parcial
 | Item | O que existe | O que falta |
 |---|---|---|
-| Notas / Documentos | banco e regras (`0004`); aba Documentos é demonstrativa | modelo D3 (audiências e vínculos, `0005`), camada de dados, editor, lista e filtros |
+| Notas / Documentos | banco e regras (`0004`); aba Documentos é demonstrativa | modelo D3 (audiências e vínculos, `0008`/`0009`), camada de dados, editor, lista e filtros |
 | Isolamento real de dados por campanha | só `campaigns`, `campaign_members`, `campaign_invites`, `notes`, `note_shares` | todo módulo novo precisa de tabelas com `campaign_id`, RLS e testes multi-conta |
 | Registros em abas próprias | ids `tipo:ref` e regras de navegação prontos; só `campanha` e as seções têm painel real | painéis de ficha, NPC, documento, monstro; **gestos e menu de contexto nos elementos que abrem registros (1c)** |
 | Navegação por abas: fixar aba já aberta | implementado e testado (menu de contexto da aba; menu dos itens de navegação; celular) | **verificar a descoberta/acesso na versão publicada (1c, não confirmado como bug)** |
@@ -98,7 +98,7 @@ Biblioteca universal SRD e biblioteca pessoal · personagens, participações, e
 
 | # | Etapa | Depende de | Observação |
 |---|---|---|---|
-| 2 | **Notas — arquitetura (`0005`: audiências, vínculos, edição do autor fora da campanha)**, camada de dados e testes de regressão | `0004` | antes da interface, para construí-la uma vez; risco: mudar a leitura em produção sem reabrir vazamento |
+| 2 | **Notas — arquitetura (`0005`: conteúdo estruturado e edição do autor fora da campanha; `0008`/`0009`: vínculos e audiências)**, camada de dados e testes de regressão | `0004` | antes da interface, para construí-la uma vez; risco: mudar a leitura em produção sem reabrir vazamento |
 | 3 | **Notas — interface em Documentos** (lista, editor, vínculos, compartilhamento explícito, filtros; adota `useUnsavedGuard`) | 2 | |
 | 4 | **`campaign_settings`** (moedas ativas, PV dos colegas) na aba Campanhas | Etapa 1 | pode andar em paralelo com 2–3 |
 | 5 | **Biblioteca universal SRD** (Compêndio: monstros; depois magias e itens), separando descritivo de mecânico | Etapa 1 | independente de 2–4; exibir a jogadores só depois de **D7** |

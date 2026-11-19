@@ -193,14 +193,15 @@ describe("participação atual e saída da campanha", () => {
     expect(await titles(eva)).not.toContain("Aviso geral");
     expect((await as(eva, "insert into public.notes (campaign_id, title) values ($1, 'x')", [C1])).error).toMatch(/row-level security/);
   });
-  it("autor que sai: nada é apagado; ele lê/exclui as suas, mas o compartilhamento fica inativo e a edição é bloqueada", async () => {
+  it("autor que sai: nada é apagado; ele lê/edita/exclui as suas (D3, 0005), mas o compartilhamento fica inativo e ele não o amplia", async () => {
     const mine = await mk(U.caio, "Nota do Caio", "campaign", C1, "conteúdo");
     expect(await titles(U.ana)).toContain("Nota do Caio");
     await as(U.caio, "delete from public.campaign_members where user_id = $1 and campaign_id = $2", [U.caio, C1]);   // Caio sai
     expect(await titles(U.ana)).not.toContain("Nota do Caio");                                   // mestre deixa de ver
     expect(await titles(U.bia)).not.toContain("Nota do Caio");
     expect(await titles(U.caio)).toContain("Nota do Caio");                                      // autor mantém
-    expect((await as(U.caio, "update public.notes set body = 'x' where id = $1 returning id", [mine])).error).toMatch(/row-level security/);   // sem edição fora da campanha
+    expect((await as(U.caio, "update public.notes set body = 'x' where id = $1 returning id", [mine])).rows).toHaveLength(1);   // D3 (0005): o autor edita as próprias notas mesmo fora da campanha
+    expect((await as(U.caio, "update public.notes set visibility = 'master' where id = $1", [mine])).error).toMatch(/compartilhar_exige_participacao/);   // mas não amplia o compartilhamento sem participar
     expect((await db.query("select count(*)::int as n from public.notes where id = $1", [mine])).rows).toEqual([{ n: 1 }]);  // nada apagado
     expect((await as(U.caio, "select title from public.notes where campaign_id = $1 and visibility = 'campaign' and owner_id <> $2", [C1, U.caio])).rows).toEqual([]);   // e não lê as dos outros
     // volta por novo convite: o compartilhamento original volta a valer
@@ -227,10 +228,11 @@ describe("migração reversível e auditoria", () => {
     const t = new PGlite(); await t.exec(stub);
     const ms = migrations(); for (const m of ms) await t.exec(m);
     const down = readFileSync(join(__dirname, "rollback", "0004_notas_down.sql"), "utf8");
+    await t.exec(readFileSync(join(__dirname, "rollback", "0005_notas_conteudo_down.sql"), "utf8"));   // a 0005 depende de notes: reverte-se primeiro
     await t.exec(down);
     expect((await t.query("select count(*)::int as n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relname in ('notes', 'note_shares')")).rows).toEqual([{ n: 0 }]);
     expect((await t.query("select count(*)::int as n from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname in ('can_read_note', 'can_share_note', 'is_note_owner', 'notes_before_update', 'note_shares_limit')")).rows).toEqual([{ n: 0 }]);
-    await t.exec(ms[ms.length - 1]);   // reaplica a última (0004)
+    await t.exec(ms.find((_, i) => i === 3)!); await t.exec(ms[4]);   // reaplica 0004 e depois 0005
     expect((await t.query("select count(*)::int as n from pg_class where relname = 'notes'")).rows).toEqual([{ n: 1 }]);
   });
   it("RLS ativa nas tabelas novas e funções novas sem acesso a anon", async () => {

@@ -44,7 +44,7 @@
 | P2 | Como apresentar múltiplas fichas de personagens vinculados à mesma campanha | Detalhe de UX pendente |
 | P3 | Exclusão de conta versus retenção de histórico de campanha | Pendente, já documentado; resolver antes de personagens |
 | P4 | Testar mobile real, gestos, persistência de leitura e isolamento de shells | Pendente de implementação e validação |
-| P5 | Editor, modelo de quadros/atalhos, ordenação, versões, links e migração de notas `0005` | Projeto técnico pendente; **não alterar Supabase sem autorização** |
+| P5 | Editor, modelo de quadros/atalhos, ordenação, versões, links e migrações de notas (`0005` conteúdo; `0008` vínculos; `0009` audiências) | Projeto técnico pendente; **não alterar Supabase sem autorização** |
 | P6 | Reaproveitamento seguro do legado e plano de sincronização/offline | Pendente; não tocar no projeto 1.0 |
 | P7 | Verificar itens 1c da navegação desktop (gestos de abrir registros e acesso ao menu de fixar) | Já registrado em `docs/NAVEGACAO-ABAS.md` |
 | P8 | Favoritos e notas rápidas no celular; múltiplas cenas abertas lado a lado | Propostas interessantes, ainda não requisitos fechados |
