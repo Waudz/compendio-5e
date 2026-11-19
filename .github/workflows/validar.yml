@@ -1,7 +1,7 @@
 name: Validar projeto
 on:
   push:
-    branches: [main, feat/workspace-inicial]
+    branches: [main, feat/workspace-inicial, feat/campanhas-ui]
   pull_request:
     branches: [main]
 jobs:
