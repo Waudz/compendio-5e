@@ -239,12 +239,85 @@ describe("migração reversível e auditoria", () => {
     const f = await db.query<{ proname: string; anon: boolean }>("select proname, has_function_privilege('anon', p.oid, 'execute') as anon from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and proname in ('can_read_note','can_share_note','is_note_owner','notes_before_update','note_shares_limit')");
     expect(f.rows).toHaveLength(5); expect(f.rows.filter(x => x.anon)).toEqual([]);
   });
-  it("limite de 50 compartilhamentos por nota", async () => {
-    const id = await mk(U.ana, "Muitos", "selected", C1);
-    const ins = (n: number) => db.query("insert into public.note_shares (note_id, user_id) select $1, u from (select gen_random_uuid() u from generate_series(1, $2)) x", [id, n]);
-    await db.exec("alter table public.note_shares disable trigger user");   // cria 49 linhas fictícias sem FK de perfis
-    await db.exec("alter table public.note_shares drop constraint note_shares_user_id_fkey");
-    await ins(50); await db.exec("alter table public.note_shares enable trigger user");
-    expect((await share(U.ana, id, U.bia)).error).toMatch(/limite_compartilhamentos/);
+});
+
+describe("revisão de segurança: vazamentos entre usuários", () => {
+  const rls = /row-level security/;
+  /** Garante que o jogador participe de C1 (testes anteriores podem tê-lo removido). */
+  const ensureMember = async (uid: string) => { const code = (await rpc(U.ana, "create_invite", C1, 10, 7)).rows[0].r as string; await rpc(uid, "join_campaign", code); };
+  beforeAll(async () => { await ensureMember(U.bia); await ensureMember(U.caio); });
+
+  it("inserir compartilhamento em nota alheia, inexistente ou com destinatário inexistente dá o MESMO erro (sem oráculo)", async () => {
+    const foreign = await mk(U.ana, "Nota da Ana", "selected", C1);
+    const ghost = "00000000-0000-0000-0000-0000000000aa";
+    const errs = [
+      (await share(U.bia, foreign, U.caio)).error,                                           // nota de outro autor
+      (await share(U.bia, ghost, U.caio)).error,                                             // nota que não existe
+      (await share(U.dora, foreign, U.dora)).error,                                          // forasteiro
+      (await share(U.ana, foreign, "00000000-0000-0000-0000-0000000000bb")).error,           // destinatário que não existe
+    ];
+    for (const e of errs) expect(e).toMatch(rls);
+    expect(new Set(errs).size).toBe(1);
+  });
+
+  it("criar nota em campanha inexistente ou alheia dá o mesmo erro", async () => {
+    const e1 = (await as(U.bia, "insert into public.notes (campaign_id, title) values ($1, 'x')", [C2])).error;
+    const e2 = (await as(U.bia, "insert into public.notes (campaign_id, title) values ('00000000-0000-0000-0000-0000000000cc', 'x')")).error;
+    expect(e1).toMatch(rls); expect(e1).toBe(e2);
+  });
+
+  it("limites só aparecem depois da checagem de RLS: nota alheia com 50 compartilhamentos não denuncia nada", async () => {
+    const id = await mk(U.ana, "Cheia", "selected", C1);
+    await db.exec("alter table public.note_shares drop constraint note_shares_user_id_fkey");      // permite 50 destinatários fictícios (só neste teste)
+    await db.query("insert into public.note_shares (note_id, user_id) select $1, gen_random_uuid() from generate_series(1, 50)", [id]);
+    expect((await share(U.dora, id, U.dora)).error).toMatch(rls);                                  // forasteiro: erro genérico, não "limite"
+    expect((await share(U.bia, id, U.caio)).error).toMatch(rls);                                   // jogador não-autor: idem
+    await expect(db.query("insert into public.note_shares (note_id, user_id) values ($1, $2)", [id, U.bia])).rejects.toThrow(/limite_compartilhamentos/);   // o 51º é barrado (autor/servidor)
+  });
+
+  it("limite de notas por usuário (5000)", async () => {
+    await expect(db.query("insert into public.notes (owner_id, title) select $1, 'n' || g from generate_series(1, 5001) g", [U.dora])).rejects.toThrow(/limite_notas/);
+  });
+
+  it("selecionado não enxerga a linha de compartilhamento quando a nota está suspensa (autor fora da campanha)", async () => {
+    const id = await mk(U.bia, "Suspensa", "selected", C1); await share(U.bia, id, U.caio);
+    expect((await as(U.caio, "select note_id from public.note_shares where note_id = $1", [id])).rows).toHaveLength(1);
+    await as(U.bia, "delete from public.campaign_members where user_id = $1 and campaign_id = $2", [U.bia, C1]);   // autor sai
+    expect(await titles(U.caio)).not.toContain("Suspensa");
+    expect((await as(U.caio, "select note_id from public.note_shares where note_id = $1", [id])).rows).toEqual([]);   // nem o id aparece
+    expect((await as(U.bia, "select title from public.notes where id = $1", [id])).rows).toEqual([{ title: "Suspensa" }]);   // autor mantém
+  });
+
+  it("funções expostas não são oráculos: argumentos forjados só revelam o que o chamador já pode saber", async () => {
+    // note_readable com dados inventados: forasteiro nunca recebe true para campanha da qual não participa
+    expect((await as(U.dora, "select public.note_readable(gen_random_uuid(), $1, $2, 'campaign') as r", [U.ana, C1])).rows).toEqual([{ r: false }]);
+    expect((await as(U.dora, "select public.note_readable(gen_random_uuid(), $1, $2, 'master') as r", [U.ana, C1])).rows).toEqual([{ r: false }]);
+    // jogador não vira mestre por argumento: 'master' continua false para ele
+    expect((await as(U.bia, "select public.note_readable(gen_random_uuid(), $1, $2, 'master') as r", [U.caio, C2])).rows).toEqual([{ r: false }]);
+    // can_share_note e is_note_owner só dizem "sim" ao dono
+    const id = await mk(U.ana, "Dela", "selected", C1);
+    expect((await as(U.dora, "select public.can_share_note($1, $2) as r", [id, U.bia])).rows).toEqual([{ r: false }]);
+    expect((await as(U.bia, "select public.can_share_note($1, $2) as r", [id, U.caio])).rows).toEqual([{ r: false }]);
+    expect((await as(U.bia, "select public.is_note_owner($1) as r", [id])).rows).toEqual([{ r: false }]);
+    expect((await as(U.ana, "select public.is_note_owner($1) as r", [id])).rows).toEqual([{ r: true }]);
+  });
+
+  it("predicados do usuário não enxergam linhas barradas pela RLS (nem por erro, ordenação ou agregação)", async () => {
+    await ensureMember(U.bia);
+    await mk(U.bia, "Cofre", "private", C1, "senha=12345");
+    expect((await as(U.ana, "select title from public.notes where 1 / (case when body like '%12345%' then 0 else 1 end) = 1")).error).toBeUndefined();   // nenhum erro de divisão: a linha nem é avaliada
+    expect((await as(U.ana, "select count(*)::int as n, max(title) as t from public.notes where body like '%12345%'")).rows).toEqual([{ n: 0, t: null }]);
+    expect((await as(U.ana, "select n.title from public.notes n where exists (select 1 from public.notes m where m.id = n.id and m.body like '%12345%')")).rows).toEqual([]);
+    expect((await as(U.ana, "explain select * from public.notes where body like '%12345%'")).error).toBeUndefined();
+  });
+
+  it("gatilhos e funções internas não são executáveis por clientes; só 4 funções de nota são SECURITY DEFINER", async () => {
+    const f = await db.query<{ proname: string; definer: boolean; anon: boolean; auth: boolean }>(`select proname, prosecdef as definer,
+      has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and proname in
+      ('notes_before_update', 'note_shares_limit', 'notes_owner_limit', 'can_read_note', 'note_readable', 'can_share_note', 'is_note_owner')`);
+    const by = Object.fromEntries(f.rows.map(r => [r.proname, r]));
+    for (const t of ["notes_before_update", "note_shares_limit", "notes_owner_limit"]) expect(by[t], t).toMatchObject({ definer: false, anon: false, auth: false });
+    for (const d of ["can_read_note", "note_readable", "can_share_note", "is_note_owner"]) expect(by[d], d).toMatchObject({ definer: true, anon: false, auth: true });
   });
 });

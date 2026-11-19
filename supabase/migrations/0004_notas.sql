@@ -48,7 +48,8 @@ create table public.note_shares (
 create index note_shares_user_idx on public.note_shares (user_id);
 
 -- ------------------------------------------------------------------ funções auxiliares
--- Todas SECURITY DEFINER com search_path vazio; só respondem "sim" a quem já tem direito (sem oráculo de existência).
+-- As 4 funções abaixo são SECURITY DEFINER com search_path vazio (precisam ler tabelas que o chamador não lê);
+-- só respondem "sim" a quem já tem direito (sem oráculo de existência). Os gatilhos NÃO são definer.
 
 create function public.is_note_owner(nid uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
@@ -90,8 +91,9 @@ language sql stable security definer set search_path = '' as $$
 $$;
 
 -- ------------------------------------------------------------------ gatilhos
+-- Gatilhos rodam como o USUÁRIO que escreve (SECURITY INVOKER): nenhuma elevação de privilégio, a RLS vale também dentro deles.
 create function public.notes_before_update() returns trigger
-language plpgsql security definer set search_path = '' as $$
+language plpgsql set search_path = '' as $$
 begin
   if new.owner_id <> old.owner_id or new.campaign_id is distinct from old.campaign_id or new.id <> old.id then
     raise exception 'campo_imutavel' using errcode = '23514';
@@ -106,13 +108,23 @@ begin
 end $$;
 create trigger notes_before_update before update on public.notes for each row execute function public.notes_before_update();
 
+-- Limites: AFTER INSERT, ou seja, só depois da checagem de RLS (quem não tem direito recebe o erro genérico de RLS,
+-- sem descobrir quantos compartilhamentos ou notas existem). Invoker: contam o que o próprio autor enxerga.
 create function public.note_shares_limit() returns trigger
-language plpgsql security definer set search_path = '' as $$
+language plpgsql set search_path = '' as $$
 begin
-  if (select count(*) from public.note_shares where note_id = new.note_id) >= 50 then raise exception 'limite_compartilhamentos' using errcode = '54000'; end if;
-  return new;
+  if (select count(*) from public.note_shares where note_id = new.note_id) > 50 then raise exception 'limite_compartilhamentos' using errcode = '54000'; end if;
+  return null;
 end $$;
-create trigger note_shares_limit before insert on public.note_shares for each row execute function public.note_shares_limit();
+create trigger note_shares_limit after insert on public.note_shares for each row execute function public.note_shares_limit();
+
+create function public.notes_owner_limit() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if (select count(*) from public.notes where owner_id = new.owner_id) > 5000 then raise exception 'limite_notas' using errcode = '54000'; end if;
+  return null;
+end $$;
+create trigger notes_owner_limit after insert on public.notes for each row execute function public.notes_owner_limit();
 
 -- ------------------------------------------------------------------ privilégios
 revoke all on public.notes, public.note_shares from anon, authenticated, public;
@@ -123,7 +135,7 @@ grant insert (note_id, user_id) on public.note_shares to authenticated;
 
 revoke all on function
   public.is_note_owner(uuid), public.note_readable(uuid, uuid, uuid, text), public.can_read_note(uuid), public.can_share_note(uuid, uuid),
-  public.notes_before_update(), public.note_shares_limit() from public, anon, authenticated;
+  public.notes_before_update(), public.note_shares_limit(), public.notes_owner_limit() from public, anon, authenticated;
 grant execute on function public.is_note_owner(uuid), public.note_readable(uuid, uuid, uuid, text), public.can_read_note(uuid), public.can_share_note(uuid, uuid) to authenticated;
 
 -- ------------------------------------------------------------------ RLS
@@ -138,9 +150,10 @@ create policy notes_update on public.notes for update to authenticated
   with check (owner_id = auth.uid() and (campaign_id is null or public.is_member(campaign_id)));
 create policy notes_delete on public.notes for delete to authenticated using (owner_id = auth.uid());
 
--- Quem vê a lista de selecionados: o autor e cada selecionado (só a própria linha).
+-- Quem vê a lista de selecionados: o autor, e cada selecionado só na PRÓPRIA linha e só enquanto a nota é legível para ele
+-- (compartilhamento suspenso não revela sequer o id da nota).
 create policy shares_select on public.note_shares for select to authenticated
-  using (user_id = auth.uid() or public.is_note_owner(note_id));
+  using (public.is_note_owner(note_id) or (user_id = auth.uid() and public.can_read_note(note_id)));
 create policy shares_insert on public.note_shares for insert to authenticated
   with check (public.can_share_note(note_id, user_id));
 create policy shares_delete on public.note_shares for delete to authenticated
