@@ -12,6 +12,10 @@ export type CapaApi = {
   obter: (campaignId: string) => Promise<Res<string | null>>;
   definir: (campaignId: string, arquivo: File) => Promise<Res<string>>;
   remover: (campaignId: string) => Promise<Res<true>>;
+  /** Imagens avulsas no mesmo bucket (retratos de personagens): enviar devolve o caminho a guardar; urlDe gera a URL temporária. */
+  enviar: (campaignId: string, arquivo: File) => Promise<Res<string>>;
+  urlDe: (caminho: string) => Promise<Res<string>>;
+  apagar: (caminho: string) => Promise<Res<true>>;
 };
 
 /** Valida tipo e tamanho ANTES de enviar. SVG é recusado de propósito (pode conter script). */
@@ -52,6 +56,12 @@ export function createCapaApi(client: SupabaseClient): CapaApi {
         return s.error || !s.data ? falha(s.error) : { ok: true, data: s.data.signedUrl };
       } catch (e) { return falha(e); }
     },
+    enviar: async (campaignId, arquivo) => {
+      const bad = validarCapa(arquivo); if (bad) return { ok: false, error: bad };
+      try { const path = `${campaignId}/${uuid()}`; const up = await client.storage.from(BUCKET).upload(path, arquivo, { contentType: arquivo.type, upsert: false }); return up.error ? falha(up.error) : { ok: true, data: path }; } catch (e) { return falha(e); }
+    },
+    urlDe: async caminho => { try { const s = await client.storage.from(BUCKET).createSignedUrl(caminho, 3600); return s.error || !s.data ? falha(s.error) : { ok: true, data: s.data.signedUrl }; } catch (e) { return falha(e); } },
+    apagar: async caminho => { try { const r = await client.storage.from(BUCKET).remove([caminho]); return r.error ? falha(r.error) : { ok: true, data: true }; } catch (e) { return falha(e); } },
     remover: async campaignId => {
       try {
         const antigo = await client.from("campaigns").select("cover_path").eq("id", campaignId).maybeSingle();

@@ -4,6 +4,10 @@ import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { storageKey } from "./persistence";
 import { memoryStorage, me, renderApp } from "./testUtils";
 
+// Painel de teste: a navegação por abas é testada com um botão de link de conteúdo (os painéis reais têm testes próprios).
+vi.mock("./Panel", () => ({ Panel: ({ kind, entity, onOpenContent }: { kind: string; entity: string; onOpenContent: (s: { kind: string; ref: string; title: string }) => void }) =>
+  <div><h1>{entity.charAt(0).toUpperCase() + entity.slice(1)}</h1><span>{kind}:{entity}</span><button onClick={() => onOpenContent({ kind: "ficha", ref: "lydia", title: "Ficha: Lydia" })}>Abrir Ficha: Lydia</button></div> }));
+
 let mobile = false;
 beforeEach(() => {
   vi.stubGlobal("localStorage", memoryStorage());

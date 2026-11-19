@@ -5,16 +5,14 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import App from "../App";
 import { AuthGate } from "../AuthGate";
 import { AuthProvider } from "../AuthContext";
-import { AventureirosContext } from "../AventureirosContext";
 import { CampaignsProvider } from "../CampaignsContext";
 import type { CampaignApi, Invite, Member, Membership, Role } from "../campaigns";
-import type { Aventureiro } from "../inicio";
 import type { Registro, RegistrosApi } from "../registros";
 import type { CapaApi } from "../capa";
 import { RegistrosProvider } from "../RegistrosContext";
 
 const CAMP = { id: "11111111-1111-4111-8111-111111111111", name: "Sociedade do Véu Negro", description: "Um festival em Daggerford vira um banho de sangue com a revelação de um culto que assola a região.", created_at: "2026-01-01T00:00:00Z" };
-const KEY = "demo:registros:v1";
+const KEY = "demo:registros:v2";
 const ok = <T,>(data: T) => Promise.resolve({ ok: true as const, data });
 
 function carregar(): Registro[] {
@@ -28,6 +26,9 @@ function carregar(): Registro[] {
     { ...base, id: "d3", kind: "diary", title: "5ª Sessão — rascunho do mestre", visibility: "private", meta: { sessao: { dia: 9, mes: 12, ano: 1491 } }, updatedAt: "2026-11-18T12:00:00Z", content: [p("Segredo do mestre: o prefeito é parte do culto.")] },
     { ...base, id: "s1", kind: "scene", title: "Julkoun: o bar", visibility: "private", content: [p("O taverneiro conhece o mapa da cabana.")] },
     { ...base, id: "s2", kind: "scene", title: "Estrada: carroça atolada", visibility: "private", content: [p("Encontro aleatório com bandidos disfarçados.")] },
+    { ...base, id: "p1", kind: "character", ownerId: "demo-jogador", title: "Lydia Valenmoor", visibility: "campaign", meta: { classe: "Clériga", nivel: 3 } },
+    { ...base, id: "p2", kind: "character", ownerId: "demo-jogador", title: "Toran Pedra-Ferro", visibility: "campaign", meta: { classe: "Guerreiro", nivel: 3 } },
+    { ...base, id: "p3", kind: "character", ownerId: "demo-mestre", title: "Sabine", visibility: "campaign", meta: { classe: "Ladina", nivel: 2 } },
     { ...base, id: "b1", kind: "board", title: "Quadro de planejamento", visibility: "private", meta: { colunas: [{ id: "k1", titulo: "Sessão 5", cartoes: ["s1", "s2"] }, { id: "k2", titulo: "Floresta", cartoes: [] }] } },
   ] as Registro[];
 }
@@ -36,27 +37,28 @@ function criarRegistros(papel: Role, uid: string): RegistrosApi {
   let dados = carregar();
   const salvar = () => { try { localStorage.setItem(KEY, JSON.stringify(dados)); } catch { /* cota */ } };
   const lerTudo = () => { dados = carregar(); };
-  /** Imita a RLS de `notes`: o mestre vê tudo; o jogador só o que está publicado para a campanha. */
-  const visivel = (r: Registro) => papel === "mestre" || r.visibility === "campaign";
+  /** Imita a RLS de `notes`: dono vê o que é dele; o mestre não vê rascunhos alheios; publicado (campaign) todos veem; diário/cena/quadro só do mestre. */
+  const visivel = (r: Registro) => r.ownerId === uid || r.visibility === "campaign";
+  const negado = { ok: false as const, error: "Apenas o mestre pode fazer isso." };
   const espera = <T,>(v: T) => new Promise<T>(r => setTimeout(() => r(v), 60));
   return {
     list: async (campaignId, kind) => { lerTudo(); return espera({ ok: true as const, data: dados.filter(r => r.campaignId === campaignId && r.kind === kind && visivel(r)).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) }); },
     get: async id => { lerTudo(); const r = dados.find(x => x.id === id); return espera({ ok: true as const, data: r && visivel(r) ? r : null }); },
     create: async n => {
       lerTudo();
-      if (papel !== "mestre") return { ok: false as const, error: "Apenas o mestre pode fazer isso." };
+      if (n.kind !== "character" && papel !== "mestre") return negado;
       const agora = new Date().toISOString();
       const r: Registro = { id: `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, kind: n.kind, campaignId: n.campaignId, ownerId: uid, title: n.title.trim(), content: n.content ?? [], visibility: n.visibility ?? "private", meta: n.meta ?? {}, version: 1, createdAt: agora, updatedAt: agora };
       dados.push(r); salvar(); return espera({ ok: true as const, data: r });
     },
     update: async (id, version, p) => {
       lerTudo(); const i = dados.findIndex(x => x.id === id);
-      if (i < 0 || papel !== "mestre") return { ok: false as const, error: "Apenas o mestre pode fazer isso." };
+      if (i < 0 || dados[i].ownerId !== uid) return negado;
       if (dados[i].version !== version) return { ok: false as const, error: "Outra pessoa alterou este registro. Recarregue para continuar." };
       dados[i] = { ...dados[i], ...p, title: p.title?.trim() ?? dados[i].title, version: version + 1, updatedAt: new Date().toISOString() }; salvar();
       return espera({ ok: true as const, data: dados[i] });
     },
-    remove: async id => { lerTudo(); if (papel !== "mestre") return { ok: false as const, error: "Apenas o mestre pode fazer isso." }; dados = dados.filter(x => x.id !== id); salvar(); return espera({ ok: true as const, data: true as const }); },
+    remove: async id => { lerTudo(); const r = dados.find(x => x.id === id); if (!r || r.ownerId !== uid) return negado; dados = dados.filter(x => x.id !== id); salvar(); return espera({ ok: true as const, data: true as const }); },
   };
 }
 
@@ -78,13 +80,10 @@ const capaDemo: CapaApi = {
   obter: async () => ({ ok: true, data: localStorage.getItem(CAPA_KEY) }),
   definir: async (_c, f) => { try { const u = await lerArquivo(f); localStorage.setItem(CAPA_KEY, u); return { ok: true, data: u }; } catch { return { ok: false, error: "Imagem grande demais para o modo de demonstração." }; } },
   remover: async () => { localStorage.removeItem(CAPA_KEY); return { ok: true, data: true }; },
+  enviar: async () => ({ ok: false, error: "Envio de retrato indisponível no modo de demonstração." }),
+  urlDe: async () => ({ ok: false, error: "sem imagem" }),
+  apagar: async () => ({ ok: true, data: true }),
 };
-
-const PERSONAGENS: Aventureiro[] = [
-  { id: "p1", nome: "Lydia Valenmoor", classe: "Clériga", nivel: 3 },
-  { id: "p2", nome: "Toran Pedra-Ferro", classe: "Guerreiro", nivel: 3 },
-  { id: "p3", nome: "Sabine", classe: "Ladina", nivel: 2 },
-];
 
 export function DemoRoot({ papel }: { papel: Role }) {
   const uid = `demo-${papel}`;
@@ -93,6 +92,6 @@ export function DemoRoot({ papel }: { papel: Role }) {
   const campanhas = criarCampanhas(papel), registros = criarRegistros(papel, uid);
   try { localStorage.setItem(`compendio5e:active-campaign:${uid}`, CAMP.id); } catch { /* sem armazenamento */ }
   return <AuthProvider client={client}><CampaignsProvider apiFactory={() => campanhas}><RegistrosProvider api={registros} capa={capaDemo}>
-    <AventureirosContext.Provider value={{ listar: async () => ok(PERSONAGENS) }}><AuthGate><App/></AuthGate></AventureirosContext.Provider>
+    <AuthGate><App/></AuthGate>
   </RegistrosProvider></CampaignsProvider></AuthProvider>;
 }

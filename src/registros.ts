@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { erroCampanha, type Res } from "./campaigns";
 import type { BlocoTexto, DataHarptos } from "./inicio";
 
-export type RegistroKind = "diary" | "scene" | "board";
+export type RegistroKind = "diary" | "scene" | "board" | "character";
 export type Visibilidade = "private" | "campaign";
 export type Registro = {
   id: string; kind: RegistroKind; campaignId: string; ownerId: string;

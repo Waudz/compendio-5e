@@ -158,7 +158,7 @@ function Workspace({ userId }: { userId: string }) {
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
     const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
-    if (c?.kind === "documento" && c.ref) return tituloDe(c.ref) ?? n.getName();
+    if ((c?.kind === "documento" || c?.kind === "ficha") && c.ref) return tituloDe(c.ref) ?? n.getName();
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
   }, [memberships, registrosV]);
   labelRef.current = id => { const t = findTab(model, id); return t ? titleOf(t) : id; };

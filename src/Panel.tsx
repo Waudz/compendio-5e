@@ -5,13 +5,8 @@ import { CampaignsPanel } from "./CampaignPanels";
 import { CampaignHome } from "./CampaignHome";
 import { PlanningPanel } from "./Planning";
 import { DiarioPanel, RegistroPagina } from "./Diario";
+import { FichaPagina, PersonagensPanel } from "./Personagens";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
-
-const demo: Partial<Record<string, TabSpec[]>> = {
-  personagens: [{ kind: "ficha", ref: "lydia", title: "Ficha: Lydia" }, { kind: "ficha", ref: "sabine", title: "Ficha: Sabine" }],
-  enciclopedia: [{ kind: "npc", ref: "sabine", title: "NPC: Sabine" }, { kind: "npc", ref: "toran", title: "NPC: Toran" }],
-  documentos: [{ kind: "documento", ref: "diario", title: "Diário da campanha" }],
-};
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
 export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
@@ -25,13 +20,13 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "secao" && id === "planejamento") return <PlanningPanel onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "diario") return <DiarioPanel onOpenContent={onOpenContent}/>;
   if (kind === "documento") return <RegistroPagina id={id}/>;
+  if (kind === "ficha") return <FichaPagina id={id}/>;
+  if (kind === "secao" && id === "personagens") return <PersonagensPanel onOpenContent={onOpenContent}/>;
   const title = defaultTitle({ kind, ref: id });
-  const items = kind === "secao" ? demo[id] : undefined;
   return <div className="content">
-    <div className="eyebrow">COMPÊNDIO 5e / DEMONSTRAÇÃO</div>
+    <div className="eyebrow">COMPÊNDIO 5e</div>
     <h1>{title}</h1>
-    <p>Estrutura inicial. Os dados reais serão integrados nas próximas etapas.</p>
-    {items && <div className="demo-actions">{items.map(s => <button key={`${s.kind}:${s.ref}`} onClick={() => onOpenContent(s)}>Abrir {s.title}</button>)}</div>}
-    <div className="placeholder"><BookOpen size={30}/><strong>{title}</strong><span>Área reservada para a funcionalidade.</span></div>
+    <p>Este módulo ainda não foi desenvolvido.</p>
+    <div className="placeholder"><BookOpen size={30}/><strong>{title}</strong><span>Em desenvolvimento: nenhuma funcionalidade disponível aqui ainda.</span></div>
   </div>;
 }

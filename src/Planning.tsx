@@ -65,7 +65,7 @@ export function PlanningPanel({ onOpenContent }: { onOpenContent?: (s: TabSpec) 
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Planejamento</h1>
     <p>Prepare as sessões em colunas livres. Cada cartão é uma página privada sua; reorganizar o quadro não move nem duplica a página.</p>
-    {erro && <div className="notice err" role="alert">{erro}</div>}
+    {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando o planejamento…</p>}
     {carregado && board && <div className="quadro" role="list" aria-label="Colunas do planejamento">
