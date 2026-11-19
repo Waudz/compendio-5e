@@ -8,6 +8,7 @@ import { activeGroup, groups, type Kind, type TabSpec } from "./workspace";
 type Props = {
   model: Model; onChange: () => void; titleOf: (t: TabNode) => string;
   onOpen: (s: TabSpec, mode?: NavMode) => void;
+  onOpenContent: (s: TabSpec, originTabId?: string) => void;
   onClose: (tabId: string) => void;                                  // já protegido contra alterações não salvas
   onTabMenu: (t: TabNode, x: number, y: number) => void;
   onNewTab: (x: number, y: number) => void;
@@ -27,7 +28,7 @@ function MobileTab({ tab, active, title, onSelect, onMenu, onClose }: { tab: Tab
 }
 
 /** Celular: sem arraste nem colunas lado a lado. Mostra só o grupo ativo (abas + conteúdo); os outros grupos ficam acessíveis por seletor. */
-export function Mobile({ model, onOpen, onChange, titleOf, onClose, onTabMenu, onNewTab }: Props) {
+export function Mobile({ model, onOpen, onOpenContent, onChange, titleOf, onClose, onTabMenu, onNewTab }: Props) {
   const all = groups(model), group = activeGroup(model);
   const selected = group?.getSelectedNode();
   const tabs = (group?.getChildren() ?? []).filter((c): c is TabNode => c instanceof TabNode);
@@ -42,7 +43,7 @@ export function Mobile({ model, onOpen, onChange, titleOf, onClose, onTabMenu, o
     </div>
     </div>
     {selected instanceof TabNode
-      ? <Panel key={selected.getId()} kind={selected.getConfig().kind as Kind} entity={selected.getConfig().ref} onOpen={onOpen}/>
+      ? <Panel key={selected.getId()} kind={selected.getConfig().kind as Kind} entity={selected.getConfig().ref} onOpen={onOpen} onOpenContent={s => onOpenContent(s, selected.getId())}/>
       : <div className="empty"><h1>Área de trabalho</h1><p>Escolha uma seção no menu.</p></div>}
   </div>;
 }

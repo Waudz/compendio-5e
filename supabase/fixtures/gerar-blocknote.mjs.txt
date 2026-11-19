@@ -1,0 +1,24 @@
+// Gera um documento REAL do BlockNote 0.57.0 (saída de editor.document) para usar como fixture dos testes da migração 0005.
+import { JSDOM } from "jsdom";
+const dom = new JSDOM("<!doctype html><html><body><div id='root'></div></body></html>", { pretendToBeVisual: true });
+for (const k of ["window", "document", "navigator", "HTMLElement", "Node", "Element", "MutationObserver", "getComputedStyle", "DOMParser", "Range", "Selection", "requestAnimationFrame", "cancelAnimationFrame", "CustomEvent", "Event", "KeyboardEvent", "MouseEvent", "DocumentFragment", "Text", "HTMLInputElement", "XMLSerializer"]) {
+  try { Object.defineProperty(globalThis, k, { value: dom.window[k], configurable: true, writable: true }); } catch { /* ja existe */ }
+}
+globalThis.document.createRange = globalThis.document.createRange || (() => ({ setStart() {}, setEnd() {}, commonAncestorContainer: document.body, getBoundingClientRect: () => ({}), getClientRects: () => [] }));
+const { BlockNoteEditor } = await import("@blocknote/core");
+const editor = BlockNoteEditor.create();
+editor.mount(document.getElementById("root"));
+const UUID = "11111111-2222-4333-8444-555555555555";
+editor.replaceBlocks(editor.document, [
+  { type: "heading", props: { level: 2 }, content: [{ type: "text", text: "Taverna do Javali Cego", styles: { bold: true } }] },
+  { type: "paragraph", content: [{ type: "text", text: "A dona, ", styles: {} }, { type: "link", href: "https://exemplo.com/x?y=1", content: [{ type: "text", text: "Marta", styles: { italic: true } }] }, { type: "text", text: ", sabe do ferreiro.", styles: { underline: true } }] },
+  { type: "bulletListItem", content: "Boato 1: luzes na floresta", children: [{ type: "bulletListItem", content: "Só à noite", children: [{ type: "numberedListItem", content: "Sempre perto da cabana" }] }] },
+  { type: "checkListItem", props: { checked: true }, content: "Preparar o mapa" },
+  { type: "table", content: { type: "tableContent", rows: [{ cells: ["Oferta", "Condição"] }, { cells: ["50 PO", "Resolver em 2 dias"] }, { cells: ["Favor", [{ type: "text", text: "Entrada na ", styles: {} }, { type: "link", href: "mailto:bib@exemplo.com", content: "biblioteca" }]] }] } },
+  { type: "image", props: { url: `storage:campaign-assets/00000000-0000-0000-0000-0000000000c1/${UUID}`, caption: "Mapa da cripta", name: "mapa.png" } },
+  { type: "image", props: { url: "", caption: "Imagem ainda sem arquivo" } },
+  { type: "quote", content: "Nunca confie em um goblin sorridente." },
+  { type: "codeBlock", props: { language: "text" }, content: "d20 + 5" },
+]);
+console.log(JSON.stringify(editor.document, null, 1));
+process.exit(0);

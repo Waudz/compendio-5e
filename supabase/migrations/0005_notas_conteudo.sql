@@ -22,6 +22,18 @@
 --     uma ação explícita e separada (não há como excluir/restaurar e, com isso, contornar a política de compartilhamento).
 --   * Nota na lixeira não pode ser editada (só restaurada).
 --   * Controle de conflito: version continua só do servidor; public.save_note_content(id, version, ...) responde 'conflito_de_versao'.
+--
+-- Compatibilidade com a decisão D3 (docs/NOTAS-PERMISSOES.md §4; docs/REGISTRO-OFICIAL-DECISOES.md):
+--   * A nota pertence ao AUTOR; esta migração não cria vínculos nem concede acesso a ninguém. Vínculos (0008) nunca transferem propriedade
+--     nem compartilham; compartilhar continua sendo ação explícita do autor (visibility / note_shares, e as audiências na futura 0009).
+--   * O AUTOR EDITA as próprias notas mesmo depois de sair da campanha (a política notes_update deixa de exigir participação). O que NÃO muda:
+--     compartilhar com a campanha continua exigindo participação atual (o gatilho recusa mudar para um nível de compartilhamento fora da
+--     campanha) e, fora dela, o compartilhamento existente fica suspenso (note_readable já exige que o autor participe).
+--   * NÃO implementa audiências, vínculos nem o relaxamento de campaign_id/note_shares: isso é a 0009 (e a 0008 para vínculos).
+--     Dependências da 0009 sobre esta migração: (1) reescrever note_readable/can_read_note mantendo a assinatura; (2) fazer o gatilho
+--     notes_content_before_write limpar também as audiências ao excluir (hoje limpa note_shares); (3) manter 'campaign_id' como origem do
+--     caminho de Storage (hoje a referência de arquivo vale para a campanha de origem); (4) a coluna visibility passa a ser derivada, e o
+--     gatilho continua forçando 'private' na lixeira.
 -- Esta migração NÃO cria vínculos, cartões, sessões nem audiências (0006 em diante).
 
 -- ------------------------------------------------------------------ colunas
@@ -46,9 +58,19 @@ create index notes_kind_idx    on public.notes (campaign_id, kind) where deleted
 create function public.notes_content_before_write() returns trigger
 language plpgsql set search_path = '' as $$
 declare
-  v text;
+  v text; derived text; client_body text;
   uuid_re constant text := '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 begin
+  -- Compartilhar exige participação ATUAL na campanha (o autor fora dela continua editando, mas não amplia o compartilhamento) ----
+  if tg_op = 'UPDATE' and new.campaign_id is not null and new.visibility <> 'private' and new.visibility is distinct from old.visibility
+     and not public.is_member(new.campaign_id) then
+    raise exception 'compartilhar_exige_participacao' using errcode = '42501';
+  end if;
+  -- O conteúdo estruturado nunca é apagado por engano: para esvaziar, grave '[]' (ou use a lixeira) ------------------------------
+  if tg_op = 'UPDATE' and old.content is not null and new.content is null then
+    raise exception 'conteudo_nao_pode_ser_apagado' using errcode = '23514';
+  end if;
+
   -- Lixeira ------------------------------------------------------------------------------------------------------------------
   if tg_op = 'INSERT' then
     new.deleted_at := null; new.deleted_batch := null;                     -- nasce viva
@@ -71,6 +93,7 @@ begin
   end if;
 
   -- Conteúdo estruturado ------------------------------------------------------------------------------------------------------
+  client_body := new.body;
   if new.content is not null then
     if jsonb_typeof(new.content) <> 'array' then raise exception 'conteudo_invalido' using errcode = '23514'; end if;
     if exists (select 1 from jsonb_array_elements(new.content) b
@@ -97,13 +120,20 @@ begin
         raise exception 'conteudo_referencia_externa' using errcode = '23514';
       end if;
     end loop;
-    -- body derivado do conteúdo (busca/prévia): o que o cliente mandar em body é ignorado enquanto houver content
+    -- body derivado do conteúdo (busca/prévia). Mandar um body diferente é um ERRO (nada é descartado em silêncio): body só muda
+    -- quando o content muda, e então é recalculado pelo servidor.
     -- (modo strict: o modo lax visita cada valor duas vezes e duplicaria o texto)
-    select left(coalesce(string_agg(t, ' '), ''), 50000) into new.body
+    select left(coalesce(string_agg(t, ' '), ''), 50000) into derived
       from (select jsonb_path_query(new.content, 'strict $.** ? (@.type() == "object" && exists(@.text)).text') #>> '{}' as t
             union all
-            select jsonb_path_query(new.content, 'strict $.** ? (@.type() == "object" && exists(@.label)).label') #>> '{}') s
+            select jsonb_path_query(new.content, 'strict $.** ? (@.type() == "object" && exists(@.label)).label') #>> '{}'
+            union all
+            select jsonb_path_query(new.content, 'strict $.** ? (@.type() == "object" && exists(@.caption)).caption') #>> '{}') s
      where t is not null and t <> '';
+    if client_body is distinct from derived and ((tg_op = 'INSERT' and coalesce(client_body, '') <> '') or (tg_op = 'UPDATE' and client_body is distinct from old.body)) then
+      raise exception 'body_e_derivado_do_conteudo' using errcode = '23514';
+    end if;
+    new.body := derived;
   end if;
   return new;
 end $$;
@@ -120,6 +150,7 @@ language plpgsql set search_path = '' as $$
 #variable_conflict use_column
 declare r record;
 begin
+  if p_content is null or jsonb_typeof(p_content) <> 'array' then raise exception 'conteudo_invalido' using errcode = '23514'; end if;   -- nunca apaga o conteúdo por engano
   update public.notes n
      set content = p_content, content_schema = p_schema, title = coalesce(p_title, n.title)
    where n.id = p_id and n.version = p_version
@@ -138,3 +169,8 @@ grant execute on function public.save_note_content(uuid, integer, jsonb, integer
 grant insert (kind, content, content_schema) on public.notes to authenticated;
 grant update (kind, content, content_schema, deleted_at, deleted_batch) on public.notes to authenticated;
 -- Políticas RLS de notes e note_shares: SEM alteração (autor escreve; leitura por note_readable).
+
+-- ------------------------------------------------------------------ D3: o autor edita as próprias notas mesmo fora da campanha
+-- Na 0004 a política exigia participação atual também para EDITAR. Agora basta ser o autor; ampliar o compartilhamento continua exigindo
+-- participação (gatilho acima), e a leitura por outros segue suspensa enquanto o autor está fora (note_readable, inalterada).
+alter policy notes_update on public.notes using (owner_id = auth.uid()) with check (owner_id = auth.uid());

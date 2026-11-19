@@ -43,6 +43,9 @@ describe("ocultar no celular (App)", () => {
     vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   });
   afterEach(cleanup);
+  /** Monta o app e descarrega os efeitos pendentes (act assíncrono): o ouvinte de rolagem é registrado num useEffect e, sob carga, podia ainda
+      não existir quando o teste disparava o primeiro evento — a primeira rolagem se perdia e o teste falhava de forma intermitente em CI. */
+  const montar = async () => { await renderApp(); await act(async () => {}); };
 
   /** Rola o contêiner interno (.content) como o navegador faria. */
   const scrollTo = (el: HTMLElement, top: number) => { el.scrollTop = top; fireEvent.scroll(el); };
@@ -50,7 +53,7 @@ describe("ocultar no celular (App)", () => {
   const app = () => document.querySelector(".app")!;
 
   it("rolar para baixo no contêiner interno oculta; para cima mostra; topo mostra", async () => {
-    await renderApp(); const el = scroller();
+    await montar(); const el = scroller();
     expect(app().classList.contains("chrome-hidden")).toBe(false);
     scrollTo(el, 120); scrollTo(el, 240);
     expect(app().classList.contains("chrome-hidden")).toBe(true);
@@ -61,27 +64,27 @@ describe("ocultar no celular (App)", () => {
   });
 
   it("foco em controle traz os controles de volta", async () => {
-    await renderApp(); const el = scroller(); scrollTo(el, 120); scrollTo(el, 300);
+    await montar(); const el = scroller(); scrollTo(el, 120); scrollTo(el, 300);
     expect(app().classList.contains("chrome-hidden")).toBe(true);
     act(() => { fireEvent.focusIn(screen.getAllByRole("button", { name: "Iniciativa" })[0]); });
     expect(app().classList.contains("chrome-hidden")).toBe(false);
   });
 
   it("não oculta durante edição em campo de texto", async () => {
-    await renderApp(); const el = scroller();
+    await montar(); const el = scroller();
     const input = document.createElement("input"); el.append(input); input.focus();
     scrollTo(el, 120); scrollTo(el, 300);
     expect(app().classList.contains("chrome-hidden")).toBe(false);
   });
 
   it("ignora rolagem de faixa que não rola na vertical (abas)", async () => {
-    await renderApp(); scroller(); scrollTo(el0(), 300);
+    await montar(); scroller(); scrollTo(el0(), 300);
     expect(app().classList.contains("chrome-hidden")).toBe(false);
     function el0() { return document.querySelector<HTMLElement>(".m-tabs")!; }
   });
 
   it("no desktop nunca oculta", async () => {
-    mobile = false; await renderApp();
+    mobile = false; await montar();
     const el = document.querySelector<HTMLElement>(".flexlayout__layout")!;
     Object.defineProperty(el, "scrollHeight", { value: 3000, configurable: true });
     scrollTo(el, 300); scrollTo(el, 600);

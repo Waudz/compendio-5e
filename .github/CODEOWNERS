@@ -1,0 +1,6 @@
+# Mantenedor único. Com a regra "exigir revisão de proprietários do código" (opcional, ver docs/CONFIGURACAO-GITHUB.md),
+# mudanças em banco, fluxos de trabalho e segurança pedem revisão explícita do responsável.
+*                  @Waudz
+/supabase/         @Waudz
+/.github/          @Waudz
+/DECISOES-E-ARQUITETURA.md @Waudz

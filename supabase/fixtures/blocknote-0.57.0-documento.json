@@ -1,0 +1,330 @@
+[
+ {
+  "id": "477b58cb-85da-41ae-8d5a-3800497048ed",
+  "type": "heading",
+  "props": {
+   "backgroundColor": "default",
+   "textColor": "default",
+   "textAlignment": "left",
+   "level": 2,
+   "isToggleable": false
+  },
+  "content": [
+   {
+    "type": "text",
+    "text": "Taverna do Javali Cego",
+    "styles": {
+     "bold": true
+    }
+   }
+  ],
+  "children": []
+ },
+ {
+  "id": "5329cc38-9ff2-4272-880b-62c9f59582bc",
+  "type": "paragraph",
+  "props": {
+   "backgroundColor": "default",
+   "textColor": "default",
+   "textAlignment": "left"
+  },
+  "content": [
+   {
+    "type": "text",
+    "text": "A dona, ",
+    "styles": {}
+   },
+   {
+    "type": "link",
+    "href": "https://exemplo.com/x?y=1",
+    "content": [
+     {
+      "type": "text",
+      "text": "Marta",
+      "styles": {
+       "italic": true
+      }
+     }
+    ]
+   },
+   {
+    "type": "text",
+    "text": ", sabe do ferreiro.",
+    "styles": {
+     "underline": true
+    }
+   }
+  ],
+  "children": []
+ },
+ {
+  "id": "548bdd48-aee6-4bfa-bc98-e50ce8647c2a",
+  "type": "bulletListItem",
+  "props": {
+   "backgroundColor": "default",
+   "textColor": "default",
+   "textAlignment": "left"
+  },
+  "content": [
+   {
+    "type": "text",
+    "text": "Boato 1: luzes na floresta",
+    "styles": {}
+   }
+  ],
+  "children": [
+   {
+    "id": "41ad7dc2-0872-4930-8cb5-d65d85039073",
+    "type": "bulletListItem",
+    "props": {
+     "backgroundColor": "default",
+     "textColor": "default",
+     "textAlignment": "left"
+    },
+    "content": [
+     {
+      "type": "text",
+      "text": "Só à noite",
+      "styles": {}
+     }
+    ],
+    "children": [
+     {
+      "id": "0f9e6054-5009-433f-94c4-b0ab31358391",
+      "type": "numberedListItem",
+      "props": {
+       "backgroundColor": "default",
+       "textColor": "default",
+       "textAlignment": "left"
+      },
+      "content": [
+       {
+        "type": "text",
+        "text": "Sempre perto da cabana",
+        "styles": {}
+       }
+      ],
+      "children": []
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "c5cda07f-fddb-48df-be07-1aba6e0a8a57",
+  "type": "checkListItem",
+  "props": {
+   "backgroundColor": "default",
+   "textColor": "default",
+   "textAlignment": "left",
+   "checked": true
+  },
+  "content": [
+   {
+    "type": "text",
+    "text": "Preparar o mapa",
+    "styles": {}
+   }
+  ],
+  "children": []
+ },
+ {
+  "id": "7136f82f-d710-42f4-964d-dbfd36f0839a",
+  "type": "table",
+  "props": {
+   "textColor": "default"
+  },
+  "content": {
+   "type": "tableContent",
+   "columnWidths": [
+    null,
+    null
+   ],
+   "rows": [
+    {
+     "cells": [
+      {
+       "type": "tableCell",
+       "content": [
+        {
+         "type": "text",
+         "text": "Oferta",
+         "styles": {}
+        }
+       ],
+       "props": {
+        "colspan": 1,
+        "rowspan": 1,
+        "backgroundColor": "default",
+        "textColor": "default",
+        "textAlignment": "left"
+       }
+      },
+      {
+       "type": "tableCell",
+       "content": [
+        {
+         "type": "text",
+         "text": "Condição",
+         "styles": {}
+        }
+       ],
+       "props": {
+        "colspan": 1,
+        "rowspan": 1,
+        "backgroundColor": "default",
+        "textColor": "default",
+        "textAlignment": "left"
+       }
+      }
+     ]
+    },
+    {
+     "cells": [
+      {
+       "type": "tableCell",
+       "content": [
+        {
+         "type": "text",
+         "text": "50 PO",
+         "styles": {}
+        }
+       ],
+       "props": {
+        "colspan": 1,
+        "rowspan": 1,
+        "backgroundColor": "default",
+        "textColor": "default",
+        "textAlignment": "left"
+       }
+      },
+      {
+       "type": "tableCell",
+       "content": [
+        {
+         "type": "text",
+         "text": "Resolver em 2 dias",
+         "styles": {}
+        }
+       ],
+       "props": {
+        "colspan": 1,
+        "rowspan": 1,
+        "backgroundColor": "default",
+        "textColor": "default",
+        "textAlignment": "left"
+       }
+      }
+     ]
+    },
+    {
+     "cells": [
+      {
+       "type": "tableCell",
+       "content": [
+        {
+         "type": "text",
+         "text": "Favor",
+         "styles": {}
+        }
+       ],
+       "props": {
+        "colspan": 1,
+        "rowspan": 1,
+        "backgroundColor": "default",
+        "textColor": "default",
+        "textAlignment": "left"
+       }
+      },
+      {
+       "type": "tableCell",
+       "content": [
+        {
+         "type": "text",
+         "text": "Entrada na ",
+         "styles": {}
+        },
+        {
+         "type": "link",
+         "href": "mailto:bib@exemplo.com",
+         "content": [
+          {
+           "type": "text",
+           "text": "biblioteca",
+           "styles": {}
+          }
+         ]
+        }
+       ],
+       "props": {
+        "colspan": 1,
+        "rowspan": 1,
+        "backgroundColor": "default",
+        "textColor": "default",
+        "textAlignment": "left"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  "children": []
+ },
+ {
+  "id": "9cd50581-bf08-49d0-857c-44e53b5b2785",
+  "type": "image",
+  "props": {
+   "textAlignment": "left",
+   "backgroundColor": "default",
+   "name": "mapa.png",
+   "url": "storage:campaign-assets/00000000-0000-0000-0000-0000000000c1/11111111-2222-4333-8444-555555555555",
+   "caption": "Mapa da cripta",
+   "showPreview": true
+  },
+  "children": []
+ },
+ {
+  "id": "527634c5-8225-4fed-be59-247e2de0e260",
+  "type": "image",
+  "props": {
+   "textAlignment": "left",
+   "backgroundColor": "default",
+   "name": "",
+   "url": "",
+   "caption": "Imagem ainda sem arquivo",
+   "showPreview": true
+  },
+  "children": []
+ },
+ {
+  "id": "e4dcdf15-68be-49cd-81f1-5903205d1372",
+  "type": "quote",
+  "props": {
+   "backgroundColor": "default",
+   "textColor": "default"
+  },
+  "content": [
+   {
+    "type": "text",
+    "text": "Nunca confie em um goblin sorridente.",
+    "styles": {}
+   }
+  ],
+  "children": []
+ },
+ {
+  "id": "069a16b5-b9a7-4871-95a5-f1bb9eae4b2d",
+  "type": "codeBlock",
+  "props": {
+   "language": "text"
+  },
+  "content": [
+   {
+    "type": "text",
+    "text": "d20 + 5",
+    "styles": {}
+   }
+  ],
+  "children": []
+ }
+]

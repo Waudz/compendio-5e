@@ -6,6 +6,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 
 const dir = join(__dirname, "migrations"), rollbackDir = join(__dirname, "rollback");
+const bnFixture = () => readFileSync(join(__dirname, "fixtures", "blocknote-0.57.0-documento.json"), "utf8");   // saída REAL de editor.document (BlockNote 0.57.0, mesmo do PR #28)
 const U = { ana: "00000000-0000-0000-0000-00000000000a", bia: "00000000-0000-0000-0000-00000000000b", caio: "00000000-0000-0000-0000-00000000000c", dora: "00000000-0000-0000-0000-00000000000d" };
 const stub = `
 create role anon nologin; create role authenticated nologin;
@@ -78,7 +79,11 @@ describe("migração 0005 sobre dados existentes", () => {
     for (const f of files()) await t.exec(sql(f));
     await t.query("insert into auth.users (id, email) values ($1, 'a@x')", [U.ana]);
     const id = (await as(U.ana, "insert into public.notes (title, content) values ('Com conteúdo', $1::jsonb) returning id", [JSON.stringify([para("texto derivado")])], t)).rows[0].id as string;
-    await t.exec(readFileSync(join(rollbackDir, "0005_notas_conteudo_down.sql"), "utf8"));
+    const down = readFileSync(join(rollbackDir, "0005_notas_conteudo_down.sql"), "utf8");
+    await expect(t.exec(down)).rejects.toThrow(/rollback_0005_destrutivo/);                     // trava: há content; exige backup e confirmação explícita
+    expect((await t.query("select count(*)::int as n from information_schema.columns where table_name = 'notes' and column_name = 'content'")).rows).toEqual([{ n: 1 }]);   // nada foi revertido
+    await t.exec("set compendio.confirmar_rollback_0005 = 'sim'");
+    await t.exec(down);
     const cols = (await t.query("select column_name from information_schema.columns where table_name = 'notes'")).rows.map(r => r.column_name);
     for (const c of ["kind", "content", "content_schema", "deleted_at", "deleted_batch"]) expect(cols).not.toContain(c);
     expect((await t.query("select title, body from public.notes where id = $1", [id])).rows).toEqual([{ title: "Com conteúdo", body: "texto derivado" }]);
@@ -155,13 +160,15 @@ describe("conteúdo JSONB: estrutura, tamanho e referências", () => {
 });
 
 describe("body derivado e compatibilidade", () => {
-  it("nota antiga (só body) continua funcionando; com content, o servidor deriva o body e ignora o do cliente", async () => {
+  it("nota antiga (só body) continua funcionando; com content, o servidor deriva o body e RECUSA (não ignora em silêncio) um body diferente", async () => {
     const velho = (await as(U.bia, "insert into public.notes (title, body) values ('Antiga', 'só body') returning id")).rows[0].id as string;
     expect((await as(U.bia, "select body, content from public.notes where id = $1", [velho])).rows).toEqual([{ body: "só body", content: null }]);
     expect((await as(U.bia, "update public.notes set body = 'editado à mão' where id = $1 returning body", [velho])).rows).toEqual([{ body: "editado à mão" }]);
-    const novo = (await as(U.bia, "insert into public.notes (title, body, content) values ('Nova', 'forjado pelo cliente', $1::jsonb) returning id", [JSON.stringify([para("texto real")])])).rows[0].id as string;
+    expect((await as(U.bia, "insert into public.notes (title, body, content) values ('Nova', 'forjado pelo cliente', $1::jsonb)", [JSON.stringify([para("texto real")])])).error).toMatch(/body_e_derivado_do_conteudo/);
+    const novo = (await as(U.bia, "insert into public.notes (title, content) values ('Nova', $1::jsonb) returning id", [JSON.stringify([para("texto real")])])).rows[0].id as string;
     expect((await as(U.bia, "select body from public.notes where id = $1", [novo])).rows).toEqual([{ body: "texto real" }]);
-    expect((await as(U.bia, "update public.notes set body = 'outro forjado' where id = $1 returning body", [novo])).rows).toEqual([{ body: "texto real" }]);
+    expect((await as(U.bia, "update public.notes set body = 'outro forjado' where id = $1", [novo])).error).toMatch(/body_e_derivado_do_conteudo/);
+    expect((await as(U.bia, "update public.notes set title = 'Outro título' where id = $1 returning body", [novo])).rows).toEqual([{ body: "texto real" }]);   // mexer em outra coluna não toca no body
     await as(U.bia, "update public.notes set content = $1::jsonb where id = $2", [JSON.stringify([para("mudou")]), novo]);
     expect((await as(U.bia, "select body from public.notes where id = $1", [novo])).rows).toEqual([{ body: "mudou" }]);
   });
@@ -303,5 +310,116 @@ describe("regressão: a regra de leitura não mudou", () => {
     expect(await ver(U.caio)).toEqual(["ParaTodos"]);
     expect(await ver(U.dora)).toEqual([]);
     expect(await ver(U.bia)).toEqual(["ParaMestre", "ParaTodos", "Priv"]);
+  });
+});
+
+describe("contrato com o formato real do BlockNote (0.57.0)", () => {
+  const doc = (campaign: string) => JSON.parse(bnFixture().replaceAll("00000000-0000-0000-0000-0000000000c1", campaign)) as Record<string, unknown>[];
+  it("o documento real (parágrafo, títulos, listas aninhadas, checklist, tabela com células-objeto, links, imagens, citação, código) é aceito e volta idêntico", async () => {
+    const content = doc(C1), tipos = content.map(b => b.type);
+    expect(tipos).toEqual(["heading", "paragraph", "bulletListItem", "checkListItem", "table", "image", "image", "quote", "codeBlock"]);
+    const r = await insertContent(U.ana, C1, content); expect(r.error).toBeUndefined();
+    expect((await as(U.ana, "select content from public.notes where id = $1", [r.rows[0].id])).rows[0].content).toEqual(content);
+  });
+  it("o body derivado guarda o texto necessário para busca e prévia (aninhados, tabela, links, citação, código e legenda de imagem)", async () => {
+    const r = await insertContent(U.ana, C1, doc(C1));
+    const body = (await as(U.ana, "select body from public.notes where id = $1", [r.rows[0].id])).rows[0].body as string;
+    for (const trecho of ["Taverna do Javali Cego", "A dona,", "Marta", ", sabe do ferreiro.", "Boato 1: luzes na floresta", "Só à noite", "Sempre perto da cabana", "Preparar o mapa",
+      "Oferta", "Condição", "50 PO", "Resolver em 2 dias", "Favor", "Entrada na", "biblioteca", "Nunca confie em um goblin sorridente.", "d20 + 5", "Mapa da cripta", "Imagem ainda sem arquivo"])
+      expect(body, trecho).toContain(trecho);
+    expect(body).not.toMatch(/https?:|storage:|mapa\.png|default|left/);           // sem URLs, nomes de arquivo nem propriedades de formatação
+    expect(body.length).toBeLessThan(600);
+    const achada = await as(U.ana, "select id from public.notes where id = $1 and body ilike '%goblin sorridente%'", [r.rows[0].id]); expect(achada.rows).toHaveLength(1);
+  });
+  it("referências de arquivo do documento real: só a campanha da própria nota; outra campanha, URL externa e nota pessoal são recusadas", async () => {
+    expect((await insertContent(U.ana, C1, doc(C2))).error).toMatch(/conteudo_referencia_externa/);                       // imagem aponta para a campanha C2
+    const externa = doc(C1); (externa[5].props as Record<string, unknown>).url = "https://evil.example/x.png";
+    expect((await insertContent(U.ana, C1, externa)).error).toMatch(/conteudo_referencia_externa/);
+    expect((await insertContent(U.bia, null, doc(C1))).error).toMatch(/conteudo_referencia_externa/);                      // pessoal não tem arquivos de campanha
+    const semArquivos = doc(C1).filter(b => b.type !== "image"); expect((await insertContent(U.bia, null, semArquivos)).error).toBeUndefined();
+  });
+  it("o salvamento com controle de versão aceita o documento real e recalcula o body", async () => {
+    const id = await mk(U.ana, "Cena real", { campaign: C1, content: [para("começo")] });
+    expect((await rpc(U.ana, "save_note_content", id, 1, JSON.stringify(doc(C1)), 1, null)).error).toBeUndefined();
+    expect((await as(U.ana, "select version, body like '%Taverna do Javali Cego%' as ok from public.notes where id = $1", [id])).rows).toEqual([{ version: 2, ok: true }]);
+  });
+});
+
+describe("D3: o autor é dono da nota; sair da campanha não tira a edição, mas não amplia o compartilhamento", () => {
+  it("fora da campanha o autor edita conteúdo, título, tipo e usa a lixeira; ninguém mais lê; ele não compartilha de novo sem participar", async () => {
+    const camp = (await rpc(U.dora, "create_campaign", "Mesa D3", "")).rows[0].r as string;
+    const code = (await rpc(U.dora, "create_invite", camp, 5, 7)).rows[0].r as string; await rpc(U.caio, "join_campaign", code);
+    const id = await mk(U.caio, "Do Caio", { vis: "campaign", campaign: camp, kind: "scene", content: [para("antes")] });
+    expect(await as(U.dora, "select id from public.notes where id = $1", [id]).then(r => r.rows)).toHaveLength(1);
+    await as(U.caio, "delete from public.campaign_members where user_id = $1 and campaign_id = $2", [U.caio, camp]);          // Caio sai
+    expect((await as(U.dora, "select id from public.notes where id = $1", [id])).rows).toEqual([]);                           // compartilhamento suspenso
+    const ed = await rpc(U.caio, "save_note_content", id, 1, JSON.stringify([para("depois da saída")]), 1, "Título novo");
+    expect(ed.error).toBeUndefined();
+    expect((await as(U.caio, "update public.notes set kind = 'npc' where id = $1 returning kind", [id])).rows).toEqual([{ kind: "npc" }]);
+    expect((await as(U.caio, "update public.notes set visibility = 'private' where id = $1 returning visibility", [id])).rows).toEqual([{ visibility: "private" }]);   // reduzir é permitido
+    expect((await as(U.caio, "update public.notes set visibility = 'campaign' where id = $1", [id])).error).toMatch(/compartilhar_exige_participacao/);             // ampliar, não
+    expect((await as(U.caio, "update public.notes set deleted_at = now() where id = $1 returning deleted_at is not null as ok", [id])).rows).toEqual([{ ok: true }]);
+    expect((await as(U.caio, "update public.notes set deleted_at = null where id = $1 returning visibility", [id])).rows).toEqual([{ visibility: "private" }]);
+    expect((await as(U.caio, "insert into public.notes (campaign_id, title) values ($1, 'nova fora')", [camp])).error).toMatch(/row-level security/);           // criar na campanha ainda exige participação
+    await rpc(U.caio, "join_campaign", (await rpc(U.dora, "create_invite", camp, 5, 7)).rows[0].r as string);                  // volta
+    expect((await as(U.caio, "update public.notes set visibility = 'campaign' where id = $1 returning visibility", [id])).rows).toEqual([{ visibility: "campaign" }]);
+    expect(await as(U.dora, "select title from public.notes where id = $1", [id]).then(r => r.rows)).toEqual([{ title: "Título novo" }]);
+  });
+  it("tipo (kind) e conteúdo nunca concedem acesso: o mestre não lê nota privada de jogador, seja qual for o tipo", async () => {
+    const id = await mk(U.bia, "NPC privado da Bia", { vis: "private", campaign: C1, kind: "npc", content: [para("segredo")] });
+    for (const k of ["npc", "page", "scene", "location", "faction", "event", "diary"]) {
+      await as(U.bia, "update public.notes set kind = $2 where id = $1", [id, k]);
+      expect((await as(U.ana, "select id from public.notes where id = $1", [id])).rows, k).toEqual([]);
+      expect((await as(U.ana, "select id from public.notes where kind = $1 and campaign_id = $2 and owner_id = $3", [k, C1, U.bia])).rows, k).toEqual([]);
+    }
+  });
+  it("a única política alterada em relação à 0004 é notes_update (só o autor); as demais continuam iguais", async () => {
+    const r = await db.query<{ tablename: string; policyname: string; cmd: string; qual: string | null; with_check: string | null }>("select tablename, policyname, cmd, qual, with_check from pg_policies where schemaname = 'public' and tablename in ('notes', 'note_shares') order by tablename, policyname");
+    expect(r.rows.map(x => x.policyname).sort()).toEqual(["notes_delete", "notes_insert", "notes_select", "notes_update", "shares_delete", "shares_insert", "shares_select"]);
+    const up = r.rows.find(x => x.policyname === "notes_update")!;
+    expect(up.qual).toMatch(/owner_id = auth\.uid\(\)/); expect(up.with_check).toMatch(/owner_id = auth\.uid\(\)/); expect(up.with_check).not.toMatch(/is_member/);
+    expect(r.rows.find(x => x.policyname === "notes_insert")!.with_check).toMatch(/is_member/);           // criar na campanha continua exigindo participação
+  });
+});
+
+describe("conteúdo não se perde em silêncio", () => {
+  it("não é possível apagar o content com NULL (direto, pela função ou com privilégio total); esvaziar exige '[]'", async () => {
+    const id = await mk(U.bia, "Protegida", { content: [para("importante")] });
+    expect((await as(U.bia, "update public.notes set content = null where id = $1", [id])).error).toMatch(/conteudo_nao_pode_ser_apagado/);
+    await expect(db.query("update public.notes set content = null where id = $1", [id])).rejects.toThrow(/conteudo_nao_pode_ser_apagado/);
+    expect((await rpc(U.bia, "save_note_content", id, 1, null, 1, null)).error).toMatch(/conteudo_invalido/);
+    expect((await rpc(U.bia, "save_note_content", id, 1, JSON.stringify({ nao: "array" }), 1, null)).error).toMatch(/conteudo_invalido/);
+    expect((await as(U.bia, "select content, version from public.notes where id = $1", [id])).rows).toEqual([{ content: [para("importante")], version: 1 }]);
+    expect((await as(U.bia, "update public.notes set content = '[]'::jsonb where id = $1 returning body", [id])).rows).toEqual([{ body: "" }]);
+  });
+  it("nota antiga (content nulo) pode ganhar conteúdo; depois dele não volta a ser só body", async () => {
+    const id = (await as(U.bia, "insert into public.notes (title, body) values ('Legada', 'texto antigo') returning id")).rows[0].id as string;
+    expect((await as(U.bia, "update public.notes set content = $2::jsonb where id = $1 returning body", [id, JSON.stringify([para("migrada")])])).rows).toEqual([{ body: "migrada" }]);
+  });
+  it("a lixeira não perde conteúdo: o content e o body continuam intactos depois de excluir e restaurar", async () => {
+    const id = await mk(U.bia, "Ciclo", { content: [para("preservar")] });
+    await as(U.bia, "update public.notes set deleted_at = now() where id = $1", [id]); await as(U.bia, "update public.notes set deleted_at = null where id = $1", [id]);
+    expect((await as(U.bia, "select content, body from public.notes where id = $1", [id])).rows).toEqual([{ content: [para("preservar")], body: "preservar" }]);
+  });
+});
+
+describe("rollback destrutivo exige confirmação", () => {
+  it("sem dados novos roda direto e devolve a política da 0004; com dados exige backup + confirmação na sessão", async () => {
+    const t = new PGlite(); await t.exec(stub);
+    for (const f of files()) await t.exec(sql(f));
+    for (const [n, id] of Object.entries(U)) await t.query("insert into auth.users (id, email) values ($1, $2)", [id, `${n}@x`]);
+    const down = readFileSync(join(rollbackDir, "0005_notas_conteudo_down.sql"), "utf8");
+    const camp = (await as(U.ana, "select public.create_campaign('R','') as r", [], t)).rows[0].r as string;
+    const n1 = (await as(U.ana, "insert into public.notes (campaign_id, title) values ($1, 'sem dados novos') returning id", [camp], t)).rows[0].id;
+    await t.exec(down);                                                                     // nada a perder: roda sem confirmação
+    expect((await t.query("select title from public.notes where id = $1", [n1])).rows).toEqual([{ title: "sem dados novos" }]);
+    const pol = (await t.query("select with_check from pg_policies where policyname = 'notes_update'")).rows[0].with_check as string;
+    expect(pol).toMatch(/is_member/);                                                      // política da 0004 restaurada
+    await t.exec(sql(files().find(f => f.startsWith("0005"))!));                           // reaplica
+    await as(U.ana, "update public.notes set kind = 'npc' where id = $1", [n1], t);        // agora há dado novo
+    await expect(t.exec(down)).rejects.toThrow(/rollback_0005_destrutivo/);
+    await as(U.ana, "update public.notes set kind = 'note' where id = $1", [n1], t);
+    await as(U.ana, "update public.notes set deleted_at = now() where id = $1", [n1], t);  // lixeira também conta como dado novo
+    await expect(t.exec(down)).rejects.toThrow(/rollback_0005_destrutivo/);
   });
 });

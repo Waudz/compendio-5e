@@ -193,14 +193,15 @@ describe("participação atual e saída da campanha", () => {
     expect(await titles(eva)).not.toContain("Aviso geral");
     expect((await as(eva, "insert into public.notes (campaign_id, title) values ($1, 'x')", [C1])).error).toMatch(/row-level security/);
   });
-  it("autor que sai: nada é apagado; ele lê/exclui as suas, mas o compartilhamento fica inativo e a edição é bloqueada", async () => {
+  it("autor que sai: nada é apagado; ele lê/edita/exclui as suas (D3, 0005), mas o compartilhamento fica inativo e ele não o amplia", async () => {
     const mine = await mk(U.caio, "Nota do Caio", "campaign", C1, "conteúdo");
     expect(await titles(U.ana)).toContain("Nota do Caio");
     await as(U.caio, "delete from public.campaign_members where user_id = $1 and campaign_id = $2", [U.caio, C1]);   // Caio sai
     expect(await titles(U.ana)).not.toContain("Nota do Caio");                                   // mestre deixa de ver
     expect(await titles(U.bia)).not.toContain("Nota do Caio");
     expect(await titles(U.caio)).toContain("Nota do Caio");                                      // autor mantém
-    expect((await as(U.caio, "update public.notes set body = 'x' where id = $1 returning id", [mine])).error).toMatch(/row-level security/);   // sem edição fora da campanha
+    expect((await as(U.caio, "update public.notes set body = 'x' where id = $1 returning id", [mine])).rows).toHaveLength(1);   // D3 (0005): o autor edita as próprias notas mesmo fora da campanha
+    expect((await as(U.caio, "update public.notes set visibility = 'master' where id = $1", [mine])).error).toMatch(/compartilhar_exige_participacao/);   // mas não amplia o compartilhamento sem participar
     expect((await db.query("select count(*)::int as n from public.notes where id = $1", [mine])).rows).toEqual([{ n: 1 }]);  // nada apagado
     expect((await as(U.caio, "select title from public.notes where campaign_id = $1 and visibility = 'campaign' and owner_id <> $2", [C1, U.caio])).rows).toEqual([]);   // e não lê as dos outros
     // volta por novo convite: o compartilhamento original volta a valer

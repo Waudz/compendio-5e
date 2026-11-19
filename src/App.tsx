@@ -8,7 +8,7 @@ import { ContextMenu, type MenuItem, type MenuState } from "./ContextMenu";
 import { useChromeHidden } from "./chromeHide";
 import { Mobile } from "./Mobile";
 import { NavItem } from "./NavItem";
-import { closeTabs, isPinned, navigate, otherNormalTabs, setPinned, type NavMode } from "./navigation";
+import { closeTabs, isPinned, navigate, openContentLink as openContent, otherNormalTabs, setPinned, type NavMode } from "./navigation";
 import { UnsavedContext, useUnsavedRegistry } from "./unsaved";
 import { findTab } from "./workspace";
 import { Panel } from "./Panel";
@@ -78,23 +78,25 @@ function Workspace({ userId }: { userId: string }) {
     return prepareMove(model, a);   // recusa/ajusta movimentos (divisão com aba única)
   }, [model, unsaved.api]);
   // Navegação: clique normal reutiliza a aba atual (se não fixada e sem alterações); "nova aba" preserva as existentes.
-  const open = useCallback((s: TabSpec, mode: NavMode = "reuse") => { navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api]);
+  // Duas portas, nunca confundidas: openMenu (menu lateral, ações administrativas: reutiliza) e openContentLink (links de conteúdo: aba permanente).
+  const openMenu = useCallback((s: TabSpec, mode: NavMode = "reuse") => { navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api]);
+  const openContentLink = useCallback((s: TabSpec, originTabId?: string) => { openContent(model, s, originTabId); onModelChange(model); }, [model, onModelChange]);
   const inviteOpenedScope = useRef<string | null>(null);
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has("convite") || status === "loading") return;
     if (inviteOpenedScope.current === scopeKey) return;
     inviteOpenedScope.current = scopeKey;
-    open({ kind: "secao", ref: "campanhas" }, "new");   // abertura automática pelo convite nunca substitui a aba em uso
-  }, [open, status, scopeKey]);
+    openMenu({ kind: "secao", ref: "campanhas" }, "new");   // abertura automática pelo convite nunca substitui a aba em uso
+  }, [openMenu, status, scopeKey]);
   const run = (fn: () => void) => () => { fn(); onModelChange(model); };
   const closeMenu = useCallback(() => setMenu(null), []);
   const guarded = (ids: string[], fn: () => void) => () => unsaved.api.guard(ids, () => { fn(); onModelChange(model); });
   /** Menu dos itens de navegação (botão direito, tecla de menu ou toque prolongado). */
   const showNavMenu = useCallback((s: TabSpec, x: number, y: number) => setMenu({ x, y, items: [
-    { label: "Abrir nesta aba", onSelect: () => open(s, "reuse") },
-    { label: "Abrir em nova aba", onSelect: () => open(s, "new") },
-    { label: "Abrir em nova aba fixada", onSelect: () => open(s, "newPinned") },
-  ] }), [open]);
+    { label: "Abrir nesta aba", onSelect: () => openMenu(s, "reuse") },
+    { label: "Abrir em nova aba", onSelect: () => openMenu(s, "new") },
+    { label: "Abrir em nova aba fixada", onSelect: () => openMenu(s, "newPinned") },
+  ] }), [openMenu]);
 
   const contextMenu = useCallback((node: TabNode | TabSetNode | { getType(): string }, e: React.MouseEvent) => {
     e.preventDefault();
@@ -136,8 +138,8 @@ function Workspace({ userId }: { userId: string }) {
 
   const factory = useCallback((node: TabNode) => {
     const c = node.getConfig() as { kind: Kind; ref: string };
-    return <Panel kind={c.kind} entity={c.ref} onOpen={open}/>;
-  }, [open]);
+    return <Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => openContentLink(s, node.getId())}/>;
+  }, [openMenu, openContentLink]);
 
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
@@ -164,10 +166,10 @@ function Workspace({ userId }: { userId: string }) {
       <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
       <div className="campaign" title="Campanha ativa">{!collapsed && <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}</div>
       <nav aria-label="Menu principal">{sections.map(({ page, title, icon: Icon }) =>
-        <NavItem key={page} spec={{ kind: "secao", ref: page }} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} title={title} onNavigate={open} onMenu={showNavMenu}>
+        <NavItem key={page} spec={{ kind: "secao", ref: page }} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} title={title} onNavigate={openMenu} onMenu={showNavMenu}>
           <Icon size={19}/>{!collapsed && <span>{title}</span>}
         </NavItem>)}
-        <NavItem spec={{ kind: "conta", ref: "perfil" }} className={activeId === "conta:perfil" ? "nav-item account selected" : "nav-item account"} title="Conta" onNavigate={open} onMenu={showNavMenu}>
+        <NavItem spec={{ kind: "conta", ref: "perfil" }} className={activeId === "conta:perfil" ? "nav-item account selected" : "nav-item account"} title="Conta" onNavigate={openMenu} onMenu={showNavMenu}>
           <UserRound size={19}/>{!collapsed && <span>Conta</span>}
         </NavItem></nav>
       <button className="collapse" onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
@@ -176,9 +178,9 @@ function Workspace({ userId }: { userId: string }) {
     </aside>
     <main className="workspace">
       {mobile
-        ? <Mobile model={model} onOpen={open} onChange={() => onModelChange(model)} titleOf={titleOf}
+        ? <Mobile model={model} onOpen={openMenu} onOpenContent={openContentLink} onChange={() => onModelChange(model)} titleOf={titleOf}
             onClose={id => guarded([id], () => closeTab(model, id))()} onTabMenu={(t, x, y) => showTabMenu(t, x, y)}
-            onNewTab={(x, y) => setMenu({ x, y, items: sections.map(({ page, title }) => ({ label: title, onSelect: () => open({ kind: "secao", ref: page }, "new") })) })}/>
+            onNewTab={(x, y) => setMenu({ x, y, items: sections.map(({ page, title }) => ({ label: title, onSelect: () => openMenu({ kind: "secao", ref: page }, "new") })) })}/>
         : <Layout model={model} factory={factory} onAction={onAction} onModelChange={onModelChange} onContextMenu={contextMenu}
             onRenderTab={renderTab} onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize/>}
     </main>
