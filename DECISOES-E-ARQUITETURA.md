@@ -123,7 +123,7 @@ Arquitetura desejada: interfaces/componentes reutilizáveis; serviços de domín
 - **Uma seção principal** para consulta com subáreas/filtros próprios: **Magias, Monstros, Itens e Regras**.
 - Pesquisa e leitura rápidas, sem misturar consulta com operações de ficha.
 - Catálogo geral (SRD 2014) somente leitura, disponível a **qualquer conta autenticada** (sem visitantes).
-- **Bestiário para jogadores:** mestre controla por campanha uma permissão simples de visibilidade do catálogo; encontros privados e segredos do mestre nunca são revelados por essa opção.
+- **Bestiário para jogadores:** qualquer conta autenticada acessa o Compêndio universal. **Pendente (D7, a conversar com o grupo):** o nível de informação que jogadores veem do monstro (ficha completa × só imagem, nome e descrição) e se isso é configurado por campanha pelo mestre; **sem restrições implementadas por ora** (ver `PLANEJAMENTO-V2.md` §9, com o impacto nos links automáticos em Documentos). Encontros privados e segredos do mestre nunca são revelados por essa opção.
 
 ### Enciclopédia da campanha
 - Wiki ligada à campanha: **NPCs, cidades, locais, guildas/facções, eventos** e relações entre entradas.
@@ -210,6 +210,7 @@ O usuário esclareceu que gostou de quase todas as interações do aplicativo de
 - Modelo de entidades/tabs (seções versus fichas e registros específicos), com deep links.
 - Estratégia de sincronização e migração segura do legado.
 - ~~Escopo de acesso visitante~~ resolvido: login obrigatório.
+- **D7 — visibilidade do Bestiário para jogadores** (ficha completa × descritiva × configuração por campanha): pendente, a decidir com o grupo (`PLANEJAMENTO-V2.md` §9).
 - **D1–D6 aprovadas em 19/11/2026**, com: carteira **zerada** ao vincular personagem à campanha; lixeira de personagens **sem exclusão automática por prazo**. **Pendente, a discutir antes de implementar:** exclusão de **conta** vs histórico de campanha (`PLANEJAMENTO-V2.md` §9).
 - Como publicar/mostrar previews e testar no celular em cada PR.
 - Quais funções legadas devem ser reaproveitadas, reescritas ou descartadas após auditoria.

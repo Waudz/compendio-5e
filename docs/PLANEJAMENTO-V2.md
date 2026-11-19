@@ -175,7 +175,7 @@ Tabelas (todas `campaign_id not null`, RLS de campanha, `campaign_id` imutável,
 |---|---|---|
 | **`0005` notas: audiências + `record_links` + edição do autor fora da campanha** | `0004` aplicada | alterar regra de leitura já em produção (regressão: reaproveitar os 32 testes); backfill das audiências; período com duas fontes de verdade (`visibility`/`campaign_id` × audiências); rollback precisa restaurar o comportamento anterior; **não pode reabrir vazamento** de notas privadas |
 | `campaign_settings` (+ preenchimento das campanhas existentes) | `0001`, `0003` | linha obrigatória por campanha (criar no `create_campaign` e backfill); só o mestre grava |
-| `srd_*` (bestiário, depois magias e itens) | — | licença/atribuição SRD; volume e formato dos dados |
+| `srd_*` (bestiário, depois magias e itens) | — | licença/atribuição SRD; volume e formato dos dados; **separar dados descritivos de mecânicos** para a pendência D7 (visibilidade para jogadores) |
 | `characters`, `campaign_characters`, `character_events` | `campaign_settings`, `srd_*` (itens) | **maior risco de RLS**: mestre edita só o estado da própria campanha; resumo para jogadores sem vazar; restauração sem sobrescrita; exclusão lógica; participações arquivadas; chaves compostas |
 | `encounters`, `encounter_*`, `combats`, `loot_*`, `distribute_loot` | personagens, moedas, itens | atomicidade, auditoria, PV único, moedas desativadas, não misturar campanhas |
 | Histórico (`note_versions`) e busca | `0005` e personagens | FTS sob RLS; retenção; histórico não pode contornar a leitura atual |
@@ -213,3 +213,14 @@ Fichas e Iniciativa continuam vindo antes dos Documentos avançados.
 
 **Ainda abertos:**
 - Cadastro restrito a convidados: **adiado**, como definido.
+- **D7 — Visibilidade do Bestiário para jogadores (PENDENTE, a conversar com o grupo; nada foi decidido nem implementado).** O acesso ao Compêndio universal por **qualquer conta autenticada continua previsto**; o que está em aberto é o **nível de informação** que jogadores veem de um monstro:
+  - **A) Ficha completa** (PV, CA, atributos, ataques, habilidades, resistências e imunidades);
+  - **B) Só informação descritiva** (imagem, nome, descrição);
+  - **C) Configuração por campanha, controlada pelo mestre** (ex.: descritivo por padrão, mestre libera a ficha completa, por campanha ou até por monstro).
+  - **Não aplicar restrições específicas agora.** Impacto a considerar já nas etapas seguintes (para não fechar portas nem revelar por engano):
+    1. **Links automáticos para monstros em Documentos:** a menção de um monstro numa nota pode virar vínculo automático com o registro universal. Pré-visualização (cartão ao passar o mouse), lista de backlinks, painel "registros relacionados", resultados de busca e participantes de encontros exibidos a jogadores **não devem embutir estatísticas** enquanto D7 estiver pendente: mostrar só nome (e, se definido, imagem/descrição). O vínculo em si não concede nenhum nível de informação.
+    2. **Resolução centralizada do nível de detalhe:** qualquer componente que exiba monstro deve obter o campo exibível por uma única função/consulta de "nível de detalhe" (`full | descriptive`), nunca lendo a ficha completa direto. Hoje o nível padrão para jogadores é um ponto de decisão, não uma regra.
+    3. **Modelagem do catálogo (etapa 5):** separar **dados descritivos** (nome, imagem, descrição, tipo) dos **dados mecânicos** (PV, CA, atributos, ataques, habilidades, resistências, imunidades) em estruturas distintas. Assim qualquer das opções A, B ou C é implementável com RLS/visões **sem refazer o esquema**; com tudo numa linha só, restringir colunas por RLS não é possível e exigiria visões ou funções.
+    4. **Encontros (etapa 9) e Iniciativa (etapa 10):** as partes de um encontro reveladas aos jogadores e a visão do jogador durante o combate devem respeitar o mesmo nível de detalhe; PV de monstros em combate é decisão do mestre e independe do Bestiário.
+    5. **Busca universal e histórico:** índices e prévias de monstros seguem o mesmo nível; sem cópia de estatísticas em tabelas sem a verificação.
+    6. **Cópias personalizadas:** monstros personalizados (pessoais ou de campanha) têm visibilidade própria, definida pelo dono ou pelo mestre; não herdam o nível do original.
