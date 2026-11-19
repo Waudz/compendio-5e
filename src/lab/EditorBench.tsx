@@ -9,7 +9,7 @@ import { sampleBoard, serialize, deserialize, type LabBlock } from "./model";
 /* O tipo genérico do editor com esquema customizado é pesado; a bancada usa uma visão estreita do que precisa. */
 type Ed = { document: unknown[]; undo(): void; redo(): void; insertInlineContent(c: unknown): void; insertBlocks(b: unknown[], ref: unknown, place: "before" | "after"): void; replaceBlocks(r: unknown[], b: unknown[]): void; getTextCursorPosition(): { block: unknown } };
 
-export const initialBlocks = (): LabBlock[] => sampleBoard().columns[0].cards[0].blocks;
+export const initialBlocks = (): LabBlock[] => (() => { const b = sampleBoard(); return b.pages[b.columns[0].cards[0].pageId].blocks; })();
 
 export function EditorBench({ onMetric }: { onMetric?: (s: string) => void }) {
   const editor = useCreateBlockNote({ schema: labSchema, initialContent: initialBlocks() as never }) as unknown as Ed;

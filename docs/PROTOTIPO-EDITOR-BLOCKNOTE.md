@@ -49,7 +49,7 @@ Leitura: um editor completo custa cerca de 0,5 a 1 MB de heap e ~9 ms para monta
 
 ## Limitações e pontos não verificados
 1. **Celular real: não testado.** Só emulação do painel (375 px, agente Android, pontos de toque): o layout funcionou e não houve rolagem horizontal. Teclado virtual, IME, alça de arrastar com toque, seleção por toque e rolagem dentro de cartões **precisam de teste em aparelho**.
-2. **Arrastar blocos (alça lateral) não foi testado**; apenas Tab/Enter e a API. Arrastar **cartões** não foi implementado (botões).
+2. **Arrastar blocos dentro do BlockNote (alça lateral do editor) não foi testado**; apenas Tab/Enter e a API. O arrastar de **cartões** do quadro foi implementado e é outro mecanismo (seção abaixo).
 3. **Tabelas:** inseridas por API e renderizadas; a edição interativa de células não foi exercitada.
 4. **Links internos:** o conteúdo inline `ref` funciona, mas o clique dentro do editor não está ligado a navegação (no quadro, a prévia chama `onRef`). Em produção, deve usar `openContentLink`, do PR 1.
 5. **Personalização visual:** as cores se ajustam por variáveis CSS (`--bn-colors-*`) com facilidade. A **densidade** (margens laterais de ~54 px e títulos grandes pensados para página inteira) exigiu seletores sobre classes internas (`.bn-block-content[data-content-type=heading] .bn-inline-content`, com `!important`): é frágil entre versões.
@@ -59,6 +59,37 @@ Leitura: um editor completo custa cerca de 0,5 a 1 MB de heap e ~9 ms para monta
 
 ## Tiptap
 Não foi necessário comparar na prática: **não apareceu limitação impeditiva** no BlockNote. Para referência (verificado no npm): Tiptap 3.34.0, MIT, com tabela, `details` e alça de arrastar também MIT. Seria a alternativa se a personalização da densidade ou o risco pré-1.0 se mostrarem inaceitáveis; custaria mais código para reproduzir o menu `/`, os blocos e as tabelas.
+
+## Arrastar e soltar cartões (Tarefa do PR #28 / Issue #29)
+
+**Biblioteca escolhida: `@dnd-kit`** (clássico, **`core` 6.3.1 + `sortable` 10.0.0 + `utilities` 3.2.2**, MIT, versões fixadas; `accessibility` 3.1.1 entra como dependência). React 18 (peer `>=16.8`), sem dependências extras. Alternativas avaliadas no npm: `@dnd-kit/react` 0.5.3 (nova geração, MIT, ainda pré-1.0) e `@hello-pangea/dnd` 18.0.1 (Apache-2.0, bom para listas, menos flexível para sensores e alças). Escolhi o clássico por ser estável, ter sensores de mouse, toque e teclado, anúncios de acessibilidade e auto-rolagem. **Ressalva:** a última publicação do pacote clássico é de dezembro de 2024; se a manutenção parar, a migração natural é para `@dnd-kit/react`.
+
+**Impacto:** build normal **inalterada** (mesmo arquivo, mesmo hash). No chunk do laboratório: JS +54,3 KiB brutos / +17,9 KiB gzip (1002,7 → 1057,0 KiB), CSS +1,7 KiB.
+
+**Como funciona**
+- **Alça dedicada** (ícone de pegada) é o único ponto de arrasto; o corpo do cartão e o editor nunca iniciam arrasto. Cartão em edição tem a alça desabilitada.
+- Sensores: **mouse** (move 6 px para começar, então um clique na alça não arrasta), **toque** (pressão longa de 250 ms na alça; antes disso o movimento rola a página) e **teclado** (foco na alça → Espaço pega, setas movem, Espaço solta, Esc cancela).
+- **Onde será solto:** o cartão arrastado vira um espaço tracejado na posição de destino e um cartão flutuante acompanha o cursor; colunas vazias têm uma área tracejada "Solte um cartão aqui" que acende ao receber o cartão. **Esc cancela** e restaura exatamente o estado anterior.
+- **Botões ↑ ↓ ← →** continuam como alternativa (aparecem ao passar o mouse ou focar o cartão; em telas sem hover ficam sempre visíveis).
+- Acessibilidade: instruções e anúncios em português para leitores de tela (região ao vivo do dnd-kit); respeita `prefers-reduced-motion` (sem animações).
+- **Modelo:** o cartão referencia uma **página** (`Card { pageId, mode }`, `Page { blocks }`). Mover, reordenar ou duplicar o cartão só reordena referências: **as páginas nunca são alteradas** (testado). A amostra inclui um **atalho** (dois cartões, a mesma página da Marta; editar uma reflete na outra).
+
+**Verificação**
+| Interação | Como | Resultado |
+|---|---|---|
+| Arrastar para **coluna vazia** | mouse real (ferramenta de arrasto do painel) | OK |
+| **Reordenar** na mesma coluna | mouse real | OK |
+| Indicador de destino, cartão flutuante e anúncio ao vivo | eventos de mouse com pausas, captura de tela | OK |
+| **Cancelar** com Esc | evento de teclado | volta ao estado anterior; sem resíduos |
+| **Teclado** (Espaço, → →, Espaço) | teclas reais | OK; anúncios em português; foco permanece na alça |
+| Arrasto **não** inicia ao selecionar texto no editor | eventos de mouse no texto do BlockNote | OK (nenhum arrasto; seleção feita) |
+| Alça desabilitada em edição | eventos de mouse | OK |
+| **Toque** (emulação 375 px) | TouchEvent sintéticos | toque curto com movimento não arrasta; pressão longa arrasta e solta |
+| Dentro de painel do **FlexLayout** (2 painéis) | mouse | cartão flutuante posicionado corretamente |
+| Lógica de destino, limites, cancelamento, atalhos | Vitest (puro) | 20 testes |
+| Alças acessíveis, botões como alternativa, coluna vazia | Vitest (componente) | 4 testes |
+
+**Limitações:** (a) **nenhum teste em dedo/aparelho real** (os toques foram sintéticos): precisão da pressão longa, conflito com a rolagem inercial e com o teclado virtual seguem não verificados; (b) o arrasto com mouse foi feito pela ferramenta do painel e por eventos sintéticos, não por um usuário; (c) dois navegadores não testados; (d) em colunas muito longas a rolagem automática do dnd-kit não foi exercitada; (e) a posição de soltura usa `closestCorners`; em colunas com cartões muito altos (expandidos) o destino pode surpreender e exige ajuste fino; (f) as cores dos botões de seta sobrepostos ao título podem esconder parte de títulos longos ao passar o mouse.
 
 ## Recomendação
 **Seguir com o BlockNote** como editor, com condições: (a) teste em celular real e do arrasto de blocos antes de fechar o módulo; (b) versão fixa e adaptador próprio; (c) JSON de blocos como formato canônico (já validado: ida e volta idêntica); (d) aprovação das dependências, inclusive o Mantine 8. **Pode-se avançar para a modelagem do banco** das páginas, cartões e conteúdo em JSON, porque o formato e as prévias foram validados; os itens 1 a 3 não alteram o modelo de dados.

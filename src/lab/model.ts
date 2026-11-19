@@ -2,9 +2,11 @@
 // O formato canônico dos blocos é o JSON do BlockNote (nunca HTML).
 export type Inline = { type: string; text?: string; styles?: Record<string, unknown>; href?: string; content?: Inline[]; props?: Record<string, unknown> };
 export type LabBlock = { id?: string; type: string; props?: Record<string, unknown>; content?: Inline[] | { type: "tableContent"; rows: { cells: Inline[][] }[] }; children?: LabBlock[] };
-export type Card = { id: string; title: string; mode: "compact" | "expanded"; blocks: LabBlock[] };
+/** Página: conteúdo canônico (JSON de blocos). O cartão só a REFERENCIA; mover, reordenar ou duplicar o atalho nunca altera a página. */
+export type Page = { id: string; title: string; blocks: LabBlock[] };
+export type Card = { id: string; pageId: string; mode: "compact" | "expanded" };
 export type Column = { id: string; title: string; cards: Card[] };
-export type Board = { title: string; columns: Column[] };
+export type Board = { title: string; columns: Column[]; pages: Record<string, Page> };
 export type Dir = "up" | "down" | "left" | "right";
 
 const t = (text: string, styles: Record<string, unknown> = {}): Inline => ({ type: "text", text, styles });
@@ -17,33 +19,46 @@ export const table = (rows: string[][]): LabBlock => ({ type: "table", content: 
 
 let seq = 0;
 export const uid = (prefix: string) => `${prefix}-${(++seq).toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-const card = (title: string, blocks: LabBlock[], mode: Card["mode"] = "compact"): Card => ({ id: uid("c"), title, mode, blocks });
+type Draft = { pages: Record<string, Page> };
+/** Cria a página (se ainda não existe) e o cartão que a referencia. */
+function card(d: Draft, title: string, blocks: LabBlock[], mode: Card["mode"] = "compact", pageId = uid("p")): Card {
+  if (!d.pages[pageId]) d.pages[pageId] = { id: pageId, title, blocks };
+  return { id: uid("c"), pageId, mode };
+}
 
-/** Sessão 5 — Festival da Lua (dados fictícios). */
+/** Sessão 5 — Festival da Lua (dados fictícios). A página da Marta aparece em dois cartões (atalho): um conteúdo, duas referências. */
 export function sampleBoard(): Board {
-  return { title: "Sessão 5 — Festival da Lua", columns: [
+  const d: Draft = { pages: {} };
+  const marta = card(d, "Marta (NPC)", [h("Marta, dona da taverna", 3), p(t("Viúva, 50 anos. Conhece todos os boatos de Julkoun e cobra por informação.")), li("Segredo: esconde o diário do ferreiro")], "compact", "pagina-marta");
+  const columns: Column[] = [
     { id: uid("col"), title: "Julkoun", cards: [
-      card("Taverna", [h("Taverna do Javali Cego"), p(t("Ambiente barulhento. A dona, "), ref("npc", "marta", "Marta"), t(", sabe do desaparecimento do ferreiro.")), li("Boato 1: luzes na floresta", [li("Só à noite"), li("Sempre perto da cabana")]), li("Boato 2: o prefeito paga a uma gangue")], "expanded"),
-      card("Prefeito", [p(ref("npc", "aldric", "Prefeito Aldric"), t(" quer discrição. Oferece 50 PO pelo problema na estrada.")), table([["Oferta", "Condição"], ["50 PO", "Resolver em 2 dias"], ["Favor", "Entrada na biblioteca"]])]),
-      card("Mercearia", [p(t("Poções de cura comuns (50 PO). "), link("https://www.dndbeyond.com/", "Consulta rápida"), t("."))]),
+      card(d, "Taverna", [h("Taverna do Javali Cego"), p(t("Ambiente barulhento. A dona, "), ref("npc", "marta", "Marta"), t(", sabe do desaparecimento do ferreiro.")), li("Boato 1: luzes na floresta", [li("Só à noite"), li("Sempre perto da cabana")]), li("Boato 2: o prefeito paga a uma gangue")], "expanded"),
+      card(d, "Prefeito", [p(ref("npc", "aldric", "Prefeito Aldric"), t(" quer discrição. Oferece 50 PO pelo problema na estrada.")), table([["Oferta", "Condição"], ["50 PO", "Resolver em 2 dias"], ["Favor", "Entrada na biblioteca"]])]),
+      card(d, "Mercearia", [p(t("Poções de cura comuns (50 PO). "), link("https://www.dndbeyond.com/", "Consulta rápida"), t("."))]),
+      marta,
     ] },
     { id: uid("col"), title: "Estrada", cards: [
-      card("Encontro aleatório", [p(t("Se os jogadores demoram, rolar na tabela. "), ref("encontro", "emboscada-goblins", "Emboscada de goblins"), t("."))]),
-      card("Carroça atolada", [p(t("Um mercador pede ajuda. Teste de Força CD 12.")), li("Falha: cavalo assustado"), li("Sucesso: ele revela um atalho")]),
+      card(d, "Encontro aleatório", [p(t("Se os jogadores demoram, rolar na tabela. "), ref("encontro", "emboscada-goblins", "Emboscada de goblins"), t("."))]),
+      card(d, "Carroça atolada", [p(t("Um mercador pede ajuda. Teste de Força CD 12.")), li("Falha: cavalo assustado"), li("Sucesso: ele revela um atalho")]),
     ] },
     { id: uid("col"), title: "Floresta", cards: [
-      card("Cabana do eremita", [p(ref("local", "cabana", "Cabana do Eremita"), t(" fica a 2 horas da estrada. O eremita só fala com quem traz cogumelos.")), li("Pista: runas no batente")]),
-      card("Preparação de poções", [h("Receitas", 3), li("Poção de cura: 2 ervas + água da nascente"), li("Antídoto: 1 erva amarga + sal")]),
+      card(d, "Cabana do eremita", [p(ref("local", "cabana", "Cabana do Eremita"), t(" fica a 2 horas da estrada. O eremita só fala com quem traz cogumelos.")), li("Pista: runas no batente")]),
+      card(d, "Preparação de poções", [h("Receitas", 3), li("Poção de cura: 2 ervas + água da nascente"), li("Antídoto: 1 erva amarga + sal")]),
+      { id: uid("c"), pageId: "pagina-marta", mode: "compact" },      // atalho: a mesma página da Marta, sem cópia
     ] },
-  ] };
+    { id: uid("col"), title: "Coluna vazia", cards: [] },
+  ];
+  return { title: "Sessão 5 — Festival da Lua", columns, pages: d.pages };
 }
 
 /** Quadro grande para testes de desempenho. */
 export function manyCards(columns: number, cardsPerColumn: number): Board {
-  return { title: `${columns * cardsPerColumn} cartões`, columns: Array.from({ length: columns }, (_, c) => ({
+  const d: Draft = { pages: {} };
+  const cols = Array.from({ length: columns }, (_, c) => ({
     id: uid("col"), title: `Coluna ${c + 1}`,
-    cards: Array.from({ length: cardsPerColumn }, (_, i) => card(`Cena ${c + 1}.${i + 1}`, [h(`Cena ${c + 1}.${i + 1}`), p(t("Texto de exemplo com "), t("negrito", { bold: true }), t(" e itálico ", { italic: true }), ref("npc", `npc-${i}`, `NPC ${i}`), t(". Lorem ipsum dolor sit amet, consectetur adipiscing elit.")), li("Item A", [li("Subitem A1")]), li("Item B")])),
-  })) };
+    cards: Array.from({ length: cardsPerColumn }, (_, i) => card(d, `Cena ${c + 1}.${i + 1}`, [h(`Cena ${c + 1}.${i + 1}`), p(t("Texto de exemplo com "), t("negrito", { bold: true }), t(" e itálico ", { italic: true }), ref("npc", `npc-${i}`, `NPC ${i}`), t(". Lorem ipsum dolor sit amet, consectetur adipiscing elit.")), li("Item A", [li("Subitem A1")]), li("Item B")])),
+  }));
+  return { title: `${columns * cardsPerColumn} cartões`, columns: cols, pages: d.pages };
 }
 
 const locate = (b: Board, id: string) => { for (let c = 0; c < b.columns.length; c++) { const i = b.columns[c].cards.findIndex(k => k.id === id); if (i >= 0) return { c, i }; } return null; };
@@ -65,8 +80,25 @@ export function moveCard(b: Board, id: string, dir: Dir): Board {
   }
   return { ...b, columns: cols };
 }
-export function updateCard(b: Board, id: string, patch: Partial<Pick<Card, "mode" | "blocks" | "title">>): Board {
-  return { ...b, columns: b.columns.map(c => ({ ...c, cards: c.cards.map(k => (k.id === id ? { ...k, ...patch } : k)) })) };
+export const setCardMode = (b: Board, id: string, mode: Card["mode"]): Board => ({ ...b, columns: b.columns.map(c => ({ ...c, cards: c.cards.map(k => (k.id === id ? { ...k, mode } : k)) })) });
+/** Edita o CONTEÚDO da página (único lugar onde o conteúdo muda); todos os cartões que a referenciam passam a refletir. */
+export const updatePage = (b: Board, pageId: string, patch: Partial<Pick<Page, "title" | "blocks">>): Board => (b.pages[pageId] ? { ...b, pages: { ...b.pages, [pageId]: { ...b.pages[pageId], ...patch } } } : b);
+export const pageOf = (b: Board, card: Card): Page => b.pages[card.pageId];
+export const columnOf = (b: Board, cardId: string): Column | undefined => b.columns.find(c => c.cards.some(k => k.id === cardId));
+
+/**
+ * Arrastar e soltar: move o cartão para a coluna `toColumnId` na posição final `index` (0 = topo; além do fim = última).
+ * Funciona entre colunas, dentro da mesma coluna e para colunas vazias. Só reordena referências: `pages` nunca é tocado.
+ */
+export function moveCardTo(b: Board, cardId: string, toColumnId: string, index: number): Board {
+  const at = locate(b, cardId), dest = b.columns.findIndex(c => c.id === toColumnId);
+  if (!at || dest < 0) return b;
+  const cols = b.columns.map(c => ({ ...c, cards: [...c.cards] }));
+  const [moved] = cols[at.c].cards.splice(at.i, 1);
+  const to = Math.max(0, Math.min(Number.isFinite(index) ? Math.trunc(index) : cols[dest].cards.length, cols[dest].cards.length));
+  if (at.c === dest && to === at.i) return b;
+  cols[dest].cards.splice(to, 0, moved);
+  return { ...b, columns: cols };
 }
 export const countCards = (b: Board) => b.columns.reduce((n, c) => n + c.cards.length, 0);
 

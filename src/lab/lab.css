@@ -49,3 +49,25 @@
 .lab-card-edit .bn-block-content[data-content-type=heading] .bn-inline-content{font-size:16px!important;line-height:1.3!important}
 .lab-card-edit .bn-block-content{font-size:14px}
 .lab-editor .bn-editor{padding-inline:24px}
+/* arrastar e soltar de cartões: a alça é o único ponto de arrasto (touch-action:none só nela; o resto do cartão rola normalmente no toque) */
+.lab-grip{display:inline-flex;align-items:center;padding:2px 3px!important;border-color:transparent!important;background:transparent!important;color:var(--muted);cursor:grab;touch-action:none;flex:none}
+.lab-grip:hover:not(:disabled){color:var(--text)}.lab-grip:active{cursor:grabbing}
+.lab-grip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.lab-card header{gap:4px}
+.lab-card header .lab-toggle{flex:1 1 auto}
+.lab-ghost{opacity:.35;border:2px dashed var(--accent);background:var(--accent-faint)}      /* onde o cartão será solto */
+.lab-ghost>*{visibility:hidden}
+.lab-overlay{box-shadow:0 10px 24px rgba(0,0,0,.45);border-color:var(--accent);cursor:grabbing;opacity:.95}
+.lab-over{border-color:var(--accent)}
+.lab-cards{min-height:48px}
+.lab-cards.lab-empty{border:2px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;min-height:72px}
+.lab-over .lab-cards.lab-empty{border-color:var(--accent);background:var(--accent-faint)}
+.lab-drop-hint{margin:0;color:var(--muted);font-size:12px}
+.lab-shortcut{margin-left:6px;font-size:10px;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 4px;font-weight:600}
+@media (prefers-reduced-motion:reduce){.lab-card,.lab-cards,.lab-ghost{transition:none!important;animation:none!important}}
+/* botões de seta (alternativa a arrastar): aparecem ao passar o mouse ou ao focar o cartão; em telas de toque ficam sempre visíveis */
+.lab-card{position:relative}
+.lab-moves{position:absolute;right:6px;top:5px;background:var(--panel);border-radius:6px;opacity:0;pointer-events:none;transition:opacity .12s}
+.lab-card:hover .lab-moves,.lab-card:focus-within .lab-moves{opacity:1;pointer-events:auto}
+@media (hover:none){.lab-moves{position:static;opacity:1;pointer-events:auto}}
+.lab-overlay .lab-moves{display:none}
