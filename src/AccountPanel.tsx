@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "./AuthContext";
+import { useUnsaved } from "./unsaved";
 import { validateEmail, validatePassword, type Result } from "./auth";
 
 type Msg = { kind: "ok" | "err"; text: string } | null;
@@ -67,12 +68,13 @@ export function AuthForms() {
 /** Aba Conta (já autenticado): e-mail, alterar senha e sair. */
 export function AccountPanel() {
   const { status, user, api } = useAuth();
+  const unsaved = useUnsaved();
   const f = useForm();
   if (status !== "authenticated") return null;   // a porta de entrada garante a sessão; nada de conta sem login
   return <div className="auth"><h1>Conta</h1>
     <p>Conectado como <strong>{user?.email}</strong>.</p>
     <h2>Alterar senha</h2>
     <NewPasswordForm/>
-    <div className="links"><button className="btn-secondary" disabled={f.busy} onClick={() => f.run(null, () => api!.signOut())}>Sair</button></div>
+    <div className="links"><button className="btn-secondary" disabled={f.busy} onClick={async () => { if (await unsaved.confirmAll()) await f.run(null, () => api!.signOut()); }}>Sair</button></div>
     {f.notice}</div>;
 }

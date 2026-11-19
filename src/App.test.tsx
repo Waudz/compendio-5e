@@ -14,30 +14,33 @@ beforeEach(() => {
 afterEach(cleanup);
 
 const nav = (name: string) => within(screen.getByRole("navigation", { name: "Menu principal" })).getByRole("button", { name });
+const more = (name: string) => fireEvent.click(nav(name), { ctrlKey: true });   // Ctrl+clique: nova aba interna
 const tabNames = () => [...document.querySelectorAll(".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content")].map(e => e.textContent);
 const key = storageKey({ user: me.id, campaign: "nenhuma", device: "navegador" });
 const saved = () => JSON.parse(localStorage.getItem(key)!);
 
 describe("workspace (interface)", () => {
-  it("abre seções pelo menu lateral sem substituir abas e sem duplicar", async () => {
+  it("Ctrl+clique abre seções em novas abas, sem substituir e sem duplicar", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa")); fireEvent.click(nav("Encontros")); fireEvent.click(nav("Iniciativa"));
+    more("Iniciativa"); more("Encontros"); more("Iniciativa");
     expect(tabNames()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
   });
 
   it("abre ficha por botão do conteúdo (id ficha:ID, sem duplicar) e persiste o layout", async () => {
     mobile = true; // o jsdom não mede tamanhos, então o conteúdo do FlexLayout não é desenhado; a visão simples usa o mesmo estado
     await renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));
-    fireEvent.click(nav("Personagens")); fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Personagens", "Ficha: Lydia"]);
+    fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));                 // clique normal: reutiliza a aba atual
+    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Ficha: Lydia"]);
+    more("Personagens");
+    fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));                 // já aberta: seleciona, não duplica
+    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Ficha: Lydia", "Personagens"]);
     const ids = saved().layout.children[0].children.map((t: { id: string }) => t.id);
-    expect(ids).toEqual(["secao:personagens", "ficha:lydia"]);
+    expect(ids).toEqual(["ficha:lydia", "secao:personagens"]);
   });
 
   it("restaura as abas salvas ao montar de novo", async () => {
     const first = await renderApp();
-    fireEvent.click(nav("Compêndio"));
+    more("Compêndio");
     first.unmount();
     await renderApp();
     expect(tabNames()).toEqual(["Personagens", "Compêndio"]);
@@ -51,12 +54,12 @@ describe("workspace (interface)", () => {
 
   it("menu de contexto: mover para nova coluna e fechar aba", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa"));
+    more("Iniciativa");
     const tab = screen.getByText("Iniciativa", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" });
     fireEvent.contextMenu(tab);
     const menu = screen.getByRole("menu");
     expect(within(menu).getAllByRole("menuitem").map(i => i.textContent)).toEqual([
-      "Mover para a coluna à esquerda", "Mover para a coluna à direita", "Abrir em nova coluna à esquerda", "Abrir em nova coluna à direita", "Fechar aba", "Fechar outras abas", "Fechar coluna"]);
+      "Fixar aba", "Mover para a coluna à esquerda", "Mover para a coluna à direita", "Abrir em nova coluna à esquerda", "Abrir em nova coluna à direita", "Fechar aba", "Fechar outras abas normais", "Fechar coluna"]);
     fireEvent.click(within(menu).getByRole("menuitem", { name: "Abrir em nova coluna à direita" }));
     expect(screen.queryByRole("menu")).toBeNull();
     expect(saved().layout.children).toHaveLength(2);
@@ -86,7 +89,7 @@ describe("workspace (interface)", () => {
     mobile = true;
     await renderApp();
     expect(document.querySelector(".flexlayout__layout")).toBeNull();
-    fireEvent.click(nav("Iniciativa"));
+    more("Iniciativa");
     const tabs = within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent);
     expect(tabs).toEqual(["Personagens", "Iniciativa"]);
     expect(screen.getByRole("heading", { name: "Iniciativa" })).toBeTruthy();

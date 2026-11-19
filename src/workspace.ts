@@ -8,7 +8,7 @@ export const MAX_GROUPS = 3;
 export const MIN_GROUP_WIDTH = 220;
 
 export type Kind = "secao" | "conta" | "campanha" | "ficha" | "npc" | "documento";
-export type TabSpec = { kind: Kind; ref: string; title?: string };
+export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean };
 export type Page = "campanhas" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
 
 export const sections: { page: Page; title: string; icon: typeof Users }[] = [
@@ -43,7 +43,7 @@ const global: IJsonModel["global"] = {
   enableEdgeDock: true, enableEdgeDockIndicators: true,
 };
 
-const tabJson = (s: TabSpec): IJsonTabNode => ({ type: "tab", id: tabId(s), name: defaultTitle(s), component: s.kind, config: { kind: s.kind, ref: s.ref } });
+export const tabJson = (s: TabSpec): IJsonTabNode => ({ type: "tab", id: tabId(s), name: defaultTitle(s), component: s.kind, config: { kind: s.kind, ref: s.ref, ...(s.pinned ? { pinned: true } : {}) } });
 export const defaultLayout = (): IJsonModel => ({
   global,
   borders: [],
@@ -77,11 +77,11 @@ export function sanitizeLayout(data: unknown): IJsonModel | null {
   for (const s of sets) {
     const tabs: IJsonTabNode[] = [];
     const flat = (Array.isArray(s.children) ? s.children : []).flatMap(c => (c as { type?: string; children?: unknown[] })?.type === "tab-group" ? ((c as { children?: unknown[] }).children ?? []) : [c]);
-    for (const t of flat as { id?: unknown; name?: unknown }[]) {
+    for (const t of flat as { id?: unknown; name?: unknown; pinned?: unknown }[]) {
       const p = parseTabId(t?.id);
       if (!p || seen.has(`${p.kind}:${p.ref}`)) continue;
       seen.add(`${p.kind}:${p.ref}`);
-      tabs.push(tabJson(p));   // nomes guardados são ignorados: o layout persiste só ids
+      tabs.push(tabJson({ ...p, pinned: t.pinned === true }));   // nomes guardados são ignorados: o layout persiste só ids
     }
     if (!tabs.length) continue;
     const w = Number(s.weight);

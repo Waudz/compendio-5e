@@ -109,7 +109,7 @@ describe("isolamento dos dados locais entre contas", () => {
 
   it("troca de conta sem recarregar: a segunda conta nunca vê abas, estado ou menus da primeira", async () => {
     const { auth } = await renderApp();
-    fireEvent.click(nav("Compêndio")); fireEvent.click(nav("Documentos"));
+    fireEvent.click(nav("Compêndio"), { ctrlKey: true }); fireEvent.click(nav("Documentos"), { ctrlKey: true });
     expect(tabNames()).toEqual(["Personagens", "Compêndio", "Documentos"]);
     await auth.emit("SIGNED_OUT", null);
     await screen.findByRole("heading", { name: "Entrar" });

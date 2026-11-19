@@ -30,8 +30,8 @@ export function hasSavedLayout(scope: Scope, store: Store | null = safeStore()):
 /** Reduz o layout ao essencial: ids das abas, pesos, seleção e grupo ativo. Sem nomes, sem config. */
 export function minimalLayout(layout: IJsonModel) {
   return { type: "row", children: (layout.layout.children ?? []).map(g => {
-    const set = g as { id?: string; weight?: number; selected?: number; active?: boolean; children?: { id?: string }[] };
-    return { type: "tabset", id: set.id, weight: set.weight, selected: set.selected, active: set.active === true, children: (set.children ?? []).map(t => ({ type: "tab", id: t.id })) };
+    const set = g as { id?: string; weight?: number; selected?: number; active?: boolean; children?: { id?: string; config?: { pinned?: boolean } }[] };
+    return { type: "tabset", id: set.id, weight: set.weight, selected: set.selected, active: set.active === true, children: (set.children ?? []).map(t => ({ type: "tab", id: t.id, ...(t.config?.pinned === true ? { pinned: true } : {}) })) };
   }) };
 }
 

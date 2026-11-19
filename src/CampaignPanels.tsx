@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
 import { MAX_DESCRIPTION, MAX_NAME, validateCampaign, validateCode, type Invite, type Member, type Res } from "./campaigns";
+import type { NavMode } from "./navigation";
+import { useUnsaved } from "./unsaved";
 import type { TabSpec } from "./workspace";
 
 type Msg = { kind: "ok" | "err"; text: string } | null;
@@ -39,8 +41,9 @@ function NeedLogin({ title }: { title: string; onOpen?: (s: TabSpec) => void }) 
 }
 
 /** Hub: campanhas das quais participo, criar, entrar por convite, definir a ativa. */
-export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
+export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec, mode?: NavMode) => void }) {
   const { api, memberships, loading, error, activeId, setActive, refresh } = useCampaigns();
+  const unsaved = useUnsaved();
   const [name, setName] = useState(""), [desc, setDesc] = useState(""), [code, setCode] = useState(incomingInvite);
   const create = useAction(), join = useAction();
   const [autoJoinError, setAutoJoinError] = useState<string | null>(null);
@@ -60,14 +63,14 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
       clearIncomingInvite();
       setCode("");
       await refresh();
-      setActive(result.data);
-      onOpen({ kind: "campanha", ref: result.data });
+      if (await unsaved.confirmAll()) setActive(result.data);
+      onOpen({ kind: "campanha", ref: result.data }, "new");
     } catch {
       setAutoJoinError("Não foi possível aceitar o convite. Tente novamente.");
     } finally {
       setAutoJoining(false);
     }
-  }, [api, refresh, setActive, onOpen]);
+  }, [api, refresh, setActive, onOpen, unsaved]);
 
   useEffect(() => {
     if (!api || !invite || autoAttempted.current === invite) return;
@@ -81,14 +84,14 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
     e.preventDefault();
     const bad = validateCampaign(name, desc); if (bad) { create.setMsg({ kind: "err", text: bad }); return; }
     const r = await create.run(() => api.create(name.trim(), desc), "Campanha criada.");
-    if (r?.ok) { setName(""); setDesc(""); await refresh(); onOpen({ kind: "campanha", ref: r.data, title: name.trim() }); }
+    if (r?.ok) { setName(""); setDesc(""); await refresh(); onOpen({ kind: "campanha", ref: r.data, title: name.trim() }, "new"); }
   };
   const onJoin = async (e: FormEvent) => {
     e.preventDefault();
     const entered = code.includes("convite=") ? (() => { try { return new URL(code).searchParams.get("convite") ?? code; } catch { return code; } })() : code;
     const bad = validateCode(entered); if (bad) { join.setMsg({ kind: "err", text: bad }); return; }
     const r = await join.run(() => api.join(entered), "Você entrou na campanha.");
-    if (r?.ok) { setCode(""); clearIncomingInvite(); await refresh(); setActive(r.data); onOpen({ kind: "campanha", ref: r.data }); }
+    if (r?.ok) { setCode(""); clearIncomingInvite(); await refresh(); if (await unsaved.confirmAll()) setActive(r.data); onOpen({ kind: "campanha", ref: r.data }, "new"); }
   };
 
   return <div className="auth wide"><h1>Campanhas</h1>
@@ -101,7 +104,7 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
         {c.description && <p>{c.description}</p>}</div>
       <div className="row">
         <button className="btn-secondary" onClick={() => onOpen({ kind: "campanha", ref: c.id, title: c.name })}>Abrir</button>
-        {c.id !== activeId && <button className="btn-secondary" onClick={() => setActive(c.id)}>Tornar ativa</button>}
+        {c.id !== activeId && <button className="btn-secondary" onClick={async () => { if (await unsaved.confirmAll()) setActive(c.id); }}>Tornar ativa</button>}
       </div></li>)}</ul>
 
     <h2>Criar campanha</h2>
@@ -125,8 +128,9 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec) => void }) {
 }
 
 /** Detalhes de uma campanha: dados básicos, participantes e convites. */
-export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec) => void }) {
+export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec, mode?: NavMode) => void }) {
   const { api, memberships, activeId, setActive, refresh } = useCampaigns();
+  const unsaved = useUnsaved();
   const { user } = useAuth();
   const mem = memberships.find(m => m.campaign.id === id);
   const isMaster = mem?.role === "mestre";
@@ -159,7 +163,7 @@ export function CampaignPanel({ id, onOpen }: { id: string; onOpen: (s: TabSpec)
   const leave = async (uid: string) => { const r = await people.run(() => api.removeMember(id, uid), "Feito."); if (r?.ok) { if (uid === user?.id && activeId === id) setActive(null); await refresh(); } };
 
   return <div className="auth wide"><h1>{c.name}</h1>
-    <p><span className="badge">{isMaster ? "Mestre" : "Jogador"}</span>{c.id === activeId ? <span className="badge on">Ativa</span> : <button className="btn-link" onClick={() => setActive(id)}>Tornar ativa</button>}</p>
+    <p><span className="badge">{isMaster ? "Mestre" : "Jogador"}</span>{c.id === activeId ? <span className="badge on">Ativa</span> : <button className="btn-link" onClick={async () => { if (await unsaved.confirmAll()) setActive(id); }}>Tornar ativa</button>}</p>
 
     <h2>Informações</h2>
     {isMaster ? <form noValidate onSubmit={onSave}>
