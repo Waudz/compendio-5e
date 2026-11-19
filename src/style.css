@@ -240,3 +240,18 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .cartao{position:relative}.alca{position:absolute;top:6px;right:6px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;color:var(--muted);cursor:grab;touch-action:none;border-radius:5px}.alca:hover{background:var(--hover);color:var(--text)}
 .cartoes{min-height:12px;border-radius:8px}.cartoes.sobre{outline:1px dashed var(--accent)}.cartao.arrastando{opacity:.55;z-index:5}
 .cartao-abrir{padding-right:24px}
+
+[hidden]{display:none!important}
+.cartao-topo{display:flex;align-items:flex-start;gap:4px;padding-right:26px}.cartao-topo .cartao-abrir{flex:1;min-width:0;padding-right:0}
+.cartao .sujo{color:#e5a13a}
+.cartao-editor{display:flex;flex-direction:column;gap:10px;padding:10px 2px 4px;min-width:0}
+.cartao-editor label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text-2)}
+.cartao-editor input{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:8px 10px;font:inherit;font-size:14px}
+.cartao-editor .row{display:flex;flex-wrap:wrap;gap:8px}
+.cartao-editor .page-editor{min-height:140px;overflow-x:auto}
+.coluna.coluna-larga{flex-basis:min(640px,88vw)}
+@media(max-width:700px){.coluna.coluna-larga{flex-basis:92vw}}
+/* a largura do cartão expandido segue a largura do PAINEL (aba/grupo), não a da janela */
+.planejamento{container-type:inline-size}
+.coluna.coluna-larga{flex-basis:min(640px,calc(100cqw - 8px))}
+@media(max-width:700px){.coluna.coluna-larga{flex-basis:calc(100cqw - 8px)}}

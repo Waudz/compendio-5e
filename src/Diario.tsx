@@ -2,12 +2,14 @@
 // A mesma página (`RegistroPagina`) edita as cenas do Planejamento. O Diário é redigido manualmente pelo mestre; nada é resumido nem publicado sozinho.
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAbrirEmAba } from "./abrirEmAba";
+import { ConflitoAviso } from "./ConflitoAviso";
 import { useCampaigns } from "./CampaignsContext";
 import { EditorLazy } from "./EditorLazy";
 import { HARPTOS_MESES, formatarDataHarptos, primeiroParagrafo, resumirTexto, type BlocoTexto, type DataHarptos } from "./inicio";
 import { dataSessao, ordenarDiario, publicado, validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
-import { avisarRegistros, registrarTitulo, useVersaoRegistros } from "./registrosStore";
+import { avisarRegistros, novaOrigem, publicarExclusao, publicarRegistro, registrarTitulo, useSincronia, useVersaoRegistros } from "./registrosStore";
 import { useUnsavedGuard } from "./unsaved";
 import type { TabSpec } from "./workspace";
 
@@ -17,7 +19,7 @@ export const Aviso = ({ t, erro, onRetry }: { t: string; erro?: boolean; onRetry
 export function DiarioPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
   const api = useRegistros(), { active } = useCampaigns(), v = useVersaoRegistros();
   const [lista, setLista] = useState<Registro[] | null>(null), [erro, setErro] = useState<string | null>(null), [busy, setBusy] = useState(false), [tentativa, setTentativa] = useState(0);
-  const cid = active?.campaign.id, mestre = active?.role === "mestre";
+  const cid = active?.campaign.id, mestre = active?.role === "mestre", { aoClicarDireito } = useAbrirEmAba();
   useEffect(() => {
     if (!api || !cid) return; let vivo = true; setLista(null);
     api.list(cid, "diary").then(r => { if (!vivo) return; if (r.ok) { setLista(ordenarDiario(r.data)); setErro(null); } else setErro(r.error); });
@@ -40,7 +42,7 @@ export function DiarioPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => 
     {lista && lista.length === 0 && <p className="muted" data-testid="diario-lista-vazia">{mestre ? "Nenhum registro ainda. Crie o primeiro registro de sessão." : "O mestre ainda não publicou registros."}</p>}
     <ul className="registro-lista">{lista?.map(r => {
       const d = formatarDataHarptos(dataSessao(r)), t = primeiroParagrafo(r.content);
-      return <li key={r.id}><button className="registro-item" onClick={() => onOpenContent({ kind: "documento", ref: r.id, title: r.title })}>
+      return <li key={r.id}><button className="registro-item" onClick={() => onOpenContent({ kind: "documento", ref: r.id, title: r.title })} onContextMenu={e => aoClicarDireito(e, { kind: "documento", ref: r.id, title: r.title })}>
         <strong>{r.title}</strong>
         <span className="muted">{d ?? "Sem data de sessão"}{mestre && <span className={publicado(r) ? "badge on" : "badge"}>{publicado(r) ? "Publicado" : "Rascunho"}</span>}</span>
         {t && <span className="registro-previa">{resumirTexto(t, 200)}</span>}</button></li>;
@@ -53,8 +55,8 @@ const dataTxt = (r: Registro) => { const d = dataSessao(r); return d ? `${d.dia}
 
 /** Página de um registro (aba `documento:<id>`): diário ou cena. Mestre edita; jogador só lê o diário publicado. */
 export function RegistroPagina({ id }: { id: string }) {
-  const api = useRegistros(), { active } = useCampaigns(), versaoGlobal = useVersaoRegistros();
-  const ultimaVersao = useRef(versaoGlobal);
+  const api = useRegistros(), { active } = useCampaigns();
+  const origem = useRef(novaOrigem()).current;
   const [reg, setReg] = useState<Registro | null | undefined>(undefined), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [titulo, setTitulo] = useState(""), [dia, setDia] = useState(""), [mes, setMes] = useState(""), [ano, setAno] = useState("");
   const [blocos, setBlocos] = useState<BlocoTexto[]>([]), [editou, setEditou] = useState(false), [chaveEditor, setChaveEditor] = useState(0);
@@ -73,18 +75,10 @@ export function RegistroPagina({ id }: { id: string }) {
   const diario = reg?.kind === "diary";
   const sujo = !!reg && mestre && (editou || titulo !== reg.title || `${dia}|${mes}|${ano}` !== dataTxt(reg));
   useUnsavedGuard(`documento:${id}`, sujo);
-  useEffect(() => {
-    if (ultimaVersao.current === versaoGlobal) return;
-    ultimaVersao.current = versaoGlobal;
-    if (!api || !reg) return;
-    let vivo = true;
-    void api.get(id).then(r => {
-      if (!vivo || !r.ok || !r.data || r.data.version === reg.version) return;
-      if (sujo) { setMsg({ ok: false, t: "Este registro foi alterado em outra aba. Salve ou descarte suas alterações antes de atualizar." }); return; }
-      aplicar(r.data); setChaveEditor(k => k + 1);
-    });
-    return () => { vivo = false; };
-  }, [versaoGlobal, api, id, reg, sujo, aplicar]);
+  const sinc = useSincronia({ id, versao: reg?.version ?? 0, sujo, origem,
+    aoRemoto: r => { aplicar(r); setChaveEditor(k => k + 1); },       // sem alterações locais: troca pelo dado salvo em outro lugar, sem F5
+    aoExcluido: () => setReg(null),
+    aoManter: r => setReg(x => x ? { ...x, version: r.version } : x) });   // mantém o que o usuário digitou; só passa a basear-se na versão nova
 
   if (!api) return <div className="content"><Aviso t="Conta necessária."/></div>;
   if (erro) return <div className="content"><Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/></div>;
@@ -104,10 +98,13 @@ export function RegistroPagina({ id }: { id: string }) {
     const meta = diario ? (dm.d ? { ...resto, sessao: dm.d } : resto) : reg.meta;
     const r = await api.update(reg.id, reg.version, { title: titulo, content: blocos, meta, ...patch });
     setBusy(false);
-    if (!r.ok) { setMsg({ ok: false, t: r.error }); return; }
-    aplicar(r.data); setMsg({ ok: true, t: patch.visibility ? (patch.visibility === "campaign" ? "Publicado para os jogadores." : "Voltou a ser rascunho.") : "Registro salvo." }); avisarRegistros();
+    if (!r.ok) {
+      if (/alterou/i.test(r.error)) { const g = await api.get(reg.id); if (g.ok) sinc.sinalizar(g.data); }   // conflito com o servidor: mesmo caminho seguro
+      setMsg({ ok: false, t: r.error }); return;
+    }
+    aplicar(r.data); setMsg({ ok: true, t: patch.visibility ? (patch.visibility === "campaign" ? "Publicado para os jogadores." : "Voltou a ser rascunho.") : "Registro salvo." }); publicarRegistro(r.data, origem);
   };
-  const excluir = async () => { setBusy(true); const r = await api.remove(reg.id); setBusy(false); if (!r.ok) { setMsg({ ok: false, t: r.error }); return; } setReg(null); avisarRegistros(); };
+  const excluir = async () => { setBusy(true); const r = await api.remove(reg.id); setBusy(false); if (!r.ok) { setMsg({ ok: false, t: r.error }); return; } setReg(null); publicarExclusao(reg.id, origem); };
 
   if (!mestre) {
     if (!diario) return <div className="content"><Aviso t="Registro não encontrado, excluído ou sem permissão para vê-lo."/></div>;
@@ -132,6 +129,7 @@ export function RegistroPagina({ id }: { id: string }) {
         {!confirmar ? <button type="button" className="btn-secondary danger" onClick={() => setConfirmar(true)}><Trash2 size={15} aria-hidden="true"/> Excluir</button>
           : <><button type="button" className="btn-secondary danger" disabled={busy} onClick={() => void excluir()}>Confirmar exclusão</button><button type="button" className="btn-secondary" onClick={() => setConfirmar(false)}>Cancelar</button></>}</div>
       {diario && sujo && <p className="muted">Salve antes de publicar: a publicação usa o texto salvo.</p>}
+      {sinc.conflito && <ConflitoAviso conflito={sinc.conflito} onUsarRemoto={sinc.usarRemoto} onManter={sinc.manterMinhas} onFechar={sinc.descartarAviso}/>}
       {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
     </form>
   </div>;

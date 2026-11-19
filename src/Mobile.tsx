@@ -3,6 +3,7 @@ import { MoreHorizontal, Pin, Plus, X } from "lucide-react";
 import { useLongPress } from "./NavItem";
 import { isPinned, type NavMode } from "./navigation";
 import { Panel } from "./Panel";
+import { OrigemAbaContext } from "./abrirEmAba";
 import { activeGroup, groups, type Kind, type TabSpec } from "./workspace";
 
 type Props = {
@@ -43,7 +44,7 @@ export function Mobile({ model, onOpen, onOpenContent, onChange, titleOf, onClos
     </div>
     </div>
     {selected instanceof TabNode
-      ? <Panel key={selected.getId()} kind={selected.getConfig().kind as Kind} entity={selected.getConfig().ref} onOpen={onOpen} onOpenContent={s => onOpenContent(s, selected.getId())}/>
+      ? <OrigemAbaContext.Provider value={selected.getId()}><Panel key={selected.getId()} kind={selected.getConfig().kind as Kind} entity={selected.getConfig().ref} onOpen={onOpen} onOpenContent={s => onOpenContent(s, selected.getId())}/></OrigemAbaContext.Provider>
       : <div className="empty"><h1>Área de trabalho</h1><p>Escolha uma seção no menu.</p></div>}
   </div>;
 }
