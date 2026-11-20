@@ -367,7 +367,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onNovoPermanente, onMover, on
         onDrop={e => { e.preventDefault(); const de = boards.findIndex(x => x.id === arrastada), para = boards.findIndex(x => x.id === b.id); if (de >= 0 && de !== para && ehPermanente(boards[de]) === perm) onMover(arrastada!, de < para ? 1 : -1, b.id); setArrastada(null); }}
         onDragEnd={() => setArrastada(null)}>
         {on ? <><input aria-label="Nome do planejamento" key={b.title} defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); else e.target.value = b.title; }} onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
-          <button className="icon danger" aria-label={`Excluir o planejamento ${b.title}`} title="Excluir este planejamento" onClick={() => onExcluir(b)}><Trash2 size={13}/></button></>
+          {(!perm || boards.filter(ehPermanente).length > 1) && <button className="icon danger" aria-label={`${perm ? "Excluir anotações" : "Excluir o planejamento"} ${b.title}`} title="Excluir este planejamento" onClick={() => onExcluir(b)}><Trash2 size={13}/></button>}</>
           : <button type="button" className="plano-selecionar" aria-pressed={on} onClick={() => onTrocar(b.id)}>{perm && <Pin size={13} aria-hidden="true"/>}{b.title}</button>}
         <button type="button" className="icon" aria-label={`Mover ${b.title} para esquerda`} disabled={!anterior || ehPermanente(anterior) !== perm} onClick={() => onMover(b.id, -1)}>‹</button>
         <button type="button" className="icon" aria-label={`Mover ${b.title} para direita`} disabled={!proximo || ehPermanente(proximo) !== perm} onClick={() => onMover(b.id, 1)}>›</button>
