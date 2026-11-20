@@ -465,3 +465,24 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .planos .plano.compacta .plano-fixada-titulo{display:block;min-width:0;max-width:125px;overflow:hidden;text-overflow:ellipsis}
 .planos-rolagem>.mais{position:static;flex:0 0 auto}
 @media(max-width:700px){.planos-fixados{max-width:42%}.planos .plano.compacta .plano-selecionar{max-width:110px}.planos .plano.compacta .plano-fixada-titulo{max-width:80px}}
+
+
+/* Guias de Anotações: layout responsivo à largura do painel FlexLayout,
+   não à largura da janela. Evita duas barras horizontais em painéis estreitos. */
+.planejamento{container-type:inline-size;min-width:0}
+.planejamento .planos{min-width:0;max-width:100%;box-sizing:border-box}
+@container (max-width: 680px){
+  .planejamento .planos{gap:5px}
+  .planejamento .planos-fixados{flex:0 1 auto;max-width:38%;overflow-x:hidden;scrollbar-width:none}
+  .planejamento .planos-rolagem{flex:1 1 0;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .planejamento .planos .plano{max-width:142px}
+  .planejamento .planos .plano.compacta .plano-selecionar{max-width:115px}
+  .planejamento .planos .plano.compacta .plano-fixada-titulo{max-width:90px}
+  .planejamento .planos-lista-wrapper{margin-left:auto}
+}
+@container (max-width: 440px){
+  .planejamento .planos-fixados{max-width:34%}
+  .planejamento .planos .plano{max-width:115px}
+  .planejamento .planos .plano.compacta .plano-selecionar{max-width:88px}
+  .planejamento .planos .plano.compacta .plano-fixada-titulo{max-width:65px}
+}
