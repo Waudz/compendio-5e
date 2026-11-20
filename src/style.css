@@ -334,6 +334,14 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .plano.ativo{border-color:var(--accent);color:var(--text);background:var(--hover)}
 .plano input{background:transparent;border:0;color:var(--text);font:inherit;font-size:13px;font-weight:600;width:14ch;min-width:8ch;padding:0}.plano input:focus{outline:none}
 .plano.mais{padding:5px 9px;border-style:dashed;background:transparent}
+/* As abas continuam compactas mesmo com ações de edição e ordenação. */
+.plano .plano-selecionar{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;padding:0}
+.plano .icon{width:20px;height:20px;min-width:20px;padding:2px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%}
+.plano .icon:disabled{opacity:.25;cursor:default}
+.plano[draggable=true]{cursor:grab}
+.plano[draggable=true]:active{cursor:grabbing}
+@media(max-width:700px){.plano[draggable=true]{cursor:default}.planos{flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:5px}.plano{flex:none}}
+
 .cartao{background:var(--bg,var(--panel))}
 
 .plano input{field-sizing:content;min-width:10ch;max-width:34ch;width:auto}
