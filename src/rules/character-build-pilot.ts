@@ -22,8 +22,14 @@ export type BuildResult = {abilities:Abilities; skills:string[]; languages:strin
 export function modifier(score:number):number {return Math.floor((score-10)/2);}
 export function buildCharacter(input:BuildInput):BuildResult {
   if(!Number.isInteger(input.level)||input.level<1||input.level>20) throw new Error('Invalid level');
+  const abilityKeys: Ability[] = ['str','dex','con','int','wis','cha'];
+  if (!input.baseAbilities || abilityKeys.some(key =>
+    !Number.isSafeInteger(input.baseAbilities[key]) || input.baseAbilities[key] < 1 || input.baseAbilities[key] > 30))
+    throw new Error('Invalid base ability scores');
   const levels=input.classDef.levels;
-  if(levels.length!==20||levels.some((v,i)=>v.level!==i+1))throw new Error('Incomplete class progression');
+  if(levels.length!==20||levels.some((v,i)=>v.level!==i+1 ||
+    !Number.isSafeInteger(v.hitDie) || v.hitDie < 1 || v.hitDie !== levels[0].hitDie))
+    throw new Error('Incomplete class progression');
   const grants:Grant[]=[...input.race.grants,...input.background.grants];
   const pending:string[]=[];
   for(const option of [input.race,input.background]){
