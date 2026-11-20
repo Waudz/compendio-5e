@@ -109,3 +109,12 @@ Links são **referências conhecidas**, não prova de acesso ou auditoria atual 
 - **Escopo:** somente documentação; nenhuma alteração de lógica, banco, deploy ou merge.
 - **Verificação:** conferir arquivos e commits no PR; CI do último commit ainda deve ser consultado após o envio.
 - **Próxima rodada:** executar checklist de retomada, conferir CI e continuar fatia vertical Guerreiro 2014.
+
+### Registro técnico — validação cruzada do catálogo (20/11/2026)
+
+- **Contexto:** adaptador já validava concessões de raça/antecedente/níveis, mas recebia progressões (`Advancement[]`) sem checagem na fronteira e não detectava IDs de escolhas repetidos entre fontes.
+- **Decisão:** validar todas as concessões/alternativas da progressão e rejeitar colisões de IDs entre raça, antecedente e classe; verificar dado de vida consistente em níveis de classe única.
+- **Alternativa rejeitada:** confiar somente na avaliação posterior da ficha, que poderia tratar decisões ambíguas.
+- **Implementação:** `src/rules/character-catalogue-adapter.ts` e `src/rules/character-catalogue-adapter.test.ts`; PR #74.
+- **Verificação:** testes adicionados; consultar GitHub Actions do HEAD antes de afirmar sucesso.
+- **Pendências:** dados SRD 2014 auditados, importação, persistência autenticada e testes E2E.
