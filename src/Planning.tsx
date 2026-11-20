@@ -353,10 +353,16 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
               return <Ordenavel key={id} id={id} mobile={mobile} alca={`Arrastar o cartão ${c.title}`} onContextMenu={e => aoClicarDireito(e, spec)}>
                 <CartaoTopo>
                   <div className="cartao-linha">
-                    <input className="cartao-titulo" aria-label={`Título do cartão ${c.title}`} value={x?.titulo ?? c.title} maxLength={120}
-                      onChange={e => { const v = e.target.value; mexer(id, y => ({ ...y, titulo: v })); agendar(id); }}
-                      onBlur={() => { const v = edRef.current[id]; if (v && !v.titulo.trim()) mexer(id, y => ({ ...y, titulo: y.base.title })); else void salvar(id); }}
-                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }}/>
+                    {(x?.titulo ?? c.title) === "Novo cartão"
+                      ? <button type="button" className="cartao-adicionar-titulo" aria-label="Adicionar título ao cartão" onClick={() => { mexer(id, y => ({ ...y, titulo: "" })); }}>+ Título</button>
+                      : <input className="cartao-titulo" aria-label={`Título do cartão ${c.title}`} value={x?.titulo ?? c.title} maxLength={120}
+                          onChange={e => { const v = e.target.value; mexer(id, y => ({ ...y, titulo: v })); agendar(id); }}
+                          onBlur={() => { const v = edRef.current[id]; if (v && !v.titulo.trim()) mexer(id, y => ({ ...y, titulo: "Novo cartão" })); void salvar(id); }}
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }}/>}
+                    {(x?.titulo ?? c.title) === "" && <input className="cartao-titulo" aria-label="Novo título do cartão" autoFocus placeholder="Título (opcional)" maxLength={120} value=""
+                      onChange={e => { mexer(id, y => ({ ...y, titulo: e.target.value })); agendar(id); }}
+                      onBlur={() => { const v = edRef.current[id]; if (v && !v.titulo.trim()) mexer(id, y => ({ ...y, titulo: "Novo cartão" })); void salvar(id); }}
+                      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}/>} 
                     <Estado x={x} sujo={sujo} onTentar={() => void salvar(id)}/>
                     <button className="icon" type="button" aria-label={`Mais ações de ${c.title}`} aria-haspopup="menu" onClick={e => abrirMenuEm(e.currentTarget, spec)}><MoreHorizontal size={14}/></button>
                   </div>
