@@ -47,6 +47,24 @@ export function Mobile(_props: Props) {
   const [screen, setScreen] = useState<TabSpec>(home);
   const [history, setHistory] = useState<TabSpec[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuDialog = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen || !menuDialog.current) return;
+    const root = menuDialog.current;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const buttons = () => [...root.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+    buttons()[0]?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setMenuOpen(false); return; }
+      if (e.key !== 'Tab' || e.ctrlKey || e.metaKey) return;
+      const items = buttons(), first = items[0], last = items[items.length - 1];
+      if (!root.contains(document.activeElement) || document.activeElement === (e.shiftKey ? first : last)) {
+        e.preventDefault(); (e.shiftKey ? last : first)?.focus();
+      }
+    };
+    document.addEventListener('keydown', key, true);
+    return () => { document.removeEventListener('keydown', key, true); if (previous?.isConnected) previous.focus({ preventScroll: true }); };
+  }, [menuOpen]);
   const scroll = useRef<HTMLDivElement>(null);
   const positions = useRef(new Map<string, number>());
   const current = tabId(screen);
@@ -117,7 +135,7 @@ export function Mobile(_props: Props) {
       <button className={menuOpen ? "active" : ""} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/><span>Menu</span></button>
     </nav>
     {menuOpen && <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
-      <div className="mobile-menu-sheet" role="dialog" aria-label="Menu de navegação" onClick={e => e.stopPropagation()}>
+      <div className="mobile-menu-sheet" role="dialog" aria-modal="true" ref={menuDialog} aria-label="Menu de navegação" onClick={e => e.stopPropagation()}>
         <div className="mobile-menu-heading"><strong>Menu</strong><button aria-label="Fechar menu" onClick={() => setMenuOpen(false)}><X size={22}/></button></div>
         <button onClick={() => navigate(home)}><House size={20}/> Início</button>
         <button onClick={() => navigate({ kind: "secao", ref: "campanhas" })}><Castle size={20}/> Gerenciar campanhas</button>
