@@ -241,3 +241,17 @@ Criados `src/rules/rules-catalogue.ts` e `src/rules/rules-catalogue.test.ts`. Um
 Auditoria encontrou divergência entre a decisão aprovada (uma única ficha ativa por `characterId`) e o protótipo `CharacterPointer`, que anteriormente criava chaves diferentes para visões pessoal e campanha. Corrigido em `src/rules/content-registry.ts`: `characterPointerKey({characterId})` aponta para **uma única ficha viva**, independente da visualização. `campaignCharacterSnapshotKey` representa somente um **snapshot histórico imutável**, nunca uma segunda ficha editável. Testes atualizados para impedir regressão.
 
 Ainda não há migração de dados, persistência ou autorização de produção. Antes de integrar, auditar consumidores existentes do ponteiro e garantir que remoção pessoal/transferência não duplique estado nem exponha notas privadas.
+
+## Auditoria crítica e próximos critérios de aceite — 20/11/2026
+
+**Avanço:** funções puras `addInventoryInstance` e `changeInventoryInstanceQuantity` permitem duas instâncias distintas do mesmo item do Compêndio, com IDs estáveis, quantidades/equipamento independentes e validação de duplicatas. IDs devem ser gerados na borda da aplicação/persistência; não são nomes ou slugs. O legado `applyInventoryChange` ainda agrupa itens adquiridos por `itemId` e usa ID determinístico `acquired:<itemId>`: **não usar como caminho definitivo para itens únicos/equipáveis**. Planejar migração e remoção/compatibilidade após integrar UI.
+
+**Críticas de arquitetura a resolver antes de produção:**
+1. `CharacterCatalog` ainda usa `raceId/backgroundId/classId` simples e `catalogueVersion` global, em vez de `ContentRef` por escolha. Criar adaptador canônico e persistir revisões de cada definição; evitar duas fontes de verdade.
+2. `RuleDefinition.data` é `Record<string,unknown>`: adicionar schemas tipados e validação runtime para cada tipo de conteúdo; rejeitar dados incompletos.
+3. Prototipagem ainda não integra telas, API, armazenamento, RLS nem fluxos completos de criação/edição/nível/inventário. CI verde confirma build/testes existentes, não uso real.
+4. Transferências/aceites devem ser transacionais e autorizados no servidor; jamais confiar em `isCampaignMaster` ou `acceptedByUserId` enviados pelo cliente.
+5. Garantir IDs opacos únicos para instâncias, referências de item versionadas, registro de alterações, políticas de migração, compatibilidade offline e testes E2E.
+6. Auditoria de licenças e fontes antes de importar texto de D&D 2014. Não assumir que todo conteúdo de livro é SRD.
+
+**Documentação:** decisões em `DECISOES-E-ARQUITETURA.md`; planejamento e riscos neste documento; auditoria de catálogo em `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`; testes unitários junto aos módulos. Atualizar documentação e testes no mesmo PR a cada mudança substancial. **Nenhum merge/deploy/migração autorizado.**
