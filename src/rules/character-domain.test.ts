@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyInventoryChange, createCharacterSheet, type CharacterCatalog, type CharacterDraft } from './character-domain';
+import { addInventoryInstance, applyInventoryChange, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterCatalog, type CharacterDraft } from './character-domain';
 
 const catalog: CharacterCatalog = {
   version: 'srd51-audited-pilot-v1',
@@ -113,4 +113,22 @@ describe('character domain: sheet, decisions and inventory', () => {
     }
     expect(JSON.stringify(draft)).toBe(original);
   });
+  it('keeps independent instances of the same item separate despite renames', () => {
+    const first = addInventoryInstance(draft, {
+      id:'instance-001',itemId:'longsword',quantity:1,equipped:true,origin:'acquired'
+    });
+    const second = addInventoryInstance(first, {
+      id:'instance-002',itemId:'longsword',quantity:1,equipped:false,origin:'acquired'
+    });
+    expect(second.inventory.filter(i=>i.itemId==='longsword')).toHaveLength(2);
+    const changed = changeInventoryInstanceQuantity(second,'instance-002',2);
+    expect(changed.inventory.find(i=>i.id==='instance-001')?.quantity).toBe(1);
+    expect(changed.inventory.find(i=>i.id==='instance-002')?.quantity).toBe(3);
+    expect(() => addInventoryInstance(second,{
+      id:'instance-001',itemId:'longsword',quantity:1,equipped:false,origin:'acquired'
+    })).toThrow('Invalid inventory entry');
+    expect(() => changeInventoryInstanceQuantity(second,'missing',1)).toThrow('Unknown inventory instance');
+    expect(draft.inventory).toHaveLength(1);
+  });
+
 });
