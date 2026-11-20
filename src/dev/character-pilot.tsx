@@ -51,6 +51,7 @@ export default function CharacterPilot(){
  const [message,setMessage]=useState('');
  const [abilityMethod,setAbilityMethod]=useState<'point-buy'|'standard-array'>(()=>isStandardArray(draft.baseAbilities)?'standard-array':'point-buy');
  const [abilityError,setAbilityError]=useState('');
+ const [packChoice,setPackChoice]=useState('explorer');
  let sheet:ReturnType<typeof createCharacterSheet>|null=null;
  let error='';
  try {sheet=createCharacterSheet(draft,catalog);}catch(e){error=e instanceof Error?e.message:String(e);}
@@ -67,10 +68,11 @@ export default function CharacterPilot(){
   const bundle=adventuringPacks2014[packId];
   if(!bundle){setMessage('Pacote desconhecido');return;}
   try{
+   if(draft.inventory.some(item=>item.id.startsWith('starting-pack:'))){setMessage('Remova ou revise o pacote inicial existente antes de adicionar outro');return;}
    const known=new Set(pilotRules.registry.entries.filter(entry=>entry.ref.kind==='item').map(entry=>entry.ref.id));
    const components=resolvePackItems(bundle,known);
    const inventory=components.reduce<CharacterDraft['inventory']>((all,item)=>[
-    ...all,{id:crypto.randomUUID(),itemId:item.itemId,quantity:item.quantity,equipped:false,origin:'starting'}],draft.inventory);
+    ...all,{id:'starting-pack:'+packId+':'+item.itemId,itemId:item.itemId,quantity:item.quantity,equipped:false,origin:'starting'}],draft.inventory);
    change({...draft,inventory});setMessage('Itens do pacote adicionados ao inventário; revise antes de salvar');
   }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível adicionar o pacote');}
  };
@@ -136,11 +138,10 @@ export default function CharacterPilot(){
    <p>Escolhas pendentes: {sheet.pending.length?sheet.pending.join(', '):'nenhuma'}</p>
    <p role="note">{!draft.name.trim() || sheet.pending.length?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
    <h2>Inventário</h2>
-   <label>Pacote de aventureiro <select aria-label="Pacote de aventureiro" defaultValue="explorer" id="pilot-pack-choice">
+   <label>Pacote de aventureiro <select aria-label="Pacote de aventureiro" value={packChoice} onChange={e=>setPackChoice(e.target.value)}>
     <option value="explorer">Explorador</option><option value="dungeoneer">Aventureiro de Masmorras</option>
    </select></label>
-   <button onClick={()=>{const selected=document.getElementById('pilot-pack-choice') as HTMLSelectElement|null;
-    if(selected)addPack(selected.value);}}>Adicionar pacote ao inventário</button>
+   <button onClick={()=>addPack(packChoice)}>Adicionar pacote ao inventário</button>
    <button onClick={()=>change(addInventoryInstance(draft,{id:crypto.randomUUID(),itemId:'longsword',quantity:1,equipped:false,origin:'acquired'}))}>
     Adicionar espada longa
    </button>
