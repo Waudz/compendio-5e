@@ -26,3 +26,11 @@ Para um **primeiro criador jogável com conteúdo reduzido**: cerca de 2–4 sem
 
 ## Critério de pronto
 Não confundir protótipo de domínio e telas `?demo` com funcionalidades completas: pronto exige interface de produção, dados conferidos, criação/edição/reabertura autenticada, validação no servidor, testes de integração e revisão de licenças.
+
+## Estratégia híbrida aprovada — implementação inicial (20/11/2026)
+
+A fonte inicial é a API versionada `https://www.dnd5eapi.co/api/2014`, não o endpoint sem versão; Open5e **V2** fica como fonte complementar com filtragem por documento/licença. Dados do 1.0 servem de referência de tradução e comparação, sem cópia automática. Documentação: https://docs.dnd5eapi.co/introduction e https://open5e.com/api-docs .
+
+Criado `src/rules/srd-2014-import.ts` com `srd2014ResourcePath` e `importReviewedSrd2014`. O adaptador aceita **somente registros marcados como revisados**, cria `ContentRef` estável, rejeita duplicados, IDs malformados e dados não revisados e produz `RulesCatalogue` para o mesmo Compêndio. Os testes usam **fixtures ilustrativas**, não conteúdo importado da API. O campo `reviewed` é um bloqueio operacional, **não uma certificação automática**. O campo de licença é uma advertência e não uma autorização para publicar.
+
+**Próxima etapa:** criar processo de coleta externa controlada com registro de URL, data, hash e licença; auditoria por tipo; validação semântica das concessões e progressões; snapshot local para uso offline. Não existe integração de rede nem publicação de dados reais neste commit.
