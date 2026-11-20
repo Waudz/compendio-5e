@@ -70,7 +70,7 @@ export default function CharacterPilot(){
    const known=new Set(pilotRules.registry.entries.filter(entry=>entry.ref.kind==='item').map(entry=>entry.ref.id));
    let next=draft;
    const changes:{group:string;oldOptionId:string;newOptionId:string}[]=[];
-   for(const [group,options] of Object.entries(fighterEquipmentOptions2014)){
+   for(const group of Object.keys(fighterEquipmentOptions2014)){
     const old=next.inventory.find(item=>item.id.startsWith('starting-choice:fighter-'+group+':'));
     const oldOptionId=old?.id.split(':')[2];
     if(oldOptionId&&oldOptionId!==equipmentChoices[group])changes.push({group,oldOptionId,newOptionId:equipmentChoices[group]});
