@@ -47,16 +47,20 @@ export function validateContentRegistry(registry: ContentRegistry): void {
   for (const entry of registry.entries) for (const prerequisite of entry.prerequisites ?? [])
     if (!keys.has(contentKey(prerequisite))) throw new Error('Unresolved content prerequisite');
 }
-/** Stable pointer: identity is global, mutable game state is scoped to personal/campaign contexts. */
-export type CharacterPointer = {
-  characterId: string;
-  scope: { type: 'personal' } | { type: 'campaign'; campaignId: string; participationId: string };
-};
+/** One canonical live character identity and sheet, independent of library/campaign views.
+ * Historical campaign snapshots have separate immutable keys and are never live sheets.
+ */
+export type CharacterPointer = { characterId: string };
 export function characterPointerKey(pointer: CharacterPointer): string {
   if (!pointer.characterId.trim()) throw new Error('Invalid character pointer');
-  if (pointer.scope.type === 'personal') return 'character:' + pointer.characterId + ':personal';
-  if (!pointer.scope.campaignId.trim() || !pointer.scope.participationId.trim())
-    throw new Error('Invalid campaign participation pointer');
-  return 'character:' + pointer.characterId + ':campaign:' +
-    pointer.scope.campaignId + ':' + pointer.scope.participationId;
+  return 'character:' + pointer.characterId;
+}
+export type CampaignCharacterSnapshotPointer = {
+  characterId: string; campaignId: string; snapshotId: string;
+};
+export function campaignCharacterSnapshotKey(pointer: CampaignCharacterSnapshotPointer): string {
+  if (!pointer.characterId.trim() || !pointer.campaignId.trim() || !pointer.snapshotId.trim())
+    throw new Error('Invalid historical snapshot pointer');
+  return 'character:' + pointer.characterId + ':campaign:' + pointer.campaignId +
+    ':snapshot:' + pointer.snapshotId;
 }
