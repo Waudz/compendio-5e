@@ -62,3 +62,7 @@ Criados `src/rules/srd-2014-collector.ts` e testes. `collectSrd2014Collection` r
 ## Snapshot offline (20/11/2026)
 
 Implementados `createOfflineCatalogueSnapshot` e `readOfflineCatalogueSnapshot`, com testes de serialização JSON, pesquisa no Compêndio, revisão, procedência, índice e isolamento de mutações. O formato é versionado e rejeita catálogo incompleto ou inconsistência entre revisão e IDs. O índice **não é um hash criptográfico** e não detecta adulterações em descrições/dados mecânicos: assinatura ou hash verificado de artefatos aprovados continua pendente. Os testes utilizam apenas o catálogo fictício do piloto. Não há snapshot de API real nem mudança no aplicativo publicado.
+
+## Pipeline de publicação local (20/11/2026)
+
+`buildApprovedSrd2014Snapshot` conecta aprovações editoriais ao importador e ao formato de snapshot offline. Rejeita lista vazia, aprovações inválidas, procedência divergente de `/api/2014`, duplicatas e mistura de licenças. Teste de integração percorre aprovação → importação → serialização → leitura → pesquisa do Compêndio, usando somente registros de teste. **Não houve download real, revisão de licença real nem publicação de conteúdo externo.** O próximo passo é uma ferramenta de coleta executável com timeout, limites e relatório de revisão.
