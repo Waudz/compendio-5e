@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { characterPointerKey, contentKey, validateContentRegistry, type ContentRegistry } from './content-registry';
+import { campaignCharacterSnapshotKey, characterPointerKey, contentKey, validateContentRegistry, type ContentRegistry } from './content-registry';
 
 const registry: ContentRegistry = {
   sources: [
@@ -29,13 +29,17 @@ describe('extensible character content registry', () => {
       ] }, registry.entries[3]
     ] })).toThrow('Unresolved content prerequisite');
   });
-  it('uses one character identity while separating personal and campaign state', () => {
-    const personal = characterPointerKey({ characterId: 'hero-1', scope: { type: 'personal' } });
-    const campaign = characterPointerKey({ characterId: 'hero-1',
-      scope: { type: 'campaign', campaignId: 'camp-1', participationId: 'member-1' } });
-    expect(personal).not.toBe(campaign);
-    expect(campaign).toContain('hero-1');
-    expect(() => characterPointerKey({ characterId: 'hero-1',
-      scope: { type: 'campaign', campaignId: '', participationId: 'member-1' } })).toThrow();
+  it('uses a single canonical live sheet across personal and campaign views', () => {
+    const canonical = characterPointerKey({ characterId: 'hero-1' });
+    expect(canonical).toBe('character:hero-1');
+    expect(() => characterPointerKey({ characterId: '' })).toThrow();
+    const snapshot = campaignCharacterSnapshotKey({
+      characterId: 'hero-1', campaignId: 'camp-1', snapshotId: 'at-release'
+    });
+    expect(snapshot).not.toBe(canonical);
+    expect(snapshot).toContain('snapshot:at-release');
+    expect(() => campaignCharacterSnapshotKey({
+      characterId: 'hero-1', campaignId: '', snapshotId: 'at-release'
+    })).toThrow();
   });
 });
