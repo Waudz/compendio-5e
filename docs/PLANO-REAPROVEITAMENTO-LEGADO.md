@@ -54,3 +54,7 @@ A etapa de staging é **somente uma função pura e testes**; ainda não há col
 ## Gate editorial (20/11/2026)
 
 Implementados `approveStagedSrd2014` e `reviewedRecordsForImport` com testes. Um registro staged só pode receber aprovação explícita após resolver todos os avisos e registrar responsável, data, licença verificada, confirmação de regras 2014 e direito de redistribuição. Dados são copiados para impedir alterações acidentais na fonte. **A confirmação é uma declaração editorial**, não verificação jurídica automatizada; uma aplicação de produção precisará de autenticação e trilha de auditoria no servidor. Ainda não foi aprovado/importado nenhum registro real.
+
+## Coletor controlado de API (20/11/2026)
+
+Criados `src/rules/srd-2014-collector.ts` e testes. `collectSrd2014Collection` recebe um cliente HTTP injetável, lê o índice da coleção em `/api/2014`, exige contagem completa, índices únicos e válidos, busca detalhes sequencialmente e devolve registros **staged não aprovados**, com URL e data de origem. Falha integralmente em caso de resposta incompleta, identidade inválida ou HTTP malsucedido. Nenhuma busca ocorre ao importar o módulo ou abrir fichas. Testes usam HTTP simulado. **Ainda não foi feita coleta externa real**, nem foi gerado snapshot ou publicado catálogo.
