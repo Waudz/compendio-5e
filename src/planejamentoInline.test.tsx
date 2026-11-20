@@ -496,7 +496,7 @@ describe("planejamentos e anotações permanentes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
     expect(await screen.findByLabelText("Título do cartão Cultos de Daggerford")).toBeTruthy();   // continua lá
   });
-  it("renomear o planejamento ativo; excluir diretamente apaga os cartões dele", async () => {
+  it("renomear o planejamento ativo; excluir guia preenchida pede confirmação", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     fireEvent.contextMenu(await screen.findByRole("button", { name: "Quadro" }));
@@ -505,6 +505,11 @@ describe("planejamentos e anotações permanentes", () => {
     fireEvent.change(nome, { target: { value: "Sessão 4 — Daggerford" } }); fireEvent.blur(nome);
     await waitFor(() => expect(registros.dados.find(r => r.id === "b1")!.title).toBe("Sessão 4 — Daggerford"));
     fireEvent.contextMenu(screen.getByRole("button", { name: "Sessão 4 — Daggerford" })); fireEvent.click(screen.getByRole("menuitem", { name: "Excluir" }));
+    expect(screen.getByRole("alertdialog").textContent).toMatch(/2 cartão/);
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(registros.dados.some(r => r.id === "b1")).toBe(true);
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Sessão 4 — Daggerford" })); fireEvent.click(screen.getByRole("menuitem", { name: "Excluir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir guia" }));
     await waitFor(() => expect(registros.dados.some(r => r.id === "b1")).toBe(false));
     expect(registros.dados.some(r => r.kind === "scene")).toBe(false);
     expect(await screen.findByRole("button", { name: "Anotações permanentes" })).toBeTruthy();               // um novo planejamento é criado: nunca fica sem nenhum
