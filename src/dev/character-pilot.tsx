@@ -48,7 +48,7 @@ function restore():CharacterDraft {
 export default function CharacterPilot(){
  const [draft,setDraft]=useState<CharacterDraft>(restore);
  const [message,setMessage]=useState('');
- const [abilityMethod,setAbilityMethod]=useState<'point-buy'|'standard-array'>('point-buy');
+ const [abilityMethod,setAbilityMethod]=useState<'point-buy'|'standard-array'>(()=>isStandardArray(draft.baseAbilities)?'standard-array':'point-buy');
  const [abilityError,setAbilityError]=useState('');
  let sheet:ReturnType<typeof createCharacterSheet>|null=null;
  let error='';
@@ -59,7 +59,7 @@ export default function CharacterPilot(){
   try {if(abilityMethod==='point-buy')validatePointBuy(next);else if(!isStandardArray(next)){
     setAbilityError('Na matriz padrão, troque a posição de dois valores para preservar os seis resultados.');return;
    }
-   setAbilityError('');change({...draft,baseAbilities:next,currentHp:Math.min(draft.currentHp,10+Math.floor((next.con-10)/2)+2)});
+   setAbilityError('');change({...draft,baseAbilities:next,currentHp:Math.min(draft.currentHp,10+Math.floor((next.con+2-10)/2))});
   }catch(e){setAbilityError(e instanceof Error?e.message:String(e));}
  };
  const save=()=>{
@@ -81,7 +81,7 @@ export default function CharacterPilot(){
     const baseAbilities=method==='standard-array'?{str:15,dex:14,con:13,int:12,wis:10,cha:8}:{str:15,dex:12,con:14,int:10,wis:12,cha:8};
     change({...draft,baseAbilities,currentHp:10+Math.floor((baseAbilities.con+2-10)/2)});
    }}><option value="point-buy">Compra de pontos (27)</option><option value="standard-array">Matriz padrão</option></select></label>
-   {abilityMethod==='point-buy'&&<p role="status">Pontos gastos: {pointBuySpent(draft.baseAbilities)} / {POINT_BUY_BUDGET}</p>}
+   {abilityMethod==='point-buy'&&<p>Pontos gastos: {pointBuySpent(draft.baseAbilities)} / {POINT_BUY_BUDGET}</p>}
    {ABILITY_ORDER.map(ability=><label key={ability} style={{display:'inline-block',marginRight:12}}>{ability.toUpperCase()} <select aria-label={'Atributo '+ability} value={draft.baseAbilities[ability]}
     onChange={e=>{const score=Number(e.target.value);if(abilityMethod==='standard-array'){
      const other=ABILITY_ORDER.find(key=>key!==ability&&draft.baseAbilities[key]===score);
