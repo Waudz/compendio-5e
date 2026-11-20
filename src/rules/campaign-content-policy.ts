@@ -1,7 +1,7 @@
 /** Campaign-specific content restrictions. Never delete or mutate catalogue entries.
  * Persist and authorize these policies server-side before production use.
  */
-import {contentKey,type ContentKind,type ContentRef} from './content-registry';
+import {contentKey,type ContentRef} from './content-registry';
 import {validateRulesCatalogue,type RulesCatalogue} from './rules-catalogue';
 export type RestrictableKind='race'|'subrace'|'class'|'subclass'|'background'|'feat'|'spell'|'item';
 export type CampaignContentPolicy={campaignId:string;blocked:ContentRef[]};
