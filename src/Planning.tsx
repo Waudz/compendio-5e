@@ -73,7 +73,8 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     if (!api || !cid) return;
     const [b, s] = await Promise.all([api.list(cid, "board"), api.list(cid, "scene")]);
     if (!b.ok || !s.ok) { setErro(!b.ok ? b.error : (s as { error: string }).error); setCarregado(true); return; }
-    let lista = [...b.data];
+    // Quadros de anotações são pessoais: nunca misturar quadros de outros participantes.
+    let lista = b.data.filter(registro => registro.ownerId === user?.id && registro.visibility === "private");
     const falta = { permanente: !lista.some(ehPermanente), plano: !lista.some(x => !ehPermanente(x)) };
     if (falta.permanente || falta.plano) {
       const c = await garantirPlanos(api, cid, user?.id ?? "anonimo", falta);
@@ -86,7 +87,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     const salvo = lerPlanoSalvo(chave);
     const atual = lista.find(x => x.id === boardIdRef.current) ?? lista.find(x => x.id === salvo) ?? lista.find(x => !ehPermanente(x)) ?? lista[0];
     setErro(null); setBoards(lista); setBoardId(atual.id);
-    setCenas(prev => { const novo = Object.fromEntries(s.data.map(r => [r.id, r])); for (const id of Object.keys(edRef.current)) if (prev[id] && !novo[id]) novo[id] = prev[id]; return novo; });   // cartão com rascunho nunca some numa recarga
+    setCenas(prev => { const novo = Object.fromEntries(s.data.filter(r => r.ownerId === user?.id && r.visibility === "private").map(r => [r.id, r])); for (const id of Object.keys(edRef.current)) if (prev[id] && !novo[id]) novo[id] = prev[id]; return novo; });   // cartão com rascunho nunca some numa recarga
     setCarregado(true);
   }, [api, cid, chave, user?.id]);
   useEffect(() => { setCarregado(false); setBoards([]); setBoardId(null); setEd({}); setSel([]); void carregar(); }, [carregar]);
