@@ -59,3 +59,7 @@ node scripts/collect-srd-2014.mjs classes
 O comando consulta a API `/api/2014` e grava registros **não aprovados** em `.srd-2014-staging/` (ignorada pelo Git), com procedência, alertas de revisão e SHA-256 impresso. Não faz commit, não publica e não concede direitos de redistribuição. Há também `.github/workflows/collect-srd-2014.yml`, acionado manualmente pelo GitHub Actions, que produz artefato temporário de revisão. Como o workflow está apenas na branch do PR, sua execução manual pela interface pode depender de integração posterior à branch padrão. Não realizar merge só para isso.
 
 **Documentação técnica detalhada:** `docs/PLANO-REAPROVEITAMENTO-LEGADO.md`, `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md` e `docs/CRIADOR-FICHA-INVENTARIO.md`. Revisar direitos e atribuições de cada fonte antes de distribuir dados externos.
+
+### Validação estrita do adaptador do criador (20/11/2026)
+
+O adaptador `src/rules/character-catalogue-adapter.ts` agora valida em runtime cada variante de concessão (`Grant`), seus campos numéricos, IDs e escolhas aninhadas antes de encaminhar dados ao cálculo da ficha. Rejeita valores inválidos, tipos desconhecidos, opções repetidas e escolhas impossíveis; há testes de regressão em `src/rules/character-catalogue-adapter.test.ts`. Isso **não** substitui a revisão editorial de regras 2014, o esquema completo por categoria, a validação no servidor, a persistência autenticada nem os testes E2E. Mudança restrita à branch do PR #74; sem deploy ou migração.
