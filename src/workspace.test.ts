@@ -176,3 +176,21 @@ describe("sequência de operações aleatórias mantém o layout válido", () =>
     }
   });
 });
+
+
+describe("múltiplas instâncias de Anotações pelo menu lateral", () => {
+  it("abre novas abas distintas e restaura as instâncias ao carregar layout", async () => {
+    const { navigate } = await import("./navigation");
+    const m = createModel();
+    const spec = sec("planejamento");
+    navigate(m, spec, "new");
+    navigate(m, spec, "newPinned");
+    expect(ids(m)[0]).toContain("secao:planejamento~2");
+    expect(ids(m)[0]).toContain("secao:planejamento~3");
+    const restored = sanitizeLayout(m.toJson());
+    expect(restored).not.toBeNull();
+    const restoredIds = JSON.stringify(restored);
+    expect(restoredIds).toContain("secao:planejamento~2");
+    expect(restoredIds).toContain("secao:planejamento~3");
+  });
+});
