@@ -496,6 +496,16 @@ describe("planejamentos e anotações permanentes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
     expect(await screen.findByLabelText("Título do cartão Cultos de Daggerford")).toBeTruthy();   // continua lá
   });
+  it("duplo clique no nome da guia permite renomear diretamente", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    fireEvent.doubleClick(await screen.findByRole("button", { name: "Quadro" }));
+    const campo = screen.getByLabelText("Renomear guia") as HTMLInputElement;
+    fireEvent.change(campo, { target: { value: "Notas da campanha" } });
+    fireEvent.keyDown(campo, { key: "Enter" });
+    await waitFor(() => expect(registros.dados.find(r => r.id === "b1")!.title).toBe("Notas da campanha"));
+    expect(await screen.findByRole("button", { name: "Notas da campanha" })).toBeTruthy();
+  });
   it("renomear o planejamento ativo; excluir guia preenchida pede confirmação", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
