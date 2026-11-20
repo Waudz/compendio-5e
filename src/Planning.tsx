@@ -241,7 +241,9 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   const novoPlano = async () => {
     if (!api || !cid) return;
     if (!(await salvarTodos())) return;
-    const n = boards.length + 1;
+    const existentes = new Set(boards.map(b => b.title.trim().toLocaleLowerCase("pt-BR")));
+    let n = 1;
+    while (existentes.has(`nova guia ${n}`)) n++;
     const r = await api.create({ kind: "board", campaignId: cid, title: `Nova guia ${n}`, visibility: "private", meta: { ...quadroInicial("Seção 1"), ordem: Date.now() } });
     if (!r.ok) { setAviso(r.error); return; }
     versoes.current.set(r.data.id, r.data.version); setBoards(bs => ordenarPlanos([...bs, r.data])); setEd({}); setSel([]); boardIdRef.current = r.data.id; setBoardId(r.data.id); gravarPlanoSalvo(chave, r.data.id);
@@ -401,6 +403,10 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
   const [busca, setBusca] = useState("");
   const [renomeando, setRenomeando] = useState<string | null>(null);
   const toque = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rolagem = useRef<HTMLDivElement | null>(null);
+  const fixadasRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => { const el = (rolagem.current?.querySelector(`[data-guia-id="${ativo}"]`) ?? fixadasRef.current?.querySelector(`[data-guia-id="${ativo}"]`)) as HTMLElement | null; if (el) { const parent = el.parentElement; if (parent && (parent === rolagem.current || parent === fixadasRef.current)) { if (el.offsetLeft < parent.scrollLeft) parent.scrollTo({ left: el.offsetLeft, behavior: "smooth" }); else if (el.offsetLeft + el.offsetWidth > parent.scrollLeft + parent.clientWidth) parent.scrollTo({ left: el.offsetLeft + el.offsetWidth - parent.clientWidth, behavior: "smooth" }); } } }, [ativo, boards]);
+  useEffect(() => { const teclado = (e: KeyboardEvent) => { if (!e.ctrlKey || e.key !== "Tab" || e.altKey || e.metaKey || (e.target instanceof HTMLElement && e.target.closest("input, textarea, [contenteditable=true]"))) return; const atual = boards.findIndex(b => b.id === ativo); if (atual < 0 || boards.length < 2) return; e.preventDefault(); onTrocar(boards[(atual + (e.shiftKey ? boards.length - 1 : 1)) % boards.length].id); }; window.addEventListener("keydown", teclado); return () => window.removeEventListener("keydown", teclado); }, [boards, ativo, onTrocar]);
   const limparToque = () => { if (toque.current) clearTimeout(toque.current); toque.current = null; };
   const abrirMenu = (id: string, x: number, y: number) => { setMenu({ id, x: Math.max(8, Math.min(x, window.innerWidth - 200)), y: Math.max(8, Math.min(y, window.innerHeight - 230)) }); setListaAberta(false); };
   const fixadas = boards.filter(ehPermanente), comuns = boards.filter(b => !ehPermanente(b));
@@ -408,7 +414,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
     const perm = ehPermanente(b), on = b.id === ativo;
     const i = grupo.findIndex(x => x.id === b.id);
     const editar = renomeando === b.id;
-    return <span key={b.id} className={`plano ${on ? "ativo " : ""}${perm ? "fixada compacta" : "solta"}`} draggable
+    return <span key={b.id} data-guia-id={b.id} className={`plano ${on ? "ativo " : ""}${perm ? "fixada compacta" : "solta"}`} draggable
       onContextMenu={e => { e.preventDefault(); abrirMenu(b.id, e.clientX, e.clientY); }}
       onTouchStart={e => { limparToque(); const t = e.touches[0]; const x = t.clientX, y = t.clientY; toque.current = setTimeout(() => abrirMenu(b.id, x, y), 550); }}
       onTouchEnd={limparToque} onTouchMove={limparToque} onTouchCancel={limparToque}
@@ -422,8 +428,8 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
     </span>;
   };
   return <nav className="planos" aria-label="Planejamentos">
-    <div className="planos-fixados" aria-label="Guias fixadas">{fixadas.map(b => renderizar(b, fixadas))}</div>
-    <div className="planos-rolagem" aria-label="Outras guias">{comuns.map(b => renderizar(b, comuns))}<button type="button" className="plano mais" aria-label="Nova guia" title="Criar guia" onClick={onNovo}><Plus size={14}/></button></div>
+    <div className="planos-fixados" ref={fixadasRef} aria-label="Guias fixadas">{fixadas.map(b => renderizar(b, fixadas))}</div>
+    <div className="planos-rolagem" ref={rolagem} aria-label="Outras guias">{comuns.map(b => renderizar(b, comuns))}<button type="button" className="plano mais" aria-label="Nova guia" title="Criar guia" onClick={onNovo}><Plus size={14}/></button></div>
     <div className="planos-lista-wrapper">
       <button type="button" className="plano mais" aria-label="Listar guias" title="Todas as guias" aria-expanded={listaAberta} onClick={() => { setListaAberta(v => !v); setMenu(null); }}><MoreHorizontal size={16}/></button>
       {listaAberta && <div className="planos-lista">
