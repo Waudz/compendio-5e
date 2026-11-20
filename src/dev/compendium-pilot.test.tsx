@@ -7,7 +7,7 @@ describe('Compendium browser pilot',()=>{
  it('switches list/grid, searches accents, filters types and opens stable IDs',()=>{
   render(<CompendiumPilot/>);
   const list=screen.getByRole('list',{name:'Resultados do compêndio'});
-  expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+  expect(within(list).getAllByRole('listitem')).toHaveLength(4);
   fireEvent.click(screen.getByLabelText('Grade'));
   expect(list.getAttribute('data-view')).toBe('grid');
   fireEvent.change(screen.getByLabelText('Pesquisar no compêndio'),{target:{value:'anao'}});
