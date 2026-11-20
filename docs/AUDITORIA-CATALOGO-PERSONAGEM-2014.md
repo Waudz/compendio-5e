@@ -419,3 +419,15 @@ Criados **no novo repositório**, isolados do aplicativo e sem acesso ao Supabas
 **Execução:** os arquivos foram enviados ao PR; **nenhuma execução do Vitest foi confirmada nesta rodada** (consulta aos workflows do último commit retornou lista vazia). A existência de testes escritos não significa que passaram. Próximo passo: obter execução do CI, corrigir eventuais falhas e expandir o piloto até cobrir uma opção integral antes de importações em escala.
 
 **Risco técnico ainda pendente:** cálculo de PV em mudanças retroativas de Constituição e multiclasses exige histórico de dados de vida e política de recomputação; o piloto apenas calcula uma classe, sem esses fluxos. Escolhas incompletas são reportadas em `pending` em vez de serem silenciosamente aceitas; uma futura camada de confirmação deverá bloquear conclusão quando houver pendências.
+
+## Rodada 9 — diagnóstico do CI e correção da compilação
+
+**Run inspecionado:** GitHub Actions `44694831006`, job `validar` `136148966851`, commit `9c391ce`. Dependências instaladas com sucesso; falha em `npm run build` (`tsc -b && vite build`) por `TS1127: Invalid character` e `TS1005`/ `TS1434`. O passo `Executar testes` foi **ignorado** por causa do build.
+
+**Causa confirmada por inspeção dos arquivos:** sequências literais `\\n` inseridas nos arquivos TypeScript por edição automatizada, em três linhas:
+- `src/rules/character-build-pilot.ts`: declaração da união `Grant` e trecho anterior ao `return`;
+- `src/rules/character-build-pilot.test.ts`: concessão de Robustez Anã na fixture.
+
+**Correção enviada:** substituição dos escapes literais por quebras de linha reais, commits `b0215c7` e `b8ceaf1`. Nova execução de workflow `44695136016` observada **em andamento**; resultado final não confirmado no momento deste registro.
+
+**Duas integrações falhas reportadas pelo usuário:** até agora há **um log de workflow analisado**; não presumir que ambas as falhas têm a mesma causa sem inspecionar o outro run. Não mesclar enquanto CI estiver vermelho ou inconclusivo.
