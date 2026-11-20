@@ -267,3 +267,9 @@ Implementado `src/rules/character-catalogue-adapter.ts` com teste de integraçã
 Acrescentado teste ao `character-catalogue-adapter.test.ts` que usa **as mesmas definições versionadas** para criar um guerreiro anão de nível 1, chegar ao nível 4, detectar a escolha ASI pendente, selecionar +2 em Força e manter duas espadas longas como instâncias independentes (uma equipada, outra com quantidade alterada). Verifica ficha recalculada sem perda de escolhas ou mistura de inventário.
 
 **Não é teste de navegador nem de persistência:** falta UI, salvamento/reabertura e validação runtime discriminada. CI deve ser conferida após o commit do teste; não presumir sucesso.
+
+## Piloto de interface isolado — 20/11/2026
+
+Foi criada a tela `src/dev/character-pilot.tsx`, acessível **somente com Vite em modo desenvolvimento** em `/?demo=criador-piloto`. O ponto de entrada `src/main.tsx` carrega a tela por importação dinâmica quando `import.meta.env.DEV` está ativo; não expõe a tela no build publicado. O piloto consulta o mesmo `RulesCatalogue` versionado para um anão guerreiro, exibe ficha derivada, permite nome, nível 1–4, ASI de nível 4, instâncias individuais de espada longa e salvamento/reabertura no `localStorage` isolado sob `compendio5e:dev:character-pilot:v1`. Inclui teste de componente em jsdom de criação, progressão, duas instâncias, salvamento e reabertura.
+
+**Limitações e segurança:** dados do piloto são sintéticos/incompletos, não representam o catálogo SRD completo; não há persistência autenticada, sincronização, RLS, teste real de navegador Playwright ou criação de personagem de produção. O teste jsdom cobre interações React, não substitui Playwright. Não ligar o piloto à tela real nem permitir salvar personagens oficiais até fechar schemas, persistência e autorização. Próxima fase: testar no Chromium em CI e desenhar armazenamento versionado com proteção de conflitos, sem migrar Supabase de produção sem autorização.
