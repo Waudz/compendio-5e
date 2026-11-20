@@ -184,6 +184,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     const q = lerQuadro(boardRef.current?.meta); const { cartoes } = excluirSecoes(q, ids);
     const nomes = ids.map(i => q.colunas.flatMap(c => c.secoes).find(s => s.id === i)?.titulo).filter(Boolean).join(", ");
     const pendentes = cartoes.filter(c => edRef.current[c] && edSujo(edRef.current[c])).length;
+    if (cartoes.length === 0) { void confirmarExclusaoSecoes(ids); return; }
     setConfirmarSecoes({ ids, mensagem: `Excluir ${ids.length === 1 ? "a seção" : `as ${ids.length} seções`} “${nomes}”${cartoes.length ? ` e ${cartoes.length} cartão(ões) dentro dela(s)` : ""}? Essa ação não pode ser desfeita.${pendentes ? " Alterações não salvas serão perdidas." : ""}` });
   };
   const confirmarExclusaoSecoes = async (ids: string[]) => {
