@@ -549,3 +549,19 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 @container (min-width: 681px) and (max-width: 850px){
   .planejamento .planos-fixados{max-width:35%;scrollbar-width:none}
 }
+
+/* Exclusão contextual nas Anotações: não ocupa atenção fora da interação.
+   Focus-visible/focus-within garantem acesso por teclado; touch não depende de hover. */
+@media (hover:hover) and (pointer:fine){
+  .planejamento .cartao .excluir-cartao-discreto,
+  .planejamento .secao .excluir-secao-discreto{
+    opacity:0;visibility:hidden;transition:opacity .14s ease;
+  }
+  .planejamento .cartao:is(:hover,:focus-within) .excluir-cartao-discreto,
+  .planejamento .secao-topo:is(:hover,:focus-within) .excluir-secao-discreto,
+  .planejamento .excluir-cartao-discreto:focus-visible,
+  .planejamento .excluir-secao-discreto:focus-visible{
+    opacity:1;visibility:visible;
+  }
+}
+/* Em touch, manter as ações visíveis até existir menu contextual próprio. */
