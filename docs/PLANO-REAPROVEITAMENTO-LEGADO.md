@@ -34,3 +34,15 @@ A fonte inicial é a API versionada `https://www.dnd5eapi.co/api/2014`, não o e
 Criado `src/rules/srd-2014-import.ts` com `srd2014ResourcePath` e `importReviewedSrd2014`. O adaptador aceita **somente registros marcados como revisados**, cria `ContentRef` estável, rejeita duplicados, IDs malformados e dados não revisados e produz `RulesCatalogue` para o mesmo Compêndio. Os testes usam **fixtures ilustrativas**, não conteúdo importado da API. O campo `reviewed` é um bloqueio operacional, **não uma certificação automática**. O campo de licença é uma advertência e não uma autorização para publicar.
 
 **Próxima etapa:** criar processo de coleta externa controlada com registro de URL, data, hash e licença; auditoria por tipo; validação semântica das concessões e progressões; snapshot local para uso offline. Não existe integração de rede nem publicação de dados reais neste commit.
+
+## Melhorias propostas proativamente — 20/11/2026
+
+- **Pipeline em duas etapas:** `stageSrd2014Record` e `stageSrd2014Batch` recebem payloads da API, verificam identidade, preservam dados brutos e URL/data da origem, geram avisos e sempre marcam `reviewed:false`. Só a etapa posterior `importReviewedSrd2014` admite registros revisados. Isso impede que uma mudança silenciosa na API altere fichas existentes.
+- **Snapshots versionados e offline:** congelar conjuntos aprovados em arquivos locais; evitar buscar dados ao abrir ficha. Registrar hash e atribuição na próxima etapa.
+- **Recorte vertical antes de cobertura total:** entregar um personagem Guerreiro nível 1–4 do começo ao fim, com raça, antecedente, ficha e inventário persistidos, antes de tentar todas as subclasses.
+- **Contratos automatizados por fonte:** testes para mudança de formato da API e diferenças 2014/2024; avisar em vez de aceitar conteúdo incompatível.
+- **Tradução desacoplada:** manter nome original e localização PT-BR separados da identidade; revisões de tradução não devem invalidar fichas.
+- **Segurança por servidor:** autorizações de mestre e validação de opções bloqueadas precisam ser conferidas no backend, nunca confiar no booleano fornecido pelo navegador.
+- **Auditoria de licenças:** não pressupor que todo texto de uma API ou do legado pode ser republicado; atribuição e licença por fonte/entrada.
+
+A etapa de staging é **somente uma função pura e testes**; ainda não há coletor HTTP, snapshot real, revisão de licenças nem integração ao app publicado.
