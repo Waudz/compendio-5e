@@ -67,7 +67,17 @@ export default function CharacterPilot(){
   <label>Nível <select aria-label="Nível" value={draft.level} onChange={e=>change({...draft,level:Number(e.target.value)})}>
    {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n}</option>)}
   </select></label>
-  {fighter2014Advancements.flatMap(adv=>adv.level<=draft.level?adv.choices??[]:[]).map(choice=><label key={choice.id} style={{display:'block'}}>
+  {fighter2014Advancements.flatMap(adv=>adv.level<=draft.level?adv.choices??[]:[]).map(choice=>choice.count>1?<fieldset key={choice.id}>
+   <legend>Perícias do Guerreiro (escolha {choice.count})</legend>
+   {choice.options.map(option=>{const chosen=draft.decisions.find(d=>d.id===choice.id)?.optionIds??[];
+    return <label key={option.id} style={{display:'inline-block',marginRight:12}}>
+     <input type="checkbox" aria-label={'Perícia '+option.id} checked={chosen.includes(option.id)}
+      disabled={!chosen.includes(option.id)&&chosen.length>=choice.count}
+      onChange={e=>change({...draft,decisions:[...draft.decisions.filter(d=>d.id!==choice.id),
+       {id:choice.id,optionIds:e.target.checked?[...chosen,option.id]:chosen.filter(id=>id!==option.id)}]})}/>
+     {option.id.replaceAll('-', ' ')}
+    </label>})}
+  </fieldset>:<label key={choice.id} style={{display:'block'}}>
    {choice.id==='fighter-style-1'?'Estilo de luta (nível 1)':choice.id==='fighter-archetype-3'?'Arquétipo marcial (nível 3)':
     'Melhoria de atributo (nível '+choice.level+')'}
    <select aria-label={choice.id==='fighter-asi-4'?'Melhoria de atributo':choice.id} value={draft.decisions.find(d=>d.id===choice.id)?.optionIds[0]??''}
@@ -81,6 +91,7 @@ export default function CharacterPilot(){
   {sheet && <section aria-label="Ficha calculada">
    <h2>Ficha</h2><p>Força: {sheet.abilities.str} · Constituição: {sheet.abilities.con} · PV máximo: {sheet.maxHp}</p>
    <p>Características: {sheet.features.join(', ')||'nenhuma'}</p>
+   <p>Perícias: {sheet.skills.join(', ')||'nenhuma'}</p>
    <p>Recursos: {Object.entries(sheet.resources).map(([name,value])=>name+' '+String(value.remaining)+'/'+String(value.maximum)).join(' · ')||'nenhum'}</p>
    <p>Escolhas pendentes: {sheet.pending.length?sheet.pending.join(', '):'nenhuma'}</p>
    <p role="note">{!draft.name.trim() || sheet.pending.length?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
