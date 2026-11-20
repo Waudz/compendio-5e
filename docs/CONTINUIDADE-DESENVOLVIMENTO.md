@@ -208,3 +208,22 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 
 - Corrigido erro TypeScript TS6133 por variável não utilizada no fluxo de troca.
 - Adicionados testes React em `src/dev/character-pilot.test.tsx` para confirmar quatro grupos, idempotência, recusa de substituição e substituição consentida, incluindo bloqueio após alteração da quantidade. Aguardando CI do HEAD; não declarar aprovação antes da execução.
+
+## Decisões de produto confirmadas em 20/11/2026 — aplicação pendente
+
+- **Iniciativa:** somente o mestre tem acesso; jogadores não consultam a ferramenta.
+- **Catálogo e Enciclopédia:** pesquisa mecânica de monstros exclusiva do mestre; Enciclopédia da campanha reúne Criaturas (incluindo cultistas e guardas genéricos), Personagens (PCs e NPCs individuais), Lugares, Organizações e Conhecimentos. Inimigo/Chefe são marcadores; não revelar marcadores secretos automaticamente.
+- **Conhecimento de criaturas e inimigos:** exclusivamente compartilhado por campanha, nunca individual por personagem. Mestre controla manualmente os níveis nome; nome+descrição; nome+descrição+imagem; dados mecânicos explicitamente liberados. Ação de adicionar à Enciclopédia a partir do Bestiário do mestre; sem duplicar bloco de estatísticas.
+- **Identidade pública de PC:** etapa final do criador, com prévia reutilizada na campanha e Enciclopédia. Uma imagem pública; nome, sobrenome, título/alcunha, raça e classe podem ser exibidos, ocultados ou personalizados pelo jogador. **Não mostrar nível**. Descrição pública editável pelo proprietário, distinta de biografia e ficha privadas. Título pode anteceder revelação de nome real; NPCs seguem modelo semelhante sob controle do mestre.
+- **Personagens do mestre:** lista somente personagens com ficha própria, ativos/inativos, jogadores vinculados e NPCs com ficha. Ativos são vivos por padrão; inativos recebem status morto ou aposentado. Todos permanecem na Enciclopédia até remoção explícita pelo mestre. NPC narrativo sem ficha só na Enciclopédia; mestre pode criar ficha própria ou vincular bloco do Bestiário (Plebeu/Commoner, Guarda etc.), sem obrigatoriamente inserir na lista de fichas.
+- **Administração:** mestre pode criar fichas, vincular ou transferir personagens a jogadores, editar integralmente fichas vinculadas à campanha e transferir itens/quantidades entre personagens, com histórico/auditoria. Não dar acesso às anotações privadas. Saída da campanha deixa personagem inativo até exclusão pelo mestre.
+- **Anotações:** pertencem ao usuário, persistem ao sair de campanhas, privadas inclusive perante mestre; separar visualização padrão por modo jogador/mestre, sem apagar ou transferir ao alternar.
+- **Inventário:** bolsas, mochilas e recipientes são itens comuns, sem inventários aninhados. Pacotes iniciais expandem em itens do catálogo único.
+- **Lixeira:** retenção indefinida até exclusão definitiva manual confirmada; restauração disponível; sem expiração automática.
+- **Status:** decisões aprovadas em conversa, **não equivalem a implementação ou RLS validada**. Revisar documentos normativos conflitantes antes de migrar banco. Nenhum merge, deploy ou migração sem autorização explícita.
+
+## Última rodada de implementação (20/11/2026)
+
+- PR #74: corrigido teste de substituição de armadura para alterar o item certo (antes alterava a primeira entrada de inventário, de outro grupo).
+- Piloto de criador: reconstitui seleção de equipamentos iniciais a partir do inventário persistido, inclusive ao reabrir; não considera ficha completa sem os quatro grupos de equipamentos. Novos testes de interface para restauração e completude.
+- CI anterior ao ajuste: 675 testes aprovados e 1 reprovado; **CI dos commits novos ainda precisa ser conferido**. Piloto continua isolado de produção, sem Supabase.
