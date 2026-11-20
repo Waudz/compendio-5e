@@ -14,7 +14,7 @@ import { ConflitoAviso } from "./ConflitoAviso";
 import { ConteudoLeve, temConteudo } from "./ConteudoLeve";
 import { EditorLazy } from "./EditorLazy";
 import type { BlocoTexto } from "./inicio";
-import { LARGURA_MAX, LARGURA_MIN, LARGURA_PADRAO, adicionarCartao, alternarTituloGrande, alternarTituloSecao, excluirSecoes, lerQuadro, limitarLargura, novaColuna, novaSecaoDepois, novoId, redimensionarColuna, removerCartao, renomearSecao, soltarCartao, soltarSecao, todosCartoes, type Quadro, type Secao } from "./quadro";
+import { LARGURA_MAX, LARGURA_MIN, LARGURA_PADRAO, adicionarCartao, alternarTituloGrande, excluirSecoes, lerQuadro, limitarLargura, novaColuna, novaSecaoDepois, novoId, redimensionarColuna, removerCartao, renomearSecao, soltarCartao, soltarSecao, todosCartoes, type Quadro, type Secao } from "./quadro";
 import { validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
 import { novaOrigem, publicarExclusao, publicarRegistro, useAssinaturaGeral, type Conflito } from "./registrosStore";
@@ -341,12 +341,9 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
           {col.secoes.map(s => <Fragment key={s.id}><SecaoOrdenavel secao={s} selecionada={sel.includes(s.id)} aoClicar={e => clicarSecao(s.id, e)}
             cabecalho={<header className={s.grande ? "secao-topo grande" : "secao-topo"} onClick={e => { if ((e.target as HTMLElement).closest("input, button")) return; clicarSecao(s.id, e); }}>
               {!mobile && <SecaoAlca titulo={s.titulo}/>}
-              {s.semTitulo
-                ? <button type="button" className="secao-adicionar-titulo" aria-label={`Mostrar título da seção ${s.titulo}`} onClick={() => gravar(q => alternarTituloSecao(q, s.id))}>+ Título</button>
-                : <input className="secao-titulo" aria-label={`Nome da seção ${s.titulo}`} defaultValue={s.titulo} maxLength={80} onPointerDown={e => e.stopPropagation()}
-                    onFocus={() => setSel([])} onBlur={e => { if (e.target.value.trim() && e.target.value !== s.titulo) gravar(q => renomearSecao(q, s.id, e.target.value)); else e.target.value = s.titulo; }}
-                    onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>}
-              <button type="button" className="icon" aria-label={s.semTitulo ? `Exibir título da seção ${s.titulo}` : `Ocultar título da seção ${s.titulo}`} aria-pressed={!!s.semTitulo} title={s.semTitulo ? "Exibir título" : "Ocultar título"} onClick={() => gravar(q => alternarTituloSecao(q, s.id))}><Type size={13}/></button>
+              <input className="secao-titulo" aria-label={`Nome da seção ${s.titulo}`} defaultValue={s.titulo} maxLength={80} onPointerDown={e => e.stopPropagation()}
+                onFocus={() => setSel([])} onBlur={e => { if (e.target.value.trim() && e.target.value !== s.titulo) gravar(q => renomearSecao(q, s.id, e.target.value)); else e.target.value = s.titulo; }}
+                onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
               <button type="button" className={s.grande ? "icon ativo" : "icon"} aria-label={`Título grande na seção ${s.titulo}`} aria-pressed={!!s.grande} title="Título grande" onClick={() => gravar(q => alternarTituloGrande(q, s.id))}><Type size={14}/></button>
               <button type="button" className="icon danger excluir-secao-discreto" aria-label={`Excluir seção ${s.titulo}`} title="Excluir seção" onClick={() => void excluirSecoesUI([s.id])}><Trash2 size={14}/></button>
             </header>}>
