@@ -28,6 +28,8 @@ const novoEd = (r: Registro, editando = false): Ed => ({ editando, titulo: r.tit
 export const ATRASO_AUTOSSALVAR = 900;   // ms depois da última alteração
 const NOME_PERMANENTE = "Anotações permanentes";
 const ehPermanente = (b: Registro) => (b.meta as { permanente?: unknown }).permanente === true;
+const ordemPlano = (b: Registro) => { const n = (b.meta as { ordem?: unknown }).ordem; return typeof n === "number" && Number.isFinite(n) ? n : new Date(b.createdAt).getTime(); };
+const ordenarPlanos = (bs: Registro[]) => [...bs].sort((a, b) => Number(ehPermanente(b)) - Number(ehPermanente(a)) || ordemPlano(a) - ordemPlano(b) || a.createdAt.localeCompare(b.createdAt));
 const quadroInicial = (titulo: string) => ({ colunas: [{ id: novoId(), secoes: [{ id: novoId(), titulo, cartoes: [] }] }] });
 /** Criação das anotações permanentes e do primeiro planejamento: UMA vez por campanha mesmo com várias leituras simultâneas (StrictMode, dois grupos abertos). */
 const emCriacao = new Map<string, Promise<{ ok: true; data: Registro[] } | { ok: false; error: string }>>();
@@ -84,8 +86,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
       if (!c.ok) { setErro(c.error); setCarregado(true); return; }
       lista = [...lista, ...c.data.filter(n => !lista.some(o => o.id === n.id))];
     }
-    lista.sort((x, y) => Number(ehPermanente(y)) - Number(ehPermanente(x)) || x.createdAt.localeCompare(y.createdAt));
-    lista = lista.filter((x, i) => !ehPermanente(x) || lista.findIndex(ehPermanente) === i);   // só uma anotação permanente é exibida (corrida antiga pode ter criado duplicatas)
+    lista = ordenarPlanos(lista);
     for (const x of lista) versoes.current.set(x.id, x.version);
     const salvo = lerPlanoSalvo(chave);
     const atual = lista.find(x => x.id === boardIdRef.current) ?? lista.find(x => x.id === salvo) ?? lista.find(x => !ehPermanente(x)) ?? lista[0];
@@ -204,13 +205,37 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------- planejamentos: criar, renomear, excluir
+  const novoPermanente = async () => {
+    if (!api || !cid || !(await salvarTodos())) return;
+    const n = boards.filter(ehPermanente).length;
+    const r = await api.create({ kind: "board", campaignId: cid, title: n ? `Anotações permanentes ${n + 1}` : NOME_PERMANENTE, visibility: "private", meta: { permanente: true, ordem: Date.now(), ...quadroInicial("Anotações") } });
+    if (!r.ok) { setAviso(r.error); return; }
+    versoes.current.set(r.data.id, r.data.version); setBoards(bs => ordenarPlanos([...bs, r.data]));
+    setEd({}); setSel([]); boardIdRef.current = r.data.id; setBoardId(r.data.id); gravarPlanoSalvo(chave, r.data.id);
+  };
+  const moverPlano = async (id: string, direcao: -1 | 1) => {
+    if (!api) return;
+    const atual = boards.find(b => b.id === id); if (!atual) return;
+    const grupo = ordenarPlanos(boards.filter(b => ehPermanente(b) === ehPermanente(atual)));
+    const i = grupo.findIndex(b => b.id === id), j = i + direcao;
+    if (j < 0 || j >= grupo.length) return;
+    const vizinho = grupo[j], outro = grupo[j + direcao];
+    const referencia = ordemPlano(vizinho);
+    const limite = outro ? ordemPlano(outro) : referencia + direcao * 1000;
+    const ordem = (referencia + limite) / 2;
+    await fila.current;
+    const r = await api.update(atual.id, versoes.current.get(atual.id) ?? atual.version, { meta: { ...atual.meta, ordem } });
+    if (!r.ok) { setAviso(r.error); return; }
+    versoes.current.set(r.data.id, r.data.version);
+    setBoards(bs => ordenarPlanos(bs.map(b => b.id === id ? r.data : b)));
+  };
   const novoPlano = async () => {
     if (!api || !cid) return;
-    await salvarTodos();
+    if (!(await salvarTodos())) return;
     const n = boards.filter(b => !ehPermanente(b)).length + 1;
-    const r = await api.create({ kind: "board", campaignId: cid, title: `Sessão ${n}`, visibility: "private", meta: quadroInicial("Seção 1") });
+    const r = await api.create({ kind: "board", campaignId: cid, title: `Sessão ${n}`, visibility: "private", meta: { ...quadroInicial("Seção 1"), ordem: Date.now() } });
     if (!r.ok) { setAviso(r.error); return; }
-    versoes.current.set(r.data.id, r.data.version); setBoards(bs => [...bs, r.data]); setEd({}); setSel([]); boardIdRef.current = r.data.id; setBoardId(r.data.id); gravarPlanoSalvo(chave, r.data.id);
+    versoes.current.set(r.data.id, r.data.version); setBoards(bs => ordenarPlanos([...bs, r.data])); setEd({}); setSel([]); boardIdRef.current = r.data.id; setBoardId(r.data.id); gravarPlanoSalvo(chave, r.data.id);
   };
   const renomearPlano = async (b: Registro, titulo: string) => {
     const nome = titulo.trim(); if (!api || !nome || nome === b.title) return;
@@ -220,7 +245,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     if (r.ok) substituirBoard({ ...r.data, meta: boardRef.current?.id === r.data.id ? boardRef.current.meta : r.data.meta }); else setAviso(r.error);
   };
   const excluirPlano = async (b: Registro) => {
-    if (!api || ehPermanente(b)) return;
+    if (!api) return;
     const cartoes = todosCartoes(lerQuadro(b.meta));
     if (!window.confirm(`Excluir o planejamento “${b.title}”${cartoes.length ? ` e os ${cartoes.length} cartões dele` : ""}? Isso não pode ser desfeito.`)) return;
     for (const c of cartoes) { const r = await api.remove(c); if (r.ok) publicarExclusao(c, origem); }
@@ -261,7 +286,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     <style>{`@media(max-width:767px){.planejamento .quadro-mobile{display:flex;flex-direction:column;overflow:visible;gap:12px}.planejamento .quadro-mobile .coluna{min-width:0!important;width:100%!important;flex-basis:100%!important;max-width:100%!important}.planejamento .quadro-mobile .coluna-redim{display:none}.planejamento .quadro-mobile .secao{width:100%;max-width:100%}}`}</style>
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Anotações</h1>
-    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
+    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onNovoPermanente={() => void novoPermanente()} onMover={(id, d) => void moverPlano(id, d)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando anotações…</p>}
@@ -330,16 +355,26 @@ function excluirSecoesVazia(q: Quadro, id: string): Quadro {
 }
 
 /** Seletor de planejamentos: anotações permanentes (fixas, primeiro) e um planejamento por sessão. O ativo tem o nome editável. */
-function Planos({ boards, ativo, onTrocar, onNovo, onRenomear, onExcluir }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void }) {
+function Planos({ boards, ativo, onTrocar, onNovo, onNovoPermanente, onMover, onRenomear, onExcluir }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onNovoPermanente: () => void; onMover: (id: string, direcao: -1 | 1) => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void }) {
+  const [arrastada, setArrastada] = useState<string | null>(null);
   return <nav className="planos" aria-label="Planejamentos">
-    {boards.map(b => {
+    {boards.map((b, i) => {
       const perm = ehPermanente(b), on = b.id === ativo;
-      if (on && !perm) return <span key={b.id} className="plano ativo">
-        <input aria-label="Nome do planejamento" key={b.title} defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); else e.target.value = b.title; }} onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
-        <button className="icon danger" aria-label={`Excluir o planejamento ${b.title}`} title="Excluir este planejamento" onClick={() => onExcluir(b)}><Trash2 size={13}/></button></span>;
-      return <button key={b.id} type="button" className={on ? "plano ativo" : "plano"} aria-pressed={on} onClick={() => onTrocar(b.id)}>{perm && <Pin size={13} aria-hidden="true"/>}{b.title}</button>;
+      const anterior = boards[i - 1], proximo = boards[i + 1];
+      return <span key={b.id} className={on ? "plano ativo" : "plano"} draggable
+        onDragStart={e => { if ((e.target as HTMLElement).closest("input,button")) { e.preventDefault(); return; } setArrastada(b.id); e.dataTransfer.effectAllowed = "move"; }}
+        onDragOver={e => { if (arrastada && arrastada !== b.id && boards.some(x => x.id === arrastada && ehPermanente(x) === perm)) e.preventDefault(); }}
+        onDrop={e => { e.preventDefault(); const de = boards.findIndex(x => x.id === arrastada), para = boards.findIndex(x => x.id === b.id); if (de >= 0 && de !== para && ehPermanente(boards[de]) === perm) onMover(arrastada!, de < para ? 1 : -1); setArrastada(null); }}
+        onDragEnd={() => setArrastada(null)}>
+        {on ? <><input aria-label="Nome do planejamento" key={b.title} defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); else e.target.value = b.title; }} onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
+          <button className="icon danger" aria-label={`Excluir o planejamento ${b.title}`} title="Excluir este planejamento" onClick={() => onExcluir(b)}><Trash2 size={13}/></button></>
+          : <button type="button" className="plano-selecionar" aria-pressed={on} onClick={() => onTrocar(b.id)}>{perm && <Pin size={13} aria-hidden="true"/>}{b.title}</button>}
+        <button type="button" className="icon" aria-label={`Mover ${b.title} para esquerda`} disabled={!anterior || ehPermanente(anterior) !== perm} onClick={() => onMover(b.id, -1)}>‹</button>
+        <button type="button" className="icon" aria-label={`Mover ${b.title} para direita`} disabled={!proximo || ehPermanente(proximo) !== perm} onClick={() => onMover(b.id, 1)}>›</button>
+      </span>;
     })}
-    <button type="button" className="plano mais" aria-label="Novo planejamento" title="Novo planejamento (ex.: próxima sessão)" onClick={onNovo}><Plus size={14}/></button>
+    <button type="button" className="plano mais" aria-label="Nova anotação permanente" title="Criar outra aba de anotações permanentes" onClick={onNovoPermanente}><Pin size={13}/><Plus size={13}/></button>
+    <button type="button" className="plano mais" aria-label="Novo planejamento" title="Nova sessão" onClick={onNovo}><Plus size={14}/></button>
   </nav>;
 }
 
