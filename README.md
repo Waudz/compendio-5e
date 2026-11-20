@@ -38,3 +38,24 @@ npm run dev
 ```
 
 Abra `http://localhost:5173/compendio-5e/?demo=mestre` (ou `?demo=jogador`). Os dados ficam no localStorage do navegador e são compartilhados entre os dois papéis: publique um registro como mestre e confira como jogador. O modo existe só no `npm run dev` e não entra no build de produção. Ele não usa Supabase; a persistência real do Diário, do Planejamento e da capa depende da migração proposta em `docs/propostas/0006_registros_meta.sql` (e da 0005), ainda não aplicada.
+
+
+## Estado do catálogo e do criador (PR #74 — em desenvolvimento)
+
+**O site publicado ainda não contém estas mudanças.** O catálogo SRD 2014 e o criador estão sendo preparados na branch `docs/auditoria-catalogos-personagem-2014`, [PR #74](https://github.com/Waudz/compendio-5e/pull/74). Não há merge, deploy nem migração de banco autorizados por este trabalho.
+
+- **Implementado e testado em código:** registro canônico de fontes e IDs, consulta do Compêndio com filtros e visualização lista/grade no piloto, restrições de conteúdo por campanha no domínio, núcleo do criador e inventário, importação e revisão de registros SRD, snapshot offline e leitura validada.
+- **Pilotos locais:** `?demo=compendio-piloto` e `?demo=criador-piloto` em `npm run dev`. Usam **dados ilustrativos**, não um catálogo SRD completo. Não são funcionalidades publicadas nem substituem a persistência real.
+- **Em preparação:** coleta real e revisão editorial dos dados, tradução, efeitos das habilidades e progressão completa das classes, integração com telas reais e persistência segura.
+- **Importante:** o endpoint de classe da API não entrega sozinho todos os efeitos e escolhas necessários à ficha. `src/rules/srd-2014-class-level-staging.ts` valida os 20 níveis e registra os IDs de características, **sem inventar regras ou liberar a classe para criação**.
+
+### Coleta controlada de dados SRD 2014
+
+```bash
+node scripts/collect-srd-2014.mjs classes
+# Outras coleções: races, subraces, subclasses, spells, equipment, features, traits
+```
+
+O comando consulta a API `/api/2014` e grava registros **não aprovados** em `.srd-2014-staging/` (ignorada pelo Git), com procedência, alertas de revisão e SHA-256 impresso. Não faz commit, não publica e não concede direitos de redistribuição. Há também `.github/workflows/collect-srd-2014.yml`, acionado manualmente pelo GitHub Actions, que produz artefato temporário de revisão. Como o workflow está apenas na branch do PR, sua execução manual pela interface pode depender de integração posterior à branch padrão. Não realizar merge só para isso.
+
+**Documentação técnica detalhada:** `docs/PLANO-REAPROVEITAMENTO-LEGADO.md`, `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md` e `docs/CRIADOR-FICHA-INVENTARIO.md`. Revisar direitos e atribuições de cada fonte antes de distribuir dados externos.
