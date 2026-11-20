@@ -161,3 +161,13 @@ Integrados: base React e workspace (PRs #1–#4); FlexLayout (#8); abas compacta
 **Integridade:** não alterar silenciosamente personagens quando um registro de regra for corrigido. Usar revisão fixada por personagem e migração explícita/validada. Conteúdo incompleto não pode produzir ficha aparentemente completa: apresentar escolhas pendentes e impedir finalização inválida. Testar concordância entre Compêndio, criador e ficha, níveis 1–20, reabertura, edição e progressão. Não copiar automaticamente textos protegidos de fontes externas.
 
 **Status:** decisão registrada; há protótipos de catálogo, motor e ASI no PR #74, mas **a integração real de telas e banco ainda não foi concluída**. Não autoriza merge, deploy ou migração em produção.
+
+## Decisão aprovada — IDs estáveis para todas as entidades (20/11/2026)
+
+**Aprovado pelo responsável:** nenhuma ligação, regra, inventário, progressão, referência ou autorização deve depender de nomes exibidos, traduções ou títulos editáveis. Toda entidade persistida recebe identidade estável: raças/sub-raças, classes/subclasses, antecedentes, talentos, magias, itens, características, efeitos, recursos, personagens, campanhas, notas, páginas da Enciclopédia e instâncias individuais de itens. Nomes são metadados editáveis/localizáveis, não chaves de relacionamento.
+
+**Identidade de conteúdo:** `sourceId + kind + id` identifica a entidade lógica no catálogo, e `revision` fixa uma definição imutável específica; `contentKey` representa a referência versionada. IDs devem ser únicos no escopo correspondente, nunca reciclados e nunca alterados em uma renomeação. Conteúdos criados pelo usuário devem receber IDs opacos gerados na criação (UUID/ULID, conforme a persistência adotada), não IDs derivados de nomes; slugs são somente URLs/apresentação e podem mudar. Uma instância de item no inventário tem `instanceId` próprio e referência à definição `itemRef`, permitindo múltiplas cópias, estados e personalizações sem clonar a regra.
+
+**Integridade:** usar chaves estrangeiras/índices únicos no banco e resolver relações por IDs; preservar aliases/redirecionamentos quando slugs de URLs mudarem; proibir exclusão/reutilização de IDs referenciados sem política explícita; validar referências inexistentes, duplicações e mudanças de revisão. A API/UI não deve interpretar texto como identificador. Testar renomeações de cada tipo de conteúdo sem alterar relações existentes.
+
+**Implementação parcial no PR #74:** `ContentKind` agora inclui magias, itens, características, traços, efeitos e recursos; testes verificam estabilidade das referências sob renomeação. Ainda não foram implementados os IDs persistentes, constraints, aliases e instâncias de inventário na UI/banco. Sem merge/deploy/migração autorizados.
