@@ -62,3 +62,42 @@ Criador de personagens D&D 5e **2014** (raça/variante, classe, subclasse, orige
 - O PR #74 começou como auditoria; passou a conter **código experimental**, portanto título/descrição antigos não representam mais todo o escopo.
 - A primeira falha de CI foi provocada por sequências `\\n` literais no TypeScript; corrigidas. Run `44696263213` do commit `7923144` terminou com **build e testes verdes**. Novos commits exigem nova execução e verificação.
 - Fonte de verdade sobre auditoria e cobertura: `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`.
+
+## Registro de continuidade — sessão 20/11/2026 (handoff para outro chat/IA)
+
+### Instruções obrigatórias de retomada
+
+1. Abrir `README.md`, `DECISOES-E-ARQUITETURA.md`, `docs/PLANEJAMENTO-V2.md`, **este arquivo** e `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`. Não inferir que as decisões de um documento mais antigo foram implementadas; conferir o código.
+2. Consultar [PR #74](https://github.com/Waudz/compendio-5e/pull/74), branch `docs/auditoria-catalogos-personagem-2014`, verificar se continua aberto, diff, SHA e último workflow. **Não fazer merge sem autorização explícita**. O nome da branch e o título do PR são históricos e não refletem todo o código incluído.
+3. Ler os quatro arquivos `src/rules/character-build-pilot.ts`, `src/rules/character-build-pilot.test.ts`, `src/rules/character-domain.ts`, `src/rules/character-domain.test.ts` antes de editar. Verificar também o estado atual do app e dos módulos de personagens/iniciativa, sem presumir que os protótipos já estão ligados à UI.
+4. Rodar `npm ci && npm run build && npm test` no checkout do PR (ou inspecionar workflow equivalente); registrar **SHA + run ID + resultado**. CI verde não substitui testes manuais de interface.
+5. Ao final de **cada rodada**, atualizar este arquivo com: objetivo, arquivos modificados, decisões, regras consultadas, testes e resultados, falhas conhecidas, próximos passos, PR/commit/run e restrições. Atualizar também `DECISOES-E-ARQUITETURA.md` se uma decisão mudar e `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md` quando uma regra for auditada.
+6. Evitar duas IAs alterando os mesmos arquivos simultaneamente; cada tarefa em branch/PR próprio quando necessário. Não adicionar bibliotecas sem atualizar lockfile e verificar `npm ci`.
+
+### Evidências verificadas até esta sessão
+
+- CI do PR #74, commit `f914d01869e24cc74cfc0c8adc42d4b94b75cfa0`, run [44697189171](https://github.com/Waudz/compendio-5e/actions/runs/44697189171): **success**, com build e testes aprovados. Essa evidência é anterior às alterações posteriores e **não valida novos commits**.
+- O primeiro erro histórico no CI foi causado por sequências `\\n` literais em TypeScript; corrigido e revalidado. Evitar edições de texto que introduzam escapes literais.
+- **Novo bug detectado por revisão do domínio:** duas decisões com o mesmo `id` eram aceitas silenciosamente, usando a primeira. Corrigido em `src/rules/character-domain.ts` e criado teste de regressão em `src/rules/character-domain.test.ts`. **Ainda exige confirmação de CI após o commit.**
+
+### Limitações técnicas conhecidas (não esconder)
+
+- `character-build-pilot.ts` é um agregador simplificado de concessões, não o motor definitivo: faltam ASI como escolha, subclasses, multiclasse, dados de vida por classe, proficiências/armaduras, CA, salvaguardas, perícias escolhidas pela classe, magias, espaços, recursos com descanso, resistências, efeitos condicionais e atividades.
+- O cálculo de PV do piloto usa o modificador de Constituição final em todos os níveis, sem histórico de multiclasse/rolagens. Deve ser conferido contra as regras 2014 antes de produção.
+- `character-domain.ts` aceita escolhas de raça e origem por IDs estáveis, **não** escolhas de classe/nível. `pending` registra pendências, mas não impede salvar porque ainda não há persistência. O inventário permite apenas adicionar/remover quantidades adquiridas não equipadas; não é um sistema completo de transações, peso ou equipamento.
+- `currentHp > maxHp` é rejeitado no protótipo; uma futura política para redução de PV máximo, progressão reversa e sincronização deverá definir se ajusta automaticamente, bloqueia ou pede confirmação.
+- **Ainda não há schemas Zod, fast-check, Playwright, React Hook Form, catálogo importado, migrações ou integração com UI**. Não relatar essas funcionalidades como prontas.
+- O conteúdo de teste é **fixture parcial**, não certificação de que o Bárbaro 2014 foi integralmente implementado. Testar 20 níveis de fixture incompleta não prova cobertura de todas as regras.
+- Os documentos do repositório prevalecem sobre lembranças de conversas antigas quando houver divergência; registrar e resolver conflitos explicitamente, sem apagar decisões anteriores.
+
+### Ordem imediata recomendada
+
+1. Confirmar CI dos novos commits e corrigir falhas antes de expandir.
+2. Especificar esquema versionado de progressão `advancement` com IDs estáveis, pré-requisitos, opções compostas, escolhas de nível, efeitos condicionais e proveniência; escrever testes independentes.
+3. Construir a vertical Bárbaro/Berserker 2014 com uma raça e origem **completas**, incluindo progressão 1–20, equipamento inicial, inventário, ASI, PV, recursos e edição reversível; revisar contra SRD 5.1 e direitos de conteúdo.
+4. Adicionar Zod/fast-check com lockfile validado, depois UI do criador/ficha/inventário com React Hook Form e testes Playwright.
+5. Integrar com campanha/iniciativa, isolamento e sincronização; propor migrações com RLS e obter autorização antes de aplicá-las.
+
+### Regra de qualidade para próximas implementações
+
+Para cada nova regra: **fonte e licença → exemplo normativo independente → contrato e testes → implementação pura → CI → teste de integração → documentação**. Não preencher lacunas de regras com suposições nem copiar automaticamente comportamentos do legado ou do Foundry.
