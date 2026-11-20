@@ -58,3 +58,7 @@ Implementados `approveStagedSrd2014` e `reviewedRecordsForImport` com testes. Um
 ## Coletor controlado de API (20/11/2026)
 
 Criados `src/rules/srd-2014-collector.ts` e testes. `collectSrd2014Collection` recebe um cliente HTTP injetável, lê o índice da coleção em `/api/2014`, exige contagem completa, índices únicos e válidos, busca detalhes sequencialmente e devolve registros **staged não aprovados**, com URL e data de origem. Falha integralmente em caso de resposta incompleta, identidade inválida ou HTTP malsucedido. Nenhuma busca ocorre ao importar o módulo ou abrir fichas. Testes usam HTTP simulado. **Ainda não foi feita coleta externa real**, nem foi gerado snapshot ou publicado catálogo.
+
+## Snapshot offline (20/11/2026)
+
+Implementados `createOfflineCatalogueSnapshot` e `readOfflineCatalogueSnapshot`, com testes de serialização JSON, pesquisa no Compêndio, revisão, procedência, índice e isolamento de mutações. O formato é versionado e rejeita catálogo incompleto ou inconsistência entre revisão e IDs. O índice **não é um hash criptográfico** e não detecta adulterações em descrições/dados mecânicos: assinatura ou hash verificado de artefatos aprovados continua pendente. Os testes utilizam apenas o catálogo fictício do piloto. Não há snapshot de API real nem mudança no aplicativo publicado.
