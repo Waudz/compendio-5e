@@ -217,57 +217,44 @@ describe("alterações não salvas", () => {
   });
 });
 
-describe("celular (375 px)", () => {
+describe("celular (375 px): navegação independente", () => {
   beforeEach(() => { mobile = true; Object.defineProperty(window, "innerWidth", { value: 375, configurable: true }); });
 
-  it("toque normal navega pela regra padrão; Ctrl/botão do meio abrem nova aba", async () => {
+  const bottom = () => within(screen.getByRole("navigation", { name: "Navegação mobile" }));
+  const activePage = (name: string) => expect(bottom().getByRole("button", { name }).getAttribute("aria-current")).toBe("page");
+
+  it("mostra as cinco áreas principais sem abas do FlexLayout", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa")); expect(mTabs()).toEqual(["Iniciativa"]);
-    fireEvent.click(nav("Encontros"), { ctrlKey: true }); expect(mTabs()).toEqual(["Iniciativa", "Encontros"]);
+    expect(bottom().getAllByRole("button").map(b => b.textContent?.trim())).toEqual(["Início", "Anotações", "Ficha", "Compêndio", "Menu"]);
+    expect(screen.queryByRole("tablist")).toBeNull();
+    activePage("Início");
   });
-  it("toque prolongado no menu inferior abre as três opções e não navega ao soltar", async () => {
-    await renderApp(); vi.useFakeTimers();
-    const item = nav("Iniciativa");
-    fireEvent.pointerDown(item, { pointerType: "touch", clientX: 10, clientY: 10 });
-    await act(async () => { vi.advanceTimersByTime(600); });
-    expect(menuItems()).toEqual(["Abrir nesta aba", "Abrir em nova aba", "Abrir em nova aba fixada"]);
-    fireEvent.pointerUp(item); fireEvent.click(item);                            // o clique que sucede o toque prolongado é ignorado
-    expect(mTabs()).toEqual(["Personagens"]);
-    pick("Abrir em nova aba fixada"); expect(document.querySelector(".m-tab.pinned")).toBeTruthy();
-    expect(mTabs()).toEqual(["Personagens", "Iniciativa"]);
-  });
-  it("toque curto ou com movimento não abre o menu", async () => {
-    await renderApp(); vi.useFakeTimers();
-    const item = nav("Iniciativa");
-    fireEvent.pointerDown(item, { pointerType: "touch", clientX: 10, clientY: 10 });
-    fireEvent.pointerMove(item, { pointerType: "touch", clientX: 60, clientY: 10 });
-    await act(async () => { vi.advanceTimersByTime(700); });
-    expect(screen.queryByRole("menu")).toBeNull();
-  });
-  it("botões acessíveis sem toque prolongado: 'Opções da aba' (fixar/fechar) e 'Nova aba'", async () => {
+
+  it("navega entre áreas sem criar abas e permite voltar", async () => {
     await renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "Opções de Personagens" }));
-    expect(menuItems()).toEqual(["Fixar aba", "Fechar aba", "Fechar outras abas normais"]);
-    pick("Fixar aba");
-    expect(within(screen.getByRole("tablist")).getByRole("tab", { name: /Personagens.*fixada/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Nova aba" }));
-    expect(menuItems()).toContain("Documentos"); pick("Documentos");
-    expect(mTabs()).toEqual(["Personagens", "Documentos"]);
-    fireEvent.click(nav("Compêndio"));                                           // fixada preservada; a normal é reutilizada
-    expect(mTabs()).toEqual(["Personagens", "Compêndio"]);
+    fireEvent.click(bottom().getByRole("button", { name: "Anotações" }));
+    activePage("Anotações");
+    fireEvent.click(bottom().getByRole("button", { name: "Compêndio" }));
+    activePage("Compêndio");
+    fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+    activePage("Anotações");
+    expect(screen.queryByRole("tablist")).toBeNull();
   });
-  it("fechar no celular também protege alterações não salvas", async () => {
+
+  it("menu oferece acesso às seções e fecha ao escolher uma", async () => {
     await renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "abrir doc d1" }));
-    fireEvent.change(await screen.findByLabelText("Texto d1"), { target: { value: "rascunho" } });
-    fireEvent.click(screen.getByRole("button", { name: "Fechar Resumo da Sessão 3" }));
-    expect(screen.getByRole("alertdialog")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
-    expect(mTabs()).toContain("Resumo da Sessão 3");
+    fireEvent.click(bottom().getByRole("button", { name: "Menu" }));
+    const menu = screen.getByRole("dialog", { name: "Menu de navegação" });
+    fireEvent.click(within(menu).getByRole("button", { name: "Gerenciar campanhas" }));
+    expect(screen.queryByRole("dialog", { name: "Menu de navegação" })).toBeNull();
   });
-  it("todos os controles têm rótulo textual acessível (não dependem só de ícones)", async () => {
+
+  it("os controles de navegação possuem nomes acessíveis", async () => {
     await renderApp();
-    for (const n of ["Nova aba", "Opções de Personagens", "Fechar Personagens"]) expect(screen.getByRole("button", { name: n })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Nova aba" }).textContent).toMatch(/Nova aba/);
+    expect(screen.getByRole("button", { name: "Voltar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Abrir menu" })).toBeTruthy();
+    for (const name of ["Início", "Anotações", "Ficha", "Compêndio", "Menu"]) {
+      expect(bottom().getByRole("button", { name })).toBeTruthy();
+    }
   });
 });
