@@ -17,7 +17,7 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   if (kind === "campanha") return <div className="content"><CampaignHome id={id} onOpen={onOpen} onOpenContent={onOpenContent}/></div>;
   if (kind === "secao" && id === "campanhas") return <div className="content"><CampaignsPanel onOpen={onOpen}/></div>;
-  if (kind === "secao" && id === "planejamento") return <PlanningPanel onOpenContent={onOpenContent}/>;
+  if (kind === "secao" && (id === "planejamento" || id.startsWith("planejamento:"))) return <PlanningPanel initialBoardId={id.startsWith("planejamento:") ? id.slice("planejamento:".length) : undefined} onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "diario") return <DiarioPanel onOpenContent={onOpenContent}/>;
   if (kind === "documento") return <RegistroPagina id={id}/>;
   if (kind === "ficha") return <FichaPagina id={id}/>;
