@@ -190,3 +190,9 @@ Quando um jogador exclui um personagem em **Meus Personagens**, a exclusão afet
 Ao excluir personagem da biblioteca pessoal, o jogador encerra seu vínculo atual com o personagem; a campanha conserva **o mesmo `characterId`**, ficha, inventário e histórico. O registro mantém histórico de antigos proprietários/controladores, sem expor dados pessoais privados. Mestre pode atribuir o personagem a outro jogador ou convertê-lo em NPC, sem duplicar o registro. `characterRole` (PC/NPC), `controllerType` (jogador/mestre/sem controlador), `lifeStatus` (vivo/morto) e `participationStatus` são dimensões separadas. Mudança de controlador não ressuscita mortos nem altera inventário automaticamente.
 
 **Pendente:** aceite do novo jogador, permissões de edição, direitos de dados, histórico de eventos, política de NPC e migração. Criar contratos e testes antes da persistência. Não há implementação em UI/Supabase.
+
+## Direção de produto — Enciclopédia > Personagens
+
+Criar uma seção **Personagens** na Enciclopédia de cada campanha para reunir NPCs, personagens atuais, mortos e antigos personagens de jogadores. Cada página aponta para o mesmo `characterId` quando existe ficha, com histórico narrativo e de controladores, sem duplicar a ficha. Após exclusão da biblioteca pessoal, a campanha mantém seu registro histórico; o mestre pode administrar o registro, convertê-lo em NPC ou transferir controle. Uma página de NPC secundário não precisa obrigatoriamente de ficha completa.
+
+A visibilidade de cada entrada depende de publicação pelo mestre; informações secretas e notas privadas ficam protegidas. Requisitos para futura integração: referência estável, ficha canônica ou snapshot histórico, páginas narrativas com permissões, pesquisa/filtros e histórico auditável. **Não implementado; nenhum banco ou produção alterados.**
