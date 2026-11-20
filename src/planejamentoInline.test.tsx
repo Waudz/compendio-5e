@@ -131,16 +131,13 @@ describe("cartão simplificado: texto no cartão, salvamento automático", () =>
     expect(cenaDe(registros, "s1").content[0]).toMatchObject({ content: [{ text: "x" }] });
     await waitFor(() => expect(register).toHaveBeenLastCalledWith("secao:planejamento", expect.objectContaining({ dirty: false })));
   });
-  it("excluir cartão com alteração pendente avisa e respeita o cancelamento", async () => {
+  it("excluir cartão não pede confirmação mesmo com alteração pendente", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     const real = registros.update; registros.update = async (id, v, p) => id === "s1" ? { ok: false as const, error: SEM_CONEXAO } : real(id, v, p);
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     fireEvent.change(await editarCartao("Julkoun"), { target: { value: "y" } });
     await screen.findByText(/Sem conexão/, undefined, AUTO);
-    const conf = vi.spyOn(window, "confirm").mockReturnValue(false);
     fireEvent.click(screen.getByRole("button", { name: "Excluir cartão Julkoun" }));
-    expect(conf.mock.calls[0][0]).toMatch(/alterações não salvas/); expect(registros.dados.some(r => r.id === "s1")).toBe(true);
-    conf.mockReturnValue(true); fireEvent.click(screen.getByRole("button", { name: "Excluir cartão Julkoun" }));
     await waitFor(() => expect(registros.dados.some(r => r.id === "s1")).toBe(false));
   });
   it("o título é editado no cabeçalho do cartão e Enter confirma; título vazio volta ao anterior", async () => {
@@ -383,10 +380,12 @@ describe("seções: título grande, seleção com o mouse e exclusão inteira", 
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     await screen.findByLabelText("Seção Sessão 5");
-    const conf = vi.spyOn(window, "confirm").mockReturnValue(false);
     fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
-    expect(conf.mock.calls[0][0]).toMatch(/2 cartões/); expect(registros.dados.some(r => r.id === "s1")).toBe(true);
-    conf.mockReturnValue(true); fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
+    expect(screen.getByRole("alertdialog").textContent).toMatch(/2 cartão/);
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(registros.dados.some(r => r.id === "s1")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir seção", exact: true }));
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
     await waitFor(() => expect(screen.queryByLabelText("Seção Sessão 5")).toBeNull());
     await waitFor(() => expect(plano(registros).colunas.map(c => c.secoes.map(s => s.titulo))).toEqual([["Floresta"]]));
@@ -395,21 +394,21 @@ describe("seções: título grande, seleção com o mouse e exclusão inteira", 
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     const s1 = await screen.findByLabelText("Seção Sessão 5"), s2 = screen.getByLabelText("Seção Floresta");
-    const conf = vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(s2.querySelector("header")!); fireEvent.click(screen.getByRole("button", { name: "Excluir seção" }));
     await waitFor(() => expect(screen.queryByLabelText("Seção Floresta")).toBeNull());
-    expect(conf).not.toHaveBeenCalled();                                                        // vazia: sem confirmação
+    expect(screen.queryByRole("alertdialog")).toBeNull();                                        // vazia: sem confirmação
     fireEvent.click(s1.querySelector("header")!); fireEvent.keyDown(window, { key: "Delete" });  // atalho Delete
+    fireEvent.click(screen.getByRole("button", { name: "Excluir seção", exact: true }));
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
-    expect(conf).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
   });
   it("se apagar um cartão falha, a seção e o cartão continuam no quadro (nada se perde)", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     const real = registros.remove; registros.remove = async id => id === "s2" ? { ok: false as const, error: SEM_CONEXAO } : real(id);
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     await screen.findByLabelText("Seção Sessão 5");
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir seção", exact: true }));
     expect(await screen.findByText(/Não foi possível excluir 1 cartão/)).toBeTruthy();
     expect(screen.getByLabelText("Seção Sessão 5")).toBeTruthy();
     await waitFor(() => expect(plano(registros).colunas[0].secoes[0].cartoes).toEqual(["s2"]));
@@ -497,7 +496,7 @@ describe("planejamentos e anotações permanentes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
     expect(await screen.findByLabelText("Título do cartão Cultos de Daggerford")).toBeTruthy();   // continua lá
   });
-  it("renomear o planejamento ativo; excluir pede confirmação e apaga os cartões dele", async () => {
+  it("renomear o planejamento ativo; excluir diretamente apaga os cartões dele", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     fireEvent.contextMenu(await screen.findByRole("button", { name: "Quadro" }));
@@ -505,10 +504,7 @@ describe("planejamentos e anotações permanentes", () => {
     const nome = screen.getByLabelText("Renomear guia") as HTMLInputElement;
     fireEvent.change(nome, { target: { value: "Sessão 4 — Daggerford" } }); fireEvent.blur(nome);
     await waitFor(() => expect(registros.dados.find(r => r.id === "b1")!.title).toBe("Sessão 4 — Daggerford"));
-    const conf = vi.spyOn(window, "confirm").mockReturnValue(false);
     fireEvent.contextMenu(screen.getByRole("button", { name: "Sessão 4 — Daggerford" })); fireEvent.click(screen.getByRole("menuitem", { name: "Excluir" }));
-    expect(conf.mock.calls[0][0]).toMatch(/2 cartões/); expect(registros.dados.some(r => r.id === "b1")).toBe(true);
-    conf.mockReturnValue(true); fireEvent.contextMenu(screen.getByRole("button", { name: "Sessão 4 — Daggerford" })); fireEvent.click(screen.getByRole("menuitem", { name: "Excluir" }));
     await waitFor(() => expect(registros.dados.some(r => r.id === "b1")).toBe(false));
     expect(registros.dados.some(r => r.kind === "scene")).toBe(false);
     expect(await screen.findByRole("button", { name: "Anotações permanentes" })).toBeTruthy();               // um novo planejamento é criado: nunca fica sem nenhum
