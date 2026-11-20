@@ -7,7 +7,8 @@ export type Grant =
   | {type:'language'; language:string; source:string}
   | {type:'item'; item:string; quantity:number; source:string}
   | {type:'feature'; feature:string; source:string}
-  | {type:'resource'; resource:string; uses:number|null; source:string}\n  | {type:'hp-per-level'; amount:number; source:string};
+  | {type:'resource'; resource:string; uses:number|null; source:string}
+  | {type:'hp-per-level'; amount:number; source:string};
 export type Option = {id:string; grants:Grant[]; choices?:{id:string;count:number;options:Grant[]}[]};
 export type ClassLevel = {level:number; grants:Grant[]; hitDie:number};
 export type ClassDefinition = {id:string; levels:ClassLevel[]};
@@ -53,6 +54,7 @@ export function buildCharacter(input:BuildInput):BuildResult {
     if(!Number.isInteger(rolled)||rolled<1||rolled>die)throw new Error('Invalid HP roll');
     maxHp+=Math.max(1,rolled+modifier(abilities.con));
   }
-  maxHp+=input.level*grants.filter((g):g is Extract<Grant,{type:'hp-per-level'}>=>g.type==='hp-per-level').reduce((sum,g)=>sum+g.amount,0);\n  return {abilities,skills,languages,items:[...items].map(([item,quantity])=>({item,quantity})),
+  maxHp+=input.level*grants.filter((g):g is Extract<Grant,{type:'hp-per-level'}>=>g.type==='hp-per-level').reduce((sum,g)=>sum+g.amount,0);
+  return {abilities,skills,languages,items:[...items].map(([item,quantity])=>({item,quantity})),
     features,resources,maxHp,pending,provenance:grants};
 }
