@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {adventuringPacks2014,expandEquipmentBundle,resolvePackItems,fighterStartingEquipment2014} from './starting-equipment-2014';
+import {adventuringPacks2014,expandEquipmentBundle,resolvePackItems,fighterStartingEquipment2014,fighterEquipmentOptions2014} from './starting-equipment-2014';
 describe('2014 adventuring pack recipes',()=>{
  it('expands explorer pack to eight separate item references with correct quantities',()=>{
   const components=expandEquipmentBundle(adventuringPacks2014.explorer);
@@ -24,6 +24,15 @@ describe('2014 adventuring pack recipes',()=>{
   expect(resolvePackItems(adventuringPacks2014.explorer,ids)).toHaveLength(8);
   ids.delete('torch');
   expect(()=>resolvePackItems(adventuringPacks2014.explorer,ids)).toThrow('Unknown catalogue item: torch');
+ });
+ it('resolves every concrete Fighter option to real item IDs without placeholder bundles',()=>{
+  const all=Object.values(fighterEquipmentOptions2014);
+  expect(all).toHaveLength(4);
+  expect(all.every(group=>group.length===2)).toBe(true);
+  for(const group of all)for(const option of group){
+   expect(option.components.length).toBeGreaterThan(0);
+   expect(option.components.every(item=>item.itemId.length>0&&item.quantity>0)).toBe(true);
+  }
  });
  it('provides all four Fighter equipment choice groups',()=>{
   expect(Object.values(fighterStartingEquipment2014).every(x=>x.length===2)).toBe(true);
