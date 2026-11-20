@@ -1,12 +1,12 @@
 /** Local-only vertical slice. Never imported by the production build. */
 import { useState } from 'react';
 import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter';
-import { coreClassAsiAdvancements } from '../rules/class-asi-2014';
+import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
 import {pilotRefs,pilotRules} from './pilot-rules';
-const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},coreClassAsiAdvancements('fighter'));
-const KEY='compendio5e:dev:character-pilot:v1';
-const STORAGE_SCHEMA=1;
+const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},fighter2014Advancements);
+const KEY='compendio5e:dev:character-pilot:fighter-srd51-v2';
+const STORAGE_SCHEMA=2;
 type SavedPilot = { schemaVersion:number; draft:CharacterDraft };
 function isRecord(value:unknown):value is Record<string,unknown> {
  return value!==null && typeof value==='object' && !Array.isArray(value);
@@ -26,7 +26,7 @@ function initial():CharacterDraft {
  return {id:crypto.randomUUID(),name:'',ruleset:'5e-2014',catalogueVersion:catalog.version,
  baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},
  raceId:ids.raceId,backgroundId:ids.backgroundId,classId:ids.classId,
- level:1,decisions:[],inventory:[],currentHp:12,temporaryHp:0,spentResources:{}};
+ level:1,decisions:[],inventory:[],currentHp:13,temporaryHp:0,spentResources:{}};
 }
 function restore():CharacterDraft {
  try {
@@ -65,17 +65,23 @@ export default function CharacterPilot(){
    onChange={e=>change({...draft,name:e.target.value})}/></label>
   <p>Raça: Anão · Antecedente: Acólito · Classe: Guerreiro (referências versionadas)</p>
   <label>Nível <select aria-label="Nível" value={draft.level} onChange={e=>change({...draft,level:Number(e.target.value)})}>
-   {[1,2,3,4].map(n=><option key={n} value={n}>{n}</option>)}
+   {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n}</option>)}
   </select></label>
-  {draft.level>=4 && <label style={{display:'block'}}>Melhoria de atributo (nível 4)
-   <select aria-label="Melhoria de atributo" value={draft.decisions.find(x=>x.id==='fighter-asi-4')?.optionIds[0]??''}
-    onChange={e=>change({...draft,decisions:e.target.value?[{id:'fighter-asi-4',optionIds:[e.target.value]}]:[]})}>
-    <option value="">Escolha uma melhoria</option>
-    <option value="str-plus-two">+2 Força</option>
-   </select></label>}
+  {fighter2014Advancements.flatMap(adv=>adv.level<=draft.level?adv.choices??[]:[]).map(choice=><label key={choice.id} style={{display:'block'}}>
+   {choice.id==='fighter-style-1'?'Estilo de luta (nível 1)':choice.id==='fighter-archetype-3'?'Arquétipo marcial (nível 3)':
+    'Melhoria de atributo (nível '+choice.level+')'}
+   <select aria-label={choice.id==='fighter-asi-4'?'Melhoria de atributo':choice.id} value={draft.decisions.find(d=>d.id===choice.id)?.optionIds[0]??''}
+    onChange={e=>change({...draft,decisions:[...draft.decisions.filter(d=>d.id!==choice.id),
+     ...(e.target.value?[{id:choice.id,optionIds:[e.target.value]}]:[])]})}>
+    <option value="">Selecione uma opção</option>
+    {choice.options.map(option=><option key={option.id} value={option.id}>{option.id.replaceAll('-', ' ')}</option>)}
+   </select>
+  </label>)}
   {error && <p role="alert">{error}</p>}
   {sheet && <section aria-label="Ficha calculada">
    <h2>Ficha</h2><p>Força: {sheet.abilities.str} · Constituição: {sheet.abilities.con} · PV máximo: {sheet.maxHp}</p>
+   <p>Características: {sheet.features.join(', ')||'nenhuma'}</p>
+   <p>Recursos: {Object.entries(sheet.resources).map(([name,value])=>name+' '+String(value.remaining)+'/'+String(value.maximum)).join(' · ')||'nenhum'}</p>
    <p>Escolhas pendentes: {sheet.pending.length?sheet.pending.join(', '):'nenhuma'}</p>
    <p role="note">{!draft.name.trim() || sheet.pending.length?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
    <h2>Inventário</h2>
