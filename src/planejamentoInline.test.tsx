@@ -439,6 +439,7 @@ describe("planejamentos e anotações permanentes", () => {
     await waitFor(() => expect((screen.getByLabelText("Nome do planejamento") as HTMLInputElement).value).toBe("Nova guia 3"));
     const nome = screen.getByLabelText("Nome do planejamento") as HTMLInputElement;
     fireEvent.click(screen.getByRole("button", { name: "Fixar Nova guia 3" }));
+    await waitFor(() => expect(boards(registros).some(b => b.title === "Nova guia 3" && (b.meta as { permanente?: boolean }).permanente === true)).toBe(true));
     fireEvent.change(nome, { target: { value: "Personagens recorrentes" } }); fireEvent.blur(nome);
     await waitFor(() => expect(boards(registros).some(b => b.title === "Personagens recorrentes")).toBe(true));
     r.unmount(); cleanup();
