@@ -74,3 +74,7 @@ Comando: `node scripts/collect-srd-2014.mjs classes` (ou `races`, `spells`, etc.
 ## Coleta isolada pelo GitHub Actions
 
 Adicionado workflow `.github/workflows/collect-srd-2014.yml` com acionamento **manual** e seleção de coleção, execução Node 22, sem permissões de escrita no repositório, sem commit e sem deploy. Produz artefato temporário (7 dias) contendo registros ainda não revisados. **A interface de acionamento manual de um workflow novo geralmente exige que o arquivo exista na branch padrão**; como está apenas no PR #74, ainda não está disponível para execução pela interface do GitHub. A máquina desta sessão não conseguiu resolver o host da API; portanto, nenhuma coleta real foi realizada aqui. Não integrar apenas para executar sem autorização.
+
+## Ponte segura para classes reais (20/11/2026)
+
+Adicionado `srd2014ClassPreview` com testes: converte um registro staged da API de classes em visualização de ID, nome e dado de vida, preservando origem. Define explicitamente `canCreateCharacter: false`, pois o endpoint de classe sozinho não contém progressão completa de 20 níveis, escolhas e concessões revisadas exigidas pelo `buildPilotCharacterCatalog`. Isso evita substituir o piloto por dados incompletos e fabricar características de classe. A integração de níveis e características permanece pendente.
