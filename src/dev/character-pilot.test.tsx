@@ -103,6 +103,12 @@ describe('local creator vertical slice',()=>{
   expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
   expect(screen.getByRole('note').textContent).toContain('rascunho completo');
  });
+ it('opens canonical compendium item details from the character inventory',()=>{
+  render(<CharacterPilot/>);
+  fireEvent.click(screen.getByRole('button',{name:'Adicionar espada longa'}));
+  fireEvent.click(screen.getByRole('button',{name:/Consultar no Compêndio/}));
+  expect(screen.getByRole('region',{name:'Detalhes do item no Compêndio'}).textContent).toContain('srd-2014:item:longsword:1');
+ });
  it('edits and restores public identity independently of the private character draft',()=>{
   const view=render(<CharacterPilot/>);
   fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
