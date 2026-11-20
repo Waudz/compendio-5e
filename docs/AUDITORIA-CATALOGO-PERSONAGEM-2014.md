@@ -223,3 +223,46 @@ Um registro só poderá receber estado **validado para criação de personagem**
 7. **Regressão:** testes automáticos por nível e cenários de personagens, não apenas IDs existentes.
 
 **Estado após rodada 3:** Bárbaro e Bardo têm **tabelas de características parcialmente validadas**, **não** estão aprovados para o criador. Nenhuma raça, origem ou subclasse foi declarada 100% validada.
+
+## Rodada 4 — conjuração do Bardo e equipamento inicial (2014)
+
+**Fontes externas:** SRD 5.1 da Wizards (https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf) e versão navegável SRD 5.1 no D&D Beyond (https://www.dndbeyond.com/attachments/39j2li89/SRD5.1-CCBY4.0_License_live%20links.pdf). Comparação com `dados/criacao-srd2014.json` e `js/criador-regras.js` do legado.
+
+### Bardo — progressão de conjuração
+
+As 20 entradas do JSON têm `cantripsKnown`, `spellsKnown` e `spellSlots` com nove posições (círculos 1–9). A tabela coincide com a progressão de Bardo do SRD 5.1 para os valores verificados. Amostras e marcos:
+
+| Nível | Truques | Magias conhecidas | Espaços por círculo (1–9) |
+|---|---:|---:|---|
+| 1 | 2 | 4 | 2 |
+| 3 | 2 | 6 | 4, 2 |
+| 5 | 3 | 8 | 4, 3, 2 |
+| 7 | 3 | 10 | 4, 3, 3, 1 |
+| 10 | 4 | 14 | 4, 3, 3, 3, 2 |
+| 11 | 4 | 15 | 4, 3, 3, 3, 2, 1 |
+| 14 | 4 | 18 | 4, 3, 3, 3, 2, 1, 1 |
+| 17 | 4 | 20 | 4, 3, 3, 3, 2, 1, 1, 1, 1 |
+| 18 | 4 | 22 | 4, 3, 3, 3, 3, 1, 1, 1, 1 |
+| 20 | 4 | 22 | 4, 3, 3, 3, 3, 2, 2, 1, 1 |
+
+**Atenção a Segredos Mágicos:** `js/criador-regras.js` calcula `qtd` de magias normais como `spellsKnown - sum(magicalSecretsMax_*)`. Isto pode representar corretamente a separação entre escolhas normais e escolhas de Segredos Mágicos **somente se** as escolhas de Segredos Mágicos forem armazenadas, validadas e contadas separadamente, sem reduzir o total da ficha. O código visto não é evidência suficiente de que o fluxo completo faz isso. **Status: risco de integração / teste funcional pendente**, não afirmar bug de perda de magias sem executar cenário.
+
+**Casos obrigatórios de teste:** Bardo níveis 1, 3, 6 (Colégio do Conhecimento: Segredos Adicionais), 10, 14, 18 e 20; escolha de magias de outras listas quando permitido, limite por círculo, substituição ao subir de nível, espaços de magia e multiclasse. As escolhas adicionais do Colégio do Conhecimento **não devem ser descontadas** do número normal de magias conhecidas. Não misturar Segredos Mágicos normais com Segredos Adicionais.
+
+### Equipamento inicial de Bárbaro e Bardo
+
+Os arquivos do legado distinguem itens fixos em `startingEquipment` e alternativas em `startingChoices`. A estrutura corresponde às alternativas previstas no SRD 2014:
+
+- **Bárbaro:** pacote de explorador + quatro azagaias; escolher machado grande **ou** arma marcial corpo a corpo; escolher dois machados de mão **ou** arma simples.
+- **Bardo:** armadura de couro + adaga; escolher rapieira, espada longa **ou** arma simples; pacote de diplomata **ou** artista; alaúde **ou** outro instrumento musical.
+
+**Status:** estrutura das alternativas conferida nos arquivos e comparada à referência; **não testada ainda** a resolução de escolhas para itens concretos, peso, inventário, duplicação e persistência.
+
+### Critérios para próxima rodada
+
+- Executar cenários automatizados de criação e subida de nível de Bardo (incluindo Segredos Mágicos), não apenas comparar arrays.
+- Verificar todas as características e recursos de Bárbaro e Bardo em detalhe (limites, recarga, pré-requisitos e escolhas).
+- Auditar subclasses Bárbaro Berserker/Totêmico e Bardo Conhecimento/Bravura, incluindo opções internas.
+- Revisar raças e origens individualmente, mantendo fonte/edição explícitas.
+
+**Situação:** nenhum registro está aprovado como 100% validado para o novo criador.
