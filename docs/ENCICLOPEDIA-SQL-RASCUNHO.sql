@@ -49,21 +49,20 @@ alter table public.encyclopedia_history enable row level security;
 revoke all on public.encyclopedia_entries,public.encyclopedia_master_details,public.encyclopedia_history from public,anon,authenticated;
 grant select on public.encyclopedia_entries to authenticated;
 grant insert(campaign_id,kind,name,summary,public_description) on public.encyclopedia_entries to authenticated;
-grant update(name,summary,public_description,visibility,deleted_at,deleted_by) on public.encyclopedia_entries to authenticated;
-grant delete on public.encyclopedia_entries to authenticated;
+grant update(name,summary,public_description,visibility) on public.encyclopedia_entries to authenticated;
+-- Trash transitions intentionally disabled until server-authoritative RPC is implemented.
+-- Hard deletion intentionally disabled until a guarded server-side operation exists.
 grant select,insert,update,delete on public.encyclopedia_master_details,public.encyclopedia_history to authenticated;
 
 create policy encyclopedia_entries_read on public.encyclopedia_entries for select to authenticated
  using (
   public.is_master(campaign_id)
-  or (deleted_at is null and visibility <> 'hidden' and public.is_member(campaign_id))
+  -- Player SELECT intentionally disabled pending secure summary/full projections.
  );
 create policy encyclopedia_entries_insert on public.encyclopedia_entries for insert to authenticated
  with check (public.is_master(campaign_id) and visibility='hidden' and deleted_at is null and deleted_by is null);
 create policy encyclopedia_entries_update on public.encyclopedia_entries for update to authenticated
  using (public.is_master(campaign_id)) with check (public.is_master(campaign_id));
-create policy encyclopedia_entries_delete on public.encyclopedia_entries for delete to authenticated
- using (public.is_master(campaign_id));
 
 -- This helper reads the parent row under the invoking user's RLS; only masters can see private details.
 create policy encyclopedia_master_details_read on public.encyclopedia_master_details for select to authenticated
