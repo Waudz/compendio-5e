@@ -436,8 +436,8 @@ describe("planejamentos e anotações permanentes", () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     fireEvent.click(await screen.findByRole("button", { name: "Nova anotação permanente" }));
-    const nome = await screen.findByLabelText("Nome do planejamento") as HTMLInputElement;
-    expect(nome.value).toBe("Anotações permanentes 2");
+    await waitFor(() => expect((screen.getByLabelText("Nome do planejamento") as HTMLInputElement).value).toBe("Anotações permanentes 2"));
+    const nome = screen.getByLabelText("Nome do planejamento") as HTMLInputElement;
     fireEvent.change(nome, { target: { value: "Personagens recorrentes" } }); fireEvent.blur(nome);
     await waitFor(() => expect(boards(registros).some(b => b.title === "Personagens recorrentes" && (b.meta as { permanente?: boolean }).permanente)).toBe(true));
     r.unmount(); cleanup();
