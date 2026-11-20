@@ -118,3 +118,12 @@ Links são **referências conhecidas**, não prova de acesso ou auditoria atual 
 - **Implementação:** `src/rules/character-catalogue-adapter.ts` e `src/rules/character-catalogue-adapter.test.ts`; PR #74.
 - **Verificação:** testes adicionados; consultar GitHub Actions do HEAD antes de afirmar sucesso.
 - **Pendências:** dados SRD 2014 auditados, importação, persistência autenticada e testes E2E.
+
+### Registro técnico — integridade dos atributos-base (20/11/2026)
+
+- **Contexto:** rascunhos malformados podiam conter `NaN`, infinito, frações ou valores fora de faixa e contaminar os cálculos de ficha.
+- **Decisão:** domínio rejeita atributos-base que não sejam inteiros finitos entre 1 e 30; limite técnico não aprova métodos de distribuição nem exceções às regras 2014.
+- **Alternativa rejeitada:** validação exclusiva de formulário, insuficiente para dados importados ou persistidos.
+- **Implementação:** `src/rules/character-domain.ts` e testes correspondentes; PR #74.
+- **Verificação:** regressões acrescentadas; consultar CI do HEAD para resultado.
+- **Pendências:** schemas de importação, regras de criação, autorização e E2E.
