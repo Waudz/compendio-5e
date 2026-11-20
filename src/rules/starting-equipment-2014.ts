@@ -37,3 +37,29 @@ export function resolvePackItems(bundle:EquipmentBundle,knownItemIds:ReadonlySet
  for(const item of components)if(!knownItemIds.has(item.itemId))throw Error('Unknown catalogue item: '+item.itemId);
  return components;
 }
+
+/** Concrete SRD equipment options for the Fighter pilot. Martial-weapon
+ * selections are a deliberately limited sample until the full catalogue
+ * is audited; never present these as the complete weapon list.
+ */
+export const fighterEquipmentOptions2014={
+ armor:[
+  {id:'chain-mail',name:'Cota de malha',components:[{itemId:'chain-mail',quantity:1}]},
+  {id:'leather-bow',name:'Armadura de couro, arco longo e 20 flechas',components:[
+   {itemId:'leather-armor',quantity:1},{itemId:'longbow',quantity:1},{itemId:'arrow',quantity:20}]}
+ ],
+ weapons:[
+  {id:'longsword-shield',name:'Espada longa e escudo (amostra de arma marcial)',components:[
+   {itemId:'longsword',quantity:1},{itemId:'shield',quantity:1}]},
+  {id:'two-longswords',name:'Duas espadas longas (amostra de armas marciais)',components:[
+   {itemId:'longsword',quantity:2}]}
+ ],
+ ranged:[
+  {id:'crossbow',name:'Besta leve e 20 virotes',components:[
+   {itemId:'light-crossbow',quantity:1},{itemId:'crossbow-bolt',quantity:20}]},
+  {id:'handaxes',name:'Dois machados de mão',components:[{itemId:'handaxe',quantity:2}]}
+ ],
+ pack:Object.values(adventuringPacks2014).map(pack=>({
+  id:pack.id,name:pack.name,components:expandEquipmentBundle(pack)
+ }))
+} satisfies Record<string,{id:string;name:string;components:EquipmentComponent[]}[]>;
