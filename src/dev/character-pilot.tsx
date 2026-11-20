@@ -4,6 +4,7 @@ import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter
 import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
 import {pilotRefs,pilotRules} from './pilot-rules';
+import {adventuringPacks2014,resolvePackItems} from '../rules/starting-equipment-2014';
 import {ABILITY_ORDER,POINT_BUY_BUDGET,pointBuySpent,validatePointBuy,isStandardArray} from '../rules/ability-generation-2014';
 const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},fighter2014Advancements);
 const KEY='compendio5e:dev:character-pilot:fighter-srd51-v2';
@@ -61,6 +62,17 @@ export default function CharacterPilot(){
    }
    setAbilityError('');change({...draft,baseAbilities:next,currentHp:Math.min(draft.currentHp,10+Math.floor((next.con+2-10)/2))});
   }catch(e){setAbilityError(e instanceof Error?e.message:String(e));}
+ };
+ const addPack=(packId:string)=>{
+  const bundle=adventuringPacks2014[packId];
+  if(!bundle){setMessage('Pacote desconhecido');return;}
+  try{
+   const known=new Set(pilotRules.registry.entries.filter(entry=>entry.ref.kind==='item').map(entry=>entry.ref.id));
+   const components=resolvePackItems(bundle,known);
+   const inventory=components.reduce<CharacterDraft['inventory']>((all,item)=>[
+    ...all,{id:crypto.randomUUID(),itemId:item.itemId,quantity:item.quantity,equipped:false,origin:'starting'}],draft.inventory);
+   change({...draft,inventory});setMessage('Itens do pacote adicionados ao inventário; revise antes de salvar');
+  }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível adicionar o pacote');}
  };
  const save=()=>{
   if(!sheet || !draft.name.trim()){setMessage('Informe o nome e corrija os erros antes de salvar');return;}
@@ -124,11 +136,16 @@ export default function CharacterPilot(){
    <p>Escolhas pendentes: {sheet.pending.length?sheet.pending.join(', '):'nenhuma'}</p>
    <p role="note">{!draft.name.trim() || sheet.pending.length?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
    <h2>Inventário</h2>
+   <label>Pacote de aventureiro <select aria-label="Pacote de aventureiro" defaultValue="explorer" id="pilot-pack-choice">
+    <option value="explorer">Explorador</option><option value="dungeoneer">Aventureiro de Masmorras</option>
+   </select></label>
+   <button onClick={()=>{const selected=document.getElementById('pilot-pack-choice') as HTMLSelectElement|null;
+    if(selected)addPack(selected.value);}}>Adicionar pacote ao inventário</button>
    <button onClick={()=>change(addInventoryInstance(draft,{id:crypto.randomUUID(),itemId:'longsword',quantity:1,equipped:false,origin:'acquired'}))}>
     Adicionar espada longa
    </button>
    <ul>{sheet.inventory.map(item=><li key={item.id}>
-    Espada longa · quantidade {item.quantity} · ID {item.id.slice(0,8)}
+    {pilotRules.registry.entries.find(entry=>entry.ref.kind==='item'&&entry.ref.id===item.itemId)?.name??item.itemId} · quantidade {item.quantity} · ID {item.id.slice(0,8)}
     <button aria-label={'Adicionar quantidade '+item.id} onClick={()=>change(changeInventoryInstanceQuantity(draft,item.id,1))}>+1</button>
     <button aria-label={'Remover quantidade '+item.id} onClick={()=>change(changeInventoryInstanceQuantity(draft,item.id,-1))}>−1</button>
    </li>)}</ul>
