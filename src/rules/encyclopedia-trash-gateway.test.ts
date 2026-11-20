@@ -13,6 +13,11 @@ describe('encyclopedia trash RPC gateway',()=>{
   expect(await updateNarrativeTrash({rpc},'restore',id)).toEqual({status:'not-changed'});
   expect(rpc).toHaveBeenCalledExactlyOnceWith('encyclopedia_restore_entry',{p_entry_id:id});
  });
+ it('rejects unrecognized runtime operations without making a request',async()=>{
+  const rpc=vi.fn();
+  expect(await updateNarrativeTrash({rpc},'unexpected' as 'trash',id)).toEqual({status:'error',message:'invalid_operation'});
+  expect(rpc).not.toHaveBeenCalled();
+ });
  it('rejects invalid identifiers without contacting server',async()=>{
   const rpc=vi.fn();
   expect(await updateNarrativeTrash({rpc},'trash','not-a-uuid')).toEqual({status:'error',message:'invalid_entry_id'});
