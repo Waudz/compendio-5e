@@ -31,7 +31,7 @@ describe('campaign content restrictions',()=>{
  it('records a reason for Artificer and blocks unauthorized edits',()=>{
   const artificer={sourceId:'supplement',kind:'class' as const,id:'artificer',revision:'1'};
   const withSource:RulesCatalogue={registry:{sources:[...catalogue.registry.sources,
-   {id:'supplement',origin:'supplement',title:'Example supplement',ruleset:'5e-2014'}],
+   {id:'supplement',origin:'supplement',title:'Example supplement',publisher:'Example publisher',ruleset:'5e-2014'}],
    entries:[...catalogue.registry.entries,{ref:artificer,name:'Artífice',ruleset:'5e-2014'}]},
    definitions:[...catalogue.definitions,{ref:artificer,description:'Classe de exemplo',data:{}}]};
   const context={campaignId:'camp-a',isCampaignMaster:true};
