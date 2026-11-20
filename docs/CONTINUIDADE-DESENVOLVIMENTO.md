@@ -265,3 +265,10 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - Criado `src/rules/campaign-navigation.ts` com menus ordenados: mestre — Início, Anotações, Iniciativa, Compêndio, Menu; jogador — Início, Anotações, Ficha, Compêndio, Menu. Inventário é subpágina da Ficha. Testes verificam exclusão da iniciativa do menu do jogador.
 - **Ainda não ligado à navegação real** e não é controle de acesso. A aplicação deverá filtrar menus, rotas/abas restauradas e ações; a autorização de dados exige RLS e verificação do mestre autenticado no backend.
 - CI verde no commit `b12cfa6e`; conferir o novo HEAD. Sem merge, migração ou deploy.
+
+### Integração experimental de inventário e Compêndio (20/11/2026)
+
+- Criado `src/rules/inventory-compendium-link.ts`: resolução de item por ID ou referência versionada exata, consultando o mesmo catálogo do criador e do Compêndio. ID sem versão retorna `null` quando há múltiplas revisões/fontes; não escolhe uma silenciosamente. Testes de vínculo, ausência e ambiguidade.
+- No `src/dev/character-pilot.tsx`, cada item do inventário pode abrir os detalhes da definição canônica do catálogo; teste de interface confirma a chave estável. É apenas o piloto local, não a ficha autenticada.
+- Limitação: inventário ainda armazena somente `itemId`; produção deve persistir referência versionada completa por instância para suportar fontes/revisões simultâneas, sem depender da resolução por ID. Dados mecânicos do catálogo ainda não auditados.
+- CI do commit `5df177c` estava em execução na última consulta; verificar resultado e HEAD atual. Sem merge, deploy ou migração.
