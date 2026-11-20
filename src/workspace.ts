@@ -39,7 +39,7 @@ export const desktopSections = (role: "mestre" | "jogador" | null): Section[] =>
 export const kinds = Object.keys(kindLabel) as Kind[];
 
 /** Id próprio da aba: `kind:ref` (ex.: secao:personagens, ficha:lydia). Uma entidade = uma aba. */
-export const tabId = (s: Pick<TabSpec, "kind" | "ref">) => `${s.kind}:${s.ref}${s.kind === "secao" && s.ref === "planejamento" && s.instance && s.instance > 1 ? `~${s.instance}` : ""}`;
+export const tabId = (s: Pick<TabSpec, "kind" | "ref" | "instance">) => `${s.kind}:${s.ref}${s.kind === "secao" && s.ref === "planejamento" && s.instance && s.instance > 1 ? `~${s.instance}` : ""}`;
 export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   if (typeof id !== "string") return null;
   const i = id.indexOf(":");
