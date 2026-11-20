@@ -101,6 +101,7 @@ export function soltarCartao(q: Quadro, ativo: string, alvo: string | null | und
     return limpar(moverCartao(novo, ativo, sid));   // limpa colunas que ficaram sem seção (não ocorre com cartões, mas mantém o invariante)
   }
   if (alvo.startsWith("sec:")) return moverCartao(q, ativo, alvo.slice(4));
+  if (alvo.startsWith("secao:")) return moverCartao(q, ativo, alvo.slice(6));
   const dest = secaoDoCartao(q, alvo); if (!dest) return q;
   return moverCartao(q, ativo, dest.id, dest.cartoes.indexOf(alvo));
 }

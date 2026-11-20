@@ -79,6 +79,7 @@ describe("soltarCartao (arrastar e soltar)", () => {
   it("sobre a lista de uma seção ('sec:'), vai para o fim, inclusive seção vazia em outra coluna", () => {
     expect(cartoes(soltarCartao(q(), "x", "sec:c"))[1]).toEqual([["x"]]);
     expect(cartoes(soltarCartao(q(), "x", "sec:b"))[0][1]).toEqual(["z", "x"]);
+    expect(cartoes(soltarCartao(q(), "x", "secao:b"))[0][1]).toEqual(["z", "x"]);
   });
   it("sobre o '+' abaixo de uma seção: cria uma seção nova logo abaixo já com o cartão", () => {
     const r = soltarCartao(q(), "x", "abaixo:a", { secao: "n" });

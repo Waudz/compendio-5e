@@ -2,7 +2,7 @@
 // Cada planejamento é um quadro: COLUNAS lado a lado (largura ajustável) -> SEÇÕES empilhadas (título próprio, normal ou grande) -> CARTÕES (páginas privadas).
 // O cartão é só o texto: título no cabeçalho, conteúdo inteiro abaixo; clique no texto para editar ali mesmo (salva sozinho). O rascunho vive aqui no painel:
 // mover, arrastar, trocar de planejamento ou clicar em outro cartão nunca perde o que foi digitado; se o salvamento falhar o texto continua na tela.
-import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCorners, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, closestCorners, pointerWithin, rectIntersection, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ClipboardList, GripVertical, MoreHorizontal, Pin, Plus, Trash2, Type } from "lucide-react";
@@ -28,6 +28,8 @@ const novoEd = (r: Registro, editando = false): Ed => ({ editando, titulo: r.tit
 export const ATRASO_AUTOSSALVAR = 900;   // ms depois da última alteração
 const NOME_PERMANENTE = "Anotações permanentes";
 const ehPermanente = (b: Registro) => (b.meta as { permanente?: unknown }).permanente === true;
+const ordemPlano = (b: Registro) => { const n = (b.meta as { ordem?: unknown }).ordem; return typeof n === "number" && Number.isFinite(n) ? n : new Date(b.createdAt).getTime(); };
+const ordenarPlanos = (bs: Registro[]) => [...bs].sort((a, b) => Number(ehPermanente(b)) - Number(ehPermanente(a)) || ordemPlano(a) - ordemPlano(b) || a.createdAt.localeCompare(b.createdAt));
 const quadroInicial = (titulo: string) => ({ colunas: [{ id: novoId(), secoes: [{ id: novoId(), titulo, cartoes: [] }] }] });
 /** Criação das anotações permanentes e do primeiro planejamento: UMA vez por campanha mesmo com várias leituras simultâneas (StrictMode, dois grupos abertos). */
 const emCriacao = new Map<string, Promise<{ ok: true; data: Registro[] } | { ok: false; error: string }>>();
@@ -56,7 +58,10 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   const [boards, setBoards] = useState<Registro[]>([]), [boardId, setBoardId] = useState<string | null>(null);
   const [cenas, setCenas] = useState<Record<string, Registro>>({}); const cenasRef = useRef(cenas); cenasRef.current = cenas;
   const [ed, setEd] = useState<Record<string, Ed>>({}); const edRef = useRef(ed); edRef.current = ed;
-  const [sel, setSel] = useState<string[]>([]);   // seções selecionadas com o mouse
+  const [sel, setSel] = useState<string[]>([]);
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches);
+  useEffect(() => { const mq = window.matchMedia("(max-width: 700px)"); const atualizar = () => setMobile(mq.matches); atualizar(); mq.addEventListener?.("change", atualizar); return () => mq.removeEventListener?.("change", atualizar); }, []);   // seções selecionadas com o mouse
   const [carregado, setCarregado] = useState(false), [erro, setErro] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
   const board = boards.find(b => b.id === boardId) ?? null;
   const boardRef = useRef<Registro | null>(null); boardRef.current = board;
@@ -81,8 +86,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
       if (!c.ok) { setErro(c.error); setCarregado(true); return; }
       lista = [...lista, ...c.data.filter(n => !lista.some(o => o.id === n.id))];
     }
-    lista.sort((x, y) => Number(ehPermanente(y)) - Number(ehPermanente(x)) || x.createdAt.localeCompare(y.createdAt));
-    lista = lista.filter((x, i) => !ehPermanente(x) || lista.findIndex(ehPermanente) === i);   // só uma anotação permanente é exibida (corrida antiga pode ter criado duplicatas)
+    lista = ordenarPlanos(lista);
     for (const x of lista) versoes.current.set(x.id, x.version);
     const salvo = lerPlanoSalvo(chave);
     const atual = lista.find(x => x.id === boardIdRef.current) ?? lista.find(x => x.id === salvo) ?? lista.find(x => !ehPermanente(x)) ?? lista[0];
@@ -201,13 +205,37 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------- planejamentos: criar, renomear, excluir
+  const novoPermanente = async () => {
+    if (!api || !cid || !(await salvarTodos())) return;
+    const n = boards.filter(ehPermanente).length;
+    const r = await api.create({ kind: "board", campaignId: cid, title: n ? `Anotações permanentes ${n + 1}` : NOME_PERMANENTE, visibility: "private", meta: { permanente: true, ordem: Date.now(), ...quadroInicial("Anotações") } });
+    if (!r.ok) { setAviso(r.error); return; }
+    versoes.current.set(r.data.id, r.data.version); setBoards(bs => ordenarPlanos([...bs, r.data]));
+    setEd({}); setSel([]); boardIdRef.current = r.data.id; setBoardId(r.data.id); gravarPlanoSalvo(chave, r.data.id);
+  };
+  const moverPlano = async (id: string, direcao: -1 | 1, alvoId?: string) => {
+    if (!api) return;
+    const atual = boards.find(b => b.id === id); if (!atual) return;
+    const grupo = ordenarPlanos(boards.filter(b => ehPermanente(b) === ehPermanente(atual)));
+    const i = grupo.findIndex(b => b.id === id), j = alvoId ? grupo.findIndex(b => b.id === alvoId) : i + direcao;
+    if (j < 0 || j >= grupo.length) return;
+    const vizinho = grupo[j], outro = grupo[j + direcao];
+    const referencia = ordemPlano(vizinho);
+    const limite = outro ? ordemPlano(outro) : referencia + direcao * 1000;
+    const ordem = (referencia + limite) / 2;
+    await fila.current;
+    const r = await api.update(atual.id, versoes.current.get(atual.id) ?? atual.version, { meta: { ...atual.meta, ordem } });
+    if (!r.ok) { setAviso(r.error); return; }
+    versoes.current.set(r.data.id, r.data.version);
+    setBoards(bs => ordenarPlanos(bs.map(b => b.id === id ? r.data : b)));
+  };
   const novoPlano = async () => {
     if (!api || !cid) return;
-    await salvarTodos();
+    if (!(await salvarTodos())) return;
     const n = boards.filter(b => !ehPermanente(b)).length + 1;
-    const r = await api.create({ kind: "board", campaignId: cid, title: `Sessão ${n}`, visibility: "private", meta: quadroInicial("Seção 1") });
+    const r = await api.create({ kind: "board", campaignId: cid, title: `Sessão ${n}`, visibility: "private", meta: { ...quadroInicial("Seção 1"), ordem: Date.now() } });
     if (!r.ok) { setAviso(r.error); return; }
-    versoes.current.set(r.data.id, r.data.version); setBoards(bs => [...bs, r.data]); setEd({}); setSel([]); boardIdRef.current = r.data.id; setBoardId(r.data.id); gravarPlanoSalvo(chave, r.data.id);
+    versoes.current.set(r.data.id, r.data.version); setBoards(bs => ordenarPlanos([...bs, r.data])); setEd({}); setSel([]); boardIdRef.current = r.data.id; setBoardId(r.data.id); gravarPlanoSalvo(chave, r.data.id);
   };
   const renomearPlano = async (b: Registro, titulo: string) => {
     const nome = titulo.trim(); if (!api || !nome || nome === b.title) return;
@@ -217,7 +245,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     if (r.ok) substituirBoard({ ...r.data, meta: boardRef.current?.id === r.data.id ? boardRef.current.meta : r.data.meta }); else setAviso(r.error);
   };
   const excluirPlano = async (b: Registro) => {
-    if (!api || ehPermanente(b)) return;
+    if (!api) return;
     const cartoes = todosCartoes(lerQuadro(b.meta));
     if (!window.confirm(`Excluir o planejamento “${b.title}”${cartoes.length ? ` e os ${cartoes.length} cartões dele` : ""}? Isso não pode ser desfeito.`)) return;
     for (const c of cartoes) { const r = await api.remove(c); if (r.ok) publicarExclusao(c, origem); }
@@ -249,25 +277,28 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   };
   const soltar = (e: DragEndEvent) => {
     const a = String(e.active.id), o = e.over ? String(e.over.id) : null;
+    setArrastando(null);
+    if (mobile) return;
     if (a.startsWith("secao:")) gravar(q => soltarSecao(q, a.slice(6), o)); else gravar(q => soltarCartao(q, a, o));
   };
 
   return <div className="content planejamento" data-testid="planejamento">
+    <style>{`@media(max-width:700px){.planejamento .quadro-mobile{display:flex;flex-direction:column;overflow:visible;gap:12px}.planejamento .quadro-mobile .coluna{min-width:0!important;width:100%!important;flex-basis:100%!important;max-width:100%!important}.planejamento .quadro-mobile .coluna-redim{display:none}.planejamento .quadro-mobile .secao{width:100%;max-width:100%}}`}</style>
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Anotações</h1>
-    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
+    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onNovoPermanente={() => void novoPermanente()} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando anotações…</p>}
     {sel.length > 0 && <div className="selecao-barra" role="toolbar" aria-label="Seções selecionadas"><strong>{sel.length} {sel.length === 1 ? "seção selecionada" : "seções selecionadas"}</strong>
       <button className="btn-secondary danger" onClick={() => void excluirSecoesUI(sel)}><Trash2 size={14} aria-hidden="true"/> Excluir {sel.length === 1 ? "seção" : "seções"}</button>
       <button className="btn-secondary" onClick={() => setSel([])}>Limpar seleção</button></div>}
-    {carregado && board && <DndContext sensors={sensores} collisionDetection={closestCorners} onDragEnd={soltar}><div className="quadro" role="list" aria-label="Colunas do planejamento" onClick={e => { if (e.target === e.currentTarget) setSel([]); }}>
-      {quadro.colunas.map(col => <Coluna key={col.id} id={col.id} largura={col.largura ?? LARGURA_PADRAO} onLargura={w => gravar(q => redimensionarColuna(q, col.id, w))}>
+    {carregado && board && <DndContext sensors={mobile ? [] : sensores} collisionDetection={args => { const hits = pointerWithin(args); return hits.length ? hits : rectIntersection(args).length ? rectIntersection(args) : closestCorners(args); }} onDragStart={e => setArrastando(String(e.active.id))} onDragCancel={() => setArrastando(null)} onDragEnd={soltar}><div className={mobile ? "quadro quadro-mobile" : "quadro"} role="list" aria-label="Colunas do planejamento" onClick={e => { if (e.target === e.currentTarget) setSel([]); }}>
+      {quadro.colunas.map(col => <Coluna key={col.id} id={col.id} largura={col.largura ?? LARGURA_PADRAO} mobile={mobile} onLargura={w => gravar(q => redimensionarColuna(q, col.id, w))}>
         <SortableContext items={col.secoes.map(s => `secao:${s.id}`)} strategy={verticalListSortingStrategy}>
           {col.secoes.map(s => <Fragment key={s.id}><SecaoOrdenavel secao={s} selecionada={sel.includes(s.id)} aoClicar={e => clicarSecao(s.id, e)}
             cabecalho={<header className={s.grande ? "secao-topo grande" : "secao-topo"} onClick={e => { if ((e.target as HTMLElement).closest("input, button")) return; clicarSecao(s.id, e); }}>
-              <SecaoAlca titulo={s.titulo}/>
+              {!mobile && <SecaoAlca titulo={s.titulo}/>}
               <input className="secao-titulo" aria-label={`Nome da seção ${s.titulo}`} defaultValue={s.titulo} maxLength={80} onPointerDown={e => e.stopPropagation()}
                 onFocus={() => setSel([])} onBlur={e => { if (e.target.value.trim() && e.target.value !== s.titulo) gravar(q => renomearSecao(q, s.id, e.target.value)); else e.target.value = s.titulo; }}
                 onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
@@ -278,7 +309,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
               const c = cenas[id]; if (!c) return null;
               const x = ed[id], sujo = !!x && edSujo(x), blocos = x?.blocos ?? c.content, spec: TabSpec = { kind: "documento", ref: id, title: c.title };
               const editar = () => mexer(id, y => ({ ...y, editando: true }));
-              return <Ordenavel key={id} id={id} alca={`Arrastar o cartão ${c.title}`} onContextMenu={e => aoClicarDireito(e, spec)}>
+              return <Ordenavel key={id} id={id} mobile={mobile} alca={`Arrastar o cartão ${c.title}`} onContextMenu={e => aoClicarDireito(e, spec)}>
                 <CartaoTopo>
                   <div className="cartao-linha">
                     <input className="cartao-titulo" aria-label={`Título do cartão ${c.title}`} value={x?.titulo ?? c.title} maxLength={120}
@@ -307,11 +338,12 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
             })}</ListaSecao>
             <NovoCartao onCriar={t => novoCartao(s.id, t)}/>
           </SecaoOrdenavel>
-          <MaisAbaixo secaoId={s.id} titulo={s.titulo} onClick={() => gravar(q => novaSecaoDepois(q, s.id))}/></Fragment>)}
+          </Fragment>)}
+          {col.secoes.length > 0 && <MaisAbaixo secaoId={col.secoes[col.secoes.length - 1].id} titulo={col.secoes[col.secoes.length - 1].titulo} onClick={() => gravar(q => novaSecaoDepois(q, col.secoes[col.secoes.length - 1].id))}/>}
         </SortableContext>
       </Coluna>)}
-      <MaisColuna onClick={() => gravar(q => novaColuna(q))}/>
-    </div></DndContext>}
+      {!mobile && <MaisColuna onClick={() => gravar(q => novaColuna(q))}/>}
+    </div><DragOverlay>{!mobile && arrastando ? <div className="secao" style={{ padding: 16, minWidth: 200, opacity: 0.95, pointerEvents: "none" }}>{arrastando.startsWith("secao:") ? quadro.colunas.flatMap(c => c.secoes).find(s => s.id === arrastando.slice(6))?.titulo : cenas[arrastando]?.title}</div> : null}</DragOverlay></DndContext>}
     {carregado && board && quadro.colunas.length === 0 && <div className="placeholder"><ClipboardList size={30} aria-hidden="true"/><strong>Nenhuma coluna</strong><span>Use o “+” à direita para criar a primeira coluna.</span></div>}
   </div>;
 }
@@ -323,16 +355,27 @@ function excluirSecoesVazia(q: Quadro, id: string): Quadro {
 }
 
 /** Seletor de planejamentos: anotações permanentes (fixas, primeiro) e um planejamento por sessão. O ativo tem o nome editável. */
-function Planos({ boards, ativo, onTrocar, onNovo, onRenomear, onExcluir }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void }) {
+function Planos({ boards, ativo, onTrocar, onNovo, onNovoPermanente, onMover, onRenomear, onExcluir }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onNovoPermanente: () => void; onMover: (id: string, direcao: -1 | 1, alvoId?: string) => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void }) {
+  const [arrastada, setArrastada] = useState<string | null>(null);
   return <nav className="planos" aria-label="Planejamentos">
-    {boards.map(b => {
+    {boards.map((b, i) => {
       const perm = ehPermanente(b), on = b.id === ativo;
-      if (on && !perm) return <span key={b.id} className="plano ativo">
-        <input aria-label="Nome do planejamento" key={b.title} defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); else e.target.value = b.title; }} onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
-        <button className="icon danger" aria-label={`Excluir o planejamento ${b.title}`} title="Excluir este planejamento" onClick={() => onExcluir(b)}><Trash2 size={13}/></button></span>;
-      return <button key={b.id} type="button" className={on ? "plano ativo" : "plano"} aria-pressed={on} onClick={() => onTrocar(b.id)}>{perm && <Pin size={13} aria-hidden="true"/>}{b.title}</button>;
+      const anterior = boards[i - 1], proximo = boards[i + 1];
+      return <span key={b.id} className={on ? "plano ativo" : "plano"} draggable
+        onDragStart={e => { if ((e.target as HTMLElement).closest("input,button")) { e.preventDefault(); return; } setArrastada(b.id); e.dataTransfer.effectAllowed = "move"; }}
+        onDragOver={e => { if (arrastada && arrastada !== b.id && boards.some(x => x.id === arrastada && ehPermanente(x) === perm)) e.preventDefault(); }}
+        onDrop={e => { e.preventDefault(); const de = boards.findIndex(x => x.id === arrastada), para = boards.findIndex(x => x.id === b.id); if (de >= 0 && de !== para && ehPermanente(boards[de]) === perm) onMover(arrastada!, de < para ? 1 : -1, b.id); setArrastada(null); }}
+        onDragEnd={() => setArrastada(null)}>
+        <span className="plano-alca" aria-hidden="true" title="Arraste para ordenar">⠿</span>
+        {on ? <><input aria-label="Nome do planejamento" key={b.title} defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); else e.target.value = b.title; }} onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
+          {(!perm || boards.filter(ehPermanente).length > 1) && <button className="icon danger" aria-label={`${perm ? "Excluir anotações" : "Excluir o planejamento"} ${b.title}`} title="Excluir este planejamento" onClick={() => onExcluir(b)}><Trash2 size={13}/></button>}</>
+          : <button type="button" className="plano-selecionar" aria-pressed={on} onClick={() => onTrocar(b.id)}>{perm && <Pin size={13} aria-hidden="true"/>}{b.title}</button>}
+        <button type="button" className="icon" aria-label={`Mover ${b.title} para esquerda`} disabled={!anterior || ehPermanente(anterior) !== perm} onClick={() => onMover(b.id, -1)}>‹</button>
+        <button type="button" className="icon" aria-label={`Mover ${b.title} para direita`} disabled={!proximo || ehPermanente(proximo) !== perm} onClick={() => onMover(b.id, 1)}>›</button>
+      </span>;
     })}
-    <button type="button" className="plano mais" aria-label="Novo planejamento" title="Novo planejamento (ex.: próxima sessão)" onClick={onNovo}><Plus size={14}/></button>
+    <button type="button" className="plano mais" aria-label="Nova anotação permanente" title="Criar outra aba de anotações permanentes" onClick={onNovoPermanente}><Pin size={13}/><Plus size={13}/></button>
+    <button type="button" className="plano mais" aria-label="Novo planejamento" title="Nova sessão" onClick={onNovo}><Plus size={14}/></button>
   </nav>;
 }
 
@@ -388,14 +431,14 @@ function CartaoTopo({ children }: { children: ReactNode }) {
   const l = useContext(CartaoCtx);
   return <div className="cartao-topo arrastavel" {...l}>{children}</div>;
 }
-function Ordenavel({ id, alca, onContextMenu, children }: { id: string; alca: string; onContextMenu: (e: RMouseEvent) => void; children: ReactNode }) {
+function Ordenavel({ id, alca, mobile, onContextMenu, children }: { id: string; alca: string; mobile: boolean; onContextMenu: (e: RMouseEvent) => void; children: ReactNode }) {
   const s = useSortable({ id });
   return <CartaoCtx.Provider value={(s.listeners ?? {}) as Record<string, unknown>}><li ref={s.setNodeRef} className={s.isDragging ? "cartao arrastando" : "cartao"} style={{ transform: CSS.Transform.toString(s.transform), transition: s.transition }} onContextMenu={onContextMenu}>
-    <button type="button" className="alca" aria-label={alca} {...s.attributes} {...s.listeners}><GripVertical size={14}/></button>{children}</li></CartaoCtx.Provider>;
+    {!mobile && <button type="button" className="alca" aria-label={alca} {...s.attributes} {...s.listeners}><GripVertical size={14}/></button>}{children}</li></CartaoCtx.Provider>;
 }
 
 /** Coluna: faixa vertical com largura própria (borda direita arrastável), que empilha as seções. */
-function Coluna({ id, largura, onLargura, children }: { id: string; largura: number; onLargura: (w: number) => void; children: ReactNode }) {
+function Coluna({ id, largura, mobile, onLargura, children }: { id: string; largura: number; mobile: boolean; onLargura: (w: number) => void; children: ReactNode }) {
   const [vivo, setVivo] = useState<number | null>(null);   // largura durante o arraste; só vira dado ao soltar
   const ref = useRef<{ x: number; w: number } | null>(null);
   const w = vivo ?? largura;
@@ -403,8 +446,8 @@ function Coluna({ id, largura, onLargura, children }: { id: string; largura: num
   const mover = (e: RPointerEvent) => { if (ref.current) setVivo(limitarLargura(ref.current.w + e.clientX - ref.current.x)); };
   const soltar = (e: RPointerEvent) => { if (!ref.current) return; const nova = limitarLargura(ref.current.w + e.clientX - ref.current.x); ref.current = null; setVivo(null); if (nova !== largura) onLargura(nova); };
   const teclas = (e: RKeyEvent) => { const d = e.key === "ArrowRight" ? 20 : e.key === "ArrowLeft" ? -20 : 0; if (d) { e.preventDefault(); onLargura(limitarLargura(largura + d)); } };
-  return <div className={"coluna" + (vivo !== null ? " redimensionando" : "")} role="listitem" data-coluna={id} style={{ flexBasis: w, width: w }}>{children}
-    <div className="coluna-redim" role="separator" aria-orientation="vertical" aria-label="Redimensionar a coluna" aria-valuemin={LARGURA_MIN} aria-valuemax={LARGURA_MAX} aria-valuenow={w} tabIndex={0}
-      onPointerDown={comecar} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar} onKeyDown={teclas} title="Arraste para ajustar a largura da coluna"/>
+  return <div className={"coluna" + (vivo !== null ? " redimensionando" : "")} role="listitem" data-coluna={id} style={mobile ? { flexBasis: "100%", width: "100%", maxWidth: "100%" } : { flexBasis: w, width: w }}>{children}
+    {!mobile && <div className="coluna-redim" role="separator" aria-orientation="vertical" aria-label="Redimensionar a coluna" aria-valuemin={LARGURA_MIN} aria-valuemax={LARGURA_MAX} aria-valuenow={w} tabIndex={0}
+      onPointerDown={comecar} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar} onKeyDown={teclas} title="Arraste para ajustar a largura da coluna"/>}
   </div>;
 }
