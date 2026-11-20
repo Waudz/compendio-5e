@@ -8,7 +8,7 @@ const base:CharacterDraft={
  id:'fighter-hero',name:'Guerreira',ruleset:'5e-2014',catalogueVersion:catalog.version,
  baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},
  raceId:ids.raceId,backgroundId:ids.backgroundId,classId:ids.classId,
- level:1,decisions:[{id:'fighter-style-1',optionIds:['defense']}],
+ level:1,decisions:[{id:'fighter-style-1',optionIds:['defense']},{id:'fighter-skills-1',optionIds:['athletics','perception']}],
  inventory:[],currentHp:13,temporaryHp:0,spentResources:{}
 };
 describe('SRD 5.1 Fighter vertical integration',()=>{
@@ -26,6 +26,8 @@ describe('SRD 5.1 Fighter vertical integration',()=>{
  });
  it('requires fighting style, archetype and fighter ASIs when unlocked',()=>{
   expect(createCharacterSheet({...base,decisions:[]},catalog).pending).toContain('fighter-style-1');
+  expect(createCharacterSheet({...base,decisions:[]},catalog).pending).toContain('fighter-skills-1');
+  expect(createCharacterSheet(base,catalog).skills).toContain('athletics');
   expect(createCharacterSheet({...base,level:3},catalog).pending).toContain('fighter-archetype-3');
   expect(createCharacterSheet({...base,level:4},catalog).pending).toContain('fighter-asi-4');
   const chosen={...base,level:4,decisions:[...base.decisions,
