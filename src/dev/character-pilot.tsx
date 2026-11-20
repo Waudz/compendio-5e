@@ -18,6 +18,21 @@ const rules:RulesCatalogue = {registry:{
 },definitions:entries.map(e=>({ref:e.ref,description:e.name,data:e.data}))};
 const {catalog,ids} = buildPilotCharacterCatalog(rules,{race,background,class:klass},coreClassAsiAdvancements('fighter'));
 const KEY='compendio5e:dev:character-pilot:v1';
+const STORAGE_SCHEMA=1;
+type SavedPilot = { schemaVersion:number; draft:CharacterDraft };
+function isRecord(value:unknown):value is Record<string,unknown> {
+ return value!==null && typeof value==='object' && !Array.isArray(value);
+}
+function validDraftShape(value:unknown):value is CharacterDraft {
+ if(!isRecord(value) || !Array.isArray(value.decisions) || !Array.isArray(value.inventory) ||
+  !isRecord(value.baseAbilities) || !isRecord(value.spentResources) ||
+  typeof value.name!=='string' || typeof value.id!=='string') return false;
+ const abilities=['str','dex','con','int','wis','cha'];
+ return abilities.every(k=>Number.isInteger(value.baseAbilities[k]) && Number(value.baseAbilities[k])>=1 && Number(value.baseAbilities[k])<=30) &&
+  value.decisions.every(x=>isRecord(x) && typeof x.id==='string' && Array.isArray(x.optionIds) && x.optionIds.every(id=>typeof id==='string')) &&
+  value.inventory.every(x=>isRecord(x) && typeof x.id==='string' && typeof x.itemId==='string' &&
+   typeof x.equipped==='boolean' && (x.origin==='starting'||x.origin==='acquired'));
+}
 function initial():CharacterDraft {
  return {id:crypto.randomUUID(),name:'',ruleset:'5e-2014',catalogueVersion:catalog.version,
  baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},
@@ -29,8 +44,11 @@ function restore():CharacterDraft {
   const raw=localStorage.getItem(KEY);
   if(raw) {
    const parsed:unknown=JSON.parse(raw);
-   if(!parsed || typeof parsed!=='object') throw Error('Invalid saved character');
-   const draft=parsed as CharacterDraft;
+   if(!isRecord(parsed) || parsed.schemaVersion!==STORAGE_SCHEMA || !validDraftShape(parsed.draft))
+    throw Error('Invalid saved character schema');
+   const draft=parsed.draft;
+   if(draft.raceId!==ids.raceId || draft.backgroundId!==ids.backgroundId || draft.classId!==ids.classId)
+    throw Error('Saved character references do not match pilot');
    createCharacterSheet(draft,catalog);
    return draft;
   }
@@ -46,7 +64,9 @@ export default function CharacterPilot(){
  const change=(next:CharacterDraft)=>{setDraft(next);setMessage('Alterações não salvas');};
  const save=()=>{
   if(!sheet || !draft.name.trim()){setMessage('Informe o nome e corrija os erros antes de salvar');return;}
-  try{localStorage.setItem(KEY,JSON.stringify(draft));setMessage('Salvo neste navegador (somente demonstração)');}
+  try{const record:SavedPilot={schemaVersion:STORAGE_SCHEMA,draft};
+   localStorage.setItem(KEY,JSON.stringify(record));
+   setMessage(sheet.pending.length?'Rascunho incompleto salvo neste navegador':'Salvo neste navegador (somente demonstração)');}
   catch{setMessage('Não foi possível salvar neste navegador');}
  };
  return <main style={{maxWidth:720,margin:'2rem auto',padding:20,fontFamily:'system-ui',lineHeight:1.6}}>
@@ -68,6 +88,7 @@ export default function CharacterPilot(){
   {sheet && <section aria-label="Ficha calculada">
    <h2>Ficha</h2><p>Força: {sheet.abilities.str} · Constituição: {sheet.abilities.con} · PV máximo: {sheet.maxHp}</p>
    <p>Escolhas pendentes: {sheet.pending.length?sheet.pending.join(', '):'nenhuma'}</p>
+   <p role="note">{!draft.name.trim() || sheet.pending.length?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
    <h2>Inventário</h2>
    <button onClick={()=>change(addInventoryInstance(draft,{id:crypto.randomUUID(),itemId:'longsword',quantity:1,equipped:false,origin:'acquired'}))}>
     Adicionar espada longa
