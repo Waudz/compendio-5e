@@ -1,5 +1,6 @@
 /** Experimental domain contract for 5e 2014. No persistence or Supabase writes. */
 import { buildCharacter, type Abilities, type ClassDefinition, type Grant, type Option } from './character-build-pilot';
+import { evaluateAdvancements, type Advancement } from './character-advancement';
 
 export type StableChoice = { id: string; optionIds: string[] };
 export type ChoiceDefinition = { id: string; count: number; options: { id: string; grants: Grant[] }[] };
@@ -15,6 +16,7 @@ export type CharacterDraft = {
 export type CharacterCatalog = {
   version: string; races: Record<string, CatalogOption>;
   backgrounds: Record<string, CatalogOption>; classes: Record<string, ClassDefinition>;
+  advancements?: Record<string, Advancement[]>;
 };
 export type CharacterSheet = {
   draft: CharacterDraft;
@@ -51,7 +53,9 @@ export function createCharacterSheet(draft: CharacterDraft, catalog: CharacterCa
     if (seen.has(choice.id)) throw new Error('Duplicate choice ID');
     seen.add(choice.id);
   }
-  for (const decision of draft.decisions) if (!seen.has(decision.id)) pending.push('unknown-choice:' + decision.id);
+  const classAdvancements = catalog.advancements?.[draft.classId] ?? [];
+  const classChoices = new Set(classAdvancements.flatMap(a => (a.choices ?? []).map(choice => choice.id)));
+  for (const decision of draft.decisions) if (!seen.has(decision.id) && !classChoices.has(decision.id)) pending.push('unknown-choice:' + decision.id);
   const grantedChoices: Grant[] = [];
   for (const option of [race, background]) for (const choice of option.choices ?? []) {
     const decision = draft.decisions.find(d => d.id === choice.id);
@@ -61,10 +65,14 @@ export function createCharacterSheet(draft: CharacterDraft, catalog: CharacterCa
     }
     for (const id of decision.optionIds) grantedChoices.push(...choice.options.find(o => o.id === id)!.grants);
   }
+  // Class advancement is evaluated separately from level grants; never include the same grant in both catalogues.
+  const advancement = evaluateAdvancements(classAdvancements, draft.level,
+    draft.decisions.filter(d => classChoices.has(d.id)).map(d => ({ choiceId: d.id, optionIds: d.optionIds })));
+  pending.push(...advancement.pending);
   // Choices are evaluated as grant packages; never depend on array positions.
   const evaluated = buildCharacter({
     baseAbilities: draft.baseAbilities,
-    race: { id: race.id, grants: [...race.grants, ...grantedChoices] },
+    race: { id: race.id, grants: [...race.grants, ...grantedChoices, ...advancement.grants] },
     background: { id: background.id, grants: background.grants },
     classDef, level: draft.level, selected: {}, hpRolls: draft.hpRolls
   });
