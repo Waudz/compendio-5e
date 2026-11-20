@@ -21,6 +21,17 @@ describe('canonical Compendium query',()=>{
   expect(searchCompendium(renamed,{text:'montanha'})[0].key).toBe('srd-2014:race:dwarf:1');
   expect(resolveRule(renamed,dwarf).definition.data.speed).toBe(25);
  });
+ it('supports source filters and reuses a catalogue index without leaking display edits',()=>{
+  expect(searchCompendium(catalogue,{sourceId:'srd-2014'})).toHaveLength(2);
+  expect(searchCompendium(catalogue,{sourceId:'other'})).toHaveLength(0);
+  const first=searchCompendium(catalogue,{text:'anao'});
+  first[0].name='Edited outside';
+  expect(searchCompendium(catalogue,{text:'anao'})[0].name).toBe('Anão');
+  const renamed:RulesCatalogue={...catalogue,registry:{...catalogue.registry,
+   entries:catalogue.registry.entries.map(e=>e.ref.id==='dwarf'?{...e,name:'Anão novo'}:e)}};
+  expect(searchCompendium(renamed,{text:'novo'})).toHaveLength(1);
+  expect(searchCompendium(catalogue,{text:'novo'})).toHaveLength(0);
+ });
  it('rejects missing definitions rather than silently showing partial content',()=>{
   expect(()=>searchCompendium({...catalogue,definitions:[]})).toThrow('Missing rule definition');
  });
