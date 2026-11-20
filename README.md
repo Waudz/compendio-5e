@@ -20,7 +20,7 @@ Configuração (sem ela o aplicativo não abre, pois exige login): copie `.env.e
 | Arquivo | Para quê |
 |---|---|
 | `DECISOES-E-ARQUITETURA.md` | Regras do projeto, arquitetura vigente e estado real de cada parte. **Ler primeiro.** |
-| `docs/PLANEJAMENTO-V2.md` | O que existe, o que é parcial e o que falta; modelo de dados planejado; roteiro por prioridade e dependência; pendências. |
+| `docs/PLANEJAMENTO-V2.md` | **Documento principal**: estado, arquitetura, roteiro, pendências e decisões consolidadas de múltiplos chats (atualização de 20/11/2026). **Consultar antes de desenvolver.** |
 | `docs/NAVEGACAO-ABAS.md` | Navegação por abas, fixação, divisão de painéis e proteção de alterações (implementado). |
 | `docs/NOTAS-PERMISSOES.md` | Notas: regras de visibilidade e RLS (`0004`, aplicada), revisão de segurança e evolução planejada. |
 | `docs/FUNDACAO-REGISTROS.md` | Contratos de registros/links/versões e critérios de segurança. |
