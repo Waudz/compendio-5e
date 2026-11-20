@@ -138,3 +138,15 @@ Para cada nova regra: **fonte e licença → exemplo normativo independente → 
 **Limite importante:** a verificação é estrutural (JSON idêntico), **não semântica**; benefícios equivalentes com fontes diferentes podem passar. Nem toda concessão repetida é erro: proficiências vindas de origens diferentes podem se sobrepor e recursos de classe podem ser atualizados em níveis sucessivos. A solução definitiva é definir **propriedade única de cada progressão de classe** e efeitos tipados com semântica de acumulação/substituição. Não transformar essa guarda provisória em deduplicação universal.
 
 **Próximo passo:** confirmar CI do novo SHA; criar esquema definitivo de `advancement` como única fonte de concessões de classe, migrando gradualmente fixtures, sem reescrever dados de usuários; ampliar testes de mudanças de nível, subclasses e ASI +1/+1 e verificar regras contra SRD 2014.
+
+## Rodada — reaproveitamento concreto de fonte externa SRD 2014
+
+**CI anterior:** run [44768872042](https://github.com/Waudz/compendio-5e/actions/runs/44768872042), commit `c89824bc936c2e24e7f5a19bdece3941debbd3c4`, concluído com **success**. Novos commits ainda aguardam CI.
+
+**Fonte primária de dados selecionada:** [D&D 5e SRD API — níveis de classe 2014](https://docs.dnd5eapi.co/api/get-all-level-resources-for-a-class), endpoint `GET https://www.dnd5eapi.co/api/2014/classes/{index}/levels`. A API expõe nível, bônus de proficiência, total de bônus de atributos, referências de características, campos específicos da classe e magia. A [FAQ](https://docs.dnd5eapi.co/faq) deixa claro que a base contém **somente SRD**, não todo o conteúdo de livros comerciais; conferir licença/atribuição antes de importar e distribuir.
+
+**Implementação:** `src/rules/srd-2014-level-adapter.ts` contém um adaptador **puro e sem rede** que recebe a estrutura da API, verifica sequência de 20 níveis, progressão de proficiência, campos obrigatórios, IDs únicos de características e totais não decrescentes de bônus de atributos. Retorna índice local de referências, sem inventar efeitos ou conceder habilidades automaticamente. `src/rules/srd-2014-level-adapter.test.ts` testa contrato com **fixture sintética**, erros e imutabilidade.
+
+**Não confundir:** este passo **não fez download nem importação real** de JSON da API, não confirmou que a resposta atual do servidor passa pelo adaptador e não criou um catálogo completo. Para produção, baixar snapshot de fonte aberta, fixar versão/checksum e licença, validar o JSON real, revisar inconsistências, então traduzir referências de características em efeitos tipados com testes independentes. Não consultar API durante o jogo: usar snapshot local/offline. O adaptador é deliberadamente restritivo e poderá exigir ajustes após testar dados reais, sem relaxar validações silenciosamente.
+
+**Próximo passo:** CI do novo commit, teste com resposta real versionada da API, snapshot auditável e conversão de características para o motor sem duplicar concessões. Nenhum PR foi mesclado, nenhum dado de usuário alterado.
