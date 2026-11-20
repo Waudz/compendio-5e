@@ -40,3 +40,7 @@ Criado `src/rules/compendium-query.ts` com `searchCompendium`: filtro por tipo e
 ## Piloto visual do Compêndio — 20/11/2026
 
 Adicionado `src/dev/compendium-pilot.tsx` com pesquisa, filtro por tipo, alternância **lista/grade** e abertura de detalhes pela chave `sourceId:kind:id:revision`; teste de interface `src/dev/compendium-pilot.test.tsx`. Acesso local em `?demo=compendio-piloto` usando `npm run dev` (respeitar base do Vite). **Não está na interface autenticada/publicada**; contém somente três entradas ilustrativas, não o SRD completo. Próxima etapa: catálogo auditado com fontes/licenças e integração à navegação real. O percentual permanece conservador até essa integração.
+
+## Fonte única entre pilotos — 20/11/2026
+
+Eliminadas as duas definições de demonstração divergentes: `src/dev/pilot-rules.ts` é a fonte **única** dos exemplos usados tanto em `?demo=compendio-piloto` quanto em `?demo=criador-piloto`. A consulta exibe quatro entradas (raça, antecedente, classe e item); o criador calcula atributos a partir dessas mesmas definições e revisões. Teste de integração verifica o vínculo. Continua sendo uma amostra ilustrativa, não conteúdo SRD auditado ou catálogo de produção.
