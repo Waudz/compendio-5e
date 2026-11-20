@@ -95,8 +95,8 @@ describe('local creator vertical slice',()=>{
   expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
   expect(screen.queryByText(/chain mail · quantidade 1/)).toBeNull();
   fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'chain-mail'}});
-  const remove=screen.getAllByRole('button',{name:/Remover quantidade/});
-  fireEvent.click(remove[0]);
+  const armorRemove=screen.getByRole('button',{name:/Remover quantidade starting-choice:fighter-armor:leather-bow:leather-armor/});
+  fireEvent.click(armorRemove);
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
   expect(screen.getByRole('status').textContent).toContain('edited');
  });
