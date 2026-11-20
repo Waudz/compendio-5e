@@ -344,7 +344,7 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
                 onFocus={() => setSel([])} onBlur={e => { if (e.target.value.trim() && e.target.value !== s.titulo) gravar(q => renomearSecao(q, s.id, e.target.value)); else e.target.value = s.titulo; }}
                 onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
               <button type="button" className={s.grande ? "icon ativo" : "icon"} aria-label={`Título grande na seção ${s.titulo}`} aria-pressed={!!s.grande} title="Título grande" onClick={() => gravar(q => alternarTituloGrande(q, s.id))}><Type size={14}/></button>
-              <button type="button" className="icon danger" aria-label={`Excluir seção ${s.titulo}`} title="Excluir seção" onClick={() => void excluirSecoesUI([s.id])}><Trash2 size={14}/></button>
+              <button type="button" className="icon danger excluir-secao-discreto" aria-label={`Excluir seção ${s.titulo}`} title="Excluir seção" onClick={() => void excluirSecoesUI([s.id])}><Trash2 size={14}/></button>
             </header>}>
             <ListaSecao secaoId={s.id} ids={s.cartoes.filter(id => cenas[id])}>{s.cartoes.map(id => {
               const c = cenas[id]; if (!c) return null;
@@ -373,7 +373,7 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
                   {x?.erro && <p role="alert" className="notice err">{x.erro} <button className="btn-link" onClick={() => void salvar(id)}>Tentar de novo</button></p>}
                 </div>
                 <div className="cartao-rodape">
-                  <button className="icon danger" aria-label={`Excluir cartão ${c.title}`} title="Excluir cartão" onClick={() => void excluirCartao(id)}><Trash2 size={13}/></button>
+                  <button className="icon danger excluir-cartao-discreto" aria-label={`Excluir cartão ${c.title}`} title="Excluir cartão" onClick={() => void excluirCartao(id)}><Trash2 size={13}/></button>
                 </div>
               </Ordenavel>;
             })}</ListaSecao>
