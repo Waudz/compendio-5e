@@ -9,7 +9,7 @@ import "./style.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 const demo = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("demo") : null;   // só em `npm run dev`; removido do build de produção
-if (demo === "mestre" || demo === "jogador") {
+if (demo === "criador-piloto") {\n  void import("./dev/character-pilot").then(({ default: CharacterPilot }) => root.render(<React.StrictMode><CharacterPilot/></React.StrictMode>));\n} else if (demo === "mestre" || demo === "jogador") {
   void import("./dev/demo").then(({ DemoRoot }) => root.render(<React.StrictMode><DemoRoot papel={demo}/></React.StrictMode>));
 } else {
   root.render(<React.StrictMode><AuthProvider><CampaignsProvider><RegistrosProvider><AuthGate><App /></AuthGate></RegistrosProvider></CampaignsProvider></AuthProvider></React.StrictMode>);
