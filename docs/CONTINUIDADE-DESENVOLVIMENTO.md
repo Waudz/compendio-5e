@@ -227,3 +227,10 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - PR #74: corrigido teste de substituição de armadura para alterar o item certo (antes alterava a primeira entrada de inventário, de outro grupo).
 - Piloto de criador: reconstitui seleção de equipamentos iniciais a partir do inventário persistido, inclusive ao reabrir; não considera ficha completa sem os quatro grupos de equipamentos. Novos testes de interface para restauração e completude.
 - CI anterior ao ajuste: 675 testes aprovados e 1 reprovado; **CI dos commits novos ainda precisa ser conferido**. Piloto continua isolado de produção, sem Supabase.
+
+### Incremento de identidade pública (20/11/2026)
+
+- Criado `src/rules/public-identity.ts`: configuração separada da ficha privada, campos nome/sobrenome/raça/classe com modos real/personalizado/oculto, título, imagem pública e descrição. A projeção utiliza lista explícita de campos; **não inclui nível, PV, inventário ou anotações privadas**.
+- Testes `src/rules/public-identity.test.ts` cobrem apresentação padrão, identidade falsa, ocultação independente e não exposição de atributos privados.
+- **Ainda não conectado à UI, Supabase, Enciclopédia ou políticas RLS.** Não assumir que a privacidade está garantida em produção antes de implementar consultas seguras no servidor.
+- CI do commit anterior `7fc94d4` aprovado; conferir novamente CI do HEAD atual antes de merge. Sem publicação.
