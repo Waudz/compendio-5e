@@ -36,6 +36,13 @@ function focusExisting(m: Model, existing: TabNode, spec: TabSpec): void {
  * Substituir = adicionar a nova aba na mesma posição e remover a antiga, de forma atômica.
  */
 export function navigate(m: Model, spec: TabSpec, mode: NavMode = "reuse", isDirty: (id: string) => boolean = () => false): NavResult {
+  // Anotações: cada comando "nova aba" deve criar uma instância independente,
+  // mesmo quando a seção já está aberta em outro grupo.
+  if (spec.kind === "secao" && spec.ref === "planejamento" && mode !== "reuse") {
+    let instance = 2;
+    while (findTab(m, tabId({ ...spec, instance }))) instance++;
+    spec = { ...spec, instance };
+  }
   const id = tabId(spec);
   const existing = findTab(m, id);
   if (existing) {
