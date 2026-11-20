@@ -127,3 +127,12 @@ Links são **referências conhecidas**, não prova de acesso ou auditoria atual 
 - **Implementação:** `src/rules/character-domain.ts` e testes correspondentes; PR #74.
 - **Verificação:** regressões acrescentadas; consultar CI do HEAD para resultado.
 - **Pendências:** schemas de importação, regras de criação, autorização e E2E.
+
+### Registro técnico — defesa no motor puro (20/11/2026)
+
+- **Contexto:** consumidores podem chamar `buildCharacter` diretamente, contornando o adaptador e a validação da ficha.
+- **Decisão:** reforçar atributos-base inteiros finitos 1–30 e dado de vida positivo/consistente em 20 níveis no próprio motor.
+- **Alternativa rejeitada:** depender só de verificações externas.
+- **Implementação:** `src/rules/character-build-pilot.ts` e testes de regressão; PR #74.
+- **Verificação:** testes adicionados; CI do HEAD ainda precisa ser confirmado.
+- **Pendências:** auditoria de regras 2014, métodos de geração, UI autenticada e E2E.
