@@ -105,6 +105,7 @@ describe('local creator vertical slice',()=>{
  });
  it('opens canonical compendium item details from the character inventory',()=>{
   render(<CharacterPilot/>);
+  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
   fireEvent.click(screen.getByRole('button',{name:'Adicionar espada longa'}));
   fireEvent.click(screen.getByRole('button',{name:/Consultar no Compêndio/}));
   expect(screen.getByRole('region',{name:'Detalhes do item no Compêndio'}).textContent).toContain('srd-2014:item:longsword:1');
