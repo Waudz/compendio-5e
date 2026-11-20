@@ -23,7 +23,9 @@ Configuração (sem ela o aplicativo não abre, pois exige login): copie `.env.e
 | `docs/PLANEJAMENTO-V2.md` | **Documento principal**: estado, arquitetura, roteiro, pendências e decisões consolidadas de múltiplos chats (atualização de 20/11/2026). **Consultar antes de desenvolver.** |
 | `docs/NAVEGACAO-ABAS.md` | Navegação por abas, fixação, divisão de painéis e proteção de alterações (implementado). |
 | `docs/NOTAS-PERMISSOES.md` | Notas: regras de visibilidade e RLS (`0004`, aplicada), revisão de segurança e evolução planejada. |
-| `docs/CRIADOR-FICHA-INVENTARIO.md` | **Memória do desenvolvimento** do criador, ficha e inventário: ferramentas, arquitetura, código piloto, testes e pendências. |\n| `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md` | Auditoria de regras 2014, lacunas e critérios de certificação. |\n| `docs/FUNDACAO-REGISTROS.md` | Contratos de registros/links/versões e critérios de segurança. |
+| `docs/CRIADOR-FICHA-INVENTARIO.md` | **Memória do desenvolvimento** do criador, ficha e inventário: ferramentas, arquitetura, código piloto, testes e pendências. |
+| `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md` | Auditoria de regras 2014, lacunas e critérios de certificação. |
+| `docs/FUNDACAO-REGISTROS.md` | Contratos de registros/links/versões e critérios de segurança. |
 
 Migrações SQL versionadas ficam em `supabase/migrations` (reversões em `supabase/rollback`). Mudar o banco exige autorização explícita; nada é aplicado automaticamente.
 
