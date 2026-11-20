@@ -185,9 +185,10 @@ describe("Planejamento (mestre)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Adicionar coluna" }));            // sem pedir nome
     await screen.findByLabelText("Seção Seção 2");
     const sec1 = within(screen.getByLabelText("Seção Seção 1"));
-    fireEvent.change(sec1.getByLabelText("Título do novo cartão"), { target: { value: "O bar" } });
     fireEvent.click(sec1.getByRole("button", { name: "Adicionar cartão" }));
-    await sec1.findByLabelText("Título do cartão O bar");
+    const titulo = await sec1.findByLabelText("Título do cartão Novo cartão");
+    fireEvent.change(titulo, { target: { value: "O bar" } }); fireEvent.blur(titulo);
+    await waitFor(() => expect(registros.dados.some(r => r.kind === "scene" && r.title === "O bar")).toBe(true));
     expect(registros.dados.filter(r => r.kind === "scene").map(r => r.title)).toEqual(["O bar"]);
     expect(registros.dados.find(r => r.kind === "scene")!.visibility).toBe("private");
     await waitFor(() => expect((plano().meta as { colunas: { secoes: { cartoes: string[] }[] }[] }).colunas.map(c => c.secoes[0].cartoes.length)).toEqual([1, 0]));
