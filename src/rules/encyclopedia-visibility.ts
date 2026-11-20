@@ -24,7 +24,7 @@ export type EncyclopediaReadResult=
 export function readEncyclopediaEntry(actor:EncyclopediaActor,entry:EncyclopediaEntry):EncyclopediaReadResult{
  if(!actor.isActiveMember||!actor.campaignId||actor.campaignId!==entry.campaignId)return {access:'denied'};
  if(actor.role==='master')return {access:'master',entry};
- if(actor.role!=='player'||entry.visibility==='hidden')return {access:'denied'};
+ if(actor.role!=='player'||(entry.visibility!=='summary'&&entry.visibility!=='full'))return {access:'denied'};
  const safe:EncyclopediaPlayerEntry={id:entry.id,kind:entry.kind,name:entry.name,summary:entry.summary};
  if(entry.visibility==='full')safe.publicDescription=entry.publicDescription;
  return {access:'player',entry:safe};
