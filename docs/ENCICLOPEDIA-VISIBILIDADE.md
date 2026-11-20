@@ -21,3 +21,8 @@ A projeção usa uma lista explícita de campos, nunca spread da entidade privad
 
 ## Evidência
 Seis testes de unidade adicionados, ainda dependentes de validação pelo GitHub Actions; não alegar prontidão de produção.
+
+## Referências mecânicas sem duplicação
+`src/rules/encyclopedia-mechanics-link.ts` define vínculo opcional com criatura canônica (`sourceId`, `creatureId`, `revision`) ou personagem existente (`characterId`). Um NPC narrativo pode usar a ficha de um guarda/commoner sem se tornar automaticamente um personagem completo. Desvincular não exclui o registro narrativo nem a definição mecânica. Testes cobrem vínculos, validação e preservação dos dados.
+
+**Importante:** o vínculo é apenas referência; não autoriza leitura da ficha ou das estatísticas. A API deve resolver o destino sob RLS e política de descoberta. O módulo ainda não valida a existência do destino no catálogo nem possui persistência.
