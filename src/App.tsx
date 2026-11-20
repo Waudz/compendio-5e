@@ -15,6 +15,7 @@ import { tituloDe, useVersaoRegistros } from "./registrosStore";
 import { Panel } from "./Panel";
 import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
+import { srdItem } from "./catalogue/srd-2014-items";
 import { closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type Kind, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
@@ -160,6 +161,8 @@ function Workspace({ userId }: { userId: string }) {
   const titleOf = useCallback((n: TabNode) => {
     const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
     if ((c?.kind === "documento" || c?.kind === "ficha") && c.ref) return tituloDe(c.ref) ?? n.getName();
+    if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
+    if (c?.kind === "item" && c.ref) return srdItem(c.ref)?.nome ?? n.getName();
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
   }, [memberships, registrosV]);
   labelRef.current = id => { const t = findTab(model, id); return t ? titleOf(t) : id; };

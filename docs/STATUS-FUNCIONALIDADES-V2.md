@@ -6,10 +6,10 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 
 | Funcionalidade | Estimativa | Código de domínio | Interface real | Persistência/segurança | Principal lacuna |
 |---|---:|---|---|---|---|
-| Criador | 25% | Protótipo de regras, ASI, escolhas, catálogo | Piloto **somente dev** | Somente localStorage no piloto | Fluxo completo de classes/raças/origens, persistência autenticada |
+| Criador | 40% | Guerreiro SRD 2014 com escolhas, equipamento e identidade pública | **Na navegação real** (Personagens → criador guiado), desktop e celular | Armazenamento local **experimental** | Demais classes/raças/antecedentes, persistência autenticada |
 | Ficha | 20% | Cálculo experimental | Perfil simples da campanha | Registros de perfil, não ficha D&D completa | Atributos, magias, recursos e ficha única |
-| Inventário | 20% | Instâncias identificadas e operações | Lista simples + piloto dev | Sem instâncias reais persistidas | Itens versionados, peso, equipamento, sincronização |
-| Compêndio | 20% | Registro, resolutor e **catálogo real de 578 itens SRD 2014** (Zod) | Piloto dev (lista/grade, busca) | Catálogo embutido no código, sem persistência | Demais categorias, descrições integrais, integração à navegação real, virtualização |
+| Inventário | 35% | Instâncias com catálogo oficial de itens | Dentro do criador, com "Consultar no Compêndio" | Local experimental | Peso total, equipar, transferência, servidor |
+| Compêndio | 30% | Catálogo real de 578 itens + busca indexada | **Seção real**: busca, filtros, lista/grade, página de item | Catálogo embutido no código | Classes, magias, criaturas, descrições integrais |
 | Magias | 5% | Tipo de referência | Placeholder | Não implementada | Catálogo, escolas, regras e conjuração |
 | Bestiário | 5% | Referências planejadas | Placeholder | Não implementada | Catálogo e busca |
 | Iniciativa | 10% | Planejamento e navegação | Placeholder | Não implementada | Combate completo |
@@ -66,3 +66,7 @@ Adicionado motivo opcional de indisponibilidade por chave versionada, limite de 
 ## Catálogo de itens — 20/11/2026
 
 `src/catalogue/` carrega 578 itens SRD 2014 validados por Zod; 237 mundanos conferidos contra a D&D 5e SRD API (`scripts/verificar-itens-api.mjs`), 341 mágicos apenas pelo esquema. Usado pelos pilotos do criador e do Compêndio. Não está na interface autenticada. Percentual do Compêndio sobe para 20% (estimativa).
+
+## Fatia vertical na navegação real — 21/11/2026
+
+Criador guiado (Guerreiro) e Compêndio de itens acessíveis pelo menu normal, testados em jsdom (742 testes no total). Ainda sem persistência autenticada e sem teste em navegador real. Percentuais são estimativas.

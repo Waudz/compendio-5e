@@ -1,16 +1,16 @@
 /** Local-only vertical slice. Never imported by the production build. */
 import { useState } from 'react';
-import PublicIdentityEditor from './public-identity-editor';
+import PublicIdentityEditor from '../criador/identidade-publica-editor';
 import {inventoryCompendiumEntry} from '../rules/inventory-compendium-link';
 import {defaultPublicIdentity,type PublicIdentitySettings} from '../rules/public-identity';
 import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter';
 import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
-import {pilotRefs,pilotRules} from './pilot-rules';
+import {criadorRefs,criadorRules} from '../criador/catalogo-criador';
 import {fighterEquipmentOptions2014} from '../rules/starting-equipment-2014';
 import {applyStartingEquipmentSelection,replaceStartingEquipmentSelection} from '../rules/starting-equipment-selection';
 import {ABILITY_ORDER,POINT_BUY_BUDGET,pointBuySpent,validatePointBuy,isStandardArray} from '../rules/ability-generation-2014';
-const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},fighter2014Advancements);
+const {catalog,ids} = buildPilotCharacterCatalog(criadorRules,{race:criadorRefs.race,background:criadorRefs.background,class:criadorRefs.class},fighter2014Advancements);
 const KEY='compendio5e:dev:character-pilot:fighter-srd51-v2';
 const STORAGE_SCHEMA=2;
 const IDENTITY_KEY='compendio5e:dev:character-pilot:public-identity-v1';
@@ -109,7 +109,7 @@ export default function CharacterPilot(){
  };
  const confirmEquipment=()=>{
   try{
-   const known=new Set(pilotRules.registry.entries.filter(entry=>entry.ref.kind==='item').map(entry=>entry.ref.id));
+   const known=new Set(criadorRules.registry.entries.filter(entry=>entry.ref.kind==='item').map(entry=>entry.ref.id));
    let next=draft;
    const changes:{group:string;oldOptionId:string;newOptionId:string}[]=[];
    for(const group of Object.keys(fighterEquipmentOptions2014)){
@@ -204,7 +204,7 @@ export default function CharacterPilot(){
      {options.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}
     </select>
     <ul>{options.find(option=>option.id===equipmentChoices[group])?.components.map(item=><li key={item.itemId}>
-     {pilotRules.registry.entries.find(entry=>entry.ref.kind==='item'&&entry.ref.id===item.itemId)?.name??item.itemId} ×{item.quantity}
+     {criadorRules.registry.entries.find(entry=>entry.ref.kind==='item'&&entry.ref.id===item.itemId)?.name??item.itemId} ×{item.quantity}
     </li>)}</ul>
    </fieldset>)}
    <button onClick={confirmEquipment}>Confirmar equipamentos iniciais</button>
@@ -213,12 +213,12 @@ export default function CharacterPilot(){
     Adicionar espada longa
    </button>
    <ul>{sheet.inventory.map(item=><li key={item.id}>
-    {pilotRules.registry.entries.find(entry=>entry.ref.kind==='item'&&entry.ref.id===item.itemId)?.name??item.itemId} · quantidade {item.quantity} · ID {item.id.slice(0,8)}
+    {criadorRules.registry.entries.find(entry=>entry.ref.kind==='item'&&entry.ref.id===item.itemId)?.name??item.itemId} · quantidade {item.quantity} · ID {item.id.slice(0,8)}
     <button type="button" aria-label={'Consultar no Compêndio '+item.id} onClick={()=>setInspectedItemId(item.itemId)}>Consultar no Compêndio</button>
     <button aria-label={'Adicionar quantidade '+item.id} onClick={()=>change(changeInventoryInstanceQuantity(draft,item.id,1))}>+1</button>
     <button aria-label={'Remover quantidade '+item.id} onClick={()=>change(changeInventoryInstanceQuantity(draft,item.id,-1))}>−1</button>
    </li>)}</ul>
-   {inspectedItemId&&<section aria-label="Detalhes do item no Compêndio">{(()=>{const entry=inventoryCompendiumEntry(pilotRules,inspectedItemId);return entry?<><h3>{entry.name}</h3><p>{entry.description}</p><code>{entry.key}</code></>:<p>Item não encontrado ou referência ambígua. Consulte a versão do catálogo.</p>;})()}</section>}
+   {inspectedItemId&&<section aria-label="Detalhes do item no Compêndio">{(()=>{const entry=inventoryCompendiumEntry(criadorRules,inspectedItemId);return entry?<><h3>{entry.name}</h3><p>{entry.description}</p><code>{entry.key}</code></>:<p>Item não encontrado ou referência ambígua. Consulte a versão do catálogo.</p>;})()}</section>}
   </section>}
   {sheet && <section aria-label="Identidade pública do personagem">
    <h2>Cartão de Identidade</h2>

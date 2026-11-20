@@ -2,8 +2,8 @@ import {describe,expect,it} from 'vitest';
 import {fighter2014,fighter2014Advancements} from './fighter-2014';
 import {buildPilotCharacterCatalog} from './character-catalogue-adapter';
 import {createCharacterSheet,type CharacterDraft} from './character-domain';
-import {pilotRefs,pilotRules} from '../dev/pilot-rules';
-const {catalog,ids}=buildPilotCharacterCatalog(pilotRules,pilotRefs,fighter2014Advancements);
+import {criadorRefs,criadorRules} from '../criador/catalogo-criador';
+const {catalog,ids}=buildPilotCharacterCatalog(criadorRules,criadorRefs,fighter2014Advancements);
 const base:CharacterDraft={
  id:'fighter-hero',name:'Guerreira',ruleset:'5e-2014',catalogueVersion:catalog.version,
  baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},

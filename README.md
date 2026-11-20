@@ -118,3 +118,7 @@ O criador local do Guerreiro agora permite **compra de 27 pontos** (atributos-ba
 ## Catálogo de itens SRD 2014
 
 `src/catalogue/` contém o catálogo canônico de itens (578 itens, nomes em português, dados validados com Zod), usado pelos pilotos do criador e do Compêndio (`?demo=criador-piloto`, `?demo=compendio-piloto`). Regenerar: `node scripts/build-srd-item-catalogue.mjs <caminho/itens-srd2014.json>`; conferir contra a API (rede, manual): `node scripts/verificar-itens-api.mjs`. Dados baseados no SRD 5.1 (CC BY 4.0, Wizards of the Coast LLC); atribuição completa em `src/catalogue/data/srd-2014-items.json`. Ainda experimental: ver `docs/CONTINUIDADE-DESENVOLVIMENTO.md`.
+
+## Criador guiado e Compêndio (experimental)
+
+Pelo menu normal: **Personagens → Criar com o criador guiado** (Guerreiro SRD 2014, equipamento inicial do catálogo oficial, inventário e identidade pública) e **Compêndio** (busca, filtros, lista/grade e página de cada item). No celular: Menu → Personagens / barra inferior → Compêndio. Os personagens guiados ficam **só neste navegador** (armazenamento experimental; ver `docs/CRIADOR-FICHA-INVENTARIO.md`, "Persistência pendente").

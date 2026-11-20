@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import {afterEach,describe,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen,within} from '@testing-library/react';
-import PublicIdentityEditor from './public-identity-editor';
+import PublicIdentityEditor from './identidade-publica-editor';
 afterEach(cleanup);
 const source={name:'Elyra',surname:'Voss',race:'Tiefling',characterClass:'Feiticeira'};
 describe('public identity editor',()=>{

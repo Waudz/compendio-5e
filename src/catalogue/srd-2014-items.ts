@@ -47,6 +47,33 @@ export function describeItem(item: SrdItem): string {
   return partes.join('. ') + '.';
 }
 
+export const categoriaDoItemRotulo = (categoria: SrdItem['categoria']) => rotuloCategoria[categoria];
+export const raridadeRotulo = (raridade: SrdItem['raridade']) => rotuloRaridade[raridade];
+
+/** Fatos estruturados do item como pares [rótulo, valor] em pt-BR, para a página de detalhes (mesma fonte do resumo). */
+export function itemFacts(item: SrdItem): [string, string][] {
+  const f: [string, string][] = [['Categoria', rotuloCategoria[item.categoria]], ['Raridade', rotuloRaridade[item.raridade] + (item.sintonia ? ' (requer sintonização)' : '')]];
+  if (item.custo) f.push(['Custo', `${numero(item.custo.v)} ${moeda[item.custo.u]}`]);
+  if (item.peso != null) f.push(['Peso', `${numero(item.peso)} kg`]);
+  if (item.lote) f.push(['Lote', `${item.lote} unidades`]);
+  if (item.arma) {
+    f.push(['Tipo de arma', `${item.arma.categoria === 'simple' ? 'Simples' : 'Marcial'}, ${item.arma.alcance === 'melee' ? 'corpo a corpo' : 'à distância'}`]);
+    if (item.arma.dano) f.push(['Dano', `${item.arma.dano.dado}${item.arma.dano.tipo ? ' ' + rotuloDano[item.arma.dano.tipo] : ''}${item.arma.danoDuasMaos ? ` (${item.arma.danoDuasMaos.dado} com duas mãos)` : ''}`]);
+    if (item.arma.propriedades.length) f.push(['Propriedades', item.arma.propriedades.map(p => rotuloPropriedade[p]).join(', ')]);
+    if (item.arma.alcanceM) f.push(['Alcance', item.arma.alcanceM.longo ? `${numero(item.arma.alcanceM.normal)} m / ${numero(item.arma.alcanceM.longo)} m` : `${numero(item.arma.alcanceM.normal)} m`]);
+    if (item.arma.arremessoM) f.push(['Arremesso', `${numero(item.arma.arremessoM.normal)} m / ${numero(item.arma.arremessoM.longo ?? item.arma.arremessoM.normal)} m`]);
+  }
+  if (item.armadura) {
+    const a = item.armadura;
+    f.push(['Classe de Armadura', a.categoria === 'shield' ? `+${a.ca}` : `${a.ca}${a.somaDes ? ' + Des' + (a.maxDes != null ? ` (máx. ${a.maxDes})` : '') : ''}`]);
+    if (a.forMin) f.push(['Força mínima', String(a.forMin)]);
+    if (a.furtividade) f.push(['Furtividade', 'Desvantagem']);
+  }
+  if (item.cura) f.push(['Cura', item.cura]);
+  if (item.velocidade) f.push(['Velocidade', `${numero(item.velocidade.v)} ${item.velocidade.u}`]);
+  return f;
+}
+
 let arquivo: ItemCatalogueFile | undefined;
 let catalogo: RulesCatalogue | undefined;
 let porId: ReadonlyMap<string, SrdItem> | undefined;
