@@ -32,3 +32,26 @@ export function applyStartingEquipmentSelection(
  if(existing.length)throw Error('Starting equipment already selected: confirm replacement before changing it');
  return {...draft,inventory:[...draft.inventory,...desired]};
 }
+
+/** Replace a previously accepted starting option only after explicit UI confirmation.
+ * Edited/consumed/equipped instances are never silently restored. The caller
+ * supplies the old option recipe so every original quantity can be checked.
+ */
+export function replaceStartingEquipmentSelection(
+ draft:CharacterDraft,oldSelection:StartingEquipmentSelection,
+ newSelection:StartingEquipmentSelection,knownItemIds:ReadonlySet<string>,
+ confirmed:boolean
+):CharacterDraft {
+ if(!confirmed)throw Error('Starting equipment replacement requires confirmation');
+ if(oldSelection.sourceId!==newSelection.sourceId)throw Error('Equipment source mismatch');
+ const prefix=selectionPrefix(oldSelection.sourceId);
+ const previous=oldSelection.components.map(item=>({
+  id:prefix+oldSelection.optionId+':'+item.itemId,itemId:item.itemId,quantity:item.quantity
+ }));
+ const existing=draft.inventory.filter(item=>item.id.startsWith(prefix));
+ if(existing.length!==previous.length||previous.some(item=>!existing.some(entry=>
+  entry.id===item.id&&entry.itemId===item.itemId&&entry.quantity===item.quantity&&!entry.equipped)))
+  throw Error('Starting equipment was edited; resolve inventory changes manually');
+ const withoutOld={...draft,inventory:draft.inventory.filter(item=>!item.id.startsWith(prefix))};
+ return applyStartingEquipmentSelection(withoutOld,newSelection,knownItemIds);
+}
