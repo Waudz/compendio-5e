@@ -103,6 +103,24 @@ describe('local creator vertical slice',()=>{
   expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
   expect(screen.getByRole('note').textContent).toContain('rascunho completo');
  });
+ it('edits and restores public identity independently of the private character draft',()=>{
+  const view=render(<CharacterPilot/>);
+  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
+  fireEvent.click(screen.getByRole('button',{name:'Configurar identidade pública'}));
+  fireEvent.change(screen.getByLabelText('Visibilidade Nome'),{target:{value:'custom'}});
+  fireEvent.change(screen.getByLabelText('Nome público'),{target:{value:'A Sombra'}});
+  fireEvent.change(screen.getByLabelText('Visibilidade Classe'),{target:{value:'hidden'}});
+  fireEvent.click(screen.getByRole('button',{name:'Salvar identidade pública'}));
+  expect(screen.getByRole('status').textContent).toContain('Identidade pública salva');
+  expect(localStorage.getItem('compendio5e:dev:character-pilot:fighter-srd51-v2')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Salvar rascunho local'}));
+  view.unmount();
+  render(<CharacterPilot/>);
+  fireEvent.click(screen.getByRole('button',{name:'Configurar identidade pública'}));
+  expect((screen.getByLabelText('Nome público') as HTMLInputElement).value).toBe('A Sombra');
+  expect((screen.getByLabelText('Visibilidade Classe') as HTMLSelectElement).value).toBe('hidden');
+  expect(screen.getByRole('region',{name:'Prévia para outros jogadores'}).textContent).not.toContain('Guerreiro');
+ });
  it('replaces unedited starting equipment with consent and refuses changes after consumption',()=>{
   render(<CharacterPilot/>);
   fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
