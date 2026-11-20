@@ -1,5 +1,5 @@
 /** Future-proof catalogue identity; pure metadata, no storage or user-content writes. */
-export type ContentKind = 'race' | 'subrace' | 'class' | 'subclass' | 'feat' | 'background';
+export type ContentKind = 'race' | 'subrace' | 'class' | 'subclass' | 'feat' | 'background' | 'spell' | 'item' | 'feature' | 'trait' | 'effect' | 'resource' | 'equipment-category';
 export type ContentOrigin = 'srd-2014' | 'supplement' | 'homebrew';
 export type ContentRef = {
   id: string;
@@ -37,7 +37,7 @@ export function validateContentRegistry(registry: ContentRegistry): void {
   }
   const keys = new Set<string>();
   for (const entry of registry.entries) {
-    if (!IDENTIFIER.test(entry.ref.id) || !IDENTIFIER.test(entry.ref.revision) ||
+    if (!IDENTIFIER.test(entry.ref.id) || !IDENTIFIER.test(entry.ref.sourceId) || !IDENTIFIER.test(entry.ref.revision) ||
       !sourceIds.has(entry.ref.sourceId) || !entry.name.trim() || entry.ruleset !== '5e-2014')
       throw new Error('Invalid content entry');
     const key = contentKey(entry.ref);
