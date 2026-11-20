@@ -3,6 +3,9 @@
  * Never use a service-role key in browser code.
  */
 export type NarrativeTrashOperation='trash'|'restore';
+const trashOperations:Readonly<Record<NarrativeTrashOperation,NarrativeTrashRpcName>>={
+ trash:'encyclopedia_trash_entry',restore:'encyclopedia_restore_entry'
+};
 export type NarrativeTrashRpcName='encyclopedia_trash_entry'|'encyclopedia_restore_entry';
 export type NarrativeTrashRpcClient={
  rpc(name:NarrativeTrashRpcName,args:{p_entry_id:string}):PromiseLike<{
@@ -22,8 +25,9 @@ export async function updateNarrativeTrash(
 ):Promise<NarrativeTrashOutcome>{
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(entryId))
   return {status:'error',message:'invalid_entry_id'};
- const rpcName: NarrativeTrashRpcName=operation==='trash'
-  ?'encyclopedia_trash_entry':'encyclopedia_restore_entry';
+ if(!Object.prototype.hasOwnProperty.call(trashOperations,operation))
+  return {status:'error',message:'invalid_operation'};
+ const rpcName=trashOperations[operation];
  try{
   const result=await client.rpc(rpcName,{p_entry_id:entryId});
   if(result.error)return {status:'error',message:'request_failed'};
