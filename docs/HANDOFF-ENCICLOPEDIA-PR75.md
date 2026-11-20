@@ -115,3 +115,11 @@ RLS filtra linhas, não oculta colunas por si só. Não conceder SELECT da tabel
 - Usa `SELECT ... FOR UPDATE` para serializar transições e `UPDATE ... WHERE deleted_at IS [NOT] NULL` para evitar mudanças repetidas; grava autor/timestamp somente no servidor; restauração limpa ambos.
 - Operações retornam `false` para ausente/sem permissão/sem mudança, sem revelar existência do registro. **Não implementa exclusão definitiva** e não altera histórico.
 - **Não foi aplicado ao Supabase**. Antes de promover a migração: testar transações concorrentes e RLS com identidades reais isoladas; auditar owner e EXECUTE; decidir estratégia de histórico/auditoria das transições e Realtime. Lixeira sem expiração permanece decisão do usuário.
+
+## Entrega Claude PR #74 confirmada (20/11/2026)
+
+- HEAD `3f5c41c745b0462540a569b7073a65adde0263f8`, PR #74 aberto em `docs/auditoria-catalogos-personagem-2014`, base `main`; 283 commits/95 arquivos alterados no momento da consulta.
+- Relatório Claude: 578 itens SRD 2014 (237 mundanos, 341 mágicos) em `src/catalogue/`, validação Zod, nomes pt/en, script de conferência API, correção de três IDs de equipamento do Guerreiro, integração nos pilotos, 718 testes locais e CI `44821384241` aprovado. Catálogo e editor ainda são **pilotos**, não persistência/produção; itens mágicos não auditados externamente.
+- `docs/CONTINUIDADE-DESENVOLVIMENTO.md` na branch #74 já contém decisões confirmadas sobre bestiário/discovery, recipientes comuns sem inventários aninhados, personagens ativos/inativos, transferência de controle e notas privadas. **Não reabrir essas decisões por padrão**.
+- Prioridade arquitetural recomendada ao Claude: tornar fluxo vertical do Guerreiro utilizável na navegação real e com persistência segura antes de importar todos os catálogos; evitar aumentar indefinidamente o PR #74 e não fazer rebase destrutivo/merge automático.
+- Atenção à sobreposição: `src/rules/public-character-encyclopedia.ts` do Claude projeta identidade pública; nossa `src/rules/encyclopedia-visibility.ts` e RPCs projetam entradas narrativas. Na integração, usar uma única fronteira de autorização no servidor, sem devolver ficha privada. Nossa branch #75 foi baseada na branch #74, mas precisa ser reconciliada com commits novos antes do merge.
