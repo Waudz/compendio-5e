@@ -125,15 +125,15 @@ de produção. A proteção de rede desativa o cache HTTP do navegador; não usa
 benchmark de cache. As demais limitações e o bloqueio local do Windows continuam válidos.
 
 
-**Histórico da segunda etapa:** a primeira execução confirmou defeitos reais de teclado/foco e
-violações axe. Correções isoladas ficam em `ContextMenu` e no menu de `Mobile`; não alteram
-regras, dados ou módulos das outras frentes. Contraste e divergências de nomes acessíveis
-continuam registrados em Q2-04/Q2-05. O teste axe permanece estrito e o CI da segunda etapa
-não deve ser anunciado como aprovado enquanto esses achados existirem. Consulte o relatório
-para resultados por execução e evidências; o PR permanece em rascunho.
+**Estado da segunda etapa:** Q2-01 a Q2-05 corrigidos e validados na suíte. A revisão
+Q2-04/Q2-05 preservou fundos, ícones, geometria e tipografia, ajustando apenas cores de texto
+e a origem dos nomes acessíveis. Os nomes das abas são sincronizados em memória, enquanto
+o layout persistido continua sem títulos. Regressões cobrem restauração, renomeação e privacidade.
 
-
-A revisão de Q2-04/Q2-05 ajusta somente cores de texto e a origem dos nomes acessíveis,
-com regressões para restauração/renomeação de abas e privacidade do layout persistido.
-A auditoria continua estrita; resultados atuais e evidências ficam no relatório de qualidade
-acima e nos checks do PR #77. Não presumir aprovação a partir dos resultados históricos.
+Validação Linux da correção: **565 unitários + 36 E2E originais + 80 testes da segunda etapa
+aprovados**, nenhuma falha, com 32 casos não aplicáveis explicitamente separados. As 16 análises
+axe (duas telas × oito larguras) não encontraram violações. Sem exceções de regras, retries ou
+falhas esperadas. Evidências e histórico estão no relatório acima; conferir também os checks
+mais recentes do PR #77. Ele continua dependente do #76 e de revisão humana, sem merge automático.
+Esses resultados não substituem leitor de tela/aparelho físico nem validam autenticação ou
+Supabase de produção.

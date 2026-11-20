@@ -35,10 +35,10 @@ Evidências: [artefato da reexecução](https://github.com/Waudz/compendio-5e/ac
 | Q2-01 | P2 | Desktop 701/768/1024/1440: focar Diário, Shift+F10, ArrowDown. O foco fica no primeiro item, não vai ao seguinte. | Falha E2E de setas + unitário `ContextMenu.a11y.test.tsx` reproduzido vermelho antes da correção. Corrigido em `ContextMenu`: setas/Home/End pulam desabilitados e circulam. |
 | Q2-02 | P2 | Mesmo menu: Escape fecha, mas foco não retorna a Diário. | Falha E2E e unitário vermelho antes da correção. Corrigido: captura e restauração do acionador conectado. |
 | Q2-03 | P2 | Mobile 320/360/390/700: focar Abrir menu e Enter. O diálogo aparece, mas foco continua fora dele. Tab não fica contido; não havia tratamento de Escape por inspeção do código. | Falha de contenção de foco nas quatro larguras. Corrigido no menu mobile: foco inicial, ciclo Tab/Shift+Tab, Escape e retorno de foco, com `aria-modal`. |
-| Q2-04 | P2 / axe serious | Como jogador, abrir Início e Diário. A auditoria detecta `color-contrast`: texto ativo da barra inferior no celular; marca do site e rótulo da campanha no desktop. | JSON `axe` e capturas do relatório por largura. **Pendente**, sem alterar a paleta compartilhada nesta entrega. |
-| Q2-05 | P2 / axe serious | Como jogador, Início: cartões de aventureiros com texto visível e `aria-label` divergentes. No desktop também seletor da campanha e aba com rótulo acessível “Campanha” apesar do título visível da campanha. | Regra `label-content-name-mismatch`, árvore acessível e alvos no relatório. **Pendente**; exige reconciliar nomes visíveis/ARIA e integração com FlexLayout, sem copiar títulos sensíveis ao layout persistido. |
+| Q2-04 | P2 / axe serious | Como jogador, abrir Início e Diário. A auditoria detecta `color-contrast`: texto ativo da barra inferior no celular; marca do site e rótulo da campanha no desktop. | JSON `axe` e capturas do relatório por largura. **Corrigido nesta revisão:** token azul de texto AA e rótulo da campanha em `--text-2`, sem alterar fundos ou ícones. |
+| Q2-05 | P2 / axe serious | Como jogador, Início: cartões de aventureiros com texto visível e `aria-label` divergentes. No desktop também seletor da campanha e aba com rótulo acessível “Campanha” apesar do título visível da campanha. | Regra `label-content-name-mismatch`, árvore acessível e alvos no relatório. **Corrigido nesta revisão:** nomes derivados do texto visível e títulos FlexLayout sincronizados em memória, sem copiar nomes para o layout persistido. |
 
-A auditoria axe continua exigindo zero violações: sem allowlist, `test.fail`, retries ou exclusões de regras para mascarar Q2-04/Q2-05. Portanto CI E2E permanece vermelho enquanto esses defeitos persistirem. O PR deve permanecer em rascunho e não ser integrado como aprovado.
+A auditoria axe continua exigindo zero violações: sem allowlist, `test.fail`, retries ou exclusões de regras para mascarar Q2-04/Q2-05. Esses defeitos bloquearam a primeira revisão. A correção e sua execução aprovada estão registradas abaixo; o PR mantém a dependência do #76 e a revisão humana.
 
 ## Limitações e coordenação
 
@@ -49,17 +49,22 @@ A auditoria axe continua exigindo zero violações: sem allowlist, `test.fail`, 
 
 ## Integração recomendada
 
-1. Manter este PR em rascunho enquanto Q2-04/Q2-05 estiverem abertos; não relaxar a auditoria nem usar allowlist genérica.
+1. Q2-04/Q2-05 estão corrigidos e validados no escopo da suíte. Manter a auditoria estrita e concluir revisão humana/dependência do #76 antes de integrar.
 2. Integrar o #76 somente com autorização do responsável. Se entrar por squash, reaplicar/rebasear **apenas** os commits desta etapa posteriores a `33eab06` sobre a nova main antes de retargetar o PR; não reenviar a infraestrutura duplicada.
 3. Reconciliar dependências/README com #74 e os contratos de segurança com #75 sem alterar suas branches. Reexecutar todas as suítes sobre o resultado integrado.
-4. Corrigir texto visível versus nomes acessíveis e contraste em revisão própria; validar com leitores reais e toque em aparelho físico. Só depois ampliar para os fluxos de personagem/Enciclopédia após suas integrações.
+4. Complementar as verificações automáticas de nomes/contraste com leitores reais e toque em aparelho físico. Só depois ampliar para os fluxos de personagem/Enciclopédia após suas integrações.
 
 
-## Revisão Q2-04/Q2-05 — correções em validação
+## Revisão Q2-04/Q2-05 — corrigida e validada
 
 - Contraste: novo token de texto azul `--accent-text: #6BA4FF`, aplicado somente ao texto da marca e ao texto ativo mobile. O rótulo da campanha usa `--text-2`. Fundos, ícones, bordas, tipografia e geometria não foram alterados.
 - Aventureiros e seletor expandido derivam o nome acessível do próprio conteúdo visível; tooltips de ação foram preservados. O seletor recolhido, que só tem ícone, mantém seu rótulo explícito.
 - Abas: nomes do modelo FlexLayout são sincronizados em memória com `titleOf`, pela ação pública `renameTab`, em efeito idempotente. Conteúdo visível e ARIA passam a usar o mesmo título, sem alterar IDs, pesos, seleção ou regras de persistência. Nenhum patch no DOM ou na dependência.
 - Regressões novas verificam restauração, renomeação e ausência de títulos no layout persistido. Os testes antigos de seletor/cartão foram atualizados para os nomes acessíveis naturais, com verificações exatas adicionais. Cenário E2E nas oito larguras cobre os mesmos contratos.
-- Tipos E2E e 42 testes direcionados aprovados localmente. Suíte completa, build e auditoria de navegador em revalidação; a aprovação só será registrada após a execução.
+- Localmente: tipos E2E, build e **565 testes unitários em 36 arquivos aprovados**; build/Vitest usaram `--configLoader runner` por causa da restrição Windows já documentada.
+- Commit de código validado: `d5fdb4d`. [CI padrão 44834374442](https://github.com/Waudz/compendio-5e/actions/runs/44834374442) aprovado, com 565 testes e build. [CI E2E 44834374428](https://github.com/Waudz/compendio-5e/actions/runs/44834374428) aprovado: **36 originais + 80 da segunda etapa**, **0 falhas**, **32 casos não aplicáveis**. Zero retries.
+- O JSON axe confirmou **zero violações nas duas telas (Início/Diário) em cada uma das oito larguras**: 16 análises. A etapa 2 agora seleciona 112 casos, devido ao novo cenário executado nas oito larguras. Os 32 skips continuam sendo condições de layout já documentadas, não regras de acessibilidade omitidas.
+- [Artefato da correção](https://github.com/Waudz/compendio-5e/actions/runs/44834374428/artifacts/14677129923), retido por sete dias. Capturas de 320 e 1440 px inspecionadas; preservada a composição visual, com mudanças de cor restritas aos textos apontados.
+- Bundle principal: 774,43 → **774,61 kB**, gzip 219,56 → **219,61 kB**; editor rico inalterado em 988,89 kB. O aviso de chunks grandes permanece, sem introduzir orçamento artificial.
+- Nesta revisão foram modificados `App.tsx`, `CampaignHome.tsx`, `style.css`, cinco arquivos de testes unitários, o cenário de acessibilidade E2E, README e este relatório. Nenhum arquivo exclusivo dos PRs #74/#75 constava desse conjunto na consulta de 20/11/2026. Ajustes de localizadores nos testes antigos refletem os novos nomes naturais; as verificações de comportamento/permissões foram mantidas.
 - As verificações axe seguem integrais, sem exceções, retries, snapshots substitutivos ou falhas esperadas. Nenhum merge, deploy ou alteração no Supabase.
