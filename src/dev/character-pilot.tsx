@@ -1,6 +1,7 @@
 /** Local-only vertical slice. Never imported by the production build. */
 import { useState } from 'react';
 import PublicIdentityEditor from './public-identity-editor';
+import {inventoryCompendiumEntry} from '../rules/inventory-compendium-link';
 import {defaultPublicIdentity,type PublicIdentitySettings} from '../rules/public-identity';
 import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter';
 import {fighter2014Advancements} from '../rules/fighter-2014';
@@ -89,6 +90,7 @@ export default function CharacterPilot(){
  const [draft,setDraft]=useState<CharacterDraft>(restore);
  const [identity,setIdentity]=useState<PublicIdentitySettings>(()=>restoreIdentity(draft.id));
  const [showIdentity,setShowIdentity]=useState(false);
+ const [inspectedItemId,setInspectedItemId]=useState<string|null>(null);
  const [message,setMessage]=useState('');
  const [abilityMethod,setAbilityMethod]=useState<'point-buy'|'standard-array'>(()=>isStandardArray(draft.baseAbilities)?'standard-array':'point-buy');
  const [abilityError,setAbilityError]=useState('');
@@ -212,9 +214,11 @@ export default function CharacterPilot(){
    </button>
    <ul>{sheet.inventory.map(item=><li key={item.id}>
     {pilotRules.registry.entries.find(entry=>entry.ref.kind==='item'&&entry.ref.id===item.itemId)?.name??item.itemId} · quantidade {item.quantity} · ID {item.id.slice(0,8)}
+    <button type="button" aria-label={'Consultar no Compêndio '+item.id} onClick={()=>setInspectedItemId(item.itemId)}>Consultar no Compêndio</button>
     <button aria-label={'Adicionar quantidade '+item.id} onClick={()=>change(changeInventoryInstanceQuantity(draft,item.id,1))}>+1</button>
     <button aria-label={'Remover quantidade '+item.id} onClick={()=>change(changeInventoryInstanceQuantity(draft,item.id,-1))}>−1</button>
    </li>)}</ul>
+   {inspectedItemId&&<section aria-label="Detalhes do item no Compêndio">{(()=>{const entry=inventoryCompendiumEntry(pilotRules,inspectedItemId);return entry?<><h3>{entry.name}</h3><p>{entry.description}</p><code>{entry.key}</code></>:<p>Item não encontrado ou referência ambígua. Consulte a versão do catálogo.</p>;})()}</section>}
   </section>}
   {sheet && <section aria-label="Identidade pública do personagem">
    <h2>Cartão de Identidade</h2>
