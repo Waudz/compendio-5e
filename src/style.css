@@ -569,3 +569,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 /* Cartões novos não exigem um cabeçalho visível: adicionar título é opcional. */
 .planejamento .cartao-adicionar-titulo{background:transparent;border:0;color:var(--muted);font-size:12px;padding:2px 4px;text-align:left;cursor:pointer;opacity:.65}
 .planejamento .cartao-adicionar-titulo:hover,.planejamento .cartao-adicionar-titulo:focus-visible{opacity:1;color:var(--text)}
+
+/* Ações de seção compactadas em ⋯ no celular. */
+.planejamento .secao-topo{position:relative}
+.planejamento .secao-menu-mobile{position:relative;flex:0 0 auto}
+.planejamento .secao-menu-mobile>summary{display:flex;align-items:center;justify-content:center;list-style:none;width:30px;height:30px;cursor:pointer;border-radius:7px;color:var(--muted)}
+.planejamento .secao-menu-mobile>summary::-webkit-details-marker{display:none}
+.planejamento .secao-menu-mobile>summary:hover,.planejamento .secao-menu-mobile[open]>summary{background:rgba(130,150,180,.13);color:var(--text)}
+.planejamento .secao-menu-opcoes{position:absolute;z-index:30;right:0;top:100%;min-width:175px;padding:5px;border:1px solid var(--border);border-radius:9px;background:var(--surface,#202b38);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.planejamento .secao-menu-opcoes button{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;text-align:left;border:0;border-radius:6px;background:transparent;color:var(--text);cursor:pointer}
+.planejamento .secao-menu-opcoes button:hover{background:rgba(130,150,180,.13)}
