@@ -101,3 +101,17 @@ Criador de personagens D&D 5e **2014** (raça/variante, classe, subclasse, orige
 ### Regra de qualidade para próximas implementações
 
 Para cada nova regra: **fonte e licença → exemplo normativo independente → contrato e testes → implementação pura → CI → teste de integração → documentação**. Não preencher lacunas de regras com suposições nem copiar automaticamente comportamentos do legado ou do Foundry.
+
+## Rodada seguinte — PRs abertos e avanço da progressão
+
+**Verificação GitHub:** PRs abertos identificados pela busca `repo:Waudz/compendio-5e is:pr is:open`: [#73](https://github.com/Waudz/compendio-5e/pull/73) (somente `docs/PLANEJAMENTO-V2.md`, pendências das Anotações e prioridade do Compêndio; mergeável), [#74](https://github.com/Waudz/compendio-5e/pull/74) (auditoria + protótipos de criador; mergeável). Não há conflito direto de arquivos entre #73 e #74 **nesta consulta**; ambos partem do mesmo `main` base `c651368e`. #73 ainda deve ser revisado quanto a coerência das prioridades antes de merge. **Nenhum PR foi integrado.**
+
+**CI confirmado:** run [44767460941](https://github.com/Waudz/compendio-5e/actions/runs/44767460941), commit `6487ee7b1ae8fc4da88ec1e1357ef8f21f2dedf7`: job `validar` concluído com **success**. Novos commits desta rodada ainda precisam de CI próprio.
+
+**Código novo:**
+- `src/rules/character-advancement.ts`: avaliador puro e isolado de progressões por nível (1–20), concessões automáticas, escolhas por IDs persistentes, opções que concedem pacotes, seleção de subclasse e ASI como **exemplos de contrato**. Valida IDs duplicados e escolhas incoerentes, sinaliza pendências; não aplica escolhas de níveis futuros antes do nível correspondente.
+- `src/rules/character-advancement.test.ts`: cenários de nível 1, escolha de subclasse no nível 3, ASI no nível 4, IDs inválidos/duplicados, determinismo 1–20. Os dados são fixtures parciais; não são certificação completa do Bárbaro 2014.
+
+**Atenção:** esse avaliador **ainda não está ligado** a `character-domain.ts` nem à interface. Não adicionar `Advancement.grants` ao `ClassDefinition.levels.grants` sem prevenir dupla concessão. ASI 2014 permite +2 em um atributo **ou** +1 em dois diferentes; fixture atual modela só um exemplo, e deve ser expandida. Seleções de classe devem ser revalidadas quando raça/classe/nível mudar; decisões futuras podem ser armazenadas, mas não aplicadas prematuramente. O próximo trabalho é integrar o avaliador à ficha de forma sem duplicação, com testes e fonte normativa.
+
+**Próxima validação:** confirmar CI do novo commit `9dd33b1` ou posterior; corrigir falhas antes de expandir. Atualizar este registro com o resultado.
