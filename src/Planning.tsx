@@ -380,7 +380,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
       onDrop={e => { e.preventDefault(); const de = grupo.findIndex(x => x.id === arrastada); if (de >= 0 && de !== i) onMover(arrastada!, de < i ? 1 : -1, b.id); setArrastada(null); }}
       onDragEnd={() => setArrastada(null)}>
       {editar ? <input aria-label="Renomear guia" autoFocus defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); setRenomeando(null); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = b.title; e.currentTarget.blur(); } }}/>
-        : <button type="button" className="plano-selecionar" aria-label={b.title} title={b.title} aria-pressed={on} onClick={() => { setMenu(null); onTrocar(b.id); }}>{perm ? <Pin size={14} fill="currentColor" aria-hidden="true"/> : b.title}</button>}
+        : <button type="button" className="plano-selecionar" aria-label={b.title} title={b.title} aria-pressed={on} onClick={() => { setMenu(null); onTrocar(b.id); }}>{perm ? <><Pin size={13} fill="currentColor" aria-hidden="true"/><span className="plano-fixada-titulo">{b.title}</span></> : b.title}</button>}
 
     </span>;
   };
@@ -422,10 +422,10 @@ function Estado({ x, sujo, onTentar }: { x?: Ed; sujo: boolean; onTentar: () => 
 }
 
 function NovoCartao({ onCriar }: { onCriar: (t: string) => Promise<boolean> }) {
-  const [t, setT] = useState(""), [busy, setBusy] = useState(false);
-  return <form className="novo" onSubmit={async e => { e.preventDefault(); if (busy) return; setBusy(true); const ok = await onCriar(t); setBusy(false); if (ok) setT(""); }}>
-    <input value={t} onChange={e => setT(e.target.value)} placeholder="Novo cartão (nome opcional)" aria-label="Título do novo cartão" maxLength={120}/>
-    <button className="icon" aria-label="Adicionar cartão" disabled={busy}><Plus size={15}/></button></form>;
+  const [busy, setBusy] = useState(false);
+  return <button type="button" className="mais mais-cartao" aria-label="Adicionar cartão" disabled={busy} onClick={async () => { if (busy) return; setBusy(true); try { await onCriar(""); } finally { setBusy(false); } }}>
+    <Plus size={16} aria-hidden="true"/><span>Novo cartão</span>
+  </button>;
 }
 
 /** "+" tracejado e transparente: clicar cria uma coluna nova (sem pedir nome); soltar um cartão ou seção aqui cria a coluna já com ele. */
