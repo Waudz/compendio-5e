@@ -80,3 +80,25 @@ test('confirmação real de exclusão de seção permite cancelar sem perder dad
   await page.keyboard.press('Enter'); await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: 'Nome da seção Sessão 5', exact: true })).toBeVisible();
 });
+
+
+test('nomes acessíveis acompanham texto visível e títulos não entram na persistência', async ({ page }) => {
+  await openDemo(page, 'jogador');
+  const hero = page.getByRole('region', {name:'Aventureiros',exact:true}).getByRole('button', {name:'Lydia Valenmoor Clériga · nível 3',exact:true});
+  await expect(hero).toBeVisible();
+  await expect(hero).toHaveAttribute('title','Abrir ficha de Lydia Valenmoor');
+  if (!mobile(page)) {
+    await expect(page.getByRole('button', {name:'CAMPANHA ATIVA Sociedade do Véu Negro',exact:true})).toBeVisible();
+    await expect(page.getByRole('tab', {name:'Sociedade do Véu Negro',exact:true})).toBeVisible();
+  }
+  await navigate(page,'Conta'); await navigate(page,'Início');
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'Sociedade do Véu Negro',exact:true})).toBeVisible();
+  if (!mobile(page)) {
+    await expect(page.getByRole('tab',{name:'Sociedade do Véu Negro',exact:true})).toBeVisible();
+    const layouts = await page.evaluate(() => Object.keys(localStorage).filter(k=>k.startsWith('compendio5e:workspace:')).map(k=>localStorage.getItem(k)));
+    expect(layouts.length).toBeGreaterThan(0);
+    expect(JSON.stringify(layouts)).not.toContain('Sociedade do Véu Negro');
+    expect(JSON.stringify(layouts)).not.toContain('Lydia');
+  }
+});

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
 import { BookOpen, Castle, House as HomeIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
@@ -162,6 +162,17 @@ function Workspace({ userId }: { userId: string }) {
     if ((c?.kind === "documento" || c?.kind === "ficha") && c.ref) return tituloDe(c.ref) ?? n.getName();
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
   }, [memberships, registrosV]);
+  // FlexLayout usa o nome do modelo para ARIA e o conteúdo renderizado para a tela.
+  // Manter ambos iguais em memória; minimalLayout continua removendo nomes ao persistir.
+  useLayoutEffect(() => {
+    let changed = false;
+    model.visitNodes(node => {
+      if (!(node instanceof TabNode)) return;
+      const title = titleOf(node);
+      if (node.getName() !== title) { model.doAction(Actions.renameTab(node.getId(), title)); changed = true; }
+    });
+    if (changed) refresh();
+  });
   labelRef.current = id => { const t = findTab(model, id); return t ? titleOf(t) : id; };
   const renderTab = useCallback((n: TabNode, v: { content: ReactNode; leading?: ReactNode }) => {
     v.content = <>{titleOf(n)}{isPinned(n) && <span className="sr-only"> (fixada)</span>}</>;   // marca visual + texto acessível
@@ -189,8 +200,8 @@ function Workspace({ userId }: { userId: string }) {
         <NavItem spec={homeSpec}
           className={activeId === (active ? `campanha:${active.campaign.id}` : `secao:${campaignsHub.page}`) ? "campaign-main selected" : "campaign-main"}
           title={active ? `Campanha ativa: ${active.campaign.name} (abrir o Início)` : "Nenhuma campanha ativa: escolher ou criar"}
-          ariaLabel={active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar"} onNavigate={openMenu} onMenu={showNavMenu}>
-          {collapsed ? <Castle size={19} aria-hidden="true"/> : <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}
+          ariaLabel={collapsed ? (active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar") : undefined} onNavigate={openMenu} onMenu={showNavMenu}>
+          {collapsed ? <Castle size={19} aria-hidden="true"/> : <><small>CAMPANHA ATIVA</small>{" "}<strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}
         </NavItem>
         {!collapsed && <button className="campaign-switch" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
           onClick={e => { const r = e.currentTarget.getBoundingClientRect(); showCampaignMenu(r.left, r.bottom); }}><ChevronsUpDown size={16} aria-hidden="true"/></button>}

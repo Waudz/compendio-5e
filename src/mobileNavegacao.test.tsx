@@ -127,7 +127,7 @@ describe("celular: Inventário dentro da Ficha", () => {
   it("sem permissão de edição (ficha de outro jogador): só leitura, sem campos de adicionar nem remover", async () => {
     await montar(jogador, [pc("p3", other.id, "Alheio", "2026-04-01T00:00:00Z", "campaign", { classe: "Mago", nivel: 2, inventario: ["Grimório"] })]);
     fireEvent.click(barra().getByRole("button", { name: "Início" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha de Alheio" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Alheio Mago · nível 2" }));
     await screen.findByRole("heading", { name: "Alheio" });
     deslizar(document.querySelector(".ficha")!, -140);
     expect(await screen.findByText("Grimório")).toBeTruthy();

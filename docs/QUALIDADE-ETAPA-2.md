@@ -53,3 +53,13 @@ A auditoria axe continua exigindo zero violações: sem allowlist, `test.fail`, 
 2. Integrar o #76 somente com autorização do responsável. Se entrar por squash, reaplicar/rebasear **apenas** os commits desta etapa posteriores a `33eab06` sobre a nova main antes de retargetar o PR; não reenviar a infraestrutura duplicada.
 3. Reconciliar dependências/README com #74 e os contratos de segurança com #75 sem alterar suas branches. Reexecutar todas as suítes sobre o resultado integrado.
 4. Corrigir texto visível versus nomes acessíveis e contraste em revisão própria; validar com leitores reais e toque em aparelho físico. Só depois ampliar para os fluxos de personagem/Enciclopédia após suas integrações.
+
+
+## Revisão Q2-04/Q2-05 — correções em validação
+
+- Contraste: novo token de texto azul `--accent-text: #6BA4FF`, aplicado somente ao texto da marca e ao texto ativo mobile. O rótulo da campanha usa `--text-2`. Fundos, ícones, bordas, tipografia e geometria não foram alterados.
+- Aventureiros e seletor expandido derivam o nome acessível do próprio conteúdo visível; tooltips de ação foram preservados. O seletor recolhido, que só tem ícone, mantém seu rótulo explícito.
+- Abas: nomes do modelo FlexLayout são sincronizados em memória com `titleOf`, pela ação pública `renameTab`, em efeito idempotente. Conteúdo visível e ARIA passam a usar o mesmo título, sem alterar IDs, pesos, seleção ou regras de persistência. Nenhum patch no DOM ou na dependência.
+- Regressões novas verificam restauração, renomeação e ausência de títulos no layout persistido. Os testes antigos de seletor/cartão foram atualizados para os nomes acessíveis naturais, com verificações exatas adicionais. Cenário E2E nas oito larguras cobre os mesmos contratos.
+- Tipos E2E e 42 testes direcionados aprovados localmente. Suíte completa, build e auditoria de navegador em revalidação; a aprovação só será registrada após a execução.
+- As verificações axe seguem integrais, sem exceções, retries, snapshots substitutivos ou falhas esperadas. Nenhum merge, deploy ou alteração no Supabase.
