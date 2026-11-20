@@ -1,5 +1,7 @@
 # Criador, ficha e inventário — decisões e estado (20/11/2026)
 
+> **Ponto de entrada para retomar:** [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md). Registrar cada decisão de regras, fonte, fluxo ou segurança em `DECISOES-E-ARQUITETURA.md`, atualizar o índice central e manter aqui os detalhes de implementação e testes.
+
 > **Memória de implementação**. Ler junto de `DECISOES-E-ARQUITETURA.md`, `docs/PLANEJAMENTO-V2.md` e `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`. Não confundir pesquisa, protótipo, implementação, testes executados e produção.
 
 ## Objetivo integrado
