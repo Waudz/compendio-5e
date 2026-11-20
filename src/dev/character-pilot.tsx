@@ -85,7 +85,8 @@ export default function CharacterPilot(){
    {ABILITY_ORDER.map(ability=><label key={ability} style={{display:'inline-block',marginRight:12}}>{ability.toUpperCase()} <select aria-label={'Atributo '+ability} value={draft.baseAbilities[ability]}
     onChange={e=>{const score=Number(e.target.value);if(abilityMethod==='standard-array'){
      const other=ABILITY_ORDER.find(key=>key!==ability&&draft.baseAbilities[key]===score);
-     if(other)change({...draft,baseAbilities:{...draft.baseAbilities,[ability]:score,[other]:draft.baseAbilities[ability]}});
+     if(other){const baseAbilities={...draft.baseAbilities,[ability]:score,[other]:draft.baseAbilities[ability]};
+      change({...draft,baseAbilities,currentHp:Math.min(draft.currentHp,10+Math.floor((baseAbilities.con+2-10)/2))});}
     }else changeAbility(ability,score);}}>
     {(abilityMethod==='standard-array'?[...new Set([15,14,13,12,10,8])]:[8,9,10,11,12,13,14,15]).map(score=><option key={score} value={score}>{score}</option>)}
    </select></label>)}
