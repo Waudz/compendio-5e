@@ -30,6 +30,13 @@ for (const ratio of [0.5, 0.3]) {
     await expect.poll(async () => Math.abs((await measure()).ratio-ratio)).toBeLessThan(0.04);
     expect((await measure()).overlap).toBeLessThanOrEqual(1); await expectNoHorizontalOverflow(page);
     await evidence(page, info, `colunas-${ratio}`);
+    // O quadro tem rolagem interna intencional: a seção distante deve continuar alcançável.
+    const distant = notes.getByRole('textbox', { name: 'Nome da seção Floresta', exact: true });
+    await distant.scrollIntoViewIfNeeded();
+    const inner = (await distant.boundingBox())!, outer = (await notes.boundingBox())!;
+    expect(inner.x).toBeGreaterThanOrEqual(outer.x - 1);
+    expect(inner.x + inner.width).toBeLessThanOrEqual(outer.x + outer.width + 1);
+    await expectNoHorizontalOverflow(page);
     await page.reload(); await expect(notes).toBeVisible(); await expect(diary).toBeVisible();
     await expect.poll(async () => Math.abs((await measure()).ratio-ratio)).toBeLessThan(0.04);
     await expectNoHorizontalOverflow(page);
