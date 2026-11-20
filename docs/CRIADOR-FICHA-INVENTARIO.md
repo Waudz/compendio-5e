@@ -214,3 +214,18 @@ Adicionados `src/rules/ability-improvement.ts` e `src/rules/ability-improvement.
 Implementados `src/rules/class-asi-2014.ts` e `src/rules/class-asi-2014.test.ts`, mapeando os níveis de melhoria de atributo das **12 classes básicas de 2014**: padrão 4/8/12/16/19; guerreiro com 6 e 14 extras; ladino com 10 extra. Cada marco gera 21 escolhas com IDs estáveis. Os testes percorrem todos os níveis 1–20 de todas as classes, verificam escolhas pendentes apenas após o nível alcançado, e verificam a opção +1/+1 no nível 6 de guerreiro.
 
 **Integração pendente:** ligar `coreClassAsiAdvancements` ao catálogo real, evitar duplicação com grants existentes, implementar substituição opcional por talentos, validar regras raciais/atributos, fluxos UI e persistência. Não interpretar testes do domínio como E2E. Migrações de banco e publicação continuam fora de escopo até aprovação explícita.
+
+## Decisão aprovada — Compêndio como catálogo canônico de regras (20/11/2026)
+
+**Aprovado explicitamente pelo responsável:** o Compêndio será a **fonte única de definições de conteúdo e regras estruturadas** para criação, progressão, ficha e inventário, em D&D 5e 2014. Não manter cópias independentes de raça, sub-raça, classe, subclasse, antecedente, talento, magia ou item em cada tela. A interface do Compêndio e o criador devem consultar o mesmo catálogo versionado e as mesmas referências estáveis; um motor de regras separado interpreta as definições e calcula a ficha.
+
+**Separação de responsabilidades:**
+- Catálogo: identificador estável, fonte/licença, versão, texto de apresentação, opções, pré-requisitos, progressão e efeitos estruturados.
+- Motor: validação de escolhas, pré-requisitos e compatibilidade, cálculos e exceções de regras; não duplica a base de dados do Compêndio.
+- Personagem: IDs/revisões das escolhas, valores próprios (atributos base, PV atuais, recursos gastos, inventário e anotações privadas); não duplica definições de classe/raça.
+- Enciclopédia da campanha > Personagens: projeção narrativa de personagens, **distinta** do catálogo de regras e da ficha canônica.
+- Conteúdo adicional: suplementos licenciados e homebrew com proveniência e versão; não misturar regras de 2014 e 2024.
+
+**Integridade:** não alterar silenciosamente personagens quando um registro de regra for corrigido. Usar revisão fixada por personagem e migração explícita/validada. Conteúdo incompleto não pode produzir ficha aparentemente completa: apresentar escolhas pendentes e impedir finalização inválida. Testar concordância entre Compêndio, criador e ficha, níveis 1–20, reabertura, edição e progressão. Não copiar automaticamente textos protegidos de fontes externas.
+
+**Status:** decisão registrada; há protótipos de catálogo, motor e ASI no PR #74, mas **a integração real de telas e banco ainda não foi concluída**. Não autoriza merge, deploy ou migração em produção.
