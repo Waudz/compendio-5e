@@ -5,8 +5,8 @@ describe('2014 adventuring pack recipes',()=>{
   const components=expandEquipmentBundle(adventuringPacks2014.explorer);
   expect(components).toHaveLength(8);
   expect(components.find(x=>x.itemId==='torch')?.quantity).toBe(10);
-  expect(components.find(x=>x.itemId==='rations')?.quantity).toBe(10);
-  expect(components.find(x=>x.itemId==='hempen-rope-50-feet')?.quantity).toBe(1);
+  expect(components.find(x=>x.itemId==='rations-1-day')?.quantity).toBe(10);
+  expect(components.find(x=>x.itemId==='rope-hempen-50-feet')?.quantity).toBe(1);
  });
  it('expands dungeoneer pack with pitons and crowbar but no bedroll',()=>{
   const components=expandEquipmentBundle(adventuringPacks2014.dungeoneer);

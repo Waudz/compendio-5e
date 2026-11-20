@@ -9,7 +9,7 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 | Criador | 25% | Protótipo de regras, ASI, escolhas, catálogo | Piloto **somente dev** | Somente localStorage no piloto | Fluxo completo de classes/raças/origens, persistência autenticada |
 | Ficha | 20% | Cálculo experimental | Perfil simples da campanha | Registros de perfil, não ficha D&D completa | Atributos, magias, recursos e ficha única |
 | Inventário | 20% | Instâncias identificadas e operações | Lista simples + piloto dev | Sem instâncias reais persistidas | Itens versionados, peso, equipamento, sincronização |
-| Compêndio | 15% | Registro e resolutor de definições | Seção placeholder | Sem catálogo completo persistido | Dados 2014 auditados, busca, lista/grade |
+| Compêndio | 20% | Registro, resolutor e **catálogo real de 578 itens SRD 2014** (Zod) | Piloto dev (lista/grade, busca) | Catálogo embutido no código, sem persistência | Demais categorias, descrições integrais, integração à navegação real, virtualização |
 | Magias | 5% | Tipo de referência | Placeholder | Não implementada | Catálogo, escolas, regras e conjuração |
 | Bestiário | 5% | Referências planejadas | Placeholder | Não implementada | Catálogo e busca |
 | Iniciativa | 10% | Planejamento e navegação | Placeholder | Não implementada | Combate completo |
@@ -62,3 +62,7 @@ Adicionado motivo opcional de indisponibilidade por chave versionada, limite de 
 ## Pesquisa indexada do Compêndio — 20/11/2026
 
 `searchCompendium` agora valida e monta um índice de descrições, nomes normalizados e fontes **uma vez por objeto de catálogo**, via `WeakMap`; consultas posteriores fazem apenas filtro linear e retornam cópias rasas das linhas. Evita validação repetida e buscas quadráticas ao digitar. O catálogo deve ser tratado como **imutável**: qualquer alteração deve criar novo objeto de catálogo (e, preferencialmente, novas coleções internas). Testes incluem filtros, acentos, renomeação e isolamento do resultado. Não significa importação de conteúdo SRD real nem interface de produção concluída.
+
+## Catálogo de itens — 20/11/2026
+
+`src/catalogue/` carrega 578 itens SRD 2014 validados por Zod; 237 mundanos conferidos contra a D&D 5e SRD API (`scripts/verificar-itens-api.mjs`), 341 mágicos apenas pelo esquema. Usado pelos pilotos do criador e do Compêndio. Não está na interface autenticada. Percentual do Compêndio sobe para 20% (estimativa).

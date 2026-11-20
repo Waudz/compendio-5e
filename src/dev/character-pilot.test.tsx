@@ -74,17 +74,17 @@ describe('local creator vertical slice',()=>{
   render(<CharacterPilot/>);
   fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
-  expect(screen.getByText(/chain mail · quantidade 1/)).toBeTruthy();
-  expect(screen.getByText(/light crossbow · quantidade 1/)).toBeTruthy();
-  expect(screen.getByText(/torch · quantidade 10/)).toBeTruthy();
+  expect(screen.getByText(/Cota de malha · quantidade 1/)).toBeTruthy();
+  expect(screen.getByText(/Besta leve · quantidade 1/)).toBeTruthy();
+  expect(screen.getByText(/Tocha · quantidade 10/)).toBeTruthy();
   const initial=screen.getAllByRole('button',{name:/Adicionar quantidade/}).length;
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
   expect(screen.getAllByRole('button',{name:/Adicionar quantidade/})).toHaveLength(initial);
   vi.stubGlobal('confirm',vi.fn(()=>false));
   fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'leather-bow'}});
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
-  expect(screen.getByText(/chain mail · quantidade 1/)).toBeTruthy();
-  expect(screen.queryByText(/leather armor · quantidade 1/)).toBeNull();
+  expect(screen.getByText(/Cota de malha · quantidade 1/)).toBeTruthy();
+  expect(screen.queryByText(/Armadura de couro · quantidade 1/)).toBeNull();
  });
  it('restores chosen equipment options and requires all four groups for a complete pilot',()=>{
   const view=render(<CharacterPilot/>);
@@ -100,7 +100,7 @@ describe('local creator vertical slice',()=>{
   view.unmount();
   render(<CharacterPilot/>);
   expect((screen.getByLabelText('Equipamento armor') as HTMLSelectElement).value).toBe('leather-bow');
-  expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
+  expect(screen.getByText(/Armadura de couro · quantidade 1/)).toBeTruthy();
   expect(screen.getByRole('note').textContent).toContain('rascunho completo');
  });
  it('opens canonical compendium item details from the character inventory',()=>{
@@ -135,8 +135,8 @@ describe('local creator vertical slice',()=>{
   vi.stubGlobal('confirm',vi.fn(()=>true));
   fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'leather-bow'}});
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
-  expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
-  expect(screen.queryByText(/chain mail · quantidade 1/)).toBeNull();
+  expect(screen.getByText(/Armadura de couro · quantidade 1/)).toBeTruthy();
+  expect(screen.queryByText(/Cota de malha · quantidade 1/)).toBeNull();
   fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'chain-mail'}});
   const armorRemove=screen.getByRole('button',{name:/Remover quantidade starting-choice:fighter-armor:leather-bow:leather-armor/});
   fireEvent.click(armorRemove);

@@ -114,3 +114,7 @@ O criador local do Guerreiro agora permite **compra de 27 pontos** (atributos-ba
 - A falha de CI anterior era causada por expectativas de tamanho da fixture após a inclusão dos equipamentos. Confirmar o CI do novo HEAD antes de afirmar que os testes passaram.
 
 - **Interface experimental atualizada:** o criador do Guerreiro detecta alterações nas escolhas de equipamento inicial, solicita confirmação antes da troca e usa `replaceStartingEquipmentSelection` para preservar aquisições e bloquear substituições de itens iniciais editados. A confirmação é única para os grupos alterados; o estado do rascunho só é atualizado depois que todos os grupos são validados. Ainda falta testar o fluxo completo no navegador real.
+
+## Catálogo de itens SRD 2014
+
+`src/catalogue/` contém o catálogo canônico de itens (578 itens, nomes em português, dados validados com Zod), usado pelos pilotos do criador e do Compêndio (`?demo=criador-piloto`, `?demo=compendio-piloto`). Regenerar: `node scripts/build-srd-item-catalogue.mjs <caminho/itens-srd2014.json>`; conferir contra a API (rede, manual): `node scripts/verificar-itens-api.mjs`. Dados baseados no SRD 5.1 (CC BY 4.0, Wizards of the Coast LLC); atribuição completa em `src/catalogue/data/srd-2014-items.json`. Ainda experimental: ver `docs/CONTINUIDADE-DESENVOLVIMENTO.md`.

@@ -43,6 +43,8 @@
 | DEC-013 | Ferramentas adicionais somente quando agregarem valor e com lockfile/testes consistentes | Aprovada | Zod, React Hook Form, fast-check e Playwright planejados, não instalados na revisão; Dexie/TanStack Virtual/XState condicionais |
 | DEC-014 | Documentar **cada decisão nova ou alteração** no mesmo conjunto de commits que o código, com motivo, alternativa, impacto, testes e pendências | Aprovada nesta rodada | Modelo abaixo |
 
+| DEC-015 | Catálogo canônico de itens SRD 2014 (578 itens, validado com Zod, mesma fonte do Compêndio, criador e inventário) | Implementada parcialmente | Só itens; 237 mundanos conferidos na API, 341 mágicos não; ver `DECISOES-E-ARQUITETURA.md` |
+
 ### Registro de decisão: modelo obrigatório
 
 Ao decidir ou alterar qualquer comportamento relevante, acrescentar uma entrada em `DECISOES-E-ARQUITETURA.md` e atualizar a linha deste índice:
@@ -272,3 +274,10 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - No `src/dev/character-pilot.tsx`, cada item do inventário pode abrir os detalhes da definição canônica do catálogo; teste de interface confirma a chave estável. É apenas o piloto local, não a ficha autenticada.
 - Limitação: inventário ainda armazena somente `itemId`; produção deve persistir referência versionada completa por instância para suportar fontes/revisões simultâneas, sem depender da resolução por ID. Dados mecânicos do catálogo ainda não auditados.
 - CI do commit `5df177c` estava em execução na última consulta; verificar resultado e HEAD atual. Sem merge, deploy ou migração.
+
+### Entrega — catálogo real de itens SRD 2014 (20/11/2026)
+
+- **Implementado:** `src/catalogue/` (esquema Zod, carregador e `describeItem`), dados em `src/catalogue/data/srd-2014-items.json`, `scripts/build-srd-item-catalogue.mjs` (regenera do legado) e `scripts/verificar-itens-api.mjs` (conferência manual contra a API). Os pilotos do criador e do Compêndio agora usam os **itens reais** em vez de definições provisórias; a busca aceita nome em português (sem acento) e original em inglês.
+- **Defeito real encontrado e corrigido:** três IDs de equipamento inicial do Guerreiro não existiam no catálogo (`rations`, `hempen-rope-50-feet`, `light-crossbow`; corretos: `rations-1-day`, `rope-hempen-50-feet`, `crossbow-light`). Teste novo (`equipamento-inicial-catalogo.test.ts`) impede a regressão e compara as receitas de pacote com os pacotes oficiais.
+- **Dependência nova:** `zod` 4.6.7 (lockfile atualizado), usada na validação de dados importados. React Hook Form, fast-check e Playwright continuam não instalados: ainda não há formulário complexo, propriedade a testar nem fluxo autenticado que justifiquem.
+- **Experimental/pendente:** lista do piloto sem virtualização (578 itens); descrições são resumos derivados; mágicos sem conferência externa; classes, subclasses, raças, antecedentes, magias e criaturas ainda não têm catálogo real. Nenhuma migração, merge ou deploy.

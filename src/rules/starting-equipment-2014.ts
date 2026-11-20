@@ -6,14 +6,14 @@ export type EquipmentBundle={id:string;name:string;components:EquipmentComponent
 export const adventuringPacks2014:Record<string,EquipmentBundle>={
  explorer:{id:'explorer',name:'Pacote de Explorador',components:[
   {itemId:'backpack',quantity:1},{itemId:'bedroll',quantity:1},{itemId:'mess-kit',quantity:1},
-  {itemId:'tinderbox',quantity:1},{itemId:'torch',quantity:10},{itemId:'rations',quantity:10},
-  {itemId:'waterskin',quantity:1},{itemId:'hempen-rope-50-feet',quantity:1}
+  {itemId:'tinderbox',quantity:1},{itemId:'torch',quantity:10},{itemId:'rations-1-day',quantity:10},
+  {itemId:'waterskin',quantity:1},{itemId:'rope-hempen-50-feet',quantity:1}
  ]},
  dungeoneer:{id:'dungeoneer',name:'Pacote de Aventureiro de Masmorras',components:[
   {itemId:'backpack',quantity:1},{itemId:'crowbar',quantity:1},{itemId:'hammer',quantity:1},
   {itemId:'piton',quantity:10},{itemId:'torch',quantity:10},{itemId:'tinderbox',quantity:1},
-  {itemId:'rations',quantity:10},{itemId:'waterskin',quantity:1},
-  {itemId:'hempen-rope-50-feet',quantity:1}
+  {itemId:'rations-1-day',quantity:10},{itemId:'waterskin',quantity:1},
+  {itemId:'rope-hempen-50-feet',quantity:1}
  ]}
 };
 export const fighterStartingEquipment2014={
@@ -56,7 +56,7 @@ export const fighterEquipmentOptions2014={
  ],
  ranged:[
   {id:'crossbow',name:'Besta leve e 20 virotes',components:[
-   {itemId:'light-crossbow',quantity:1},{itemId:'crossbow-bolt',quantity:20}]},
+   {itemId:'crossbow-light',quantity:1},{itemId:'crossbow-bolt',quantity:20}]},
   {id:'handaxes',name:'Dois machados de mão',components:[{itemId:'handaxe',quantity:2}]}
  ],
  pack:Object.values(adventuringPacks2014).map(pack=>({
