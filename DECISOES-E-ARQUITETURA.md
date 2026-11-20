@@ -104,3 +104,11 @@ Integrados: base React e workspace (PRs #1–#4); FlexLayout (#8); abas compacta
 **Ficha universal:** toda aparição do personagem aponta para **uma identidade por `characterId`**; nenhuma tela mantém cópia independente do personagem. O estado jogável é identificado também por **escopo**: pessoal ou participação específica na campanha. **Não confundir identidade única com estado global único:** a decisão anterior deste documento (§8) preserva progressão, inventário e carteira independentes por campanha. Dentro de cada contexto, ficha, iniciativa, encontro e campanha devem refletir os mesmos PV, recursos e demais alterações, respeitando RLS e controle de versões. O mestre não modifica a ficha pessoal de outro usuário.
 
 **Implementação atual:** somente contratos e testes de domínio, sem integração com UI/Supabase; não declarar sincronização universal concluída.
+
+## Revisão da decisão (20/11/2026) — uma campanha ativa por personagem
+
+**Decisão mais recente do responsável, prevalece sobre o §8 e a seção de ficha universal acima:** um personagem pode estar vinculado a **no máximo uma campanha ativa por vez**. O objetivo é evitar duplicação desnecessária de fichas, progressões e inventários. O personagem mantém uma identidade estável e uma ficha canônica, utilizada por Personagens, Campanha, Encontros e Iniciativa. Vincular não cria cópia da ficha. Um personagem sem campanha continua utilizável.
+
+**Histórico e saída:** participações encerradas podem preservar registros históricos/instantâneos da campanha, sem constituir uma segunda ficha ativa. Excluir ou remover vínculo não exclui o personagem pessoal. Eventual transferência entre campanhas deverá ser explícita, com política de continuidade de inventário, progressão e recursos definida antes da implementação. Não presumir que o mestre pode editar a identidade pessoal do jogador; permissões permanecem sob revisão.
+
+**Implicação para banco:** projetar restrição transacional de unicidade para `character_id` entre participações com estado ativo, além de autorização/RLS e prevenção de corrida entre convites. Histórico arquivado não conta como participação ativa. **Não foi criada/aplicada migração.** A arquitetura antiga de estados jogáveis simultâneos por campanha está superada por esta decisão; atualizar os contratos experimentais de ponteiros antes de integrá-los.
