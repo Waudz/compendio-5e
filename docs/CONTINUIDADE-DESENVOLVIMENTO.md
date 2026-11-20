@@ -160,3 +160,19 @@ Links são **referências conhecidas**, não prova de acesso ou auditoria atual 
 
 - **Decisão atual:** mochila, algibeira, saco, baú e demais recipientes são **itens normais do catálogo e do inventário**, sem subinventário, conteúdo aninhado, capacidade automática ou vínculo obrigatório com outros itens. O Pacote de Explorador e outros pacotes são conjuntos de itens, não recipientes especiais.
 - **Pendência para conversar com os jogadores:** verificar se organização opcional por recipientes seria útil; somente depois avaliar interface de expansão, movimentação de itens, peso/capacidade e comportamento ao excluir recipientes. **Não implementar agora** e não bloquear criação de personagem por isso.
+
+### Lista consolidada — consultar jogadores (20/11/2026)
+
+1. **D7 — Bestiário:** ficha completa de monstros para jogadores, somente descrição, ou visibilidade por campanha controlada pelo mestre? Não expor estatísticas em prévias automáticas antes da decisão.
+2. **Recipientes:** manter itens comuns agora. Perguntar futuramente se querem suborganização opcional, capacidade e peso por recipiente; não implementar sem validação.
+3. **Personagens mortos/substituídos:** confirmar regra de um personagem ativo por jogador/campanha, preservando histórico, mortes e ressurreições.
+4. **Transferência de controle:** validar com jogadores e mestre como deve funcionar aceite, acesso à ficha e histórico quando personagem muda de controlador ou vira NPC.
+
+Esses quatro itens são **decisões de experiência de jogo**, distintas de tarefas técnicas (testes, autenticação, catálogo e interface). Não interromper o piloto para resolvê-las.
+
+### Pacotes SRD 2014 — primeira implementação de domínio (20/11/2026)
+
+- `src/rules/starting-equipment-2014.ts`: receitas independentes dos pacotes Explorador e Aventureiro de Masmorras, cada componente com ID de item e quantidade; quatro grupos de escolha de equipamento do Guerreiro listados.
+- `src/rules/starting-equipment-2014.test.ts`: testes de quantidades, componentes e não mutação da receita.
+- **Importante:** os IDs dos componentes são **candidatos** à reconciliação com o catálogo versionado de itens, não itens novos nem definições duplicadas. Antes de adicionar itens ao inventário do criador, resolver e validar todos os IDs no catálogo canônico. Opções de armas marciais e armaduras ainda precisam de expansão em itens concretos; não conceder placeholder como se fosse item real.
+- Recipientes continuam itens comuns, sem subinventário. Sem alteração de Supabase, merge ou publicação.
