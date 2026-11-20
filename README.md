@@ -74,3 +74,7 @@ O adaptador `src/rules/character-catalogue-adapter.ts` agora valida em runtime c
 ### Validação de progressão e escolhas cruzadas (20/11/2026)
 
 O adaptador do catálogo canônico rejeita concessões malformadas também nas progressões de classe (`Advancement`), incluindo níveis fora de 1–20, escolhas com contagem inválida, alternativas repetidas e efeitos incorretos. IDs de escolhas devem ser únicos entre raça, antecedente e progressão de classe; uma classe de dado de vida único não pode mudar o dado entre níveis. Testes de regressão em `src/rules/character-catalogue-adapter.test.ts`. **Não certifica regras reais de 2014** nem habilita criação de personagens em produção; CI do último commit requer confirmação.
+
+### Integridade de atributos de fichas (20/11/2026)
+
+O domínio experimental rejeita atributos-base não inteiros, não finitos ou fora de 1–30 antes de calcular modificadores e PV, com regressões para `NaN`, infinito, frações e limites. O intervalo é **limite técnico de integridade**, não autorização para distribuir atributos acima dos limites normais de criação 2014; regras de geração e limites de campanha ainda exigem validação própria. Alteração restrita ao PR #74, sem banco ou deploy.
