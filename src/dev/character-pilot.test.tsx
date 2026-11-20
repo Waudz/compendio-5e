@@ -8,8 +8,10 @@ describe('local creator vertical slice',()=>{
  it('creates, levels, edits inventory, saves and reopens without a server',()=>{
   const view=render(<CharacterPilot/>);
   fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
+  fireEvent.change(screen.getByLabelText('fighter-style-1'),{target:{value:'defense'}});
   fireEvent.change(screen.getByLabelText('Nível'),{target:{value:'4'}});
   expect(screen.getByText(/Escolhas pendentes:/).textContent).toContain('fighter-asi-4');
+  fireEvent.change(screen.getByLabelText('fighter-archetype-3'),{target:{value:'champion'}});
   fireEvent.change(screen.getByLabelText('Melhoria de atributo'),{target:{value:'str-plus-two'}});
   expect(screen.getByText(/Força: 17/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button',{name:'Adicionar espada longa'}));
@@ -34,17 +36,31 @@ describe('local creator vertical slice',()=>{
   expect(screen.getByRole('status').textContent).toContain('Rascunho incompleto salvo');
  });
  it('rejects incompatible or malformed persisted data without crashing',()=>{
-  localStorage.setItem('compendio5e:dev:character-pilot:v1',JSON.stringify({
+  localStorage.setItem('compendio5e:dev:character-pilot:fighter-srd51-v2',JSON.stringify({
    schemaVersion:999,draft:{name:'Corrupted'}
   }));
   render(<CharacterPilot/>);
   expect((screen.getByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('');
   cleanup();
   localStorage.setItem('compendio5e:dev:character-pilot:v1',JSON.stringify({
-   schemaVersion:1,draft:{id:'broken',name:'Invalid',baseAbilities:{str:15},decisions:[],inventory:[],spentResources:{}}
+   schemaVersion:2,draft:{id:'broken',name:'Invalid',baseAbilities:{str:15},decisions:[],inventory:[],spentResources:{}}
   }));
   render(<CharacterPilot/>);
   expect((screen.getByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('');
+ });
+
+ it('applies real Fighter level features and exposes resources in the calculated sheet',()=>{
+  render(<CharacterPilot/>);
+  expect(screen.getByText(/Características:/).textContent).toContain('second-wind');
+  expect(screen.getByText(/Recursos:/).textContent).toContain('second-wind 1/1');
+  fireEvent.change(screen.getByLabelText('fighter-style-1'),{target:{value:'archery'}});
+  expect(screen.getByText(/Características:/).textContent).toContain('fighting-style-archery');
+  fireEvent.change(screen.getByLabelText('Nível'),{target:{value:'3'}});
+  expect(screen.getByText(/Características:/).textContent).toContain('action-surge');
+  fireEvent.change(screen.getByLabelText('fighter-archetype-3'),{target:{value:'champion'}});
+  expect(screen.getByText(/Características:/).textContent).toContain('champion-improved-critical');
+  fireEvent.change(screen.getByLabelText('Nível'),{target:{value:'5'}});
+  expect(screen.getByText(/Características:/).textContent).toContain('extra-attack-2');
  });
 
 });
