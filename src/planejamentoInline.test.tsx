@@ -497,6 +497,16 @@ describe("planejamentos e anotações permanentes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
     expect(await screen.findByLabelText("Título do cartão Cultos de Daggerford")).toBeTruthy();   // continua lá
   });
+  it("oculta e restaura título da seção sem perder seu nome nem os cartões", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    const sec = await screen.findByLabelText("Seção Sessão 5");
+    fireEvent.click(within(sec).getByRole("button", { name: "Ocultar título da seção Sessão 5" }));
+    expect(within(sec).queryByLabelText("Nome da seção Sessão 5")).toBeNull();
+    expect(within(sec).getByRole("button", { name: "Mostrar título da seção Sessão 5" })).toBeTruthy();
+    fireEvent.click(within(sec).getByRole("button", { name: "Mostrar título da seção Sessão 5" }));
+    expect(await within(sec).findByLabelText("Nome da seção Sessão 5")).toBeTruthy();
+  });
   it("duplo clique no nome da guia permite renomear diretamente", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
