@@ -5,6 +5,7 @@ import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
 import {pilotRefs,pilotRules} from './pilot-rules';
 import {adventuringPacks2014,resolvePackItems} from '../rules/starting-equipment-2014';
+import {applyStartingEquipmentSelection} from '../rules/starting-equipment-selection';
 import {ABILITY_ORDER,POINT_BUY_BUDGET,pointBuySpent,validatePointBuy,isStandardArray} from '../rules/ability-generation-2014';
 const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},fighter2014Advancements);
 const KEY='compendio5e:dev:character-pilot:fighter-srd51-v2';
