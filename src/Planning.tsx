@@ -381,13 +381,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
       onDragEnd={() => setArrastada(null)}>
       {editar ? <input aria-label="Renomear guia" autoFocus defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); setRenomeando(null); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = b.title; e.currentTarget.blur(); } }}/>
         : <button type="button" className="plano-selecionar" aria-label={b.title} title={b.title} aria-pressed={on} onClick={() => { setMenu(null); onTrocar(b.id); }}>{perm ? <Pin size={14} fill="currentColor" aria-hidden="true"/> : b.title}</button>}
-      {menu === b.id && <span className="plano-contexto" role="menu" aria-label={`Opções de ${b.title}`}>
-        <button type="button" role="menuitem" onClick={() => { onFixar(b); setMenu(null); }}>{perm ? "Desafixar" : "Fixar"}</button>
-        <button type="button" role="menuitem" onClick={() => { setRenomeando(b.id); setMenu(null); }}>Renomear</button>
-        <button type="button" role="menuitem" disabled={!anterior} onClick={() => { onMover(b.id, -1); setMenu(null); }}>Mover para esquerda</button>
-        <button type="button" role="menuitem" disabled={!proximo} onClick={() => { onMover(b.id, 1); setMenu(null); }}>Mover para direita</button>
-        <button type="button" role="menuitem" disabled={boards.length <= 1} onClick={() => { onExcluir(b); setMenu(null); }}>Excluir</button>
-      </span>}
+
     </span>;
   };
   return <nav className="planos" aria-label="Planejamentos">
@@ -401,6 +395,19 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
         <div className="planos-lista-itens">{boards.filter(b => b.title.toLocaleLowerCase().includes(busca.toLocaleLowerCase())).map(b => <button type="button" key={b.id} onClick={() => { onTrocar(b.id); setListaAberta(false); setBusca(""); }}>{ehPermanente(b) && <Pin size={13} aria-hidden="true"/>}{b.title}</button>)}</div>
       </div>}
     </div>
+    {menu && (() => {
+      const b = boards.find(x => x.id === menu);
+      if (!b) return null;
+      const grupo = ehPermanente(b) ? fixadas : comuns;
+      const i = grupo.findIndex(x => x.id === b.id);
+      return <div className="plano-contexto" role="menu" aria-label={`Opções de ${b.title}`}>
+        <button type="button" role="menuitem" onClick={() => { onFixar(b); setMenu(null); }}>{ehPermanente(b) ? "Desafixar" : "Fixar"}</button>
+        <button type="button" role="menuitem" onClick={() => { setRenomeando(b.id); setMenu(null); }}>Renomear</button>
+        <button type="button" role="menuitem" disabled={i <= 0} onClick={() => { onMover(b.id, -1); setMenu(null); }}>Mover para esquerda</button>
+        <button type="button" role="menuitem" disabled={i >= grupo.length - 1} onClick={() => { onMover(b.id, 1); setMenu(null); }}>Mover para direita</button>
+        <button type="button" role="menuitem" disabled={boards.length <= 1} onClick={() => { onExcluir(b); setMenu(null); }}>Excluir</button>
+      </div>;
+    })()}
     {menu && <button type="button" className="planos-fechar-menu" aria-label="Fechar opções de guia" onClick={() => setMenu(null)}/>}
   </nav>;
 }
