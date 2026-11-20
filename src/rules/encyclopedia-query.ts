@@ -9,7 +9,9 @@ export function encyclopediaPage(
  options:{offset:number;limit:number;query?:string;kind?:EncyclopediaEntry['kind'];includeTrash?:boolean}
 ):EncyclopediaPage<EncyclopediaPlayerEntry|EncyclopediaMasterEntry>{
  const {offset,limit}=options;
- if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(limit)||limit<1||limit>100||\n    (options.query!==undefined&&(typeof options.query!=='string'||options.query.length>200))||\n    (options.kind!==undefined&&!['creature','character','place','organization','knowledge'].includes(options.kind)))
+ if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(limit)||limit<1||limit>100||
+    (options.query!==undefined&&(typeof options.query!=='string'||options.query.length>200))||
+    (options.kind!==undefined&&!['creature','character','place','organization','knowledge'].includes(options.kind)))
   throw Error('Invalid encyclopedia pagination');
  // Even a master must opt into the trash; players can never list trashed records.
  const active=records.filter(record=>record.deletedAt===null||
