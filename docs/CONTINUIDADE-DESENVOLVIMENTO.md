@@ -246,3 +246,9 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - O criador experimental `src/dev/character-pilot.tsx` agora abre o editor público opcional; salva a configuração em chave local separada da ficha, vinculada ao ID do personagem, e a restaura ao reabrir. Fonte real do piloto: nome editável, raça Anão, classe Guerreiro, sobrenome vazio; não representa catálogo completo.
 - Teste de integração confirma edição, persistência separada e ocultação de classe na prévia.
 - **Atenção:** o armazenamento local do piloto não fornece segurança entre usuários. Para produção, não publicar a ficha privada para outros jogadores e aplicar controle de acesso no backend; editor e projeção continuam protótipos.
+
+### Projeção pública da Enciclopédia (20/11/2026)
+
+- `src/rules/public-character-encyclopedia.ts` cria uma entrada de personagem com lista explícita de campos públicos, separando descrição do jogador e histórico narrativo do mestre. Alterar a identidade pública não apaga o histórico do mestre. Testes verificam que nível, PV, inventário e anotações privadas não aparecem na projeção.
+- A projeção TypeScript **não garante confidencialidade por si só**: dados privados nunca devem ser retornados a consultas de outros jogadores. Ainda faltam tabela/visão/RPC autorizadas, RLS, testes de banco com papéis distintos e integração real à Enciclopédia.
+- PR #74: CI verde no commit `f28afa4`; CI do HEAD após este incremento deve ser consultado. Não houve migração, merge ou deploy.
