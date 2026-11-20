@@ -13,20 +13,63 @@ export type PilotCharacterReferences = {
 function object(value: unknown): value is Record<string,unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
+const ABILITIES = new Set(['str','dex','con','int','wis','cha']);
+const IDENTIFIER = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+function identifier(value: unknown): value is string {
+  return typeof value === 'string' && IDENTIFIER.test(value);
+}
+function label(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+/** A discriminated runtime check, not just the presence of a type tag.
+ * External source payloads must never be allowed to inject NaN or malformed grants.
+ */
+function grant(value: unknown): boolean {
+  if (!object(value) || !label(value.source)) return false;
+  switch (value.type) {
+    case 'ability':
+      return ABILITIES.has(value.ability as string) &&
+        Number.isSafeInteger(value.amount) && (value.amount as number) >= 0 &&
+        (value.max === undefined || (Number.isSafeInteger(value.max) && (value.max as number) >= 1));
+    case 'skill': return identifier(value.skill);
+    case 'language': return label(value.language);
+    case 'item':
+      return identifier(value.item) && Number.isSafeInteger(value.quantity) && (value.quantity as number) > 0;
+    case 'feature': return identifier(value.feature);
+    case 'resource':
+      return identifier(value.resource) &&
+        (value.uses === null || (Number.isSafeInteger(value.uses) && (value.uses as number) >= 0));
+    case 'hp-per-level':
+      return Number.isSafeInteger(value.amount) && (value.amount as number) >= 0;
+    default: return false;
+  }
+}
 function grants(value: unknown): boolean {
-  return Array.isArray(value) && value.every(g => object(g) && typeof g.type === 'string' &&
-    typeof g.source === 'string');
+  return Array.isArray(value) && value.every(grant);
 }
 function option(value: unknown): value is CatalogOption {
-  return object(value) && typeof value.id === 'string' && grants(value.grants) &&
-    (value.choices === undefined || (Array.isArray(value.choices) && value.choices.every(c =>
-      object(c) && typeof c.id === 'string' && Number.isInteger(c.count) &&
-      Array.isArray(c.options) && c.options.every(o => object(o) && typeof o.id === 'string' && grants(o.grants)))));
+  if (!object(value) || !identifier(value.id) || !grants(value.grants)) return false;
+  if (value.choices === undefined) return true;
+  if (!Array.isArray(value.choices)) return false;
+  const ids = new Set<string>();
+  for (const choice of value.choices) {
+    if (!object(choice) || !identifier(choice.id) || ids.has(choice.id) ||
+        !Number.isSafeInteger(choice.count) || (choice.count as number) < 1 ||
+        !Array.isArray(choice.options) || (choice.count as number) > choice.options.length) return false;
+    ids.add(choice.id);
+    const optionIds = new Set<string>();
+    for (const entry of choice.options) {
+      if (!object(entry) || !identifier(entry.id) || optionIds.has(entry.id) || !grants(entry.grants)) return false;
+      optionIds.add(entry.id);
+    }
+  }
+  return true;
 }
 function classDefinition(value: unknown): value is ClassDefinition {
-  return object(value) && typeof value.id === 'string' && Array.isArray(value.levels) &&
+  return object(value) && identifier(value.id) && Array.isArray(value.levels) &&
     value.levels.length === 20 && value.levels.every((level,i) => object(level) &&
-      level.level === i+1 && Number.isInteger(level.hitDie) && (level.hitDie as number)>0 && grants(level.grants));
+      level.level === i+1 && Number.isSafeInteger(level.hitDie) &&
+      (level.hitDie as number) > 0 && grants(level.grants));
 }
 export function buildPilotCharacterCatalog(
   catalogue: RulesCatalogue, refs: PilotCharacterReferences, advancements: Advancement[] = []
