@@ -6,7 +6,7 @@ begin;
 
 create table public.encyclopedia_entries (
   id uuid primary key default gen_random_uuid(),
-  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  campaign_id uuid not null references public.campaigns(id) on delete restrict,
   kind text not null check (kind in ('creature','character','place','organization','knowledge')),
   name text not null check (char_length(btrim(name)) between 1 and 160),
   summary text not null default '' check (char_length(summary)<=5000),
@@ -25,7 +25,7 @@ create index encyclopedia_entries_discovery_idx on public.encyclopedia_entries(c
 
 -- Never store secrets on the player-readable table.
 create table public.encyclopedia_master_details (
- entry_id uuid primary key references public.encyclopedia_entries(id) on delete cascade,
+ entry_id uuid primary key references public.encyclopedia_entries(id) on delete restrict,
  master_notes text not null default '' check (char_length(master_notes)<=50000),
  mechanics_link jsonb,
  updated_at timestamptz not null default now(),
@@ -35,7 +35,7 @@ create table public.encyclopedia_master_details (
 -- Narrative history is exclusively managed by the campaign master.
 create table public.encyclopedia_history (
  id uuid primary key default gen_random_uuid(),
- entry_id uuid not null references public.encyclopedia_entries(id) on delete cascade,
+ entry_id uuid not null references public.encyclopedia_entries(id) on delete restrict,
  event_kind text not null check (char_length(btrim(event_kind)) between 1 and 80),
  event_payload jsonb not null default '{}'::jsonb check (jsonb_typeof(event_payload)='object'),
  created_at timestamptz not null default now()
@@ -52,7 +52,8 @@ grant insert(campaign_id,kind,name,summary,public_description) on public.encyclo
 grant update(name,summary,public_description,visibility) on public.encyclopedia_entries to authenticated;
 -- Trash transitions intentionally disabled until server-authoritative RPC is implemented.
 -- Hard deletion intentionally disabled until a guarded server-side operation exists.
-grant select,insert,update,delete on public.encyclopedia_master_details,public.encyclopedia_history to authenticated;
+grant select,insert,update,delete on public.encyclopedia_master_details to authenticated;
+grant select,insert on public.encyclopedia_history to authenticated;
 
 create policy encyclopedia_entries_read on public.encyclopedia_entries for select to authenticated
  using (
@@ -84,14 +85,15 @@ create policy encyclopedia_history_insert on public.encyclopedia_history for ins
 commit;
 
 -- REVIEW BLOCKERS BEFORE PROMOTION TO A MIGRATION:
--- 1. This DRAFT uses campaign ON DELETE CASCADE; user decision on retention of
---    narrative records on campaign deletion must be confirmed.
--- 2. UPDATE grants permit changing deleted_at/deleted_by separately: enforce
---    server-authoritative timestamps and deleted_by=auth.uid() with a trigger/RPC.
--- 3. DELETE currently permits hard deletion without explicit confirmation: replace
---    with a guarded RPC and revoke direct DELETE before deploying.
+-- 1. Foreign keys use ON DELETE RESTRICT to prevent implicit destruction of
+--    campaign narratives/history. Define explicit manual deletion workflow before deploy.
+-- 2. Column-level UPDATE grants exclude deleted_at/deleted_by; implement
+--    server-authoritative trash/restore RPC with auth.uid() and transactional checks.
+-- 3. Direct DELETE on entries is not granted; permanent deletion requires an
+--    explicitly confirmed, guarded RPC and a policy for history retention.
 -- 4. visibility='summary' needs a distinct public projection to omit
 --    public_description; do not expose this draft table directly to players
 --    until column-level projection is secured.
--- 5. history ON DELETE CASCADE conflicts with permanent audit preservation.
+-- 5. History FK RESTRICT intentionally blocks hard deletion of entries with
+--    history until a deliberate archival/retention policy is implemented.
 -- 6. Test RLS under actual authenticated identities, Realtime, and search/count.
