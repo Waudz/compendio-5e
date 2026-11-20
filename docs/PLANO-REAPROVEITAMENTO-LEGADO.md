@@ -70,3 +70,7 @@ Implementados `createOfflineCatalogueSnapshot` e `readOfflineCatalogueSnapshot`,
 ## Coleta manual executável (20/11/2026)
 
 Comando: `node scripts/collect-srd-2014.mjs classes` (ou `races`, `spells`, etc.). Salva JSON não aprovado em `.srd-2014-staging/` (ignorada pelo Git), com URL de procedência, data, alertas e hash SHA-256 impresso. Usa exclusivamente host oficial e caminhos `/api/2014`, limite de 1.500 registros, 12 segundos por requisição, resposta máxima de 2 MB e buscas sequenciais. Não importa ou publica os registros automaticamente. **O script foi implementado, mas não executado contra a API nesta rodada.**
+
+## Coleta isolada pelo GitHub Actions
+
+Adicionado workflow `.github/workflows/collect-srd-2014.yml` com acionamento **manual** e seleção de coleção, execução Node 22, sem permissões de escrita no repositório, sem commit e sem deploy. Produz artefato temporário (7 dias) contendo registros ainda não revisados. **A interface de acionamento manual de um workflow novo geralmente exige que o arquivo exista na branch padrão**; como está apenas no PR #74, ainda não está disponível para execução pela interface do GitHub. A máquina desta sessão não conseguiu resolver o host da API; portanto, nenhuma coleta real foi realizada aqui. Não integrar apenas para executar sem autorização.
