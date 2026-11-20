@@ -10,7 +10,7 @@ export const MIN_GROUP_WIDTH = 220;
 // Um único lugar define os tipos de aba: para criar um novo (ex.: cena, encontro) basta acrescentar uma linha aqui e o painel correspondente.
 const kindLabel = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento" } as const;
 export type Kind = keyof typeof kindLabel;
-export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean };
+export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean; instance?: number };
 export type Page = "campanhas" | "planejamento" | "diario" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
 
 export type Section = { page: Page; title: string; icon: typeof Users; masterOnly?: boolean };
@@ -39,14 +39,17 @@ export const desktopSections = (role: "mestre" | "jogador" | null): Section[] =>
 export const kinds = Object.keys(kindLabel) as Kind[];
 
 /** Id próprio da aba: `kind:ref` (ex.: secao:personagens, ficha:lydia). Uma entidade = uma aba. */
-export const tabId = (s: Pick<TabSpec, "kind" | "ref">) => `${s.kind}:${s.ref}`;
+export const tabId = (s: Pick<TabSpec, "kind" | "ref">) => `${s.kind}:${s.ref}${s.kind === "secao" && s.ref === "planejamento" && s.instance && s.instance > 1 ? `~${s.instance}` : ""}`;
 export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   if (typeof id !== "string") return null;
   const i = id.indexOf(":");
-  const kind = id.slice(0, i) as Kind, ref = id.slice(i + 1);
+  const kind = id.slice(0, i) as Kind, rawRef = id.slice(i + 1);
+  const match = kind === "secao" ? /^planejamento~([2-9][0-9]*)$/.exec(rawRef) : null;
+  const instance = match ? Number(match[1]) : undefined;
+  const ref = match ? "planejamento" : rawRef;
   if (i < 1 || !kinds.includes(kind) || !/^[\w-]{1,64}$/.test(ref)) return null;
   if (kind === "secao" && !knownSections.some(s => s.page === ref)) return null;
-  return { kind, ref };
+  return { kind, ref, ...(instance && Number.isSafeInteger(instance) ? { instance } : {}) };
 };
 export const defaultTitle = (s: TabSpec) =>
   s.title?.trim().slice(0, 40) || (s.kind === "conta" ? "Conta" : s.kind === "campanha" ? "Campanha" : s.kind === "secao" ? knownSections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
@@ -103,8 +106,8 @@ export function sanitizeLayout(data: unknown): IJsonModel | null {
     const flat = (Array.isArray(s.children) ? s.children : []).flatMap(c => (c as { type?: string; children?: unknown[] })?.type === "tab-group" ? ((c as { children?: unknown[] }).children ?? []) : [c]);
     for (const t of flat as { id?: unknown; name?: unknown; pinned?: unknown }[]) {
       const p = parseTabId(t?.id);
-      if (!p || seen.has(`${p.kind}:${p.ref}`)) continue;
-      seen.add(`${p.kind}:${p.ref}`);
+      if (!p || seen.has(tabId(p))) continue;
+      seen.add(tabId(p));
       tabs.push(tabJson({ ...p, pinned: t.pinned === true }));   // nomes guardados são ignorados: o layout persiste só ids
     }
     // Painel vazio só é mantido se já veio vazio (criado de propósito por divisão); grupo cujas abas eram todas inválidas é descartado.
