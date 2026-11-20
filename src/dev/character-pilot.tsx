@@ -1,5 +1,7 @@
 /** Local-only vertical slice. Never imported by the production build. */
 import { useState } from 'react';
+import PublicIdentityEditor from './public-identity-editor';
+import {defaultPublicIdentity,type PublicIdentitySettings} from '../rules/public-identity';
 import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter';
 import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
@@ -10,6 +12,26 @@ import {ABILITY_ORDER,POINT_BUY_BUDGET,pointBuySpent,validatePointBuy,isStandard
 const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},fighter2014Advancements);
 const KEY='compendio5e:dev:character-pilot:fighter-srd51-v2';
 const STORAGE_SCHEMA=2;
+const IDENTITY_KEY='compendio5e:dev:character-pilot:public-identity-v1';
+type SavedIdentity={schemaVersion:1;characterId:string;settings:PublicIdentitySettings};
+function restoreIdentity(characterId:string):PublicIdentitySettings {
+ try {
+  const raw=localStorage.getItem(IDENTITY_KEY);
+  if(raw){
+   const saved:unknown=JSON.parse(raw);
+   if(isRecord(saved)&&saved.schemaVersion===1&&saved.characterId===characterId&&isRecord(saved.settings)){
+    const settings=saved.settings;
+    if(typeof settings.title==='string'&&typeof settings.description==='string'&&
+      (settings.imageUrl===null||typeof settings.imageUrl==='string')&&
+      ['name','surname','race','characterClass'].every(key=>isRecord(settings[key])&&
+       ['real','custom','hidden'].includes(settings[key].mode as string)&&
+       (settings[key].customValue===undefined||typeof settings[key].customValue==='string')))
+      return settings as PublicIdentitySettings;
+   }
+  }
+ }catch{/* invalid local data is discarded */}
+ return defaultPublicIdentity();
+}
 type SavedPilot = { schemaVersion:number; draft:CharacterDraft };
 function isRecord(value:unknown):value is Record<string,unknown> {
  return value!==null && typeof value==='object' && !Array.isArray(value);
@@ -65,6 +87,8 @@ function equipmentGroupsComplete(draft:CharacterDraft):boolean {
 }
 export default function CharacterPilot(){
  const [draft,setDraft]=useState<CharacterDraft>(restore);
+ const [identity,setIdentity]=useState<PublicIdentitySettings>(()=>restoreIdentity(draft.id));
+ const [showIdentity,setShowIdentity]=useState(false);
  const [message,setMessage]=useState('');
  const [abilityMethod,setAbilityMethod]=useState<'point-buy'|'standard-array'>(()=>isStandardArray(draft.baseAbilities)?'standard-array':'point-buy');
  const [abilityError,setAbilityError]=useState('');
@@ -192,8 +216,21 @@ export default function CharacterPilot(){
     <button aria-label={'Remover quantidade '+item.id} onClick={()=>change(changeInventoryInstanceQuantity(draft,item.id,-1))}>−1</button>
    </li>)}</ul>
   </section>}
+  {sheet && <section aria-label="Identidade pública do personagem">
+   <h2>Cartão de Identidade</h2>
+   <p>Etapa final opcional: escolha o que outros jogadores poderão ver. Somente dados locais de demonstração.</p>
+   <button type="button" onClick={()=>setShowIdentity(value=>!value)}>{showIdentity?'Fechar editor público':'Configurar identidade pública'}</button>
+   {showIdentity&&<PublicIdentityEditor key={draft.id} source={{name:draft.name,surname:'',race:'Anão',characterClass:'Guerreiro'}}
+    initialSettings={identity} onSkip={()=>setShowIdentity(false)} onSave={settings=>{
+     try{
+      const record:SavedIdentity={schemaVersion:1,characterId:draft.id,settings};
+      localStorage.setItem(IDENTITY_KEY,JSON.stringify(record));
+      setIdentity(settings);setShowIdentity(false);setMessage('Identidade pública salva apenas neste navegador');
+     }catch{setMessage('Não foi possível salvar a identidade pública');}
+    }}/>}
+  </section>}
   <p><button onClick={save}>Salvar rascunho local</button>{' '}
-  <button onClick={()=>{const next=restore();setDraft(next);setEquipmentChoices(equipmentChoicesFromInventory(next));setMessage('Rascunho recarregado do navegador');}}>Reabrir rascunho salvo</button></p>
+  <button onClick={()=>{const next=restore();setDraft(next);setEquipmentChoices(equipmentChoicesFromInventory(next));setIdentity(restoreIdentity(next.id));setShowIdentity(false);setMessage('Rascunho recarregado do navegador');}}>Reabrir rascunho salvo</button></p>
   <p role="status">{message}</p>
  </main>;
 }
