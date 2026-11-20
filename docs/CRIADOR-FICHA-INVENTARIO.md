@@ -235,3 +235,9 @@ Implementados `src/rules/class-asi-2014.ts` e `src/rules/class-asi-2014.test.ts`
 Criados `src/rules/rules-catalogue.ts` e `src/rules/rules-catalogue.test.ts`. Um `RulesCatalogue` associa cada entrada do registro de conteúdo a **exatamente uma definição** de regra, com mesma referência (fonte, tipo, ID, revisão). `resolveRule` atende à consulta do Compêndio; `resolveCharacterRules` atende às referências persistidas na ficha/criador, **sem duplicar definições**. Valida definições ausentes/duplicadas, referências desconhecidas e revisão inexistente, evitando atualização silenciosa. Testes verificam que ambas as consultas retornam a mesma definição e que revisões novas não substituem antigas.
 
 **Escopo atual:** contrato puro e testes; ainda não substitui o catálogo de produção nem alimenta páginas reais. Antes de usar em produção, adicionar esquemas tipados por tipo de conteúdo (evitar `Record<string,unknown>` em runtime), validar licenças, armazenar revisões de forma imutável, tratar migrações explícitas, integrar adaptadores de conteúdo e UI, e testar com fixtures 2014 completas.
+
+## Correção de identidade da ficha — 20/11/2026
+
+Auditoria encontrou divergência entre a decisão aprovada (uma única ficha ativa por `characterId`) e o protótipo `CharacterPointer`, que anteriormente criava chaves diferentes para visões pessoal e campanha. Corrigido em `src/rules/content-registry.ts`: `characterPointerKey({characterId})` aponta para **uma única ficha viva**, independente da visualização. `campaignCharacterSnapshotKey` representa somente um **snapshot histórico imutável**, nunca uma segunda ficha editável. Testes atualizados para impedir regressão.
+
+Ainda não há migração de dados, persistência ou autorização de produção. Antes de integrar, auditar consumidores existentes do ponteiro e garantir que remoção pessoal/transferência não duplique estado nem exponha notas privadas.
