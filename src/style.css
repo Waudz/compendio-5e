@@ -501,3 +501,24 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .planejamento .planos .plano.ativo .plano-fixada-titulo{max-width:min(170px, 32cqw)}
   .planejamento .planos-lista-wrapper{margin-left:0}
 }
+
+/* Em largura intermediária, mantém até duas fixadas à vista além da guia ativa.
+   A lista ••• continua acessível para todas as outras guias. */
+@container (min-width: 441px) and (max-width: 680px){
+  .planejamento .planos-fixados>.plano:nth-child(-n+2){display:inline-flex}
+  .planejamento .planos-fixados{max-width:55%;overflow:hidden}
+  .planejamento .planos-fixados>.plano{min-width:0;max-width:120px}
+  .planejamento .planos-fixados>.plano .plano-selecionar{max-width:94px}
+  .planejamento .planos-fixados>.plano .plano-fixada-titulo{max-width:76px}
+  .planejamento .planos-fixados>.plano.ativo{flex-shrink:0}
+  .planejamento .planos-rolagem{min-width:0;flex:1 1 0}
+  .planejamento .planos-lista-wrapper{margin-left:auto}
+}
+/* Painéis realmente estreitos: guia ativa sempre visível, mesmo não fixada. */
+@container (max-width: 440px){
+  .planejamento .planos-fixados>.plano:not(.ativo){display:none}
+  .planejamento .planos-rolagem>.plano:not(.ativo):not(.mais){display:none}
+  .planejamento .planos-fixados{flex:0 1 auto;max-width:50%}
+  .planejamento .planos-rolagem{flex:1 1 0}
+  .planejamento .planos-lista-wrapper{margin-left:auto}
+}
