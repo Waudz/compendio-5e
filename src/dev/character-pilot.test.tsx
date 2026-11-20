@@ -21,6 +21,7 @@ describe('local creator vertical slice',()=>{
   expect(screen.getAllByText(/Espada longa · quantidade 1/)).toHaveLength(2);
   fireEvent.click(screen.getAllByRole('button',{name:/Adicionar quantidade/})[1]);
   expect(screen.getByText(/Espada longa · quantidade 2/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
   fireEvent.click(screen.getByRole('button',{name:'Salvar rascunho local'}));
   expect(screen.getByRole('status').textContent).toContain('Salvo');
   view.unmount();
@@ -84,6 +85,23 @@ describe('local creator vertical slice',()=>{
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
   expect(screen.getByText(/chain mail · quantidade 1/)).toBeTruthy();
   expect(screen.queryByText(/leather armor · quantidade 1/)).toBeNull();
+ });
+ it('restores chosen equipment options and requires all four groups for a complete pilot',()=>{
+  const view=render(<CharacterPilot/>);
+  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
+  expect(screen.getByRole('note').textContent).toContain('rascunho incompleto');
+  fireEvent.change(screen.getByLabelText('fighter-style-1'),{target:{value:'defense'}});
+  fireEvent.click(screen.getByLabelText('Perícia athletics'));
+  fireEvent.click(screen.getByLabelText('Perícia perception'));
+  fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'leather-bow'}});
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
+  expect(screen.getByRole('note').textContent).toContain('rascunho completo');
+  fireEvent.click(screen.getByRole('button',{name:'Salvar rascunho local'}));
+  view.unmount();
+  render(<CharacterPilot/>);
+  expect((screen.getByLabelText('Equipamento armor') as HTMLSelectElement).value).toBe('leather-bow');
+  expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
+  expect(screen.getByRole('note').textContent).toContain('rascunho completo');
  });
  it('replaces unedited starting equipment with consent and refuses changes after consumption',()=>{
   render(<CharacterPilot/>);
