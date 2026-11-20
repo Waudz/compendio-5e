@@ -46,6 +46,40 @@ describe('character domain: sheet, decisions and inventory', () => {
     const decisions = [draft.decisions[0], { ...draft.decisions[0], optionIds: ['dwarvish', 'draconic'] }];
     expect(() => createCharacterSheet({ ...draft, decisions }, catalog)).toThrow('Duplicate decision ID');
   });
+  it('integrates class advancements at the correct levels without changing inventory', () => {
+    const withAdvancements: CharacterCatalog = {
+      ...catalog,
+      advancements: { barbarian: [
+        { id: 'path-3', level: 3, grants: [], choices: [{
+          id: 'primal-path', level: 3, count: 1, options: [
+            { id: 'berserker', grants: [{ type: 'feature', feature: 'frenzy', source: 'berserker-3' }] }
+          ]
+        }] },
+        { id: 'asi-4', level: 4, grants: [], choices: [{
+          id: 'ability-improvement-4', level: 4, count: 1, options: [
+            { id: 'str-plus-two', grants: [{ type: 'ability', ability: 'str', amount: 2, source: 'asi-4' }] }
+          ]
+        }] }
+      ] }
+    };
+    const decisions = [...draft.decisions,
+      { id: 'primal-path', optionIds: ['berserker'] },
+      { id: 'ability-improvement-4', optionIds: ['str-plus-two'] }];
+    const level1 = createCharacterSheet({ ...draft, decisions }, withAdvancements);
+    const level3 = createCharacterSheet({ ...draft, level: 3, decisions }, withAdvancements);
+    const level4 = createCharacterSheet({ ...draft, level: 4, decisions }, withAdvancements);
+    expect(level1.features).not.toContain('frenzy');
+    expect(level3.features).toContain('frenzy');
+    expect(level3.abilities.str).toBe(15);
+    expect(level4.abilities.str).toBe(17);
+    expect(level4.pending).toEqual([]);
+    expect(level4.inventory).toEqual(draft.inventory);
+    expect(createCharacterSheet({ ...draft, level: 4 }, withAdvancements).pending)
+      .toEqual(['primal-path', 'ability-improvement-4']);
+    expect(createCharacterSheet({ ...draft, level: 4, decisions: [
+      ...draft.decisions, { id: 'primal-path', optionIds: ['invalid'] }
+    ] }, withAdvancements).pending).toEqual(['primal-path', 'ability-improvement-4']);
+  });
   it('keeps the character inventory independent from starting grants', () => {
     const next = applyInventoryChange(draft, 'torch', 3);
     expect(next.inventory).toHaveLength(2);
