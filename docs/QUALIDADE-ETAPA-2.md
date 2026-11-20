@@ -16,7 +16,19 @@
 
 ## Resultados
 
-Tipos da infraestrutura aprovados localmente. Build local aprovado com `--configLoader runner`; validação integral em andamento no CI. Os resultados e eventuais defeitos serão consolidados após a execução, sem presumir aprovação.
+Primeira execução: [CI 44825742576](https://github.com/Waudz/compendio-5e/actions/runs/44825742576), commit `2be3aaf`. 36/36 E2E originais aprovados; etapa 2: **52 aprovados, 20 falhas, 32 não aplicáveis**. Tipos/build e 560 testes existentes aprovados. Não houve falhas de divisão, estabilidade ou diagnóstico de carregamento. Correções de teclado em revalidação; resultados finais serão acrescentados abaixo.
+
+## Defeitos confirmados e reprodução
+
+| ID | Gravidade | Reprodução / comportamento observado | Evidência e tratamento |
+|---|---|---|---|
+| Q2-01 | P2 | Desktop 701/768/1024/1440: focar Diário, Shift+F10, ArrowDown. O foco fica no primeiro item, não vai ao seguinte. | Falha E2E de setas + unitário `ContextMenu.a11y.test.tsx` reproduzido vermelho antes da correção. Corrigido em `ContextMenu`: setas/Home/End pulam desabilitados e circulam. |
+| Q2-02 | P2 | Mesmo menu: Escape fecha, mas foco não retorna a Diário. | Falha E2E e unitário vermelho antes da correção. Corrigido: captura e restauração do acionador conectado. |
+| Q2-03 | P2 | Mobile 320/360/390/700: focar Abrir menu e Enter. O diálogo aparece, mas foco continua fora dele. Tab não fica contido; não havia tratamento de Escape. | Falha de contenção de foco nas quatro larguras. Corrigido no menu mobile: foco inicial, ciclo Tab/Shift+Tab, Escape e retorno de foco, com `aria-modal`. |
+| Q2-04 | P2 / axe serious | Como jogador, abrir Início e Diário. A auditoria detecta `color-contrast`: texto ativo da barra inferior no celular; marca do site e rótulo da campanha no desktop. | JSON `axe` e capturas do relatório por largura. **Pendente**, sem alterar a paleta compartilhada nesta entrega. |
+| Q2-05 | P2 / axe serious | Como jogador, Início: cartões de aventureiros com texto visível e `aria-label` divergentes. No desktop também seletor da campanha e aba com rótulo acessível “Campanha” apesar do título visível da campanha. | Regra `label-content-name-mismatch`, árvore acessível e alvos no relatório. **Pendente**; exige reconciliar nomes visíveis/ARIA e integração com FlexLayout, sem copiar títulos sensíveis ao layout persistido. |
+
+A auditoria axe continua exigindo zero violações: sem allowlist, `test.fail`, retries ou exclusões de regras para mascarar Q2-04/Q2-05. Portanto CI E2E permanece vermelho enquanto esses defeitos persistirem. O PR deve permanecer em rascunho e não ser integrado como aprovado.
 
 ## Limitações e coordenação
 

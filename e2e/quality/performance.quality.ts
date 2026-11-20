@@ -16,7 +16,7 @@ test('diagnóstico de carregamento, tarefas longas e mutações sem orçamento t
   });
   await openDemo(page); await navigate(page,'Diário');
   await expect(page.getByText('3ª Sessão — O Festival',{exact:true})).toBeVisible();
-  for (const name of ['Conta','Diário','Início','Diário']) await navigate(page,name);
+  for (const name of ['Anotações','Conta','Diário','Início','Diário']) await navigate(page,name);
   await expect(page.getByText('3ª Sessão — O Festival',{exact:true})).toBeVisible();
   const metrics = await page.evaluate(() => {
     const entries=performance.getEntriesByType('resource') as PerformanceResourceTiming[];

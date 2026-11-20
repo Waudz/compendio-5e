@@ -59,6 +59,10 @@ test('diálogo do menu mobile recebe foco, contém Tab e fecha com Escape', asyn
   const dialog = page.getByRole('dialog', { name: 'Menu de navegação' });
   await expect(dialog).toBeVisible(); await evidence(page, info, 'menu-mobile');
   await insideFocus(dialog);
+  const buttons = dialog.getByRole('button');
+  await expect(buttons.first()).toBeFocused();
+  await page.keyboard.press('Shift+Tab'); await expect(buttons.last()).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(buttons.first()).toBeFocused();
   const count = await dialog.getByRole('button').count();
   for (let i = 0; i <= count; i++) { await page.keyboard.press('Tab'); await insideFocus(dialog); }
   await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0); await expect(trigger).toBeFocused();

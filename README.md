@@ -123,3 +123,11 @@ Métricas de rede, tarefas longas e mutações DOM são anexadas como diagnósti
 tempo/bytes arbitrários**; mutações não são contagem de renders React e Vite dev não mede desempenho
 de produção. A proteção de rede desativa o cache HTTP do navegador; não usar esses números como
 benchmark de cache. As demais limitações e o bloqueio local do Windows continuam válidos.
+
+
+**Estado da segunda etapa:** a primeira execução confirmou defeitos reais de teclado/foco e
+violações axe. Correções isoladas ficam em `ContextMenu` e no menu de `Mobile`; não alteram
+regras, dados ou módulos das outras frentes. Contraste e divergências de nomes acessíveis
+continuam registrados em Q2-04/Q2-05. O teste axe permanece estrito e o CI da segunda etapa
+não deve ser anunciado como aprovado enquanto esses achados existirem. Consulte o relatório
+para resultados por execução e evidências; o PR permanece em rascunho.
