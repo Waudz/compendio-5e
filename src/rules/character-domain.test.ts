@@ -42,6 +42,10 @@ describe('character domain: sheet, decisions and inventory', () => {
     expect(createCharacterSheet({ ...draft, decisions: [{ id: 'languages', optionIds: ['elvish', 'deleted'] }] }, catalog).pending).toEqual(['languages']);
     expect(createCharacterSheet({ ...draft, decisions: [{ id: 'unknown', optionIds: [] }] }, catalog).pending).toEqual(['unknown-choice:unknown', 'languages']);
   });
+  it('rejects duplicate decision records even when each selection is valid', () => {
+    const decisions = [draft.decisions[0], { ...draft.decisions[0], optionIds: ['dwarvish', 'draconic'] }];
+    expect(() => createCharacterSheet({ ...draft, decisions }, catalog)).toThrow('Duplicate decision ID');
+  });
   it('keeps the character inventory independent from starting grants', () => {
     const next = applyInventoryChange(draft, 'torch', 3);
     expect(next.inventory).toHaveLength(2);
