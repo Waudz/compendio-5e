@@ -60,8 +60,8 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   const [ed, setEd] = useState<Record<string, Ed>>({}); const edRef = useRef(ed); edRef.current = ed;
   const [sel, setSel] = useState<string[]>([]);
   const [arrastando, setArrastando] = useState<string | null>(null);
-  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
-  useEffect(() => { const mq = window.matchMedia("(max-width: 767px)"); const atualizar = () => setMobile(mq.matches); atualizar(); mq.addEventListener?.("change", atualizar); return () => mq.removeEventListener?.("change", atualizar); }, []);   // seções selecionadas com o mouse
+  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches);
+  useEffect(() => { const mq = window.matchMedia("(max-width: 700px)"); const atualizar = () => setMobile(mq.matches); atualizar(); mq.addEventListener?.("change", atualizar); return () => mq.removeEventListener?.("change", atualizar); }, []);   // seções selecionadas com o mouse
   const [carregado, setCarregado] = useState(false), [erro, setErro] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
   const board = boards.find(b => b.id === boardId) ?? null;
   const boardRef = useRef<Registro | null>(null); boardRef.current = board;
@@ -213,11 +213,11 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     versoes.current.set(r.data.id, r.data.version); setBoards(bs => ordenarPlanos([...bs, r.data]));
     setEd({}); setSel([]); boardIdRef.current = r.data.id; setBoardId(r.data.id); gravarPlanoSalvo(chave, r.data.id);
   };
-  const moverPlano = async (id: string, direcao: -1 | 1) => {
+  const moverPlano = async (id: string, direcao: -1 | 1, alvoId?: string) => {
     if (!api) return;
     const atual = boards.find(b => b.id === id); if (!atual) return;
     const grupo = ordenarPlanos(boards.filter(b => ehPermanente(b) === ehPermanente(atual)));
-    const i = grupo.findIndex(b => b.id === id), j = i + direcao;
+    const i = grupo.findIndex(b => b.id === id), j = alvoId ? grupo.findIndex(b => b.id === alvoId) : i + direcao;
     if (j < 0 || j >= grupo.length) return;
     const vizinho = grupo[j], outro = grupo[j + direcao];
     const referencia = ordemPlano(vizinho);
@@ -283,10 +283,10 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   };
 
   return <div className="content planejamento" data-testid="planejamento">
-    <style>{`@media(max-width:767px){.planejamento .quadro-mobile{display:flex;flex-direction:column;overflow:visible;gap:12px}.planejamento .quadro-mobile .coluna{min-width:0!important;width:100%!important;flex-basis:100%!important;max-width:100%!important}.planejamento .quadro-mobile .coluna-redim{display:none}.planejamento .quadro-mobile .secao{width:100%;max-width:100%}}`}</style>
+    <style>{`@media(max-width:700px){.planejamento .quadro-mobile{display:flex;flex-direction:column;overflow:visible;gap:12px}.planejamento .quadro-mobile .coluna{min-width:0!important;width:100%!important;flex-basis:100%!important;max-width:100%!important}.planejamento .quadro-mobile .coluna-redim{display:none}.planejamento .quadro-mobile .secao{width:100%;max-width:100%}}`}</style>
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Anotações</h1>
-    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onNovoPermanente={() => void novoPermanente()} onMover={(id, d) => void moverPlano(id, d)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
+    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onNovoPermanente={() => void novoPermanente()} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando anotações…</p>}
@@ -355,7 +355,7 @@ function excluirSecoesVazia(q: Quadro, id: string): Quadro {
 }
 
 /** Seletor de planejamentos: anotações permanentes (fixas, primeiro) e um planejamento por sessão. O ativo tem o nome editável. */
-function Planos({ boards, ativo, onTrocar, onNovo, onNovoPermanente, onMover, onRenomear, onExcluir }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onNovoPermanente: () => void; onMover: (id: string, direcao: -1 | 1) => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void }) {
+function Planos({ boards, ativo, onTrocar, onNovo, onNovoPermanente, onMover, onRenomear, onExcluir }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onNovoPermanente: () => void; onMover: (id: string, direcao: -1 | 1, alvoId?: string) => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void }) {
   const [arrastada, setArrastada] = useState<string | null>(null);
   return <nav className="planos" aria-label="Planejamentos">
     {boards.map((b, i) => {
@@ -364,7 +364,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onNovoPermanente, onMover, on
       return <span key={b.id} className={on ? "plano ativo" : "plano"} draggable
         onDragStart={e => { if ((e.target as HTMLElement).closest("input,button")) { e.preventDefault(); return; } setArrastada(b.id); e.dataTransfer.effectAllowed = "move"; }}
         onDragOver={e => { if (arrastada && arrastada !== b.id && boards.some(x => x.id === arrastada && ehPermanente(x) === perm)) e.preventDefault(); }}
-        onDrop={e => { e.preventDefault(); const de = boards.findIndex(x => x.id === arrastada), para = boards.findIndex(x => x.id === b.id); if (de >= 0 && de !== para && ehPermanente(boards[de]) === perm) onMover(arrastada!, de < para ? 1 : -1); setArrastada(null); }}
+        onDrop={e => { e.preventDefault(); const de = boards.findIndex(x => x.id === arrastada), para = boards.findIndex(x => x.id === b.id); if (de >= 0 && de !== para && ehPermanente(boards[de]) === perm) onMover(arrastada!, de < para ? 1 : -1, b.id); setArrastada(null); }}
         onDragEnd={() => setArrastada(null)}>
         {on ? <><input aria-label="Nome do planejamento" key={b.title} defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); else e.target.value = b.title; }} onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
           <button className="icon danger" aria-label={`Excluir o planejamento ${b.title}`} title="Excluir este planejamento" onClick={() => onExcluir(b)}><Trash2 size={13}/></button></>
