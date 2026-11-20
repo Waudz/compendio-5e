@@ -431,3 +431,30 @@ Criados **no novo repositório**, isolados do aplicativo e sem acesso ao Supabas
 **Correção enviada:** substituição dos escapes literais por quebras de linha reais, commits `b0215c7` e `b8ceaf1`. Nova execução de workflow `44695136016` observada **em andamento**; resultado final não confirmado no momento deste registro.
 
 **Duas integrações falhas reportadas pelo usuário:** até agora há **um log de workflow analisado**; não presumir que ambas as falhas têm a mesma causa sem inspecionar o outro run. Não mesclar enquanto CI estiver vermelho ou inconclusivo.
+
+## Rodada 10 — revisão arquitetural baseada em documentação externa
+
+Fontes: [Foundry dnd5e Advancement](https://github.com/foundryvtt/dnd5e/wiki/Advancement), [Foundry dnd5e Activities](https://github.com/foundryvtt/dnd5e/wiki/Activities), [OpenPentacle](https://github.com/arrowedisgaming/OpenPentacle), [SRD 5.1 oficial](https://www.dndbeyond.com/srd).
+
+**Conclusão:** motor determinístico + proveniência + testes é boa direção, mas o piloto atual **não é base adequada para produção sem refatoração**.
+
+### Lacunas identificadas no piloto
+- `Option.choices` só aceita opções de `Grant` individual; escolhas reais podem conceder pacotes, ter requisitos, exclusões, quantidades, substituições e depender de nível.
+- `selected: Record<string, number[]>` usa índices instáveis; substituir por IDs persistentes, com versões e migrações.
+- `Grant` não modela atividades, condições, resistências, duração, recarga, perícia especializada, magias, equipamentos alternativos, efeitos dependentes de equipamento e nível.
+- `buildCharacter` agrega concessões sem semântica específica por tipo; não tratar proficiências duplicadas, bônus de atributos, fórmulas de CA e resistência como operações equivalentes.
+- `maxHp` usa um único dado de vida e não guarda histórico de rolagens por classe/nível; insuficiente para multiclasse e edições retroativas.
+- O protótipo não modela recursos gastos, PV atuais, concentração, condições ou inventário mutável; não deve misturar esses estados com direitos permanentes.
+- Falta validação de fonte/versão/licença, schemas de entrada e referência independente de resultados.
+
+### Arquitetura proposta (não implementada)
+
+1. **Catálogo versionado**: regras/edição, fonte/licença, registros de raça, classe, origem, subclasse, talento, magia, item, característica, efeitos e atividades, IDs estáveis; versões 2014 e 2024 separadas.
+2. **Progressão (advancements)**: concessões, escolhas, atributos, PV, progressão escalonada, seleção de subclasse, perícias/idiomas/proficiências, magias; eventos por nível com pré-requisitos e conflitos.
+3. **Motor puro**: validar decisões -> calcular direitos e estatísticas derivadas -> produzir `diff` + explicação de proveniência -> bloquear pendências antes de confirmar.
+4. **Estado de personagem**: decisões de criação por nível, dados de vida e versões de regras; separadamente PV atuais, recursos gastos, magias preparadas, inventário instanciado e condições.
+5. **Atividades e efeitos**: ações, ações bônus, reações, custo, duração, alvos, testes, ataques, efeitos temporários e recuperação; execução voluntária pelo jogador/mestre.
+6. **Persistência**: documentos JSON validados com migrações, IDs de versão, transações e controle de concorrência; catálogo publicado pode ser distribuído estaticamente; Supabase somente para personagens, grupos, sincronização e conteúdo privado, sujeito à futura autorização.
+7. **Testes**: fonte primária como oráculo independente; contratos unitários por concessão, testes de propriedades, combinação por pares, cenários 1–20, regressões, import/export e interface E2E.
+
+**Política:** não converter o piloto em produção por mera ampliação de fixtures. Primeiro especificar esquema de decisões/progressão e testar 1 personagem integral, incluindo equipamentos, subclasse, ASI, magias quando aplicável, estado e persistência. Verificar permissões de distribuição para conteúdo fora do SRD 5.1. Documentação Foundry é referência conceitual, não autorização para copiar dados ou código.
