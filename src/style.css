@@ -564,7 +564,4 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     opacity:1;visibility:visible;
   }
 }
-@media (hover:none), (pointer:coarse){
-  .planejamento .excluir-cartao-discreto,
-  .planejamento .excluir-secao-discreto{display:none}
-}
+/* Em touch, manter as ações visíveis até existir menu contextual próprio. */
