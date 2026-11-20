@@ -444,3 +444,24 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .confirmacao-acoes{display:flex;justify-content:flex-end;gap:10px}
 .confirmacao-acoes button{padding:9px 16px;border-radius:8px;cursor:pointer}
 .confirmacao-acoes .danger{background:#a92f3b;color:white;border:1px solid #c3434f}
+
+/* Abas de Anotações: ações contextuais e criação ao final da lista. */
+.planos-rolagem{align-items:center}
+.planos-rolagem>.mais{flex:none;position:sticky;right:0;z-index:1}
+.planos .plano.ativo{display:inline-flex;align-items:center}
+.plano-fechar{display:inline-flex;align-items:center;justify-content:center;flex:none;border:0;background:transparent;color:var(--text-2);border-radius:5px;padding:2px 5px;cursor:pointer;font-size:17px;line-height:1}
+.plano-fechar:hover{background:var(--hover);color:var(--text)}
+.planos .plano-contexto{position:fixed;right:auto;bottom:auto;z-index:150;max-width:calc(100vw - 16px)}
+@media(max-width:700px){.planos .plano-contexto{position:fixed;right:auto;bottom:auto}}
+
+/* Barra de guias sempre em linha única, com rolagem horizontal. */
+.planos{display:flex;flex-wrap:nowrap!important;white-space:nowrap;min-width:0;width:100%;overflow:visible}
+.planos-fixados,.planos-rolagem{display:flex;flex-wrap:nowrap!important;white-space:nowrap;align-items:center;min-width:0}
+.planos-fixados{flex:0 1 auto;max-width:min(40%,460px);overflow-x:auto}
+.planos-rolagem{flex:1 1 0;overflow-x:auto;overflow-y:hidden}
+.planos .plano{flex:0 0 auto;white-space:nowrap;max-width:190px}
+.planos .plano-selecionar{min-width:0;max-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.planos .plano.compacta .plano-selecionar{max-width:150px}
+.planos .plano.compacta .plano-fixada-titulo{display:block;min-width:0;max-width:125px;overflow:hidden;text-overflow:ellipsis}
+.planos-rolagem>.mais{position:static;flex:0 0 auto}
+@media(max-width:700px){.planos-fixados{max-width:42%}.planos .plano.compacta .plano-selecionar{max-width:110px}.planos .plano.compacta .plano-fixada-titulo{max-width:80px}}
