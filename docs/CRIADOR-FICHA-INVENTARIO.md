@@ -229,3 +229,9 @@ Implementados `src/rules/class-asi-2014.ts` e `src/rules/class-asi-2014.test.ts`
 **Integridade:** não alterar silenciosamente personagens quando um registro de regra for corrigido. Usar revisão fixada por personagem e migração explícita/validada. Conteúdo incompleto não pode produzir ficha aparentemente completa: apresentar escolhas pendentes e impedir finalização inválida. Testar concordância entre Compêndio, criador e ficha, níveis 1–20, reabertura, edição e progressão. Não copiar automaticamente textos protegidos de fontes externas.
 
 **Status:** decisão registrada; há protótipos de catálogo, motor e ASI no PR #74, mas **a integração real de telas e banco ainda não foi concluída**. Não autoriza merge, deploy ou migração em produção.
+
+## Catálogo canônico compartilhado — incremento de 20/11/2026
+
+Criados `src/rules/rules-catalogue.ts` e `src/rules/rules-catalogue.test.ts`. Um `RulesCatalogue` associa cada entrada do registro de conteúdo a **exatamente uma definição** de regra, com mesma referência (fonte, tipo, ID, revisão). `resolveRule` atende à consulta do Compêndio; `resolveCharacterRules` atende às referências persistidas na ficha/criador, **sem duplicar definições**. Valida definições ausentes/duplicadas, referências desconhecidas e revisão inexistente, evitando atualização silenciosa. Testes verificam que ambas as consultas retornam a mesma definição e que revisões novas não substituem antigas.
+
+**Escopo atual:** contrato puro e testes; ainda não substitui o catálogo de produção nem alimenta páginas reais. Antes de usar em produção, adicionar esquemas tipados por tipo de conteúdo (evitar `Record<string,unknown>` em runtime), validar licenças, armazenar revisões de forma imutável, tratar migrações explícitas, integrar adaptadores de conteúdo e UI, e testar com fixtures 2014 completas.
