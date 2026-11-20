@@ -9,6 +9,8 @@ describe('local creator vertical slice',()=>{
   const view=render(<CharacterPilot/>);
   fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
   fireEvent.change(screen.getByLabelText('fighter-style-1'),{target:{value:'defense'}});
+  fireEvent.click(screen.getByLabelText('Perícia athletics'));
+  fireEvent.click(screen.getByLabelText('Perícia perception'));
   fireEvent.change(screen.getByLabelText('Nível'),{target:{value:'4'}});
   expect(screen.getByText(/Escolhas pendentes:/).textContent).toContain('fighter-asi-4');
   fireEvent.change(screen.getByLabelText('fighter-archetype-3'),{target:{value:'champion'}});
@@ -55,6 +57,9 @@ describe('local creator vertical slice',()=>{
   expect(screen.getByText(/Características:/).textContent).toContain('second-wind');
   expect(screen.getByText(/Recursos:/).textContent).toContain('second-wind 1/1');
   fireEvent.change(screen.getByLabelText('fighter-style-1'),{target:{value:'archery'}});
+  fireEvent.click(screen.getByLabelText('Perícia athletics'));
+  fireEvent.click(screen.getByLabelText('Perícia perception'));
+  expect(screen.getByText(/Perícias:/).textContent).toContain('athletics');
   expect(screen.getByText(/Características:/).textContent).toContain('fighting-style-archery');
   fireEvent.change(screen.getByLabelText('Nível'),{target:{value:'3'}});
   expect(screen.getByText(/Características:/).textContent).toContain('action-surge');
