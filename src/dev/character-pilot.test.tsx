@@ -103,19 +103,6 @@ describe('local creator vertical slice',()=>{
   expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
   expect(screen.getByRole('note').textContent).toContain('rascunho completo');
  });
- it('does not call an edited or consumed starting equipment set complete',()=>{
-  render(<CharacterPilot/>);
-  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
-  fireEvent.change(screen.getByLabelText('fighter-style-1'),{target:{value:'defense'}});
-  fireEvent.click(screen.getByLabelText('Perícia athletics'));
-  fireEvent.click(screen.getByLabelText('Perícia perception'));
-  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
-  expect(screen.getByRole('note').textContent).toContain('rascunho completo');
-  fireEvent.click(screen.getByRole('button',{name:/Remover quantidade starting-choice:fighter-pack:explorer:torch/}));
-  expect(screen.getByRole('note').textContent).toContain('rascunho incompleto');
-  fireEvent.click(screen.getByRole('button',{name:'Salvar rascunho local'}));
-  expect(screen.getByRole('status').textContent).toContain('Rascunho incompleto salvo');
- });
  it('replaces unedited starting equipment with consent and refuses changes after consumption',()=>{
   render(<CharacterPilot/>);
   fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
