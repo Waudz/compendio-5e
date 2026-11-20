@@ -78,3 +78,7 @@ O adaptador do catálogo canônico rejeita concessões malformadas também nas p
 ### Integridade de atributos de fichas (20/11/2026)
 
 O domínio experimental rejeita atributos-base não inteiros, não finitos ou fora de 1–30 antes de calcular modificadores e PV, com regressões para `NaN`, infinito, frações e limites. O intervalo é **limite técnico de integridade**, não autorização para distribuir atributos acima dos limites normais de criação 2014; regras de geração e limites de campanha ainda exigem validação própria. Alteração restrita ao PR #74, sem banco ou deploy.
+
+### Proteção do motor de regras chamado diretamente (20/11/2026)
+
+`buildCharacter` também valida atributos-base inteiros finitos de 1 a 30 e dados de vida inteiros positivos e consistentes em todos os 20 níveis, independentemente do adaptador e da ficha. Novos testes cobrem chamadas diretas ao motor. Essa redundância deliberada protege usos futuros e importações que contornem a interface; **não certifica regras SRD nem publica o criador**. CI do HEAD ainda requer confirmação.
