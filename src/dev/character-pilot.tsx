@@ -59,12 +59,8 @@ function equipmentChoicesFromInventory(draft:CharacterDraft):Record<string,strin
 function equipmentGroupsComplete(draft:CharacterDraft):boolean {
  return Object.entries(fighterEquipmentOptions2014).every(([group,options])=>{
   const prefix='starting-choice:fighter-'+group+':';
-  const existing=draft.inventory.filter(entry=>entry.id.startsWith(prefix));
-  return options.some(option=>existing.length===option.components.length &&
-   option.components.every(component=>existing.some(entry=>
-    entry.id===prefix+option.id+':'+component.itemId &&
-    entry.itemId===component.itemId && entry.quantity===component.quantity &&
-    entry.origin==='starting' && !entry.equipped)));
+  return options.some(option=>option.components.every(component=>draft.inventory.some(entry=>
+   entry.id===prefix+option.id+':'+component.itemId&&entry.itemId===component.itemId&&entry.quantity===component.quantity)));
  });
 }
 export default function CharacterPilot(){
