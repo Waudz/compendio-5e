@@ -435,7 +435,7 @@ describe("planejamentos e anotações permanentes", () => {
   it("permite criar várias abas permanentes, renomear e manter após recarregar", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
-    fireEvent.click(screen.getByRole("button", { name: "Nova anotação permanente" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Nova anotação permanente" }));
     const nome = await screen.findByLabelText("Nome do planejamento") as HTMLInputElement;
     expect(nome.value).toBe("Anotações permanentes 2");
     fireEvent.change(nome, { target: { value: "Personagens recorrentes" } }); fireEvent.blur(nome);
@@ -448,7 +448,7 @@ describe("planejamentos e anotações permanentes", () => {
   it("reordena abas de sessão e mantém a ordem após recarregar", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
-    fireEvent.click(screen.getByRole("button", { name: "Novo planejamento" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Novo planejamento" }));
     await screen.findByLabelText("Seção Seção 1");
     fireEvent.click(screen.getByRole("button", { name: "Mover Sessão 2 para esquerda" }));
     await waitFor(() => {
