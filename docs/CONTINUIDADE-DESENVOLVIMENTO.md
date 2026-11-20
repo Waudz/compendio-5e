@@ -176,3 +176,10 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - `src/rules/starting-equipment-2014.test.ts`: testes de quantidades, componentes e não mutação da receita.
 - **Importante:** os IDs dos componentes são **candidatos** à reconciliação com o catálogo versionado de itens, não itens novos nem definições duplicadas. Antes de adicionar itens ao inventário do criador, resolver e validar todos os IDs no catálogo canônico. Opções de armas marciais e armaduras ainda precisam de expansão em itens concretos; não conceder placeholder como se fosse item real.
 - Recipientes continuam itens comuns, sem subinventário. Sem alteração de Supabase, merge ou publicação.
+
+### Piloto de equipamentos: pacotes conectados (20/11/2026)
+
+- O piloto agora oferece seleção de pacote Explorador/Masmorras e cria entradas individuais no inventário com IDs estáveis `starting-pack:<pacote>:<item>`, origem `starting`, sem alterar a definição do pacote.
+- Antes da concessão, `resolvePackItems` exige que todos os IDs existam no mesmo registro de regras usado pelo piloto; testes verificam ausência de ID. O piloto adicionou definições **provisórias** para os componentes, sem peso, preço ou características definitivas; **não confundir com catálogo canônico de produção**.
+- Adicionar outro pacote inicial é bloqueado enquanto existirem entradas do pacote anterior. Próximos passos: importar itens SRD 2014 auditados e substituir as definições provisórias, completar escolhas de armadura e armas, permitir substituição segura e exibir prévia antes de confirmar.
+- Recipientes continuam itens comuns; quatro decisões de experiência de jogo para conversar com jogadores permanecem na seção anterior. PR aberto, sem merge, Supabase ou publicação.
