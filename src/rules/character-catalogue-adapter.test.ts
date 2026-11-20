@@ -59,4 +59,46 @@ describe('canonical Compendium to character kernel integration',()=>{
   expect(createCharacterSheet(changed,catalog).abilities.str).toBe(17);
  });
 
+ it('rejects malformed typed grants before constructing a character',()=>{
+  const rejected=[
+    {type:'ability',ability:'luck',amount:2,source:'race'},
+    {type:'ability',ability:'con',amount:Number.NaN,source:'race'},
+    {type:'ability',ability:'con',amount:-2,source:'race'},
+    {type:'item',item:'longsword',quantity:0,source:'race'},
+    {type:'resource',resource:'rage',uses:-1,source:'race'},
+    {type:'feature',feature:'',source:'race'},
+    {type:'unknown',source:'race'}
+  ];
+  for (const invalidGrant of rejected) {
+    const invalid={...catalogue,definitions:definitions.map(d=>d.ref.kind==='race'
+      ?{...d,data:{id:'dwarf',grants:[invalidGrant]}}:d)};
+    expect(()=>buildPilotCharacterCatalog(invalid,{race,background,class:klass}))
+      .toThrow('Incomplete or invalid character rules definition');
+  }
+ });
+ it('rejects invalid choice counts, duplicate identifiers and nested grants',()=>{
+  const badChoices=[
+    [{id:'skills',count:0,options:[{id:'athletics',grants:[]}]}],
+    [{id:'skills',count:2,options:[{id:'athletics',grants:[]}]}],
+    [{id:'skills',count:1,options:[{id:'athletics',grants:[]},{id:'athletics',grants:[]}]}],
+    [{id:'skills',count:1,options:[{id:'athletics',grants:[{type:'item',item:'rope',quantity:-1,source:'choice'}]}]}],
+    [{id:'skills',count:1,options:[{id:'athletics',grants:[]}]},
+     {id:'skills',count:1,options:[{id:'stealth',grants:[]}]}]
+  ];
+  for (const choices of badChoices) {
+    const invalid={...catalogue,definitions:definitions.map(d=>d.ref.kind==='background'
+      ?{...d,data:{id:'acolyte',grants:[],choices}}:d)};
+    expect(()=>buildPilotCharacterCatalog(invalid,{race,background,class:klass}))
+      .toThrow('Incomplete or invalid character rules definition');
+  }
+ });
+ it('accepts a valid choice package without altering immutable source references',()=>{
+  const withChoices={...catalogue,definitions:definitions.map(d=>d.ref.kind==='background'
+    ?{...d,data:{id:'acolyte',grants:[],choices:[{id:'skills',count:1,
+      options:[{id:'religion',grants:[{type:'skill',skill:'religion',source:'acolyte'}]}]}]}}:d)};
+  const built=buildPilotCharacterCatalog(withChoices,{race,background,class:klass});
+  expect(built.catalog.backgrounds[built.ids.backgroundId].choices?.[0].options[0].id).toBe('religion');
+  expect(built.ids.backgroundId).toBe('srd-2014:background:acolyte:1');
+ });
+
 });
