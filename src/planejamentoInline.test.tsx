@@ -486,7 +486,8 @@ describe("planejamentos e anotações permanentes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
     const sec = await screen.findByLabelText("Seção Anotações");
     fireEvent.click(within(sec).getByRole("button", { name: "Adicionar cartão" }));
-    const titulo = await within(sec).findByLabelText("Título do cartão Novo cartão");
+    fireEvent.click(await within(sec).findByRole("button", { name: "Adicionar título ao cartão" }));
+    const titulo = await within(sec).findByLabelText("Novo título do cartão");
     fireEvent.change(titulo, { target: { value: "Cultos de Daggerford" } }); fireEvent.blur(titulo);
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene" && r.title === "Cultos de Daggerford")).toBe(true));
     expect(screen.queryByRole("button", { name: /Excluir o planejamento/ })).toBeNull();      // permanentes não se excluem
