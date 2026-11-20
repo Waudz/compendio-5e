@@ -13,7 +13,7 @@ const entries=[
  {ref:pilotRefs.background,name:'Acólito',description:'Antecedente de demonstração',
   data:{id:'acolyte',grants:[]}},
  {ref:pilotRefs.class,name:'Guerreiro',description:'Guerreiro SRD 5.1 (2014): estilo de luta, Retomar o Fôlego, Surto de Ação, arquétipo Campeão, Ataque Extra e melhorias de atributo. Piloto incompleto: efeitos condicionais e progressão do Campeão acima do nível 3 ainda não automatizados.',
-  data:fighter2014},
+  data:{...fighter2014}},
  {ref:pilotRefs.item,name:'Espada longa',description:'Item de demonstração',
   data:{id:'longsword'}}
 ];
