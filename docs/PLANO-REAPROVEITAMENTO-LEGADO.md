@@ -46,3 +46,7 @@ Criado `src/rules/srd-2014-import.ts` com `srd2014ResourcePath` e `importReviewe
 - **Auditoria de licenças:** não pressupor que todo texto de uma API ou do legado pode ser republicado; atribuição e licença por fonte/entrada.
 
 A etapa de staging é **somente uma função pura e testes**; ainda não há coletor HTTP, snapshot real, revisão de licenças nem integração ao app publicado.
+
+## Implementação de tradução independente (20/11/2026)
+
+`src/rules/catalogue-localization.ts` implementa `localizeCatalogue`: aplica nomes e descrições traduzidos a um **novo** objeto de catálogo, preservando `ContentRef`, revisões, dados mecânicos e catálogo original. Traduções inexistentes usam o idioma original. Traduções duplicadas, vazias ou sem registro correspondente são rejeitadas. `searchCompendium` usa o objeto localizado sem mudanças, permitindo pesquisa em português. Testes em `catalogue-localization.test.ts`. Ainda não há arquivo de traduções reais, interface de idioma nem importação de API.
