@@ -55,6 +55,7 @@ Abra `http://localhost:5173/compendio-5e/?demo=mestre` (ou `?demo=jogador`). Os 
 - **Pilotos locais:** `?demo=compendio-piloto` e `?demo=criador-piloto` em `npm run dev`. Usam **dados ilustrativos**, não um catálogo SRD completo. Não são funcionalidades publicadas nem substituem a persistência real.
 - **Em preparação:** coleta real e revisão editorial dos dados, tradução, efeitos das habilidades e progressão completa das classes, integração com telas reais e persistência segura.
 - **Cartão de Identidade público (piloto):** projeção segura de campos públicos e editor experimental com prévia e testes em `src/rules/public-identity.ts` e `src/dev/public-identity-editor.tsx`. **Ainda sem integração ao criador real, Enciclopédia, banco ou RLS**; não confundir com recurso disponível no site.
+- **Projeção da Enciclopédia (domínio experimental):** `src/rules/public-character-encyclopedia.ts` gera apenas os campos autorizados para outros jogadores e mantém o histórico da campanha separado da descrição pública do jogador. Testes cobrem ausência de dados privados. **Não é endpoint seguro nem substitui RLS no Supabase.**
 - **Importante:** o endpoint de classe da API não entrega sozinho todos os efeitos e escolhas necessários à ficha. `src/rules/srd-2014-class-level-staging.ts` valida os 20 níveis e registra os IDs de características, **sem inventar regras ou liberar a classe para criação**.
 
 ### Coleta controlada de dados SRD 2014
