@@ -5,7 +5,7 @@ import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
 import {pilotRefs,pilotRules} from './pilot-rules';
 import {fighterEquipmentOptions2014} from '../rules/starting-equipment-2014';
-import {applyStartingEquipmentSelection} from '../rules/starting-equipment-selection';
+import {applyStartingEquipmentSelection,replaceStartingEquipmentSelection} from '../rules/starting-equipment-selection';
 import {ABILITY_ORDER,POINT_BUY_BUDGET,pointBuySpent,validatePointBuy,isStandardArray} from '../rules/ability-generation-2014';
 const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},fighter2014Advancements);
 const KEY='compendio5e:dev:character-pilot:fighter-srd51-v2';
@@ -69,10 +69,25 @@ export default function CharacterPilot(){
   try{
    const known=new Set(pilotRules.registry.entries.filter(entry=>entry.ref.kind==='item').map(entry=>entry.ref.id));
    let next=draft;
+   const changes:{group:string;oldOptionId:string;newOptionId:string}[]=[];
+   for(const [group,options] of Object.entries(fighterEquipmentOptions2014)){
+    const old=next.inventory.find(item=>item.id.startsWith('starting-choice:fighter-'+group+':'));
+    const oldOptionId=old?.id.split(':')[2];
+    if(oldOptionId&&oldOptionId!==equipmentChoices[group])changes.push({group,oldOptionId,newOptionId:equipmentChoices[group]});
+   }
+   if(changes.length&&!window.confirm('Substituir os equipamentos iniciais selecionados? Itens iniciais já utilizados ou alterados não serão substituídos.'))return;
    for(const [group,options] of Object.entries(fighterEquipmentOptions2014)){
     const option=options.find(item=>item.id===equipmentChoices[group]);
     if(!option)throw Error('Selecione equipamento: '+group);
-    next=applyStartingEquipmentSelection(next,{sourceId:'fighter-'+group,optionId:option.id,components:option.components},known);
+    const sourceId='fighter-'+group;
+    const old=next.inventory.find(item=>item.id.startsWith('starting-choice:'+sourceId+':'));
+    const oldOptionId=old?.id.split(':')[2];
+    if(oldOptionId&&oldOptionId!==option.id){
+     const oldOption=options.find(item=>item.id===oldOptionId);
+     if(!oldOption)throw Error('Equipamento inicial anterior desconhecido');
+     next=replaceStartingEquipmentSelection(next,{sourceId,optionId:oldOption.id,components:oldOption.components},
+      {sourceId,optionId:option.id,components:option.components},known,true);
+    }else next=applyStartingEquipmentSelection(next,{sourceId,optionId:option.id,components:option.components},known);
    }
    change(next);setMessage('Equipamentos iniciais da classe adicionados; revise o inventário');
   }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível confirmar os equipamentos');}
