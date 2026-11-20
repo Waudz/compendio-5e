@@ -21,6 +21,7 @@ begin
   end if;
   if p_limit is null or p_limit < 1 or p_limit > 100 or
      p_offset is null or p_offset < 0 or
+     (p_query is not null and char_length(p_query)>200) or
      (p_kind is not null and p_kind not in ('creature','character','place','organization','knowledge')) then
     raise exception 'invalid_encyclopedia_query' using errcode='22023';
   end if;
@@ -34,9 +35,9 @@ begin
     and e.visibility in ('summary','full')
     and (p_kind is null or e.kind=p_kind)
     and (nullif(btrim(p_query),'') is null or
-      e.name ilike '%'||p_query||'%' or
-      e.summary ilike '%'||p_query||'%' or
-      (e.visibility='full' and e.public_description ilike '%'||p_query||'%'))
+      strpos(lower(e.name),lower(p_query))>0 or
+      strpos(lower(e.summary),lower(p_query))>0 or
+      (e.visibility='full' and strpos(lower(e.public_description),lower(p_query))>0))
   order by e.name,e.id
   limit p_limit offset p_offset;
 end $$;
@@ -49,7 +50,7 @@ grant execute on function public.encyclopedia_public_entries(uuid,integer,intege
 -- Revisar antes de executar:
 -- 1. SECURITY DEFINER só deve ser usado após auditoria do proprietário e das
 --    funções is_member; a função valida auth.uid() e nunca retorna notas/mecânicas.
--- 2. Busca usa ILIKE (não faz remoção de acentos); avaliar extensão unaccent
+-- 2. Busca usa strpos(lower(...)) para não interpretar %/_ como curingas; não remove acentos. Avaliar extensão unaccent
 --    somente após aprovação e testes de performance.
 -- 3. A resposta não inclui contagem total; eventual RPC de count deve aplicar
 --    os MESMOS filtros e permissões.
