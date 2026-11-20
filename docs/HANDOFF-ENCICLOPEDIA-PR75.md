@@ -108,3 +108,10 @@ RLS filtra linhas, não oculta colunas por si só. Não conceder SELECT da tabel
 - Ajustados privilégios do histórico: somente `SELECT, INSERT`, coerentes com a política append-only (antes havia GRANT excessivo sem políticas correspondentes).
 - Corrigidas observações de revisão: exclusão direta de entradas **já estava revogada**; UPDATE de `deleted_at/deleted_by` **já estava fora** das colunas concedidas. Faltam RPCs seguras para mover/restaurar e procedimento explícito para exclusão definitiva com retenção do histórico.
 - **Ainda é proposta, não migração.** Nenhuma tabela ou política foi aplicada ao Supabase.
+
+## Lixeira: RPCs transacionais propostas (20/11/2026)
+
+- Novo arquivo `docs/ENCICLOPEDIA-LIXEIRA-RPC-RASCUNHO.sql`, commit `9a5c8ff`: `public.encyclopedia_trash_entry(uuid)` e `public.encyclopedia_restore_entry(uuid)` como `SECURITY DEFINER`, `search_path=''`, acesso EXECUTE apenas para `authenticated`, verificação de `auth.uid()` e `public.is_master(campaign_id)` **na própria função**.
+- Usa `SELECT ... FOR UPDATE` para serializar transições e `UPDATE ... WHERE deleted_at IS [NOT] NULL` para evitar mudanças repetidas; grava autor/timestamp somente no servidor; restauração limpa ambos.
+- Operações retornam `false` para ausente/sem permissão/sem mudança, sem revelar existência do registro. **Não implementa exclusão definitiva** e não altera histórico.
+- **Não foi aplicado ao Supabase**. Antes de promover a migração: testar transações concorrentes e RLS com identidades reais isoladas; auditar owner e EXECUTE; decidir estratégia de histórico/auditoria das transições e Realtime. Lixeira sem expiração permanece decisão do usuário.
