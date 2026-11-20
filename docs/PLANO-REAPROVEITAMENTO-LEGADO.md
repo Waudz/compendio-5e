@@ -66,3 +66,7 @@ Implementados `createOfflineCatalogueSnapshot` e `readOfflineCatalogueSnapshot`,
 ## Pipeline de publicação local (20/11/2026)
 
 `buildApprovedSrd2014Snapshot` conecta aprovações editoriais ao importador e ao formato de snapshot offline. Rejeita lista vazia, aprovações inválidas, procedência divergente de `/api/2014`, duplicatas e mistura de licenças. Teste de integração percorre aprovação → importação → serialização → leitura → pesquisa do Compêndio, usando somente registros de teste. **Não houve download real, revisão de licença real nem publicação de conteúdo externo.** O próximo passo é uma ferramenta de coleta executável com timeout, limites e relatório de revisão.
+
+## Coleta manual executável (20/11/2026)
+
+Comando: `node scripts/collect-srd-2014.mjs classes` (ou `races`, `spells`, etc.). Salva JSON não aprovado em `.srd-2014-staging/` (ignorada pelo Git), com URL de procedência, data, alertas e hash SHA-256 impresso. Usa exclusivamente host oficial e caminhos `/api/2014`, limite de 1.500 registros, 12 segundos por requisição, resposta máxima de 2 MB e buscas sequenciais. Não importa ou publica os registros automaticamente. **O script foi implementado, mas não executado contra a API nesta rodada.**
