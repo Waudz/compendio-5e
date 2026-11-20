@@ -144,3 +144,82 @@ Bárbaro, Guerreiro, Monge e Ladino têm pelo menos uma entrada explícita em to
 ### Próxima rodada de conformidade
 
 Auditar por classe, começando por **Bárbaro e Bardo**, cada nível de 1 a 20, incluindo subclasses e escolhas. Em paralelo, iniciar raças base **Anão, Elfo, Halfling e Humano**, separando variantes. Depois revisar as origens individualmente, começando por **Acólito**, com vínculo para itens, quantidades e proficiências. Cada divergência normativa precisa de fonte identificada e teste específico.
+
+## Rodada 3 — comparação externa de Bárbaro e Bardo (regras de 2014)
+
+**Fontes de referência externas consultadas:** D&D Beyond, **Basic Rules (2014), Classes**, https://www.dndbeyond.com/sources/dnd/basic-rules-2014/classes ; Wizards of the Coast, **SRD 5.1**, https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf . **Não usar páginas de classe atuais de 2024 como fonte de progressão 2014**.
+
+### Bárbaro — tabela de níveis 1–20
+
+**Conferência concluída somente para a sequência de características nomeadas e três colunas numéricas da tabela**, comparando cada um dos 20 níveis do legado com a tabela de Bárbaro das Basic Rules (2014). Resultado: **20/20 níveis compatíveis** quanto a características nomeadas, quantidade de Fúrias, bônus de dano da Fúria e dados de Crítico Brutal. O valor interno `rageCount:9999` no nível 20 representa **ilimitado**, não 9.999 usos reais; o modelo novo deve usar `unlimited: true` ou equivalente.
+
+| Níveis | Características da classe (2014) |
+|---|---|
+| 1 | Fúria; Defesa sem Armadura |
+| 2 | Ataque Descuidado; Sentido de Perigo |
+| 3 | Caminho Primitivo |
+| 4 | Melhoria de Atributo |
+| 5 | Ataque Extra; Movimento Rápido |
+| 6 | Característica do Caminho |
+| 7 | Instinto Selvagem |
+| 8 | Melhoria de Atributo |
+| 9 | Crítico Brutal (1 dado) |
+| 10 | Característica do Caminho |
+| 11 | Fúria Implacável |
+| 12 | Melhoria de Atributo |
+| 13 | Crítico Brutal (2 dados) |
+| 14 | Característica do Caminho |
+| 15 | Fúria Persistente |
+| 16 | Melhoria de Atributo |
+| 17 | Crítico Brutal (3 dados) |
+| 18 | Força Indomável |
+| 19 | Melhoria de Atributo |
+| 20 | Campeão Primitivo; Fúria ilimitada |
+
+**Conferido no nível 1:** dado de vida d12, proficiências de armadura leve/média e escudos, armas simples/marciais, salvaguardas Força/Constituição, escolha de duas perícias dentre Adestrar Animais, Atletismo, Intimidação, Natureza, Percepção e Sobrevivência. Os campos `effects` e `hitDie` do JSON correspondem à fonte. **Equipamento:** `startingEquipment` fixa pacote de explorador e quatro azagaias; escolhas adicionais ficam em `startingChoices`, que exigem teste do fluxo completo de seleção.
+
+**Ainda não validado:** texto integral e condições de cada habilidade, duração/recarga de Fúria, modificadores na ficha, multiclasses, escolha de Caminho e suas opções internas, cálculo de PV, escolhas de equipamento e comportamento do motor em combate.
+
+### Bardo — tabela de níveis 1–20
+
+**Conferência concluída somente para a sequência de características nomeadas e escalonamento de dados**: os 20 níveis no legado correspondem à tabela das Basic Rules (2014) para características de classe, Inspiração de Bardo (d6 no 1, d8 no 5, d10 no 10, d12 no 15) e Canção do Descanso (d6 no 2, d8 no 9, d10 no 13, d12 no 17). Segredos Mágicos aparecem nos níveis 10, 14 e 18, com duas escolhas em cada etapa.
+
+| Níveis | Características da classe (2014) |
+|---|---|
+| 1 | Conjuração; Inspiração de Bardo (d6) |
+| 2 | Pau para Toda Obra; Canção do Descanso (d6) |
+| 3 | Especialização; Colégio de Bardo |
+| 4 | Melhoria de Atributo |
+| 5 | Inspiração (d8); Fonte de Inspiração |
+| 6 | Contrafeitiço; característica do Colégio |
+| 7 | Sem característica nova nomeada na tabela |
+| 8 | Melhoria de Atributo |
+| 9 | Canção do Descanso (d8) |
+| 10 | Especialização; Inspiração (d10); Segredos Mágicos |
+| 11 | Sem característica nova nomeada na tabela |
+| 12 | Melhoria de Atributo |
+| 13 | Canção do Descanso (d10) |
+| 14 | Segredos Mágicos; característica do Colégio |
+| 15 | Inspiração (d12) |
+| 16 | Melhoria de Atributo |
+| 17 | Canção do Descanso (d12) |
+| 18 | Segredos Mágicos |
+| 19 | Melhoria de Atributo |
+| 20 | Inspiração Superior |
+
+**Conferido no nível 1:** dado de vida d8, armadura leve, armas simples e armas especiais listadas na fonte, salvaguardas Destreza/Carisma, escolha de três perícias quaisquer e três instrumentos musicais. `effects` e `hitDie` conferem. Equipamento fixo `startingEquipment`: armadura de couro e adaga; escolhas adicionais em `startingChoices`.
+
+**Lacuna crítica ainda aberta para o criador:** comparar **todos os 20 níveis** de truques conhecidos, magias conhecidas e espaços de magia de cada círculo; verificar substituição de magias, escolhas de Segredos Mágicos, interação de Segredos Adicionais do Colégio do Conhecimento, uso/recarga da Inspiração, conjuração ritual, foco e escolhas de equipamento. Os níveis 7 e 11 não são “vazios”: a progressão de conjuração continua.
+
+### Critério obrigatório de aprovação para uso no criador
+
+Um registro só poderá receber estado **validado para criação de personagem** quando houver evidência de:
+1. **Cobertura:** opções e variantes da fonte selecionada inventariadas, sem opções silenciosamente ausentes;
+2. **Dados iniciais:** PV, proficiências, atributos, idiomas, equipamentos e alternativas;
+3. **Progressão:** todos os níveis 1–20, recursos escaláveis, conjuração, escolhas e pré-requisitos;
+4. **Subclasses:** nível de seleção, características por nível e escolhas internas;
+5. **Execução:** testes de criação, subida de nível, substituições, multiclasses e casos extremos;
+6. **Rastreabilidade:** fonte, edição, diferenças de suplementos/revisões e lacunas declaradas;
+7. **Regressão:** testes automáticos por nível e cenários de personagens, não apenas IDs existentes.
+
+**Estado após rodada 3:** Bárbaro e Bardo têm **tabelas de características parcialmente validadas**, **não** estão aprovados para o criador. Nenhuma raça, origem ou subclasse foi declarada 100% validada.
