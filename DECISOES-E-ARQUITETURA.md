@@ -1,6 +1,10 @@
 # COMPÊNDIO 5e 2.0 — DECISÕES, ARQUITETURA E ESTADO
 
-> Documento de referência para qualquer pessoa ou IA que trabalhe no projeto. Atualizar quando uma decisão mudar. Não confundir **decidido**, **planejado** e **implementado**: cada seção abaixo diz o que já existe no código. Roteiro, estado detalhado e pendências: `docs/PLANEJAMENTO-V2.md`. Última revisão: 20/11/2026.\n\n> **Novo desenvolvimento em PR #74 (não integrado):** criador/ficha/inventário em piloto isolado, decisões de ferramentas e estado detalhados em `docs/CRIADOR-FICHA-INVENTARIO.md`; auditoria em `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`. Não confundir com funcionalidade publicada.
+> Documento de referência para qualquer pessoa ou IA que trabalhe no projeto. Atualizar quando uma decisão mudar. Não confundir **decidido**, **planejado** e **implementado**: cada seção abaixo diz o que já existe no código. Roteiro, estado detalhado e pendências: `docs/PLANEJAMENTO-V2.md`. Última revisão: 20/11/2026.
+
+> **Retomada e registro de decisões:** [`docs/CONTINUIDADE-DESENVOLVIMENTO.md`](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Cada decisão nova ou substituída deve constar aqui com ID, situação, contexto, alternativas, impactos, implementação, testes e pendências; atualizar o índice no mesmo commit. Decisões antigas devem ser marcadas como substituídas, nunca apagadas silenciosamente.
+
+> **Novo desenvolvimento em PR #74 (não integrado):** criador/ficha/inventário em piloto isolado, decisões de ferramentas e estado detalhados em `docs/CRIADOR-FICHA-INVENTARIO.md`; auditoria em `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`. Não confundir com funcionalidade publicada.
 
 ## 1. Objetivo e princípios
 
@@ -171,3 +175,15 @@ Integrados: base React e workspace (PRs #1–#4); FlexLayout (#8); abas compacta
 **Integridade:** usar chaves estrangeiras/índices únicos no banco e resolver relações por IDs; preservar aliases/redirecionamentos quando slugs de URLs mudarem; proibir exclusão/reutilização de IDs referenciados sem política explícita; validar referências inexistentes, duplicações e mudanças de revisão. A API/UI não deve interpretar texto como identificador. Testar renomeações de cada tipo de conteúdo sem alterar relações existentes.
 
 **Implementação parcial no PR #74:** `ContentKind` agora inclui magias, itens, características, traços, efeitos e recursos; testes verificam estabilidade das referências sob renomeação. Ainda não foram implementados os IDs persistentes, constraints, aliases e instâncias de inventário na UI/banco. Sem merge/deploy/migração autorizados.
+
+
+## Decisão DEC-014 — continuidade documental obrigatória (20/11/2026)
+
+- **Situação:** aprovada como processo de desenvolvimento; documentação atualizada na branch do PR #74.
+- **Contexto:** conversas longas podem ser perdidas, enquanto arquivos históricos incluem decisões substituídas e protótipos não publicados.
+- **Decisão:** usar `docs/CONTINUIDADE-DESENVOLVIMENTO.md` como entrada e índice, mantendo este documento como registro normativo de decisões e os guias especializados como detalhes. Registrar cada nova decisão relevante com ID, motivação, alternativas, consequências, implementação, verificação e pendências no mesmo conjunto de commits do trabalho. Atualizar README e status correspondente.
+- **Alternativas:** concentrar todos os detalhes em um arquivo único foi descartado por duplicação e manutenção difícil; depender do chat foi descartado por fragilidade de continuidade.
+- **Consequências:** exige disciplina de documentação; evita perder contexto e declarar funcionalidades incompletas como prontas. Não altera regras, dados, permissões ou produção.
+- **Implementação:** guia central e links no README/documentos; PR #74.
+- **Verificação:** conferência dos arquivos enviados ao GitHub; não se aplica teste de lógica. CI do HEAD deve ser consultado.
+- **Pendências:** manter o registro vivo, reconciliar decisões históricas conforme cada módulo for desenvolvido e conferir periodicamente links e status.
