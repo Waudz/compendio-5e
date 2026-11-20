@@ -49,3 +49,8 @@ O módulo opera sobre dados em memória: não evita que um servidor envie dados 
 `src/rules/encyclopedia-narrative-service.ts` compõe criação oculta por padrão, revelação exclusiva do mestre, busca autorizada, lixeira e restauração em um único fluxo imutável. Uma entrada descoberta deixa de aparecer para jogadores quando vai à lixeira e, ao ser restaurada, preserva seu nível de descoberta anterior. Não é possível revelar registros ainda na lixeira. Quatro testes de integração **de domínio** cobrem fluxo completo e isolamento entre campanhas.
 
 **Limites:** não é API de rede, não é interface, não aplica RLS, não persiste dados nem realiza transações. Deve ser ligado a operações do banco somente após revisão da autorização server-side. Não incorporar este serviço diretamente como única barreira de acesso em componentes cliente.
+
+## Máquina de estados integrada
+`src/rules/encyclopedia-state.ts` organiza ações `create`, `discover`, `trash` e `restore` sobre uma coleção imutável. Rejeita mutações de jogadores, IDs duplicados, entradas ausentes e ações entre campanhas. Três testes cobrem fluxo completo, preservação de dados e erros sem alteração do estado original. O campo `actorUserId` usado em eventos de lixeira é apenas um dado do contrato de domínio: **na persistência, o servidor deve substituí-lo por `auth.uid()`**, jamais confiar no valor do cliente.
+
+A máquina de estados não é uma API de produção, nem substitui a transação, a autorização ou a persistência server-side. O projeto deve evitar baixar a coleção completa de registros secretos ao cliente para aplicar esses filtros.
