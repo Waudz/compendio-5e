@@ -382,3 +382,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 @media(prefers-reduced-motion:reduce){
   .mobile-simple .mobile-topbar,.mobile-simple .mobile-bottom-nav,.chrome-hidden .mobile-simple .mobile-topbar,.chrome-hidden .mobile-simple .mobile-bottom-nav{transition:none!important}
 }
+
+/* Subnavegação da ficha: toque nos nomes ou gesto horizontal no conteúdo. */
+.ficha-subnav{display:flex;gap:8px;margin:14px 0 18px;border-bottom:1px solid var(--line)}
+.ficha-subnav button{font:inherit;background:transparent;border:0;border-bottom:2px solid transparent;padding:10px 14px;color:var(--text-2);cursor:pointer}
+.ficha-subnav button.active{border-bottom-color:var(--accent);color:var(--text);font-weight:650}
+.ficha-inventario ul{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ficha-inventario li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+.ficha-inventario .row input{min-width:0;flex:1}
+@media(min-width:701px){.ficha-subnav{max-width:520px}}
