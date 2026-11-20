@@ -44,3 +44,8 @@ Seis testes de unidade adicionados, ainda dependentes de validação pelo GitHub
 `src/rules/encyclopedia-query.ts` filtra registros por campanha, participação, descoberta e lixeira **antes** de pesquisar, contar ou paginar. A busca textual ignora acentos e pesquisa somente campos autorizados para aquele leitor; não pesquisa notas secretas do mestre para jogadores. A paginação tem limites explícitos (1–100 registros por página). A lixeira só é consultável pelo mestre da própria campanha e mediante `includeTrash` explícito. Cinco testes adicionais verificam contagens, busca, paginação, isolamento e lixeira.
 
 O módulo opera sobre dados em memória: não evita que um servidor envie dados proibidos ao navegador antes da filtragem. **Em produção, filtrar e paginar no banco sob RLS**, incluindo políticas de contagem, busca, Realtime e armazenamento de imagens.
+
+## Serviço integrado de domínio
+`src/rules/encyclopedia-narrative-service.ts` compõe criação oculta por padrão, revelação exclusiva do mestre, busca autorizada, lixeira e restauração em um único fluxo imutável. Uma entrada descoberta deixa de aparecer para jogadores quando vai à lixeira e, ao ser restaurada, preserva seu nível de descoberta anterior. Não é possível revelar registros ainda na lixeira. Quatro testes de integração **de domínio** cobrem fluxo completo e isolamento entre campanhas.
+
+**Limites:** não é API de rede, não é interface, não aplica RLS, não persiste dados nem realiza transações. Deve ser ligado a operações do banco somente após revisão da autorização server-side. Não incorporar este serviço diretamente como única barreira de acesso em componentes cliente.
