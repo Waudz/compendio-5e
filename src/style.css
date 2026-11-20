@@ -522,3 +522,30 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .planejamento .planos-rolagem{flex:1 1 0}
   .planejamento .planos-lista-wrapper{margin-left:auto}
 }
+
+/* Correção definitiva do cabeçalho em grupos estreitos: sem guias parcialmente
+   visíveis nem barras horizontais; navegação das demais pelo menu •••. */
+@container (max-width: 680px){
+  .planejamento .planos{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;width:100%;min-width:0;overflow:visible}
+  .planejamento .planos-fixados,
+  .planejamento .planos-rolagem{display:contents}
+  .planejamento .planos .plano:not(.ativo):not(.mais){display:none}
+  .planejamento .planos .plano.ativo{
+    display:inline-flex;flex:0 1 auto;min-width:0;
+    max-width:calc(100cqw - 110px);overflow:hidden
+  }
+  .planejamento .planos .plano.ativo .plano-selecionar{
+    display:flex;min-width:0;max-width:none;flex:1 1 auto;overflow:hidden;
+    white-space:nowrap;text-overflow:ellipsis
+  }
+  .planejamento .planos .plano.ativo .plano-fixada-titulo{
+    min-width:0;max-width:none;overflow:hidden;text-overflow:ellipsis
+  }
+  .planejamento .planos-rolagem>.mais{position:static;flex:0 0 auto}
+  .planejamento .planos-lista-wrapper{margin-left:auto;flex:0 0 auto}
+}
+/* Em grupos médios, duas fixadas só aparecem quando há espaço suficiente
+   para não cortar a guia ativa ou os botões de navegação. */
+@container (min-width: 681px) and (max-width: 850px){
+  .planejamento .planos-fixados{max-width:35%;scrollbar-width:none}
+}
