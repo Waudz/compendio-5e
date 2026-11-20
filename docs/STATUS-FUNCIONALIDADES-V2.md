@@ -52,3 +52,7 @@ Criado `src/rules/catalogue-integrity.ts` com `auditCatalogueLinks`: analisa ví
 ## Restrições por campanha — contrato inicial (20/11/2026)
 
 Criado `src/rules/campaign-content-policy.ts` e testes. O mestre poderá definir `blocked` por `ContentRef` (raça, subraça, classe, subclasse, antecedente, talento, magia ou item). `campaignContentAvailability` devolve status sem remover o registro do Compêndio; `assertCharacterOptionsAllowed` rejeita seleções novas bloqueadas; `setCampaignContentBlocked` é imutável. Exemplo testado: Goblin indisponível na campanha A, disponível na B; renomear não muda a restrição. **Ainda é domínio puro, sem tela de configuração, persistência, RLS ou integração com o criador autenticado.** Personagens existentes não devem ser alterados retroativamente. Regras para revisão futura do mesmo conteúdo e exceções do mestre precisam ser especificadas antes da persistência.
+
+## Bloqueio de classe com motivo — 20/11/2026
+
+Adicionado motivo opcional de indisponibilidade por chave versionada, limite de 500 caracteres, remoção do motivo ao desbloquear e função de edição de política com verificação de campanha/mestre. Teste inclui **Artífice** de fonte suplementar fictícia e recusa edição por não mestre. Essa verificação em domínio é **apenas defesa adicional**: dados de papel informados pelo cliente não são confiáveis; API e RLS devem verificar o mestre autenticado antes de salvar. A configuração ainda não está no menu real nem é persistida.
