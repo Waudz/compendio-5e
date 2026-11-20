@@ -74,3 +74,73 @@ Para **cada registro**, preencher em rodada posterior: identificador; fonte e ed
 3. Revisar as 13 origens, uma a uma, incluindo equipamentos e quantidades.
 4. Registrar subclasses e opções ausentes, mantendo a diferença entre SRD, Livro do Jogador e suplementos.
 5. Só então preparar importadores e testes de integridade para o novo Compêndio.
+
+## Rodada 2 — integridade estrutural da progressão (verificada no código)
+
+**Método:** leitura e análise do JSON `dados/criacao-srd2014.json` do repositório legado; conferência cruzada dos IDs de `classes[].data.levels[].features` e `subclasses[].data.levels[].features` contra os IDs em `features[]`. Inspeção das subclasses adicionais em `js/subclasses-2014.js`. Isto é **auditoria de integridade interna**, não comparação normativa concluída com livros.
+
+### Resultado quantitativo
+
+| Indicador | Resultado |
+|---|---:|
+| Classes com tabela de exatamente 20 níveis | 12/12 |
+| Subclasses SRD com tabela própria de concessões | 12 |
+| Subclasses adicionais declaradas em JS | 8 |
+| Registros de características no JSON | 407 |
+| Referências de características inexistentes nas tabelas de classes e subclasses SRD | **0** |
+
+**Atenção:** “0 referências inexistentes” significa apenas que os IDs das tabelas apontam para registros presentes. Não garante que a habilidade seja concedida no nível correto, que as escolhas sejam válidas ou que o motor implemente seu efeito.
+
+### Matriz de níveis das subclasses SRD existentes
+
+| Classe — subclasse | Níveis com características declaradas |
+|---|---|
+| Bárbaro — Berserker | 3, 6, 10, 14 |
+| Bardo — Conhecimento | 3, 6, 14 |
+| Clérigo — Vida | 1, 2, 6, 8, 17 |
+| Druida — Terra | 2, 6, 10, 14 |
+| Guerreiro — Campeão | 3, 7, 10, 15, 18 |
+| Monge — Mão Espalmada | 3, 6, 11, 17 |
+| Paladino — Devoção | 3, 7, 15, 18, 20 |
+| Patrulheiro — Caçador | 3, 7, 11, 15 |
+| Ladino — Ladrão | 3, 9, 13, 17 |
+| Feiticeiro — Linhagem Dracônica | 1, 6, 14, 18 |
+| Bruxo — Corruptor | 1, 6, 10, 14 |
+| Mago — Evocação | 2, 6, 10, 14 |
+
+### Oito subclasses adicionais identificadas
+
+- Bardo — Colégio da Bravura
+- Druida — Círculo da Lua
+- Guerreiro — Mestre de Batalha; Cavaleiro Místico
+- Ladino — Assassino; Trapaceiro Arcano
+- Feiticeiro — Magia Selvagem
+- Bárbaro — Trilha do Guerreiro Totêmico
+
+**Pendente:** validar individualmente a progressão dessas oito subclasses, incluindo escolhas internas, limites de uso, magias, substituições e recursos escaláveis. As oito estão declaradas em código JS separado, não como registros `subclasses[]` do JSON de base; o novo modelo deve unificar essa representação sem perder a proveniência.
+
+### Níveis sem novas entradas explícitas de `features` nas classes
+
+| Classe | Níveis |
+|---|---|
+| Bardo | 7, 11 |
+| Clérigo | 13, 15 |
+| Druida | 3, 5, 7, 9, 11, 13, 15, 17 |
+| Paladino | 9, 13, 17 |
+| Patrulheiro | 9, 13, 17 |
+| Feiticeiro | 5, 7, 9, 11, 13, 15 |
+| Bruxo | 5, 7, 9, 18 |
+| Mago | 3, 5, 7, 9, 11, 13, 15, 17 |
+
+Bárbaro, Guerreiro, Monge e Ladino têm pelo menos uma entrada explícita em todos os níveis. **Não classificar níveis vazios como erros automaticamente:** evolução de conjuração, espaços, escolhas, progressão de recursos e características da subclasse podem existir em outros campos. Conferir cada nível na fonte correspondente.
+
+### Problemas de modelagem já demonstráveis
+
+1. A lista de raças em `js/regras.js` usa **resumos textuais** para traços, e não concessões normalizadas por nível. A futura criação de personagens precisa de escolhas, gatilhos de nível e referências a magias/habilidades.
+2. As origens em `js/origens.js` usam **nomes textuais de equipamentos** em `equip`, sem referências estáveis ao catálogo de itens. Conferir quantidades, variantes e se `ouro` representa moedas dentro da algibeira.
+3. Subclasses extras vivem em **estrutura separada** da base SRD. A migração deve preservar concessões por nível e opções internas, sem assumir equivalência de campos.
+4. A lista de raças mistura fontes e épocas de publicação; **não atribuir “2014” a todas** apenas porque o sistema segue regras 5e 2014.
+
+### Próxima rodada de conformidade
+
+Auditar por classe, começando por **Bárbaro e Bardo**, cada nível de 1 a 20, incluindo subclasses e escolhas. Em paralelo, iniciar raças base **Anão, Elfo, Halfling e Humano**, separando variantes. Depois revisar as origens individualmente, começando por **Acólito**, com vínculo para itens, quantidades e proficiências. Cada divergência normativa precisa de fonte identificada e teste específico.
