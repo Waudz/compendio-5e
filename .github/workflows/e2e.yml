@@ -1,0 +1,41 @@
+name: E2E e responsividade
+on:
+  pull_request:
+  push:
+    branches: [main, test/playwright-e2e]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+      - name: Instalar Chromium e dependências do sistema
+        run: npx playwright install --with-deps chromium
+      - name: Verificar tipos da infraestrutura E2E
+        run: npm run test:e2e:types
+      - name: Executar navegação e responsividade sem serviços externos
+        run: npm run test:e2e
+      - name: Guardar relatório, capturas e traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

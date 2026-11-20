@@ -36,3 +36,62 @@ npm run dev
 ```
 
 Abra `http://localhost:5173/compendio-5e/?demo=mestre` (ou `?demo=jogador`). Os dados ficam no localStorage do navegador e são compartilhados entre os dois papéis: publique um registro como mestre e confira como jogador. O modo existe só no `npm run dev` e não entra no build de produção. Ele não usa Supabase; a persistência real do Diário, do Planejamento e da capa depende da migração proposta em `docs/propostas/0006_registros_meta.sql` (e da 0005), ainda não aplicada.
+
+
+## Testes end-to-end e responsividade (Playwright)
+
+```bash
+npm ci
+npx playwright install chromium          # Linux/CI: acrescentar --with-deps
+npm run test:e2e:types                   # tipos da configuração, fixtures e testes
+npm run test:e2e                         # todos os projetos; inicia/encerra o Vite
+npm run test:e2e -- --project=celular     # apenas 390 × 844 px
+npm run test:e2e -- --project=desktop --headed
+npm run test:e2e:ui                      # depuração interativa
+npm run test:e2e:report                  # abre o relatório da última execução
+```
+
+Não precisa de `.env.local`, credenciais nem de um projeto Supabase. A configuração reserva
+`http://127.0.0.1:4187/compendio-5e/`, recusa reutilizar servidores existentes e sobrescreve
+as variáveis Supabase com valores vazios. Se a porta estiver ocupada, encerre apenas o seu
+servidor de teste ou escolha outra porta em `e2e/environment.ts` (a configuração a reutiliza).
+Não aponte esses testes para produção.
+
+Os cenários usam o modo de demonstração **já existente**, com dados sintéticos e contexto
+novo a cada teste. A fixture bloqueia requisições HTTP/WebSocket para outras origens, bloqueia
+service workers e falha se detectar tentativa de saída ou exceção não tratada. Não carregar
+`storageState` de usuários reais, não usar `APIRequestContext` para contornar essa proteção e
+não colocar tokens ou segredos nas fixtures. Os testes não publicam nem alteram o banco.
+
+A matriz Chromium contém desktop 1440 × 900 e 1024 × 768, celulares emulados 390 × 844 e
+320 × 740, além da transição 700/701 px. Cobre carregamento/recarregamento, recusa de ambiente
+sem configuração, navegação mestre/jogador, campanha → Diário → Conta → campanha,
+limites horizontais, acesso aos menus e capturas de início/Diário. A Iniciativa da `main`
+ainda é um placeholder: o teste confirma essa limitação, não simula combate funcionando.
+
+`playwright-report/` contém o HTML com capturas anexadas, inclusive em testes aprovados.
+`test-results/` guarda screenshot, vídeo e trace em falhas; os dois diretórios são ignorados
+pelo Git. O CI independente **E2E e responsividade** publica os artefatos por sete dias,
+sem segredos, deploy ou merge automático. Vitest continua separado e exclui `e2e/**`.
+
+### Limitações
+
+- Demonstração em Vite dev não valida o build publicado nem login/recuperação reais, RLS,
+  Storage, Realtime, concorrência ou isolamento de dados de produção. Os testes existentes
+  de PGlite/Vitest continuam necessários; execute também `npm run build` e `npm test`.
+- Não cobre funcionalidades dos PRs #74/#75 ainda ausentes da `main`, nem criador, ficha,
+  inventário, Compêndio ou permissões da Enciclopédia. Não usar resultado verde como aprovação
+  desses fluxos. Nenhum módulo de domínio foi alterado para os testes.
+- Emulação Chromium não equivale a Android/iPhone físico, Safari/WebKit ou Firefox. Capturas
+  são evidência para revisão, sem comparação pixel a pixel; não garantem ausência de todos
+  os cortes/overflows internos. Divisões 50/50 e 30/70, arraste de abas e editor rico ficam
+  para uma ampliação específica da suíte.
+- Sem esperas fixas ou retries automáticos para esconder falhas: os testes aguardam condições
+  observáveis com assertions do Playwright e usam nomes acessíveis. Mudanças reais de UX ou
+  nos dados de demonstração podem exigir atualizar o contrato testado.
+- Em Windows com sandbox restringindo a leitura dos diretórios pais, o esbuild pode falhar
+  antes de abrir o Vite (`Cannot read directory ...: Acesso negado`). Não é uma aprovação dos
+  E2E: execute em ambiente com a leitura necessária ou no CI Linux. Para build/Vitest nesse
+  ambiente, `npm run build -- --configLoader runner` e
+  `npm test -- --configLoader runner --maxWorkers=2` evitam o empacotamento da configuração;
+  isso não elimina a restrição do otimizador de dependências do Vite dev.
