@@ -29,3 +29,8 @@ Seis testes de unidade adicionados, ainda dependentes de validação pelo GitHub
 
 ## Controle explícito de descoberta
 `src/rules/encyclopedia-discovery.ts` cria cada entrada oculta por padrão e define transições explícitas `hidden → summary → full` (e retorno para oculto). Apenas o mestre da mesma campanha pode solicitar a transição no contrato de domínio; jogadores e mestres de outras campanhas são recusados. A implementação é imutável e não dispara descoberta automaticamente ao iniciar combate, vincular criatura ou criar ficha. Quatro testes de unidade adicionais cobrem os estados e a autorização. Antes da produção, a autorização precisa ser recalculada no servidor com `auth.uid()`, RLS e auditoria das mudanças.
+
+## Ciclo narrativo de personagens
+`src/rules/character-narrative-lifecycle.ts` registra status narrativo `active | dead | retired | inactive` e mudanças de controlador com eventos identificados. Uma mudança de status não apaga personagem, ficha, inventário ou histórico. Desvincular o controlador preserva a identidade do personagem na campanha e permite atribuição posterior. Alterações são imutáveis, com proteção contra IDs duplicados de eventos; operações sem mudança não geram eventos adicionais.
+
+**Escopo:** modelo puro de domínio; não determina quem tem permissão para editar a ficha, não altera dados privados, não implementa lixeira, não persiste eventos e não define quem pode mudar o status. Essas operações deverão passar por autorização e transações atômicas no servidor. O estado narrativo não modifica automaticamente a descoberta pública.
