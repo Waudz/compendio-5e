@@ -4,6 +4,7 @@ import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter
 import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
 import {pilotRefs,pilotRules} from './pilot-rules';
+import {ABILITY_ORDER,POINT_BUY_BUDGET,pointBuySpent,validatePointBuy,isStandardArray} from '../rules/ability-generation-2014';
 const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},fighter2014Advancements);
 const KEY='compendio5e:dev:character-pilot:fighter-srd51-v2';
 const STORAGE_SCHEMA=2;
@@ -47,10 +48,20 @@ function restore():CharacterDraft {
 export default function CharacterPilot(){
  const [draft,setDraft]=useState<CharacterDraft>(restore);
  const [message,setMessage]=useState('');
+ const [abilityMethod,setAbilityMethod]=useState<'point-buy'|'standard-array'>('point-buy');
+ const [abilityError,setAbilityError]=useState('');
  let sheet:ReturnType<typeof createCharacterSheet>|null=null;
  let error='';
  try {sheet=createCharacterSheet(draft,catalog);}catch(e){error=e instanceof Error?e.message:String(e);}
  const change=(next:CharacterDraft)=>{setDraft(next);setMessage('Alterações não salvas');};
+ const changeAbility=(ability:typeof ABILITY_ORDER[number],score:number)=>{
+  const next={...draft.baseAbilities,[ability]:score};
+  try {if(abilityMethod==='point-buy')validatePointBuy(next);else if(!isStandardArray(next)){
+    setAbilityError('Na matriz padrão, troque a posição de dois valores para preservar os seis resultados.');return;
+   }
+   setAbilityError('');change({...draft,baseAbilities:next,currentHp:Math.min(draft.currentHp,10+Math.floor((next.con-10)/2)+2)});
+  }catch(e){setAbilityError(e instanceof Error?e.message:String(e));}
+ };
  const save=()=>{
   if(!sheet || !draft.name.trim()){setMessage('Informe o nome e corrija os erros antes de salvar');return;}
   try{const record:SavedPilot={schemaVersion:STORAGE_SCHEMA,draft};
@@ -64,6 +75,22 @@ export default function CharacterPilot(){
   <label>Nome do personagem <input aria-label="Nome do personagem" value={draft.name}
    onChange={e=>change({...draft,name:e.target.value})}/></label>
   <p>Raça: Anão · Antecedente: Acólito · Classe: Guerreiro (referências versionadas)</p>
+  <fieldset><legend>Atributos-base (antes dos bônus raciais)</legend>
+   <label>Método <select aria-label="Método de atributos" value={abilityMethod} onChange={e=>{
+    const method=e.target.value as 'point-buy'|'standard-array';setAbilityMethod(method);setAbilityError('');
+    const baseAbilities=method==='standard-array'?{str:15,dex:14,con:13,int:12,wis:10,cha:8}:{str:15,dex:12,con:14,int:10,wis:12,cha:8};
+    change({...draft,baseAbilities,currentHp:10+Math.floor((baseAbilities.con+2-10)/2)});
+   }}><option value="point-buy">Compra de pontos (27)</option><option value="standard-array">Matriz padrão</option></select></label>
+   {abilityMethod==='point-buy'&&<p role="status">Pontos gastos: {pointBuySpent(draft.baseAbilities)} / {POINT_BUY_BUDGET}</p>}
+   {ABILITY_ORDER.map(ability=><label key={ability} style={{display:'inline-block',marginRight:12}}>{ability.toUpperCase()} <select aria-label={'Atributo '+ability} value={draft.baseAbilities[ability]}
+    onChange={e=>{const score=Number(e.target.value);if(abilityMethod==='standard-array'){
+     const other=ABILITY_ORDER.find(key=>key!==ability&&draft.baseAbilities[key]===score);
+     if(other)change({...draft,baseAbilities:{...draft.baseAbilities,[ability]:score,[other]:draft.baseAbilities[ability]}});
+    }else changeAbility(ability,score);}}>
+    {(abilityMethod==='standard-array'?[...new Set([15,14,13,12,10,8])]:[8,9,10,11,12,13,14,15]).map(score=><option key={score} value={score}>{score}</option>)}
+   </select></label>)}
+   {abilityError&&<p role="alert">{abilityError}</p>}
+  </fieldset>
   <label>Nível <select aria-label="Nível" value={draft.level} onChange={e=>change({...draft,level:Number(e.target.value)})}>
    {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n}</option>)}
   </select></label>
