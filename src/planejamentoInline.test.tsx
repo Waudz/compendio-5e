@@ -140,7 +140,7 @@ describe("cartão simplificado: texto no cartão, salvamento automático", () =>
     fireEvent.click(screen.getByRole("button", { name: "Excluir cartão Julkoun" }));
     await waitFor(() => expect(registros.dados.some(r => r.id === "s1")).toBe(false));
   });
-  it("o título é editado no cabeçalho do cartão e Enter confirma; título vazio volta ao anterior", async () => {
+  it("o título é editado no cabeçalho e pode ser removido sem apagar o cartão", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     const t = await screen.findByLabelText("Título do cartão Julkoun") as HTMLInputElement;
@@ -148,8 +148,8 @@ describe("cartão simplificado: texto no cartão, salvamento automático", () =>
     await waitFor(() => expect(cenaDe(registros, "s1").title).toBe("Julkoun (vila)"));
     const t2 = await screen.findByLabelText("Título do cartão Julkoun (vila)") as HTMLInputElement;
     fireEvent.change(t2, { target: { value: "  " } }); fireEvent.blur(t2);
-    await waitFor(() => expect((screen.getByLabelText("Título do cartão Julkoun (vila)") as HTMLInputElement).value).toBe("Julkoun (vila)"));
-    expect(cenaDe(registros, "s1").title).toBe("Julkoun (vila)");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Adicionar título ao cartão" })).toBeTruthy());
+    expect(cenaDe(registros, "s1").title).toBe("Novo cartão");
   });
   it("celular: o mesmo cartão, com o botão '⋯' como alternativa ao botão direito", async () => {
     mobile = true;
