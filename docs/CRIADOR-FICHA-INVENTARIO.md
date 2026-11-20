@@ -115,3 +115,16 @@ Para cada nova regra: **fonte e licença → exemplo normativo independente → 
 **Atenção:** esse avaliador **ainda não está ligado** a `character-domain.ts` nem à interface. Não adicionar `Advancement.grants` ao `ClassDefinition.levels.grants` sem prevenir dupla concessão. ASI 2014 permite +2 em um atributo **ou** +1 em dois diferentes; fixture atual modela só um exemplo, e deve ser expandida. Seleções de classe devem ser revalidadas quando raça/classe/nível mudar; decisões futuras podem ser armazenadas, mas não aplicadas prematuramente. O próximo trabalho é integrar o avaliador à ficha de forma sem duplicação, com testes e fonte normativa.
 
 **Próxima validação:** confirmar CI do novo commit `9dd33b1` ou posterior; corrigir falhas antes de expandir. Atualizar este registro com o resultado.
+
+## Rodada — integração experimental da progressão à ficha (20/11/2026)
+
+**Pré-condição verificada:** PR #74 aberto; run [44767937231](https://github.com/Waudz/compendio-5e/actions/runs/44767937231) concluído com **success** no commit `9b2bcb82f2b56ceb2af9282f48316941b39d419e`. Esse resultado **não** cobre os commits desta rodada.
+
+**Alterações:**
+- `src/rules/character-domain.ts`: `CharacterCatalog.advancements?` associa progressões por classe. `createCharacterSheet` passa a chamar `evaluateAdvancements`, integrar concessões de escolhas de classe por nível aos atributos/características/proveniência e agregar pendências. IDs de decisões de classe deixam de ser tratados como desconhecidos. A interface pública do rascunho é mantida.
+- `src/rules/character-domain.test.ts`: regressão da seleção de subclasse no nível 3 e ASI no nível 4, com ficha reconstruída, inventário preservado, escolhas inválidas e pendências.
+- Nenhuma dependência instalada, nenhuma migração ou alteração de Supabase, nenhum merge/deploy.
+
+**Limites e cuidado:** `advancements` é opcional e **experimental**; não representa catálogo SRD completo. Concessões fixas de classe que já estejam em `ClassDefinition.levels[].grants` **não devem** ser repetidas em `advancements[].grants`; o contrato definitivo precisará consolidar uma única fonte por característica. Ainda não há efeitos, magias, inventário inicial completo, ASI de +1/+1, multiclasse ou integração visual. Os testes são fixtures de contrato, não homologação da classe.
+
+**Próximo passo:** confirmar CI do commit `efe9df0` ou posterior, corrigir qualquer erro, depois validar invariantes de progressão (opções, IDs, concessões duplicadas e edição de nível), refatorar a dupla representação de concessões e avançar com catálogo 2014 auditado. Atualizar SHA/run após verificação.
