@@ -371,3 +371,37 @@ Os arquivos do legado distinguem itens fixos em `startingEquipment` e alternativ
 - Regra de Fúria de 2014 não recebe alterações da versão 2024.
 
 **Próxima implementação prioritária:** adicionar testes de contrato que inicialmente falham para esses casos, modelar efeitos condicionais e estado temporário separadamente, e só depois migrar o registro de Berserker. Não usar descrições textuais como código.
+
+## Rodada 7 — varredura combinatória de dados (executada, não é teste do criador)
+
+**Execução:** análise programática em memória de `dados/criacao-srd2014.json` e da lista `RACAS` de `js/regras.js`, ambos lidos diretamente do repositório legado.
+
+**Universo:** 38 entradas raciais × 12 classes × 20 níveis = **9.120 combinações estruturais**. Para cada combinação, verificado que `classes[].data.levels[n-1].level === n` e que os IDs das características do nível estão em `features[]`. Conferidas também as referências das 12 subclasses SRD.
+
+| Métrica | Resultado |
+|---|---:|
+| Raças/variantes extraídas da lista RACAS | 38 |
+| Classes | 12 |
+| Níveis por classe | 20 |
+| Combinações percorridas | **9.120** |
+| Divergências de índice/nível | **0** |
+| Referências órfãs de características nessas combinações | **0** |
+| Referências órfãs de características nas subclasses SRD | **0** |
+
+**Limitação fundamental:** este teste **não instancia fichas**, não executa `CRIADOR.iniciar`, não percorre escolhas raciais, equipamentos, subclasses, magias ou origens, não sobe de nível com o motor e não testa efeitos. Como os níveis de cada classe são repetidos para cada raça, a varredura comprova integridade estrutural, **não** 9.120 validações independentes das regras.
+
+**Origens:** a lista do legado tem 13 predefinidas e uma personalizada, mas **não foram combinadas** nesta execução. Não confundir com teste completo de raça × origem × classe × subclasse × escolhas.
+
+### Próximo teste obrigatório: criação real, não somente cobertura de dados
+
+Implementar testes automatizados de cenário que:
+1. instanciem cada raça × classe × origem predefinida, com escolhas iniciais válidas e equipamento;
+2. evoluam cada ficha de 1 a 20 com decisões de subclasse, ASI/talento, perícias, magias e equipamentos;
+3. confiram direitos concedidos e recursos derivados após **cada nível**, incluindo reavaliação de escolhas;
+4. verifiquem que nenhuma escolha obrigatória ficou silenciosamente sem preenchimento;
+5. testem persistência, exportação/importação, edição de nível anterior, multiclasses e regressões;
+6. comparem resultados com **oráculos independentes** derivados das fontes oficiais, não somente com o mesmo JSON do motor.
+
+**Atenção à explosão combinatória:** 38 × 12 × 13 × 20 = **118.560** combinações de raça/classe/origem/nível **antes** de subclasses e escolhas. Não executar todas as combinações de magias, itens e talentos por força bruta. Usar testes exaustivos de concessões por opção, pares de combinações, cenários de risco e propriedades/invariantes.
+
+**Estado:** teste estrutural executado; criação real pendente; nenhuma opção certificada para o criador.
