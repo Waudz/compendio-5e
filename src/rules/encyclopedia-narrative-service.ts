@@ -25,13 +25,13 @@ export function trashEncyclopediaNarrativeEntry(
  entry:EncyclopediaIndexedEntry,actor:EncyclopediaActor,actorUserId:string,at:string
 ):EncyclopediaIndexedEntry{
  assertMaster(actor,entry);
- return moveNarrativeToTrash(entry,actorUserId,at);
+ return {...entry,...moveNarrativeToTrash(entry,actorUserId,at)};
 }
 export function restoreEncyclopediaNarrativeEntry(
  entry:EncyclopediaIndexedEntry,actor:EncyclopediaActor
 ):EncyclopediaIndexedEntry{
  assertMaster(actor,entry);
- return restoreNarrativeFromTrash(entry);
+ return {...entry,...restoreNarrativeFromTrash(entry)};
 }
 function assertMaster(actor:EncyclopediaActor,entry:EncyclopediaIndexedEntry):void{
  if(!actor.isActiveMember||actor.role!=='master'||actor.campaignId!==entry.campaignId)
