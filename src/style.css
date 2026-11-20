@@ -426,3 +426,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .plano-contexto button:disabled{opacity:.4;cursor:default}
 .planos-fechar-menu{position:fixed;inset:0;z-index:100;background:transparent;border:0;cursor:default}
 @media(max-width:700px){.planos{overflow:visible;max-width:100%;padding-bottom:5px}.planos-fixados{max-width:36%}.planos-rolagem{overflow-x:auto}.plano-contexto{position:fixed;left:12px;right:12px;top:auto;bottom:75px;z-index:150}}
+
+/* Identificação legível das fixadas, sem dois alfinetes indistinguíveis. */
+.planos .plano.compacta .plano-selecionar{gap:6px;max-width:170px}
+.plano-fixada-titulo{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:700px){.planos .plano.compacta .plano-selecionar{max-width:110px}.planos-fixados{max-width:48%}}
+/* Mesma linguagem visual dos botões Nova seção / Nova coluna. */
+.mais-cartao{display:flex;width:100%;align-items:center;justify-content:center;gap:7px;border:1px dashed var(--line);border-radius:8px;background:transparent;color:var(--text-2);padding:9px;cursor:pointer;font:inherit;font-size:13px}
+.mais-cartao:hover:not(:disabled){border-color:var(--accent);color:var(--text);background:var(--hover)}
+.mais-cartao:disabled{opacity:.5;cursor:wait}
