@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {adventuringPacks2014,expandEquipmentBundle,fighterStartingEquipment2014} from './starting-equipment-2014';
+import {adventuringPacks2014,expandEquipmentBundle,resolvePackItems,fighterStartingEquipment2014} from './starting-equipment-2014';
 describe('2014 adventuring pack recipes',()=>{
  it('expands explorer pack to eight separate item references with correct quantities',()=>{
   const components=expandEquipmentBundle(adventuringPacks2014.explorer);
@@ -18,6 +18,12 @@ describe('2014 adventuring pack recipes',()=>{
   const components=expandEquipmentBundle(adventuringPacks2014.explorer);
   components[0].quantity=99;
   expect(adventuringPacks2014.explorer.components[0].quantity).toBe(1);
+ });
+ it('refuses to grant packs with items absent from the shared catalogue',()=>{
+  const ids=new Set(adventuringPacks2014.explorer.components.map(item=>item.itemId));
+  expect(resolvePackItems(adventuringPacks2014.explorer,ids)).toHaveLength(8);
+  ids.delete('torch');
+  expect(()=>resolvePackItems(adventuringPacks2014.explorer,ids)).toThrow('Unknown catalogue item: torch');
  });
  it('provides all four Fighter equipment choice groups',()=>{
   expect(Object.values(fighterStartingEquipment2014).every(x=>x.length===2)).toBe(true);
