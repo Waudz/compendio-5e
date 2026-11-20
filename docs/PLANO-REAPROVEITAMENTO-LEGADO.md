@@ -78,3 +78,7 @@ Adicionado workflow `.github/workflows/collect-srd-2014.yml` com acionamento **m
 ## Ponte segura para classes reais (20/11/2026)
 
 Adicionado `srd2014ClassPreview` com testes: converte um registro staged da API de classes em visualização de ID, nome e dado de vida, preservando origem. Define explicitamente `canCreateCharacter: false`, pois o endpoint de classe sozinho não contém progressão completa de 20 níveis, escolhas e concessões revisadas exigidas pelo `buildPilotCharacterCatalog`. Isso evita substituir o piloto por dados incompletos e fabricar características de classe. A integração de níveis e características permanece pendente.
+
+## Progressão de classe: estágio de 20 níveis (20/11/2026)
+
+`src/rules/srd-2014-class-level-staging.ts` recebe a lista de níveis de `/api/2014/classes/{id}/levels`, valida os 20 níveis por `indexSrd2014ClassLevels` e produz um registro não aprovado com bônus de proficiência, total de melhorias de atributo e IDs de características. O retorno mantém `reviewed: false` e pendências explícitas de efeitos, escolhas e revisão. Há testes com progressão ilustrativa de Guerreiro e entradas inválidas. **Nenhuma progressão real foi coletada nesta rodada e nenhuma classe foi liberada para criação.** O README agora distingue claramente pilotos locais, funcionalidades em desenvolvimento e site publicado.
