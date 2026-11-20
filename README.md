@@ -15,16 +15,23 @@ npm test          # vitest run (inclui os testes de RLS em Postgres em memória)
 
 Configuração (sem ela o aplicativo não abre, pois exige login): copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (chave **pública**). Nunca use a `service_role` nem a `sb_secret_` no frontend.
 
+## Retomada do projeto em uma nova conversa
+
+**Comece por [`docs/CONTINUIDADE-DESENVOLVIMENTO.md`](docs/CONTINUIDADE-DESENVOLVIMENTO.md).** É o índice central de decisões vigentes, referências externas, limites de implementação, estado de PR/CI e roteiro para continuar sem o histórico do ChatGPT. Antes de qualquer tarefa, confira o HEAD do PR, leia a fonte normativa indicada e não confunda demo, código em branch e produção. **Cada decisão de arquitetura, regras, UX, segurança, persistência ou prioridade deve ser registrada no mesmo conjunto de commits, com contexto, alternativas, consequências, verificação e pendências.** Não realizar merge, deploy ou migrações sem autorização explícita.
+
 ## Documentação
 
 | Arquivo | Para quê |
 |---|---|
+| `docs/CONTINUIDADE-DESENVOLVIMENTO.md` | **Comece aqui**: protocolo de retomada, índice de decisões e referências, hierarquia documental e próximos passos. |
 | `DECISOES-E-ARQUITETURA.md` | Regras do projeto, arquitetura vigente e estado real de cada parte. **Ler primeiro.** |
 | `docs/PLANEJAMENTO-V2.md` | **Documento principal**: estado, arquitetura, roteiro, pendências e decisões consolidadas de múltiplos chats (atualização de 20/11/2026). **Consultar antes de desenvolver.** |
 | `docs/NAVEGACAO-ABAS.md` | Navegação por abas, fixação, divisão de painéis e proteção de alterações (implementado). |
 | `docs/NOTAS-PERMISSOES.md` | Notas: regras de visibilidade e RLS (`0004`, aplicada), revisão de segurança e evolução planejada. |
 | `docs/CRIADOR-FICHA-INVENTARIO.md` | **Memória do desenvolvimento** do criador, ficha e inventário: ferramentas, arquitetura, código piloto, testes e pendências. |
 | `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md` | Auditoria de regras 2014, lacunas e critérios de certificação. |
+| `docs/STATUS-FUNCIONALIDADES-V2.md` | Estimativas e lacunas por módulo; **não** são percentuais medidos. |
+| `docs/PLANO-REAPROVEITAMENTO-LEGADO.md` | Inventário do 1.0, fontes SRD, estratégia de migração e limites de licença. |
 | `docs/FUNDACAO-REGISTROS.md` | Contratos de registros/links/versões e critérios de segurança. |
 
 Migrações SQL versionadas ficam em `supabase/migrations` (reversões em `supabase/rollback`). Mudar o banco exige autorização explícita; nada é aplicado automaticamente.
