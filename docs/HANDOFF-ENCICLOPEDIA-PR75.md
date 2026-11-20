@@ -101,3 +101,10 @@ RLS filtra linhas, não oculta colunas por si só. Não conceder SELECT da tabel
 
 - GitHub Actions `Validar projeto` do commit `35aaab4b8dc16d306e0d8e56e21dda02b6adcb19`: execução `44823857671`, **concluída com sucesso** em 20/11/2026.
 - Este resultado valida o código existente na branch naquele commit; **não** atesta uma migração Supabase nem integração à UI.
+
+## Revisão de retenção e permissões do SQL (20/11/2026)
+
+- Commit `d761eef`: no **rascunho** `docs/ENCICLOPEDIA-SQL-RASCUNHO.sql`, FKs de campanhas, detalhes e histórico passaram de `ON DELETE CASCADE` para `ON DELETE RESTRICT`, impedindo exclusões implícitas que contradizem a lixeira sem prazo.
+- Ajustados privilégios do histórico: somente `SELECT, INSERT`, coerentes com a política append-only (antes havia GRANT excessivo sem políticas correspondentes).
+- Corrigidas observações de revisão: exclusão direta de entradas **já estava revogada**; UPDATE de `deleted_at/deleted_by` **já estava fora** das colunas concedidas. Faltam RPCs seguras para mover/restaurar e procedimento explícito para exclusão definitiva com retenção do histórico.
+- **Ainda é proposta, não migração.** Nenhuma tabela ou política foi aplicada ao Supabase.
