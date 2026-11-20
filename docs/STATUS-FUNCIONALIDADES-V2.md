@@ -56,3 +56,7 @@ Criado `src/rules/campaign-content-policy.ts` e testes. O mestre poderá definir
 ## Bloqueio de classe com motivo — 20/11/2026
 
 Adicionado motivo opcional de indisponibilidade por chave versionada, limite de 500 caracteres, remoção do motivo ao desbloquear e função de edição de política com verificação de campanha/mestre. Teste inclui **Artífice** de fonte suplementar fictícia e recusa edição por não mestre. Essa verificação em domínio é **apenas defesa adicional**: dados de papel informados pelo cliente não são confiáveis; API e RLS devem verificar o mestre autenticado antes de salvar. A configuração ainda não está no menu real nem é persistida.
+
+## Pesquisa indexada do Compêndio — 20/11/2026
+
+`searchCompendium` agora valida e monta um índice de descrições, nomes normalizados e fontes **uma vez por objeto de catálogo**, via `WeakMap`; consultas posteriores fazem apenas filtro linear e retornam cópias rasas das linhas. Evita validação repetida e buscas quadráticas ao digitar. O catálogo deve ser tratado como **imutável**: qualquer alteração deve criar novo objeto de catálogo (e, preferencialmente, novas coleções internas). Testes incluem filtros, acentos, renomeação e isolamento do resultado. Não significa importação de conteúdo SRD real nem interface de produção concluída.
