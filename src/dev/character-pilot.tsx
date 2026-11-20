@@ -4,7 +4,7 @@ import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter
 import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
 import {pilotRefs,pilotRules} from './pilot-rules';
-import {adventuringPacks2014,resolvePackItems} from '../rules/starting-equipment-2014';
+import {fighterEquipmentOptions2014} from '../rules/starting-equipment-2014';
 import {applyStartingEquipmentSelection} from '../rules/starting-equipment-selection';
 import {ABILITY_ORDER,POINT_BUY_BUDGET,pointBuySpent,validatePointBuy,isStandardArray} from '../rules/ability-generation-2014';
 const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},fighter2014Advancements);
@@ -52,7 +52,7 @@ export default function CharacterPilot(){
  const [message,setMessage]=useState('');
  const [abilityMethod,setAbilityMethod]=useState<'point-buy'|'standard-array'>(()=>isStandardArray(draft.baseAbilities)?'standard-array':'point-buy');
  const [abilityError,setAbilityError]=useState('');
- const [packChoice,setPackChoice]=useState('explorer');
+ const [equipmentChoices,setEquipmentChoices]=useState<Record<string,string>>({armor:'chain-mail',weapons:'longsword-shield',ranged:'crossbow',pack:'explorer'});
  let sheet:ReturnType<typeof createCharacterSheet>|null=null;
  let error='';
  try {sheet=createCharacterSheet(draft,catalog);}catch(e){error=e instanceof Error?e.message:String(e);}
@@ -65,15 +65,17 @@ export default function CharacterPilot(){
    setAbilityError('');change({...draft,baseAbilities:next,currentHp:Math.min(draft.currentHp,10+Math.floor((next.con+2-10)/2))});
   }catch(e){setAbilityError(e instanceof Error?e.message:String(e));}
  };
- const addPack=(packId:string)=>{
-  const bundle=adventuringPacks2014[packId];
-  if(!bundle){setMessage('Pacote desconhecido');return;}
+ const confirmEquipment=()=>{
   try{
    const known=new Set(pilotRules.registry.entries.filter(entry=>entry.ref.kind==='item').map(entry=>entry.ref.id));
-   const components=resolvePackItems(bundle,known);
-   const next=applyStartingEquipmentSelection(draft,{sourceId:'fighter-pack',optionId:packId,components},known);
-   change(next);setMessage('Equipamentos iniciais vinculados à escolha da classe; revise antes de salvar');
-  }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível adicionar o pacote');}
+   let next=draft;
+   for(const [group,options] of Object.entries(fighterEquipmentOptions2014)){
+    const option=options.find(item=>item.id===equipmentChoices[group]);
+    if(!option)throw Error('Selecione equipamento: '+group);
+    next=applyStartingEquipmentSelection(next,{sourceId:'fighter-'+group,optionId:option.id,components:option.components},known);
+   }
+   change(next);setMessage('Equipamentos iniciais da classe adicionados; revise o inventário');
+  }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível confirmar os equipamentos');}
  };
  const save=()=>{
   if(!sheet || !draft.name.trim()){setMessage('Informe o nome e corrija os erros antes de salvar');return;}
@@ -137,11 +139,18 @@ export default function CharacterPilot(){
    <p>Escolhas pendentes: {sheet.pending.length?sheet.pending.join(', '):'nenhuma'}</p>
    <p role="note">{!draft.name.trim() || sheet.pending.length?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
    <h2>Equipamentos iniciais — Guerreiro</h2>
-   <label>Pacote de aventureiro <select aria-label="Pacote de aventureiro" value={packChoice} onChange={e=>setPackChoice(e.target.value)}>
-    <option value="explorer">Explorador</option><option value="dungeoneer">Aventureiro de Masmorras</option>
-   </select></label>
-   <p>O pacote é uma escolha de equipamento da classe e seus componentes são concedidos como itens individuais.</p>
-   <button onClick={()=>addPack(packChoice)}>Confirmar pacote inicial</button>
+   <p>Escolha um conjunto de cada grupo. As opções de armas marciais são amostras enquanto o catálogo completo não for auditado.</p>
+   {Object.entries(fighterEquipmentOptions2014).map(([group,options])=><fieldset key={group}>
+    <legend>{({armor:'Armadura',weapons:'Armas marciais',ranged:'Armas adicionais',pack:'Pacote de aventureiro'} as Record<string,string>)[group]}</legend>
+    <select aria-label={'Equipamento '+group} value={equipmentChoices[group]}
+     onChange={e=>setEquipmentChoices(previous=>({...previous,[group]:e.target.value}))}>
+     {options.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}
+    </select>
+    <ul>{options.find(option=>option.id===equipmentChoices[group])?.components.map(item=><li key={item.itemId}>
+     {pilotRules.registry.entries.find(entry=>entry.ref.kind==='item'&&entry.ref.id===item.itemId)?.name??item.itemId} ×{item.quantity}
+    </li>)}</ul>
+   </fieldset>)}
+   <button onClick={confirmEquipment}>Confirmar equipamentos iniciais</button>
    <h2>Inventário</h2>
    <button onClick={()=>change(addInventoryInstance(draft,{id:crypto.randomUUID(),itemId:'longsword',quantity:1,equipped:false,origin:'acquired'}))}>
     Adicionar espada longa
