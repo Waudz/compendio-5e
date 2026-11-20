@@ -1,6 +1,6 @@
 // Quadro de Planejamento: COLUNAS (faixas lado a lado, com largura) -> SEÇÕES empilhadas (título próprio, normal ou grande) -> CARTÕES.
 // Funções puras (sem React, sem rede). O quadro guarda só a ORDEM (ids de cenas); reorganizar nunca altera as páginas originais. Mestre apenas.
-export type Secao = { id: string; titulo: string; cartoes: string[]; grande?: boolean };
+export type Secao = { id: string; titulo: string; cartoes: string[]; grande?: boolean; semTitulo?: boolean };
 export type Coluna = { id: string; secoes: Secao[]; largura?: number };
 export type Quadro = { colunas: Coluna[] };
 export const MAX_COLUNAS = 12, MAX_SECOES = 60, MAX_CARTOES_POR_SECAO = 100;
@@ -31,7 +31,7 @@ export function lerQuadro(meta: unknown): Quadro {
       secoes = o.secoes.flatMap((s): Secao[] => {
         const x = s as Partial<Secao>; if (!x || typeof x.id !== "string" || typeof x.titulo !== "string" || ids.has(x.id) || totalSecoes >= MAX_SECOES) return [];
         ids.add(x.id); totalSecoes++;
-        return [{ id: x.id, titulo: x.titulo.slice(0, 80), cartoes: cartoes(x.cartoes), ...(x.grande === true && { grande: true }) }];
+        return [{ id: x.id, titulo: x.titulo.slice(0, 80), cartoes: cartoes(x.cartoes), ...(x.grande === true && { grande: true }), ...(x.semTitulo === true && { semTitulo: true }) }];
       });
     } else if (typeof o.titulo === "string" && Array.isArray(o.cartoes)) {   // formato antigo
       secoes = [{ id: `${o.id}-s`, titulo: o.titulo.slice(0, 80), cartoes: cartoes(o.cartoes) }]; totalSecoes++;
@@ -67,6 +67,8 @@ export function novaSecaoDepois(q: Quadro, secaoId: string, titulo?: string, id?
 }
 const mudarSecao = (q: Quadro, id: string, f: (s: Secao) => Secao): Quadro => ({ colunas: q.colunas.map(c => c.secoes.some(s => s.id === id) ? { ...c, secoes: c.secoes.map(s => s.id === id ? f(s) : s) } : c) });
 export const renomearSecao = (q: Quadro, id: string, titulo: string): Quadro => !titulo.trim() ? q : mudarSecao(q, id, s => ({ ...s, titulo: titulo.trim().slice(0, 80) }));
+/** Oculta ou exibe o título sem apagar o nome persistido da seção. */
+export const alternarTituloSecao = (q: Quadro, id: string): Quadro => mudarSecao(q, id, s => { const { semTitulo, ...resto } = s; return semTitulo ? resto : { ...resto, semTitulo: true }; });
 /** Título grande (cena ou lugar importante) / normal. */
 export const alternarTituloGrande = (q: Quadro, id: string): Quadro => mudarSecao(q, id, s => { const { grande, ...resto } = s; return grande ? resto : { ...resto, grande: true }; });
 /** Só exclui seção vazia: cartões nunca somem por tabela. A coluna que ficar sem seções some junto. */

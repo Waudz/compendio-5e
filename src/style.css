@@ -569,3 +569,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 /* Cartões novos não exigem um cabeçalho visível: adicionar título é opcional. */
 .planejamento .cartao-adicionar-titulo{background:transparent;border:0;color:var(--muted);font-size:12px;padding:2px 4px;text-align:left;cursor:pointer;opacity:.65}
 .planejamento .cartao-adicionar-titulo:hover,.planejamento .cartao-adicionar-titulo:focus-visible{opacity:1;color:var(--text)}
+
+/* Título de seção opcional, preservando o nome interno para navegação. */
+.planejamento .secao-adicionar-titulo{flex:1;min-width:0;text-align:left;background:transparent;border:0;color:var(--muted);font-size:12px;padding:4px;cursor:pointer}
+.planejamento .secao-adicionar-titulo:hover,.planejamento .secao-adicionar-titulo:focus-visible{color:var(--text)}
