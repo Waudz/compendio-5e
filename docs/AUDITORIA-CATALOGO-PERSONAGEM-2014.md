@@ -266,3 +266,65 @@ Os arquivos do legado distinguem itens fixos em `startingEquipment` e alternativ
 - Revisar raças e origens individualmente, mantendo fonte/edição explícitas.
 
 **Situação:** nenhum registro está aprovado como 100% validado para o novo criador.
+
+## Rodada 5 — pesquisa de criadores abertos e contrato de confiabilidade do futuro criador
+
+**Escopo:** estudo de arquitetura, experiência de uso, licenças e riscos; **não** importar código ou dados de terceiros nesta rodada. Referências pesquisadas em novembro de 2026:
+
+| Projeto | Evidência verificada | Aproveitar como inspiração | Não copiar/risco |
+|---|---|---|---|
+| [OpenPentacle](https://github.com/arrowedisgaming/OpenPentacle) | SvelteKit, pacotes JSON, validação Zod, motor de funções puras, testes Vitest/Playwright; código GPL-3.0; conteúdo embarcado SRD **2024** | rastreabilidade de bônus, validação de pacotes, testes de motor | não transplantar código GPL para app sem decisão de licença; **não** misturar progressão 2024 com 2014 |
+| [Borealis](https://github.com/TeamBorealis/borealis) | suporta SRD 2014/2024 separados, multiclasses, arquivos locais, importação com prévia; licença MIT **ou** Apache-2.0 | separação rígida de edição, prévia de importação, portabilidade | não presumir que importações externas sejam legais ou corretas; conferir código específico antes de reutilizar |
+| [Brainstorm Club](https://github.com/Brainstorm-Club/dnd-character-builder) | Vue/TypeScript, assistente de nove etapas, importação/exportação JSON, PDF, PWA; MIT | fluxo de etapas, revisão final, importação validada | README declara conteúdo não coberto pelo SRD; licença MIT do código **não** autoriza copiar todos os dados |
+| [Fablesheet](https://github.com/fablesheet/fablesheet) | React/TypeScript, offline-first, ficha/inventário/magias, GPL-3.0-or-later, pré-1.0 | separação entre dados e ficha jogável, persistência offline | estágio inicial e licença copyleft; não reutilizar código sem análise |
+
+### Decisão de arquitetura para o Compêndio 5e (proposta; não implementada)
+
+**Não usar o JSON legado como verdade de produção.** O legado é fonte de *candidatos* à migração. Um registro publicado deve carregar:
+
+- `id` estável, `kind`, `ruleset: "5e-2014"`, `sourceId`, `sourceVersion`, `license` e `reviewStatus`;
+- **concessões estruturadas** (`grants`): proficiência, idioma, deslocamento, visão, resistência, recurso, magia, item, bônus, escolha, substituição e condição;
+- `atLevel`, `requires`, `choices` (quantidade, opções, exclusões, dependências), `scaling` e `recharge`;
+- descrição em português **separada da mecânica**; descrição não deve ser analisada por regex para aplicar bônus;
+- `validationEvidence`: fonte/página ou URL, versão, revisor, casos de teste e divergências conhecidas.
+
+**Dois modos de avaliação:** (a) *prévia de construção* determinística e sem efeitos colaterais; (b) *aplicação* transacional da escolha confirmada à ficha. Recalcular derivados a partir de escolhas e concessões, evitando acumular bônus duplicados. Inventário, magias preparadas, PV atuais e usos gastos são **estado de jogo**, distinto dos direitos de progressão.
+
+### Funcionalidades adicionais recomendadas
+
+1. **Por que tenho isto?** Cada bônus, proficiência, magia e habilidade na ficha exibe sua origem (raça, classe, nível, subclasse, talento, item), com link para o registro de regra.
+2. **Prévia antes de confirmar:** escolher raça, classe ou subir de nível mostra alterações de PV, perícias, magias, equipamentos e recursos, com avisos de conflitos.
+3. **Escolhas pendentes explícitas:** a ficha não se declara completa se houver proficiência, equipamento, magia, especialização, estilo de luta ou característica por selecionar.
+4. **Linha do tempo de níveis:** histórico de decisões por nível; ao alterar uma decisão anterior, recalcular dependências e mostrar escolhas invalidadas antes de salvar.
+5. **Verificador de ficha:** apontar opções ausentes, excesso de magias, proficiências repetidas, pré-requisitos não satisfeitos e conteúdos incompatíveis com a edição.
+6. **Modo rascunho/homebrew isolado:** opções não auditadas podem ser testadas, mas nunca confundidas com conteúdo oficial validado.
+7. **Importação com prévia e quarentena:** importar JSON externo só após validar esquema, origem, edição, IDs e integridade; jamais executar scripts de pacotes.
+8. **Versão de regras por personagem:** atualização de catálogo não muda retroativamente personagens sem prévia/migração explícita; manter registro das versões utilizadas.
+9. **Testes metamórficos:** subir um nível e desfazer restaura a ficha anterior; reprocessar a mesma escolha não duplica concessões; ordem de aplicação de benefícios independentes não altera o resultado; importar/exportar preserva as escolhas.
+10. **Matriz de cobertura por publicação:** distinguir opções de PHB 2014, SRD 5.1 e suplementos para o sistema 2014, com estados ausente / extraído / conferido / implementado / testado.
+
+### Critérios de bloqueio (gates)
+
+**G0 — legal/proveniência:** fonte identificada, versão 2014 correta, direitos de distribuição verificados.
+
+**G1 — completude:** campos obrigatórios e alternativas por nível presentes, sem referências órfãs e sem opções omitidas silenciosamente.
+
+**G2 — equivalência normativa:** conferência contra fonte primária de cada nível, escolha e efeito, com divergências registradas.
+
+**G3 — comportamento:** motor aplica efeitos corretamente; testes unitários para regras, escolhas, progressão, multiclasses, conjuração e inventário.
+
+**G4 — ponta a ponta:** personagens representativos criados, evoluídos, editados, exportados/importados e usados na ficha/combate sem perda de dados.
+
+**G5 — regressão:** suíte automatizada no CI; falha bloqueia publicação dos registros afetados.
+
+**Status:** esta rodada entrega **pesquisa e especificação**, não código do motor, dados certificados nem testes executados. Os resultados de tabelas da auditoria anterior não substituem G0–G5. A meta “100% confiável” deve significar **nenhuma lacuna conhecida e evidência verificável** para cada opção, não promessa de infalibilidade.
+
+### Ordem de implementação sugerida
+
+1. Formalizar esquema TypeScript/Zod de concessões, escolhas e proveniência; fixtures 2014 pequenas e verificadas.
+2. Implementar motor puro de avaliação e relatório de pendências, com testes determinísticos.
+3. Auditar e importar verticalmente **uma opção completa** (por exemplo, Bárbaro 1–20 + Berserker + equipamentos) até passar G0–G5; não importar centenas de registros sem motor.
+4. Replicar por classe/subclasse, raças e origens; testar combinações e multiclasses.
+5. Só depois integrar criador guiado, prévia, ficha jogável e migrações de dados.
+
+**Restrições:** não alterar Supabase sem autorização; repositório legado somente leitura; nenhum código de terceiros incorporado sem exame de licença; separar sempre 2014 e 2024.
