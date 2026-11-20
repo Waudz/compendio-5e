@@ -70,3 +70,7 @@ O comando consulta a API `/api/2014` e grava registros **não aprovados** em `.s
 ### Validação estrita do adaptador do criador (20/11/2026)
 
 O adaptador `src/rules/character-catalogue-adapter.ts` agora valida em runtime cada variante de concessão (`Grant`), seus campos numéricos, IDs e escolhas aninhadas antes de encaminhar dados ao cálculo da ficha. Rejeita valores inválidos, tipos desconhecidos, opções repetidas e escolhas impossíveis; há testes de regressão em `src/rules/character-catalogue-adapter.test.ts`. Isso **não** substitui a revisão editorial de regras 2014, o esquema completo por categoria, a validação no servidor, a persistência autenticada nem os testes E2E. Mudança restrita à branch do PR #74; sem deploy ou migração.
+
+### Validação de progressão e escolhas cruzadas (20/11/2026)
+
+O adaptador do catálogo canônico rejeita concessões malformadas também nas progressões de classe (`Advancement`), incluindo níveis fora de 1–20, escolhas com contagem inválida, alternativas repetidas e efeitos incorretos. IDs de escolhas devem ser únicos entre raça, antecedente e progressão de classe; uma classe de dado de vida único não pode mudar o dado entre níveis. Testes de regressão em `src/rules/character-catalogue-adapter.test.ts`. **Não certifica regras reais de 2014** nem habilita criação de personagens em produção; CI do último commit requer confirmação.
