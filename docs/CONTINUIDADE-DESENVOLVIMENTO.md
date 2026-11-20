@@ -148,3 +148,10 @@ Links são **referências conhecidas**, não prova de acesso ou auditoria atual 
 ### Incremento da ficha teste — perícias de Guerreiro (20/11/2026)
 
 **Decisão:** implementar escolha real de duas perícias de classe do Guerreiro SRD 2014 (Acrobatics, Animal Handling, Athletics, History, Insight, Intimidation, Perception, Survival) como escolha estável `fighter-skills-1` no catálogo compartilhado. Interface usa checkboxes limitados a duas escolhas e ficha apresenta perícias calculadas. **Alternativa rejeitada:** preencher perícias automaticamente sem escolha. **Verificação:** testes de domínio e UI atualizados; confirmar novo CI. **Pendências para um personagem teste completo:** método de atributos, proficiências completas, equipamento inicial por escolhas, perícias raciais/de antecedente auditadas, detalhes do arquétipo e salvamento autenticado; no piloto local, escolha de raça/antecedente ainda não é livre.
+
+### Decisão de UX e regras — atributos 2014 (20/11/2026)
+
+- **Implementado:** `src/rules/ability-generation-2014.ts` valida compra de 27 pontos (8–15) e matriz padrão (15,14,13,12,10,8). O piloto apresenta ambos os métodos; a matriz troca valores entre atributos, sem criar valores duplicados. Bônus racial é aplicado no motor, após a distribuição base. Testes de regras adicionados.
+- **Referência de UX:** Foundry dnd5e Advancement (`https://github.com/foundryvtt/dnd5e/wiki/Advancement`) e Character Builder (`https://foundryvtt.com/packages/dnd5e-character-builder`): escolhas reversíveis, valores únicos na matriz, revisão e ficha derivada; nenhuma dependência nova, nem código copiado. O módulo de Character Builder também suporta regras 2024, que **não** foram adotadas.
+- **Alternativas:** entrada manual irrestrita rejeitada como padrão do piloto, por não validar o método 2014; adoção integral do wizard externo rejeitada por incompatibilidade arquitetural.
+- **Pendências:** persistir explicitamente o método escolhido (atualmente inferido da distribuição ao reabrir), fluxo de equipamento inicial, proficiências, escolhas de raça/antecedente, ficha autenticada e testes E2E. Confirmar CI do último commit.
