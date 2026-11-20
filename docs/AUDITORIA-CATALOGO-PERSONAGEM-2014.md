@@ -328,3 +328,46 @@ Os arquivos do legado distinguem itens fixos em `startingEquipment` e alternativ
 5. Só depois integrar criador guiado, prévia, ficha jogável e migrações de dados.
 
 **Restrições:** não alterar Supabase sem autorização; repositório legado somente leitura; nenhum código de terceiros incorporado sem exame de licença; separar sempre 2014 e 2024.
+
+## Rodada 6 — auditoria vertical de Bárbaro/Berserker: achado bloqueante
+
+**Comparação direta:** `dados/criacao-srd2014.json` do legado versus [SRD 5.1 CC BY 4.0 — Bárbaro](https://www.dndbeyond.com/attachments/39j2li89/SRD5.1-CCBY4.0_License_live%20links.pdf) e [Basic Rules 2014](https://www.dndbeyond.com/sources/dnd/basic-rules-2014/classes). Inspecionados `classes[].effects`, `levels[].classSpecific`, `features[].effects` e as quatro características de Berserker.
+
+### Achado crítico B-001 — características descritivas não equivalem a efeitos computáveis
+
+**Confirmado no JSON:** `srd51:feature/rage` tem `effects: []`, embora sua descrição exija vantagens em testes/salvaguardas de Força, bônus condicional de dano, resistências, impedimento de conjurar/concentrar, duração, recarga e término condicional. `srd51:feature/relentless-rage` também tem `effects: []` apesar de sua CD variável e recuperação em descansos.
+
+**Confirmado para Berserker:** `frenzy`, `mindless-rage`, `intimidating-presence` e `retaliation` têm **todas** `effects: []`. Os textos descrevem as regras, mas os registros não declaram os efeitos como dados executáveis. **Isso bloqueia G3/G4**: não importar como habilidades automaticamente aplicáveis à ficha/combate.
+
+**Importante:** não afirmar que a aplicação antiga jamais aplica esses efeitos em outras rotinas; a constatação aqui é específica dos registros auditados. O motor novo deve ter testes de integração para cada um.
+
+### Contratos verificáveis para Bárbaro e Berserker 2014
+
+| Regra | Condição/efeito que o motor precisa representar | Teste de aceitação |
+|---|---|---|
+| Fúria | ação bônus; 1 minuto; usos por nível; descanso longo; sem armadura pesada para benefícios; vantagem em testes/salvaguardas Força; bônus em dano de ataque corpo a corpo **com arma usando Força**; resistências concussão/perfuração/corte; proíbe conjurar e concentrar | alternar armadura, atributo do ataque, dano, duração e descanso |
+| Defesa sem Armadura | CA 10 + mod. Des + mod. Con, permitindo escudo; não acumular fórmulas de CA | equipar/remover armadura e escudo; mudar Constituição |
+| Ataque Descuidado | escolha no primeiro ataque do turno; vantagem nos ataques corpo a corpo com arma usando Força naquele turno; ataques contra bárbaro têm vantagem até próximo turno | validar escopo temporal e tipo de ataque |
+| Sentido de Perigo | vantagem em salvaguardas Des contra efeitos percebidos; indisponível cego, surdo ou incapacitado | testar estados impeditivos |
+| Movimento Rápido | +3 m / 10 pés a partir do nível 5, exceto armadura pesada | testar armadura e movimento |
+| Crítico Brutal | +1/2/3 **dados de dano da arma** em crítico corpo a corpo nos níveis 9/13/17 | não aplicar a acerto normal |
+| Fúria Implacável | a 0 PV em Fúria sem morte imediata: salvaguarda Con CD 10, +5 por uso, reinicia em descanso curto/longo | múltiplas ativações e reinício |
+| Campeão Primitivo | +4 Força e +4 Constituição; teto 24 para ambos; recalcular modificadores e PV máximos | transição 19→20 e edição posterior |
+| Berserker — Frenesi (3) | escolha ao entrar em Fúria; ataque com arma corpo a corpo por ação bônus em **turnos posteriores**, não no mesmo turno; +1 exaustão ao terminar | não conceder ataque na ativação; aplicar exaustão |
+| Berserker — Fúria Inconsciente (6) | imune a amedrontado/enfeitiçado enquanto em Fúria; efeitos preexistentes ficam suspensos, não removidos | condição anterior e após fim da Fúria |
+| Berserker — Presença Intimidante (10) | ação; alcance 9 m / 30 pés inicial; CD 8 + proficiência + Carisma; extensão por ação; limitações de visão/distância; alvo bem-sucedido imune à repetição por 24 h | CD, persistência, sucesso e cooldown por alvo |
+| Berserker — Retaliação (14) | reação contra criatura a até 1,5 m / 5 pés que causou dano; ataque corpo a corpo com arma | distância, consumo da reação, dano recebido |
+
+**Estado B-001:** bloqueante / não corrigido. **Estado de Bárbaro/Berserker:** progressão de nomes e valores conferida, **motor e efeitos não aprovados**. Não marcar a classe como pronta para criação automática.
+
+### Testes de propriedades adicionais (sugestão para implementação)
+
+- Avaliação repetida de `Primal Champion` não adiciona +4 novamente.
+- Trocar armadura ou escudo altera a CA derivada, sem apagar escolhas de classe.
+- Iniciar/encerrar Fúria restaura corretamente restrições de conjuração e resistências.
+- Subir 19→20 e retornar a 19 não deixa atributos acima do limite por benefício removido.
+- Exaustão de Frenesi não desaparece só porque a Fúria acabou.
+- Descanso curto não restaura usos de Fúria; descanso longo restaura.
+- Regra de Fúria de 2014 não recebe alterações da versão 2024.
+
+**Próxima implementação prioritária:** adicionar testes de contrato que inicialmente falham para esses casos, modelar efeitos condicionais e estado temporário separadamente, e só depois migrar o registro de Berserker. Não usar descrições textuais como código.
