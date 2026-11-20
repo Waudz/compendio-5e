@@ -444,3 +444,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .confirmacao-acoes{display:flex;justify-content:flex-end;gap:10px}
 .confirmacao-acoes button{padding:9px 16px;border-radius:8px;cursor:pointer}
 .confirmacao-acoes .danger{background:#a92f3b;color:white;border:1px solid #c3434f}
+
+/* Abas de Anotações: ações contextuais e criação ao final da lista. */
+.planos-rolagem{align-items:center}
+.planos-rolagem>.mais{flex:none;position:sticky;right:0;z-index:1}
+.planos .plano.ativo{display:inline-flex;align-items:center}
+.plano-fechar{display:inline-flex;align-items:center;justify-content:center;flex:none;border:0;background:transparent;color:var(--text-2);border-radius:5px;padding:2px 5px;cursor:pointer;font-size:17px;line-height:1}
+.plano-fechar:hover{background:var(--hover);color:var(--text)}
+.planos .plano-contexto{position:fixed;right:auto;bottom:auto;z-index:150;max-width:calc(100vw - 16px)}
+@media(max-width:700px){.planos .plano-contexto{position:fixed;right:auto;bottom:auto}}
