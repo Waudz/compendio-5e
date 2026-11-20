@@ -1,0 +1,42 @@
+name: Coletar SRD 2014 para revisão
+# Execução manual apenas. Nunca publica conteúdo no app ou faz commit.
+on:
+  workflow_dispatch:
+    inputs:
+      collection:
+        description: 'Coleção da API 2014'
+        required: true
+        type: choice
+        options:
+          - classes
+          - races
+          - subraces
+          - subclasses
+          - equipment
+          - features
+          - traits
+          - spells
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Coletar dados em quarentena
+        env:
+          SRD_COLLECTION: ${{ inputs.collection }}
+        run: node scripts/collect-srd-2014.mjs "$SRD_COLLECTION"
+      - name: Anexar dados para revisão manual (sem publicação)
+        uses: actions/upload-artifact@v4
+        with:
+          name: srd-2014-${{ inputs.collection }}-unreviewed
+          path: .srd-2014-staging/*.json
+          if-no-files-found: error
+          retention-days: 7
