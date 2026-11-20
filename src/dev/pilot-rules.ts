@@ -1,12 +1,15 @@
 /** Shared illustrative catalogue for development pilots only. Not certified SRD data. */
 import type {RulesCatalogue} from '../rules/rules-catalogue';
 import {fighter2014} from '../rules/fighter-2014';
+import {adventuringPacks2014} from '../rules/starting-equipment-2014';
 export const pilotRefs={
  race:{sourceId:'srd-2014',kind:'race' as const,id:'dwarf',revision:'1'},
  background:{sourceId:'srd-2014',kind:'background' as const,id:'acolyte',revision:'1'},
  class:{sourceId:'srd-2014',kind:'class' as const,id:'fighter',revision:'1'},
  item:{sourceId:'srd-2014',kind:'item' as const,id:'longsword',revision:'1'}
 };
+const packItemIds=[...new Set(Object.values(adventuringPacks2014).flatMap(pack=>pack.components.map(item=>item.itemId)))];
+export const pilotItemRefs=Object.fromEntries(packItemIds.map(id=>[id,{sourceId:'srd-2014',kind:'item' as const,id,revision:'1'}]));
 const entries=[
  {ref:pilotRefs.race,name:'Anão',description:'Raça de demonstração',
   data:{id:'dwarf',grants:[{type:'ability',ability:'con',amount:2,source:'dwarf'}]}},
@@ -15,7 +18,8 @@ const entries=[
  {ref:pilotRefs.class,name:'Guerreiro',description:'Guerreiro SRD 5.1 (2014): estilo de luta, Retomar o Fôlego, Surto de Ação, arquétipo Campeão, Ataque Extra e melhorias de atributo. Piloto incompleto: efeitos condicionais e progressão do Campeão acima do nível 3 ainda não automatizados.',
   data:{...fighter2014}},
  {ref:pilotRefs.item,name:'Espada longa',description:'Item de demonstração',
-  data:{id:'longsword'}}
+  data:{id:'longsword'}},
+ ...packItemIds.map(id=>({ref:pilotItemRefs[id],name:id.replaceAll('-', ' '),description:'Item do catálogo experimental SRD 2014 — dados mecânicos ainda não auditados',data:{id}}))
 ];
 export const pilotRules:RulesCatalogue={
  registry:{sources:[{id:'srd-2014',origin:'srd-2014',title:'SRD 2014 — amostra ilustrativa',ruleset:'5e-2014'}],
