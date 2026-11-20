@@ -369,7 +369,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
   const fixadas = boards.filter(ehPermanente), comuns = boards.filter(b => !ehPermanente(b));
   const renderizar = (b: Registro, grupo: Registro[]) => {
     const perm = ehPermanente(b), on = b.id === ativo;
-    const i = grupo.findIndex(x => x.id === b.id), anterior = grupo[i - 1], proximo = grupo[i + 1];
+    const i = grupo.findIndex(x => x.id === b.id);
     const editar = renomeando === b.id;
     return <span key={b.id} className={`plano ${on ? "ativo " : ""}${perm ? "fixada compacta" : "solta"}`} draggable
       onContextMenu={e => { e.preventDefault(); abrirMenu(b.id); }}
