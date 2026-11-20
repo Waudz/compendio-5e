@@ -47,12 +47,28 @@ function restore():CharacterDraft {
  } catch { /* corrupted local data is not trusted */ }
  return initial();
 }
+function equipmentChoicesFromInventory(draft:CharacterDraft):Record<string,string> {
+ const choices:Record<string,string>={};
+ for(const [group,options] of Object.entries(fighterEquipmentOptions2014)){
+  const item=draft.inventory.find(entry=>entry.id.startsWith('starting-choice:fighter-'+group+':'));
+  const selected=item?.id.split(':')[2];
+  choices[group]=options.some(option=>option.id===selected)?selected!:options[0].id;
+ }
+ return choices;
+}
+function equipmentGroupsComplete(draft:CharacterDraft):boolean {
+ return Object.entries(fighterEquipmentOptions2014).every(([group,options])=>{
+  const prefix='starting-choice:fighter-'+group+':';
+  return options.some(option=>option.components.every(component=>draft.inventory.some(entry=>
+   entry.id===prefix+option.id+':'+component.itemId&&entry.itemId===component.itemId&&entry.quantity===component.quantity)));
+ });
+}
 export default function CharacterPilot(){
  const [draft,setDraft]=useState<CharacterDraft>(restore);
  const [message,setMessage]=useState('');
  const [abilityMethod,setAbilityMethod]=useState<'point-buy'|'standard-array'>(()=>isStandardArray(draft.baseAbilities)?'standard-array':'point-buy');
  const [abilityError,setAbilityError]=useState('');
- const [equipmentChoices,setEquipmentChoices]=useState<Record<string,string>>({armor:'chain-mail',weapons:'longsword-shield',ranged:'crossbow',pack:'explorer'});
+ const [equipmentChoices,setEquipmentChoices]=useState<Record<string,string>>(()=>equipmentChoicesFromInventory(draft));
  let sheet:ReturnType<typeof createCharacterSheet>|null=null;
  let error='';
  try {sheet=createCharacterSheet(draft,catalog);}catch(e){error=e instanceof Error?e.message:String(e);}
@@ -96,7 +112,7 @@ export default function CharacterPilot(){
   if(!sheet || !draft.name.trim()){setMessage('Informe o nome e corrija os erros antes de salvar');return;}
   try{const record:SavedPilot={schemaVersion:STORAGE_SCHEMA,draft};
    localStorage.setItem(KEY,JSON.stringify(record));
-   setMessage(sheet.pending.length?'Rascunho incompleto salvo neste navegador':'Salvo neste navegador (somente demonstração)');}
+   setMessage(sheet.pending.length || !equipmentGroupsComplete(draft)?'Rascunho incompleto salvo neste navegador':'Salvo neste navegador (somente demonstração)');}
   catch{setMessage('Não foi possível salvar neste navegador');}
  };
  return <main style={{maxWidth:720,margin:'2rem auto',padding:20,fontFamily:'system-ui',lineHeight:1.6}}>
@@ -152,7 +168,7 @@ export default function CharacterPilot(){
    <p>Perícias: {sheet.skills.join(', ')||'nenhuma'}</p>
    <p>Recursos: {Object.entries(sheet.resources).map(([name,value])=>name+' '+String(value.remaining)+'/'+String(value.maximum)).join(' · ')||'nenhum'}</p>
    <p>Escolhas pendentes: {sheet.pending.length?sheet.pending.join(', '):'nenhuma'}</p>
-   <p role="note">{!draft.name.trim() || sheet.pending.length?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
+   <p role="note">{!draft.name.trim() || sheet.pending.length || !equipmentGroupsComplete(draft)?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
    <h2>Equipamentos iniciais — Guerreiro</h2>
    <p>Escolha um conjunto de cada grupo. As opções de armas marciais são amostras enquanto o catálogo completo não for auditado.</p>
    {Object.entries(fighterEquipmentOptions2014).map(([group,options])=><fieldset key={group}>
@@ -177,7 +193,7 @@ export default function CharacterPilot(){
    </li>)}</ul>
   </section>}
   <p><button onClick={save}>Salvar rascunho local</button>{' '}
-  <button onClick={()=>{const next=restore();setDraft(next);setMessage('Rascunho recarregado do navegador');}}>Reabrir rascunho salvo</button></p>
+  <button onClick={()=>{const next=restore();setDraft(next);setEquipmentChoices(equipmentChoicesFromInventory(next));setMessage('Rascunho recarregado do navegador');}}>Reabrir rascunho salvo</button></p>
   <p role="status">{message}</p>
  </main>;
 }
