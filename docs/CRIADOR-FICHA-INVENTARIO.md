@@ -208,3 +208,9 @@ Adicionados `src/rules/character-custody.ts` e `src/rules/character-custody.test
 Adicionados `src/rules/ability-improvement.ts` e `src/rules/ability-improvement.test.ts`. O gerador puro oferece **21 opções** por melhoria de atributo (6 opções +2; 15 pares distintos +1/+1), com identificadores estáveis e teto 20 em cada concessão. Testes cobrem cardinalidade, unicidade, opções divididas, teto e entradas inválidas. A implementação é independente da UI e deve ser integrada às escolhas de avanço da classe somente nos níveis em que a classe concede ASI, respeitando exceções e talentos opcionais. Não substituir o catálogo oficial por heurísticas; testar as progressões por classe.
 
 **Verificação:** confirmar status da CI do PR após os commits. Não houve alteração de banco, merge nem publicação. O contrato de custódia continua experimental: aceite de transferência e papel de mestre precisam de validação autenticada no servidor.
+
+## Progressão de ASI por classe — incremento de 20/11/2026
+
+Implementados `src/rules/class-asi-2014.ts` e `src/rules/class-asi-2014.test.ts`, mapeando os níveis de melhoria de atributo das **12 classes básicas de 2014**: padrão 4/8/12/16/19; guerreiro com 6 e 14 extras; ladino com 10 extra. Cada marco gera 21 escolhas com IDs estáveis. Os testes percorrem todos os níveis 1–20 de todas as classes, verificam escolhas pendentes apenas após o nível alcançado, e verificam a opção +1/+1 no nível 6 de guerreiro.
+
+**Integração pendente:** ligar `coreClassAsiAdvancements` ao catálogo real, evitar duplicação com grants existentes, implementar substituição opcional por talentos, validar regras raciais/atributos, fluxos UI e persistência. Não interpretar testes do domínio como E2E. Migrações de banco e publicação continuam fora de escopo até aprovação explícita.
