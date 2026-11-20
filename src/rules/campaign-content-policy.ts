@@ -4,15 +4,17 @@
 import {contentKey,type ContentRef} from './content-registry';
 import {validateRulesCatalogue,type RulesCatalogue} from './rules-catalogue';
 export type RestrictableKind='race'|'subrace'|'class'|'subclass'|'background'|'feat'|'spell'|'item';
-export type CampaignContentPolicy={campaignId:string;blocked:ContentRef[]};
-export type ContentAvailability={available:boolean;reason?:'blocked-in-campaign'};
+export type CampaignContentPolicy={campaignId:string;blocked:ContentRef[];reasons?:Record<string,string>};
+export type ContentAvailability={available:boolean;reason?:'blocked-in-campaign';detail?:string};
 export const RESTRICTABLE_KINDS:readonly RestrictableKind[]=['race','subrace','class','subclass','background','feat','spell','item'];
 export function setCampaignContentBlocked(policy:CampaignContentPolicy,ref:ContentRef,blocked:boolean):CampaignContentPolicy{
  if(!policy.campaignId.trim()) throw new Error('Campaign ID required');
  if(!RESTRICTABLE_KINDS.includes(ref.kind as RestrictableKind)) throw new Error('Content kind cannot be restricted');
  const key=contentKey(ref);
  const next=policy.blocked.filter(x=>contentKey(x)!==key);
- return {...policy,blocked:blocked?[...next,structuredClone(ref)]:next};
+ const reasons={...policy.reasons};
+ if(!blocked) delete reasons[key];
+ return {...policy,blocked:blocked?[...next,structuredClone(ref)]:next,reasons};
 }
 export function validateCampaignContentPolicy(catalogue:RulesCatalogue,policy:CampaignContentPolicy):void{
  validateRulesCatalogue(catalogue);
@@ -26,12 +28,16 @@ export function validateCampaignContentPolicy(catalogue:RulesCatalogue,policy:Ca
   if(seen.has(key)) throw new Error('Duplicate campaign content restriction: '+key);
   seen.add(key);
  }
+ for(const [key,reason] of Object.entries(policy.reasons??{})){
+  if(!seen.has(key)) throw new Error('Restriction reason has no blocked content: '+key);
+  if(typeof reason!=='string' || reason.length>500) throw new Error('Invalid restriction reason: '+key);
+ }
 }
 export function campaignContentAvailability(policy:CampaignContentPolicy|null,ref:ContentRef):ContentAvailability{
  if(!policy) return {available:true};
  if(!policy.campaignId.trim()) throw new Error('Campaign ID required');
  return policy.blocked.some(x=>contentKey(x)===contentKey(ref))?
-  {available:false,reason:'blocked-in-campaign'}:{available:true};
+  {available:false,reason:'blocked-in-campaign',detail:policy.reasons?.[contentKey(ref)]}:{available:true};
 }
 export function assertCharacterOptionsAllowed(policy:CampaignContentPolicy|null,refs:ContentRef[]):void{
  for(const ref of refs) if(!campaignContentAvailability(policy,ref).available)
@@ -40,4 +46,17 @@ export function assertCharacterOptionsAllowed(policy:CampaignContentPolicy|null,
 /** A new selection is rejected; existing character records are not rewritten by policy changes. */
 export function campaignContentStatusLabel(availability:ContentAvailability):string{
  return availability.available?'Disponível':'Indisponível nesta campanha';
+}
+
+/** Only a campaign master may edit policies; server must derive the role from auth/RLS. */
+export function updateCampaignRestriction(
+ policy:CampaignContentPolicy,ref:ContentRef,blocked:boolean,
+ context:{campaignId:string;isCampaignMaster:boolean},reason?:string
+):CampaignContentPolicy{
+ if(context.campaignId!==policy.campaignId || !context.isCampaignMaster)
+  throw new Error('Not authorized to edit campaign restrictions');
+ if(reason!==undefined && reason.length>500) throw new Error('Restriction reason too long');
+ const next=setCampaignContentBlocked(policy,ref,blocked);
+ if(!blocked || reason===undefined) return next;
+ return {...next,reasons:{...next.reasons,[contentKey(ref)]:reason.trim()}};
 }
