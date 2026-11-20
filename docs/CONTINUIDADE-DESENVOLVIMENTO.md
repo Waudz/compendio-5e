@@ -189,3 +189,9 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - **Decisão do responsável:** pacotes, itens avulsos e equipamentos iniciais de classe/antecedente devem ser selecionados **dentro do criador**, com IDs do mesmo catálogo do Compêndio, e concedidos automaticamente como instâncias independentes no inventário da ficha. Não tratar pacotes como botão de compra manual separado do criador.
 - **Implementado no piloto:** confirmação do pacote de Guerreiro como escolha de equipamento inicial, via `applyStartingEquipmentSelection`; concessão idempotente e bloqueio de substituição quando o inventário inicial já foi alterado. Testes de concessão, edição e IDs desconhecidos.
 - **Limite:** somente o grupo de pacotes do Guerreiro está ligado à UI. Ainda faltam os três grupos de armaduras/armas, itens de antecedente, prévia e confirmação de substituição, catálogo definitivo auditado, salvamento real. A seleção não é aplicada automaticamente ao mudar a opção; requer confirmação explícita.
+
+### Atualização do piloto — quatro grupos de equipamentos do Guerreiro (20/11/2026)
+
+- O criador local exibe escolhas de **armadura, armas marciais, armas adicionais e pacote**, cada uma com prévia dos itens e quantidades. Confirmação aplica os quatro grupos em uma única atualização de rascunho, usando `applyStartingEquipmentSelection` e as mesmas referências de itens registradas no catálogo experimental.
+- O registro piloto contém entradas provisórias para todos os componentes; não são definições SRD auditadas. Opções de armas marciais usam **apenas espada longa como amostra**, não a seleção completa de armas permitidas pelas regras.
+- Escolhas já concedidas não são substituídas automaticamente. Ainda faltam: catálogo SRD definitivo, armas marciais livres, antecedentes, revisão/substituição assistida, persistência real e testes E2E. Não publicado nem integrado à main.
