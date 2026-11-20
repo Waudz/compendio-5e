@@ -255,3 +255,9 @@ Ainda não há migração de dados, persistência ou autorização de produção
 6. Auditoria de licenças e fontes antes de importar texto de D&D 2014. Não assumir que todo conteúdo de livro é SRD.
 
 **Documentação:** decisões em `DECISOES-E-ARQUITETURA.md`; planejamento e riscos neste documento; auditoria de catálogo em `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`; testes unitários junto aos módulos. Atualizar documentação e testes no mesmo PR a cada mudança substancial. **Nenhum merge/deploy/migração autorizado.**
+
+## Primeiro fluxo vertical por catálogo canônico — 20/11/2026
+
+Implementado `src/rules/character-catalogue-adapter.ts` com teste de integração de domínio `character-catalogue-adapter.test.ts`: resolve referências versionadas de raça, antecedente e classe no mesmo `RulesCatalogue` utilizado pelo Compêndio; exige tipos e IDs coerentes; converte as definições em um catálogo temporário compatível com `createCharacterSheet`, usando chaves compostas `sourceId:kind:id:revision`. O teste monta um anão guerreiro nível 1 a partir dessas definições, confere Constituição/PV, testa renomeação do personagem e bloqueia revisão ausente e classe incompleta.
+
+**Limitação deliberada:** esse é um teste de integração **entre módulos de domínio**, não E2E no navegador nem fluxo de salvamento. O adaptador ainda usa checagem estrutural parcial de grants; substituir por schemas discriminados completos antes de aceitar conteúdo externo. Progressão, escolhas, inventário e persistência serão integrados incrementalmente. Não confundir o exemplo sintético com catálogo oficial completo de 2014.
