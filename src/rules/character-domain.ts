@@ -39,6 +39,11 @@ export function createCharacterSheet(draft: CharacterDraft, catalog: CharacterCa
   if (!draft.id.trim() || !draft.name.trim()) throw new Error('Character identity required');
   const race = catalog.races[draft.raceId], background = catalog.backgrounds[draft.backgroundId], classDef = catalog.classes[draft.classId];
   if (!race || !background || !classDef) throw new Error('Unknown character option');
+  // Reject corrupted or imported ability scores before arithmetic can propagate NaN/Infinity.
+  const abilityKeys = ['str','dex','con','int','wis','cha'] as const;
+  if (!draft.baseAbilities || abilityKeys.some(key =>
+    !Number.isSafeInteger(draft.baseAbilities[key]) || draft.baseAbilities[key] < 1 || draft.baseAbilities[key] > 30))
+    throw new Error('Invalid base ability scores');
   validateInventory(draft.inventory);
   if (!Number.isSafeInteger(draft.currentHp) || draft.currentHp < 0 || !Number.isSafeInteger(draft.temporaryHp) || draft.temporaryHp < 0)
     throw new Error('Invalid hit points');
