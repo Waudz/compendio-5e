@@ -60,6 +60,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   const [ed, setEd] = useState<Record<string, Ed>>({}); const edRef = useRef(ed); edRef.current = ed;
   const [sel, setSel] = useState<string[]>([]);
   const [confirmarSecoes, setConfirmarSecoes] = useState<{ ids: string[]; mensagem: string } | null>(null);
+  const [confirmarGuia, setConfirmarGuia] = useState<{ id: string; mensagem: string } | null>(null);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 700px)"); const atualizar = () => setMobile(mq.matches); atualizar(); mq.addEventListener?.("change", atualizar); return () => mq.removeEventListener?.("change", atualizar); }, []);   // seções selecionadas com o mouse
@@ -252,8 +253,19 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     const r = await api.update(b.id, versoes.current.get(b.id) ?? b.version, { title: nome });
     if (r.ok) substituirBoard({ ...r.data, meta: boardRef.current?.id === r.data.id ? boardRef.current.meta : r.data.meta }); else setAviso(r.error);
   };
+  const solicitarExclusaoPlano = (b: Registro) => {
+    const quadro = lerQuadro(b.meta);
+    const secoes = quadro.colunas.flatMap(c => c.secoes);
+    const cartoes = todosCartoes(quadro);
+    if (secoes.length > 0 && cartoes.length > 0) {
+      setConfirmarGuia({ id: b.id, mensagem: `Excluir a guia “${b.title}”, suas ${secoes.length} seção(ões) e ${cartoes.length} cartão(ões)? Essa ação não pode ser desfeita.` });
+      return;
+    }
+    void excluirPlano(b);
+  };
   const excluirPlano = async (b: Registro) => {
     if (!api) return;
+    setConfirmarGuia(null);
     const cartoes = todosCartoes(lerQuadro(b.meta));
     for (const c of cartoes) { const r = await api.remove(c); if (r.ok) publicarExclusao(c, origem); }
     const r = await api.remove(b.id); if (!r.ok) { setAviso(r.error); return; }
@@ -301,9 +313,19 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
         </div>
       </div>
     </div>}
+    {confirmarGuia && <div className="confirmacao-fundo" onMouseDown={e => { if (e.target === e.currentTarget) setConfirmarGuia(null); }}>
+      <div className="confirmacao-dialogo" role="alertdialog" aria-modal="true" aria-labelledby="confirmacao-guia-titulo" aria-describedby="confirmacao-guia-mensagem">
+        <h2 id="confirmacao-guia-titulo">Excluir guia?</h2>
+        <p id="confirmacao-guia-mensagem">{confirmarGuia.mensagem}</p>
+        <div className="confirmacao-acoes">
+          <button type="button" className="btn" onClick={() => setConfirmarGuia(null)}>Cancelar</button>
+          <button type="button" className="btn danger" onClick={() => { const b = boards.find(x => x.id === confirmarGuia.id); if (b) void excluirPlano(b); else setConfirmarGuia(null); }}>Excluir guia</button>
+        </div>
+      </div>
+    </div>}
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Anotações</h1>
-    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onFixar={b => void alternarFixacao(b)} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
+    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onFixar={b => void alternarFixacao(b)} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={solicitarExclusaoPlano}/>}
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando anotações…</p>}
