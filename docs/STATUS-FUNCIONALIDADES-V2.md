@@ -32,3 +32,7 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 - Compêndio: catálogo único consultável (lista/grade), usando IDs e revisões para regras e itens.
 - Testes: adicionar Playwright em CI quando o ambiente e as dependências estiverem configurados, sem alegar cobertura E2E antecipadamente.
 - Não integrar à `main` ou aplicar migrações de produção sem autorização explícita.
+
+## Incremento Compêndio — 20/11/2026
+
+Criado `src/rules/compendium-query.ts` com `searchCompendium`: filtro por tipo e fonte, busca textual sem diferenciação de acentos, ordenação estável pt-BR e chave imutável `sourceId:kind:id:revision`. Os resultados resolvem a **mesma definição** de `RulesCatalogue` usada pelo criador; não criam uma segunda tabela de regras. Testes cobrem renomeação sem quebrar IDs, pesquisa e falha de definições ausentes. `CompendiumView` prevê lista/grade, mas **não há componente visual implementado nem catálogo SRD completo nesta rodada**. Percentual estimado permanece 15% até integração real.
