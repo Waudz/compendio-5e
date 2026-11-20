@@ -8,7 +8,7 @@ export const MAX_GROUPS = 3;
 export const MIN_GROUP_WIDTH = 220;
 
 // Um único lugar define os tipos de aba: para criar um novo (ex.: cena, encontro) basta acrescentar uma linha aqui e o painel correspondente.
-const kindLabel = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento" } as const;
+const kindLabel = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento", item: "Item", criador: "Personagem" } as const;
 export type Kind = keyof typeof kindLabel;
 export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean; instance?: number };
 export type Page = "campanhas" | "planejamento" | "diario" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";

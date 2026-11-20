@@ -44,6 +44,7 @@
 | DEC-014 | Documentar **cada decisão nova ou alteração** no mesmo conjunto de commits que o código, com motivo, alternativa, impacto, testes e pendências | Aprovada nesta rodada | Modelo abaixo |
 
 | DEC-015 | Catálogo canônico de itens SRD 2014 (578 itens, validado com Zod, mesma fonte do Compêndio, criador e inventário) | Implementada parcialmente | Só itens; 237 mundanos conferidos na API, 341 mágicos não; ver `DECISOES-E-ARQUITETURA.md` |
+| DEC-016 | Criador guiado e Compêndio na navegação real (abas `criador:`/`item:`), armazenamento local **experimental** atrás de interface | Implementada parcialmente | Guerreiro; sem Supabase; proposta de persistência em `CRIADOR-FICHA-INVENTARIO.md` |
 
 ### Registro de decisão: modelo obrigatório
 
@@ -281,3 +282,9 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - **Defeito real encontrado e corrigido:** três IDs de equipamento inicial do Guerreiro não existiam no catálogo (`rations`, `hempen-rope-50-feet`, `light-crossbow`; corretos: `rations-1-day`, `rope-hempen-50-feet`, `crossbow-light`). Teste novo (`equipamento-inicial-catalogo.test.ts`) impede a regressão e compara as receitas de pacote com os pacotes oficiais.
 - **Dependência nova:** `zod` 4.6.7 (lockfile atualizado), usada na validação de dados importados. React Hook Form, fast-check e Playwright continuam não instalados: ainda não há formulário complexo, propriedade a testar nem fluxo autenticado que justifiquem.
 - **Experimental/pendente:** lista do piloto sem virtualização (578 itens); descrições são resumos derivados; mágicos sem conferência externa; classes, subclasses, raças, antecedentes, magias e criaturas ainda não têm catálogo real. Nenhuma migração, merge ou deploy.
+
+### Entrega — primeira fatia vertical na navegação real (21/11/2026)
+
+- **Branch dependente:** `feat/criador-ficha-navegacao` (sai de `3f5c41c`, PR #74). Não altera as branches dos PRs #75 (Enciclopédia) e #76 (Playwright).
+- **Implementado:** `src/criador/` (criador guiado, armazenamento experimental, catálogo e rótulos pt-BR), `src/Compendio.tsx` (seção e página de item), abas `criador:`/`item:`, entrada em Personagens, títulos de aba, estilos. Testes: `src/criador/criadorGuiado.test.tsx`, `src/criador/armazenamento.test.ts`, `src/compendio.test.tsx`.
+- **Honestidade:** caminho do usuário testado em jsdom (desktop e celular), **não** em navegador real (Playwright é do PR #76). Armazenamento local não é segurança entre usuários. Só o Guerreiro; raça e antecedente ilustrativos.

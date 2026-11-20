@@ -1,7 +1,7 @@
 // Personagens da campanha: lista (retrato, nome, classe, nível) e perfil de cada um. Qualquer participante cria o seu; só o dono edita.
 // Visível para a campanha = publicado; privado = só o dono vê. A ficha completa (atributos, magias, inventário) ainda não existe.
 import { Plus, Trash2, UserRound } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { Aviso } from "./Diario";
 import { useAuth } from "./AuthContext";
@@ -12,6 +12,7 @@ import type { Registro } from "./registros";
 import { useCapa, useRegistros } from "./RegistrosContext";
 import { avisarRegistros, registrarTitulo, useVersaoRegistros } from "./registrosStore";
 import { useUnsavedGuard } from "./unsaved";
+import { armazenamentoLocalExperimental, type ResumoPersonagemGuiado } from "./criador/armazenamento";
 import type { TabSpec } from "./workspace";
 
 /** Retrato com URL temporária; sem retrato (ou se falhar) mostra a inicial. */
@@ -30,6 +31,8 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
     api.list(cid, "character").then(r => { if (!vivo) return; if (r.ok) { setLista(ordenarPersonagens(r.data)); setErro(null); } else setErro(r.error); });
     return () => { vivo = false; };
   }, [api, cid, v, tentativa]);
+  const guiados = useMemo<ResumoPersonagemGuiado[]>(() => { try { return user && cid ? armazenamentoLocalExperimental(user.id, cid).listar() : []; } catch { return []; } }, [user, cid, v, tentativa]);
+  useEffect(() => { guiados.forEach(g => registrarTitulo(g.id, g.nome)); }, [guiados]);   // abas restauradas do criador mostram o nome
   if (!active) return <div className="content"><h1>Personagens</h1><Aviso t="Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral."/></div>;
   if (!api) return <div className="content"><h1>Personagens</h1><Aviso t="Conta necessária para usar os personagens."/></div>;
   const novo = async () => {
@@ -43,6 +46,15 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo} disabled={busy}><Plus size={15} aria-hidden="true"/> Novo personagem</button></div>
     <p>Cada participante cria o próprio personagem. Só o dono edita; “visível para a campanha” aparece no Início.</p>
+    <section className="personagens-guiados" aria-label="Criador guiado">
+      <div className="row-between"><h2>Criador guiado <small className="muted">(experimental)</small></h2>
+        <button className="btn-secondary" onClick={() => onOpenContent({ kind: "criador", ref: crypto.randomUUID(), title: "Novo personagem" })}><Plus size={15} aria-hidden="true"/> Criar com o criador guiado</button></div>
+      <p className="muted">Guerreiro do SRD 2014 com equipamento do catálogo oficial e inventário. Os personagens guiados ficam só neste navegador até o salvamento na campanha ser autorizado.</p>
+      {guiados.length === 0 ? <p className="muted" data-testid="guiados-vazio">Nenhum personagem guiado neste navegador.</p>
+        : <ul className="home-party">{guiados.map(g => { const spec: TabSpec = { kind: "criador", ref: g.id, title: g.nome };
+          return <li key={g.id}><button className="home-char" onClick={() => onOpenContent(spec)} onContextMenu={e => aoClicarDireito(e, spec)} aria-label={`Abrir personagem guiado ${g.nome}`}>
+            <Retrato caminho={null} nome={g.nome}/><span><strong>{g.nome}</strong><small>Guerreiro · nível {g.nivel} · guiado (neste navegador)</small></span></button></li>; })}</ul>}
+    </section>
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
     {!lista && !erro && <p className="muted" role="status">Carregando personagens…</p>}
     {lista && lista.length === 0 && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}

@@ -204,3 +204,12 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Implementação:** PR #74; busca do Compêndio passou a indexar o nome original (`en`).
 - **Verificação:** tsc, build e 718 testes locais; conferir o CI do HEAD.
 - **Pendências:** descrições integrais, itens mágicos auditados, demais categorias (classes, subclasses, raças, antecedentes, magias, criaturas) e virtualização da lista (578 itens renderizados de uma vez no piloto).
+
+### DEC-016 — Criador guiado e Compêndio na navegação real (2026-11-21)
+- **Situação:** implementada parcialmente (Guerreiro; armazenamento experimental).
+- **Problema e contexto:** o criador e o Compêndio só existiam em `?demo=` (dev); o Compêndio real era placeholder.
+- **Decisão:** novos tipos de aba `criador:<id>` e `item:<id>` (`src/workspace.ts`), seção Compêndio real (`src/Compendio.tsx`), criador em `src/criador/`, acesso por Personagens. O catálogo do criador e o editor de identidade pública saíram de `src/dev/` para `src/criador/`. Persistência por interface `ArmazenamentoCriador` com adaptador **local experimental** (por usuário e campanha, apagado no logout), sem Supabase.
+- **Alternativas rejeitadas:** gravar o rascunho em `notes.meta` (vazaria a ficha privada para a campanha); criar tabela/migração sem autorização; manter só o piloto dev.
+- **Consequências:** personagens guiados não são os registros `character` da campanha (coexistem até a persistência real); a lista de Personagens mostra as duas origens em seções separadas. Sem alteração de banco, RLS ou produção.
+- **Verificação:** tsc, build e 742 testes locais (caminho do usuário em desktop e celular, Compêndio, armazenamento); CI do HEAD a conferir.
+- **Pendências:** persistência autenticada (proposta em `docs/CRIADOR-FICHA-INVENTARIO.md`), demais classes/raças/antecedentes, publicação da identidade na Enciclopédia (PR #75), Playwright (PR #76).

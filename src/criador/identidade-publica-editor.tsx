@@ -5,7 +5,7 @@ type Props={source:PrivateIdentitySource;initialSettings?:PublicIdentitySettings
 const FIELDS=[['name','Nome'],['surname','Sobrenome'],['race','Raça'],['characterClass','Classe']] as const;
 type FieldKey=typeof FIELDS[number][0];
 
-/** Development-only editor: never reads or publishes the private sheet. */
+/** Editor da identidade pública: nunca lê nem publica a ficha privada; recebe só os campos de origem informados. */
 export default function PublicIdentityEditor({source,initialSettings,onSave,onSkip}:Props){
  const [settings,setSettings]=useState<PublicIdentitySettings>(()=>initialSettings??defaultPublicIdentity());
  const updateField=(key:FieldKey,patch:PublicIdentityField)=>setSettings(previous=>({...previous,[key]:patch}));
