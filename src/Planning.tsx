@@ -59,6 +59,8 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   const [cenas, setCenas] = useState<Record<string, Registro>>({}); const cenasRef = useRef(cenas); cenasRef.current = cenas;
   const [ed, setEd] = useState<Record<string, Ed>>({}); const edRef = useRef(ed); edRef.current = ed;
   const [sel, setSel] = useState<string[]>([]);
+  const [confirmarSecoes, setConfirmarSecoes] = useState<{ ids: string[]; mensagem: string } | null>(null);
+  const [confirmarGuia, setConfirmarGuia] = useState<{ id: string; mensagem: string } | null>(null);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches);
   useEffect(() => { const mq = window.matchMedia("(max-width: 700px)"); const atualizar = () => setMobile(mq.matches); atualizar(); mq.addEventListener?.("change", atualizar); return () => mq.removeEventListener?.("change", atualizar); }, []);   // seções selecionadas com o mouse
@@ -179,11 +181,16 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   // Seleção de seções pelo mouse: clique seleciona; Ctrl/Shift/Cmd+clique soma ou tira; Esc limpa; Delete exclui as selecionadas.
   const clicarSecao = (id: string, e: RMouseEvent) => setSel(s => (e.ctrlKey || e.metaKey || e.shiftKey) ? (s.includes(id) ? s.filter(x => x !== id) : [...s, id]) : (s.length === 1 && s[0] === id ? [] : [id]));
 
-  const excluirSecoesUI = async (ids: string[]) => {
+  const excluirSecoesUI = (ids: string[]) => {
     const q = lerQuadro(boardRef.current?.meta); const { cartoes } = excluirSecoes(q, ids);
     const nomes = ids.map(i => q.colunas.flatMap(c => c.secoes).find(s => s.id === i)?.titulo).filter(Boolean).join(", ");
     const pendentes = cartoes.filter(c => edRef.current[c] && edSujo(edRef.current[c])).length;
-    if (cartoes.length > 0 && !window.confirm(`Excluir ${ids.length === 1 ? "a seção" : `as ${ids.length} seções`} “${nomes}” e ${cartoes.length === 1 ? "o cartão" : `os ${cartoes.length} cartões`} dentro ${ids.length === 1 ? "dela" : "delas"}? Isso não pode ser desfeito.${pendentes ? " Há alterações não salvas que serão perdidas." : ""}`)) return;
+    if (cartoes.length === 0) { void confirmarExclusaoSecoes(ids); return; }
+    setConfirmarSecoes({ ids, mensagem: `Excluir ${ids.length === 1 ? "a seção" : `as ${ids.length} seções`} “${nomes}”${cartoes.length ? ` e ${cartoes.length} cartão(ões) dentro dela(s)` : ""}? Essa ação não pode ser desfeita.${pendentes ? " Alterações não salvas serão perdidas." : ""}` });
+  };
+  const confirmarExclusaoSecoes = async (ids: string[]) => {
+    const { cartoes } = excluirSecoes(lerQuadro(boardRef.current?.meta), ids);
+    setConfirmarSecoes(null);
     if (!api) return;
     const apagados: string[] = [];
     for (const c of cartoes) { const r = await api.remove(c); if (r.ok) apagados.push(c); }
@@ -246,10 +253,20 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     const r = await api.update(b.id, versoes.current.get(b.id) ?? b.version, { title: nome });
     if (r.ok) substituirBoard({ ...r.data, meta: boardRef.current?.id === r.data.id ? boardRef.current.meta : r.data.meta }); else setAviso(r.error);
   };
+  const solicitarExclusaoPlano = (b: Registro) => {
+    const quadro = lerQuadro(b.meta);
+    const secoes = quadro.colunas.flatMap(c => c.secoes);
+    const cartoes = todosCartoes(quadro);
+    if (secoes.length > 0 && cartoes.length > 0) {
+      setConfirmarGuia({ id: b.id, mensagem: `Excluir a guia “${b.title}”, suas ${secoes.length} seção(ões) e ${cartoes.length} cartão(ões)? Essa ação não pode ser desfeita.` });
+      return;
+    }
+    void excluirPlano(b);
+  };
   const excluirPlano = async (b: Registro) => {
     if (!api) return;
+    setConfirmarGuia(null);
     const cartoes = todosCartoes(lerQuadro(b.meta));
-    if (!window.confirm(`Excluir o planejamento “${b.title}”${cartoes.length ? ` e os ${cartoes.length} cartões dele` : ""}? Isso não pode ser desfeito.`)) return;
     for (const c of cartoes) { const r = await api.remove(c); if (r.ok) publicarExclusao(c, origem); }
     const r = await api.remove(b.id); if (!r.ok) { setAviso(r.error); return; }
     const resto = boards.filter(x => x.id !== b.id);
@@ -286,9 +303,29 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
 
   return <div className="content planejamento" data-testid="planejamento">
     <style>{`@media(max-width:700px){.planejamento .quadro-mobile{display:flex;flex-direction:column;overflow:visible;gap:12px}.planejamento .quadro-mobile .coluna{min-width:0!important;width:100%!important;flex-basis:100%!important;max-width:100%!important}.planejamento .quadro-mobile .coluna-redim{display:none}.planejamento .quadro-mobile .secao{width:100%;max-width:100%}}`}</style>
+    {confirmarSecoes && <div className="confirmacao-fundo" onMouseDown={e => { if (e.target === e.currentTarget) setConfirmarSecoes(null); }}>
+      <div className="confirmacao-dialogo" role="alertdialog" aria-modal="true" aria-labelledby="confirmacao-titulo" aria-describedby="confirmacao-mensagem">
+        <h2 id="confirmacao-titulo">Excluir seção?</h2>
+        <p id="confirmacao-mensagem">{confirmarSecoes.mensagem}</p>
+        <div className="confirmacao-acoes">
+          <button type="button" className="btn" onClick={() => setConfirmarSecoes(null)}>Cancelar</button>
+          <button type="button" className="btn danger" onClick={() => void confirmarExclusaoSecoes(confirmarSecoes.ids)}>Excluir seção</button>
+        </div>
+      </div>
+    </div>}
+    {confirmarGuia && <div className="confirmacao-fundo" onMouseDown={e => { if (e.target === e.currentTarget) setConfirmarGuia(null); }}>
+      <div className="confirmacao-dialogo" role="alertdialog" aria-modal="true" aria-labelledby="confirmacao-guia-titulo" aria-describedby="confirmacao-guia-mensagem">
+        <h2 id="confirmacao-guia-titulo">Excluir guia?</h2>
+        <p id="confirmacao-guia-mensagem">{confirmarGuia.mensagem}</p>
+        <div className="confirmacao-acoes">
+          <button type="button" className="btn" onClick={() => setConfirmarGuia(null)}>Cancelar</button>
+          <button type="button" className="btn danger" onClick={() => { const b = boards.find(x => x.id === confirmarGuia.id); if (b) void excluirPlano(b); else setConfirmarGuia(null); }}>Excluir guia</button>
+        </div>
+      </div>
+    </div>}
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Anotações</h1>
-    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onFixar={b => void alternarFixacao(b)} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
+    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onFixar={b => void alternarFixacao(b)} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={solicitarExclusaoPlano}/>}
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando anotações…</p>}
@@ -334,7 +371,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
                   {x?.erro && <p role="alert" className="notice err">{x.erro} <button className="btn-link" onClick={() => void salvar(id)}>Tentar de novo</button></p>}
                 </div>
                 <div className="cartao-rodape">
-                  <button className="icon danger" aria-label={`Excluir cartão ${c.title}`} title="Excluir cartão" onClick={() => { if (window.confirm(`Excluir o cartão “${c.title}” e a página dele?${sujo ? " As alterações não salvas deste cartão serão perdidas." : ""}`)) void excluirCartao(id); }}><Trash2 size={13}/></button>
+                  <button className="icon danger" aria-label={`Excluir cartão ${c.title}`} title="Excluir cartão" onClick={() => void excluirCartao(id)}><Trash2 size={13}/></button>
                 </div>
               </Ordenavel>;
             })}</ListaSecao>
@@ -380,7 +417,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
       onDrop={e => { e.preventDefault(); const de = grupo.findIndex(x => x.id === arrastada); if (de >= 0 && de !== i) onMover(arrastada!, de < i ? 1 : -1, b.id); setArrastada(null); }}
       onDragEnd={() => setArrastada(null)}>
       {editar ? <input aria-label="Renomear guia" autoFocus defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); setRenomeando(null); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = b.title; e.currentTarget.blur(); } }}/>
-        : <button type="button" className="plano-selecionar" aria-label={b.title} title={b.title} aria-pressed={on} onClick={() => { setMenu(null); onTrocar(b.id); }}>{perm ? <Pin size={14} fill="currentColor" aria-hidden="true"/> : b.title}</button>}
+        : <button type="button" className="plano-selecionar" aria-label={b.title} title={b.title} aria-pressed={on} onClick={() => { setMenu(null); onTrocar(b.id); }}>{perm ? <><Pin size={13} fill="currentColor" aria-hidden="true"/><span className="plano-fixada-titulo">{b.title}</span></> : b.title}</button>}
 
     </span>;
   };
@@ -422,10 +459,10 @@ function Estado({ x, sujo, onTentar }: { x?: Ed; sujo: boolean; onTentar: () => 
 }
 
 function NovoCartao({ onCriar }: { onCriar: (t: string) => Promise<boolean> }) {
-  const [t, setT] = useState(""), [busy, setBusy] = useState(false);
-  return <form className="novo" onSubmit={async e => { e.preventDefault(); if (busy) return; setBusy(true); const ok = await onCriar(t); setBusy(false); if (ok) setT(""); }}>
-    <input value={t} onChange={e => setT(e.target.value)} placeholder="Novo cartão (nome opcional)" aria-label="Título do novo cartão" maxLength={120}/>
-    <button className="icon" aria-label="Adicionar cartão" disabled={busy}><Plus size={15}/></button></form>;
+  const [busy, setBusy] = useState(false);
+  return <button type="button" className="mais mais-cartao" aria-label="Adicionar cartão" disabled={busy} onClick={async () => { if (busy) return; setBusy(true); try { await onCriar(""); } finally { setBusy(false); } }}>
+    <Plus size={16} aria-hidden="true"/><span>Novo cartão</span>
+  </button>;
 }
 
 /** "+" tracejado e transparente: clicar cria uma coluna nova (sem pedir nome); soltar um cartão ou seção aqui cria a coluna já com ele. */
