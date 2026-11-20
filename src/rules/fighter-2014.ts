@@ -23,6 +23,9 @@ export const fighter2014:ClassDefinition={
  })
 };
 export const fighter2014Advancements:Advancement[]=[
+ {id:'fighter-skills-1',level:1,grants:[],choices:[{id:'fighter-skills-1',level:1,count:2,
+  options:['acrobatics','animal-handling','athletics','history','insight','intimidation','perception','survival']
+   .map(id=>({id,grants:[{type:'skill' as const,skill:id,source:'fighter-skills-1'}]}))}]},
  {id:'fighter-style-1',level:1,grants:[],choices:[{id:'fighter-style-1',level:1,count:1,
   options:['archery','defense','dueling','great-weapon-fighting','protection','two-weapon-fighting']
    .map(id=>({id,grants:[{type:'feature' as const,feature:'fighting-style-'+id,source:'fighter-style-1'}]}))}]},
