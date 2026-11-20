@@ -1,4 +1,6 @@
 import {describe,expect,it} from 'vitest';
+import {coreClassAsiAdvancements} from './class-asi-2014';
+import {addInventoryInstance,changeInventoryInstanceQuantity} from './character-domain';
 import {buildPilotCharacterCatalog} from './character-catalogue-adapter';
 import {createCharacterSheet,type CharacterDraft} from './character-domain';
 import type {RulesCatalogue} from './rules-catalogue';
@@ -36,4 +38,25 @@ describe('canonical Compendium to character kernel integration',()=>{
   expect(()=>buildPilotCharacterCatalog(invalid,{race,background,class:klass}))
    .toThrow('Incomplete or invalid character rules definition');
  });
+ it('advances the same fighter from level 1 to 4 and tracks independent item copies',()=>{
+  const {catalog,ids}=buildPilotCharacterCatalog(catalogue,{race,background,class:klass},
+    coreClassAsiAdvancements('fighter'));
+  const base:CharacterDraft={id:'hero-2',name:'Dorna',ruleset:'5e-2014',catalogueVersion:catalog.version,
+   baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},
+   raceId:ids.raceId,backgroundId:ids.backgroundId,classId:ids.classId,
+   level:1,decisions:[],inventory:[],currentHp:12,temporaryHp:0,spentResources:{}};
+  expect(createCharacterSheet(base,catalog).pending).toEqual([]);
+  const atFour=createCharacterSheet({...base,level:4},catalog);
+  expect(atFour.pending).toEqual(['fighter-asi-4']);
+  const selected={...base,level:4,decisions:[{id:'fighter-asi-4',optionIds:['str-plus-two']}]};
+  const sheet=createCharacterSheet(selected,catalog);
+  expect(sheet.abilities.str).toBe(17);
+  expect(sheet.pending).toEqual([]);
+  const first=addInventoryInstance(selected,{id:'sword-1',itemId:'longsword',quantity:1,equipped:true,origin:'acquired'});
+  const second=addInventoryInstance(first,{id:'sword-2',itemId:'longsword',quantity:1,equipped:false,origin:'acquired'});
+  const changed=changeInventoryInstanceQuantity(second,'sword-2',2);
+  expect(createCharacterSheet(changed,catalog).inventory.map(x=>x.quantity)).toEqual([1,3]);
+  expect(createCharacterSheet(changed,catalog).abilities.str).toBe(17);
+ });
+
 });
