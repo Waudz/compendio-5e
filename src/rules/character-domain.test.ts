@@ -80,6 +80,14 @@ describe('character domain: sheet, decisions and inventory', () => {
       ...draft.decisions, { id: 'primal-path', optionIds: ['invalid'] }
     ] }, withAdvancements).pending).toEqual(['primal-path', 'ability-improvement-4']);
   });
+  it('rejects identical automatic grants duplicated across level table and advancements', () => {
+    const duplicateGrant = { type: 'feature' as const, feature: 'rage', source: 'barbarian' };
+    const duplicateCatalog: CharacterCatalog = {
+      ...catalog,
+      advancements: { barbarian: [{ id: 'barbarian-rage-1', level: 1, grants: [duplicateGrant] }] }
+    };
+    expect(() => createCharacterSheet(draft, duplicateCatalog)).toThrow('Duplicate automatic class grant');
+  });
   it('keeps the character inventory independent from starting grants', () => {
     const next = applyInventoryChange(draft, 'torch', 3);
     expect(next.inventory).toHaveLength(2);
