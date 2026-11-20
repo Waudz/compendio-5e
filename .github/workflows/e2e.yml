@@ -29,6 +29,8 @@ jobs:
         run: npm run test:e2e:types
       - name: Executar navegação e responsividade sem serviços externos
         run: npm run test:e2e
+      - name: Executar segunda etapa de qualidade
+        run: npm run test:quality
       - name: Guardar relatório, capturas e traces
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7

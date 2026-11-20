@@ -55,17 +55,17 @@ describe("Personagens e Aventureiros", () => {
     await waitFor(() => expect(store.dados[0].visibility).toBe("campaign"));
     expect(store.dados[0].meta).toMatchObject({ classe: "Clériga", nivel: 4 });
     fireEvent.click(menu().getByRole("button", { name: "Início" }));
-    const b = await screen.findByRole("button", { name: "Abrir ficha de Lydia" }); expect(within(b).getByText("Clériga · nível 4")).toBeTruthy();
+    const b = await screen.findByRole("button", { name: "Lydia Clériga · nível 4" }); expect(within(b).getByText("Clériga · nível 4")).toBeTruthy();
     cleanup(); localStorage.setItem(activeKey(other.id), "ca");
     await renderApp({ user: other, api: apiC(jogador), registros: registrosEmMemoria("jogador", other.id, [], store) });
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha de Lydia" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Lydia Clériga · nível 4" }));
     expect(await screen.findByText("Clériga · nível 4")).toBeTruthy();
     expect(screen.queryByLabelText("Nome")).toBeNull();
   });
   it("personagem privado não aparece para os outros nem na vitrine do Início; valida nível antes de gravar", async () => {
     const store = { dados: [pc("p1", "outro", "Privado alheio", "private"), pc("p2", "outro", "Público alheio", "campaign"), pc("p3", me.id, "Meu privado", "private")] };
     await renderApp({ api: apiC(jogador), registros: registrosEmMemoria("jogador", me.id, [], store) });
-    expect(await screen.findByRole("button", { name: "Abrir ficha de Público alheio" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Público alheio Guerreiro · nível 3" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Privado alheio/ })).toBeNull(); expect(screen.queryByRole("button", { name: /Meu privado/ })).toBeNull();
     await abrir("Personagens");
     await screen.findByRole("button", { name: "Abrir ficha de Meu privado" });
