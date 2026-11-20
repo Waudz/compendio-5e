@@ -3,3 +3,8 @@ dist/
 .env
 .env.local
 *.tsbuildinfo
+
+# Artefatos locais do Playwright (não contêm dados de produção)
+/playwright-report/
+/test-results/
+/blob-report/
