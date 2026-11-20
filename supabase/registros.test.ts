@@ -49,12 +49,16 @@ beforeAll(async () => {
 });
 
 describe("tipos de registro por papel", () => {
-  it("o mestre cria diário, cena e quadro; jogador e estranho não", async () => {
+  it("o mestre cria diário, cena e quadro; jogadores criam cenas e quadros próprios; estranhos não", async () => {
     for (const k of ["diary", "scene", "board"]) expect((await mk(U.ana, C1, k, `m-${k}`)).error, k).toBeUndefined();
-    for (const k of ["diary", "scene", "board"]) {
-      expect((await mk(U.bia, C1, k, "x")).error, `jogador ${k}`).toMatch(/tipo_exclusivo_do_mestre/);
-      expect((await mk(U.dora, C1, k, "x")).error, `estranho ${k}`).toBeTruthy();
+    expect((await mk(U.bia, C1, "diary", "x")).error).toMatch(/tipo_exclusivo_do_mestre/);
+    for (const k of ["scene", "board"]) {
+      const id = idOf(await mk(U.bia, C1, k, `j-${k}`));
+      expect((await as(U.bia, "select id from public.notes where id = $1", [id])).rows).toHaveLength(1);
+      for (const u of [U.ana, U.caio, U.dora]) expect((await as(u, "select id from public.notes where id = $1", [id])).rows).toHaveLength(0);
+      expect((await as(U.ana, "update public.notes set title = 'invadido' where id = $1 returning id", [id])).rows).toHaveLength(0);
     }
+    for (const k of ["diary", "scene", "board"]) expect((await mk(U.dora, C1, k, "x")).error, `estranho ${k}`).toBeTruthy();
   });
   it("diário, cena, quadro e personagem exigem campanha; o mestre de uma campanha não cria na outra", async () => {
     for (const k of ["diary", "scene", "board", "character"]) expect((await mk(U.ana, null, k, "x")).error, k).toBeTruthy();
@@ -94,13 +98,13 @@ describe("Diário: rascunho privado, publicado para a campanha", () => {
   });
 });
 
-describe("Planejamento: sempre privado do mestre", () => {
-  it("cena e quadro não podem ser compartilhados nem publicados, e jogadores nunca os leem", async () => {
+describe("Anotações: quadros e cenas privados de cada autor", () => {
+  it("cena e quadro não podem ser compartilhados nem publicados, e outros usuários não leem os registros do autor", async () => {
     expect((await mk(U.ana, C1, "scene", "x", { vis: "campaign" })).error).toMatch(/notes_planejamento_privado_check/);
     expect((await mk(U.ana, C1, "board", "x", { vis: "master" })).error).toMatch(/notes_planejamento_privado_check/);
     const id = idOf(await mk(U.ana, C1, "scene", "Julkoun", { meta: { x: 1 } }));
     expect((await as(U.ana, "update public.notes set visibility = 'campaign' where id = $1", [id])).error).toMatch(/notes_planejamento_privado_check/);
-    for (const u of [U.bia, U.caio, U.dora]) expect((await as(u, "select id from public.notes where kind in ('scene','board')")).rows).toHaveLength(0);
+    for (const u of [U.bia, U.caio, U.dora]) expect((await as(u, "select id from public.notes where id = $1", [id])).rows).toHaveLength(0);
   });
   it("o quadro guarda a ordem em meta e a versão avança a cada gravação (concorrência otimista)", async () => {
     const id = idOf(await mk(U.ana, C1, "board", "Quadro", { meta: { colunas: [] } }));

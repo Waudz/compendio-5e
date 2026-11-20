@@ -2,7 +2,7 @@
 -- Registros de campanha sobre `notes` (Diário, cenas e quadro do Planejamento, personagens), capa da campanha e imagens.
 --   * notes.meta (jsonb objeto, até 16 KiB): data da sessão do Diário, ordem do quadro, classe/nível/retrato do personagem.
 --   * novos tipos: 'board' (quadro) e 'character' (personagem).
---   * regras de quem pode criar: diary/scene/board só o MESTRE da campanha; character qualquer participante, em nome próprio.
+--   * regras de quem pode criar: diary só o MESTRE da campanha; scene/board/character qualquer participante, em nome próprio.
 --   * planejamento (scene, board) é SEMPRE privado; diário e personagem só 'private' ou 'campaign' (publicado).
 --   * campaigns.cover_path + bucket privado `campaign-assets` (caminho <campanha>/<uuid>, JPEG/PNG/WebP até 5 MiB) com políticas.
 -- Aditiva: não apaga nem altera dados existentes. Reversão em supabase/rollback/0006_registros_capa_personagens_down.sql.
@@ -18,14 +18,17 @@ alter table public.notes add constraint notes_planejamento_privado_check check (
 alter table public.notes add constraint notes_publicavel_check check (kind not in ('diary', 'character') or visibility in ('private', 'campaign'));
 alter table public.notes add constraint notes_registro_de_campanha_check check (kind not in ('diary', 'scene', 'board', 'character') or campaign_id is not null);
 
--- Gatilho SECURITY INVOKER (a RLS vale dentro dele; is_master/is_member já são definer e só respondem sobre o próprio usuário).
+-- Gatilho SECURITY INVOKER: somente o mestre cria diary; participantes criam seus próprios scene/board/character.
+-- A RLS de notes (0004/0005) mantém owner_id = auth.uid(), escrita exclusiva do dono e leitura privada.
+-- O CHECK notes_planejamento_privado_check impede compartilhar scene/board, inclusive com o mestre.
+-- is_master/is_member verificam a participação atual no banco, não no cliente.
 create function public.notes_kind_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
-  if new.kind in ('diary', 'scene', 'board') and (new.campaign_id is null or not public.is_master(new.campaign_id)) then
+  if new.kind = 'diary' and (new.campaign_id is null or not public.is_master(new.campaign_id)) then
     raise exception 'tipo_exclusivo_do_mestre' using errcode = '42501';
   end if;
-  if new.kind = 'character' and (new.campaign_id is null or not public.is_member(new.campaign_id)) then
+  if new.kind in ('scene', 'board', 'character') and (new.campaign_id is null or not public.is_member(new.campaign_id)) then
     raise exception 'sem_permissao' using errcode = '42501';
   end if;
   return new;
