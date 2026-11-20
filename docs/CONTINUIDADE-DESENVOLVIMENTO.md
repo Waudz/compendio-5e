@@ -259,3 +259,9 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - `src/rules/initiative-access.ts` e testes codificam contrato de leitura e gerenciamento apenas por mestre da campanha correta, retornando negação sem metadados para jogador ou mestre de outra campanha.
 - **Ainda não conectado ao painel, rotas, API nem RLS**: a verificação de papel informada no cliente não é autenticação. Na futura implementação, servidor deve consultar vínculo atual e papel autenticado, bloquear SELECT/RPC/Realtime/contagens de iniciativa para jogadores, não apenas esconder menu. Atualização de PV e condições na ficha permanece separada da ordem de iniciativa.
 - O plano antigo que menciona iniciativa para jogadores ou acesso a dados de combate deve ser considerado superado por esta decisão; atualizar a arquitetura de produção antes da migração. Nenhuma migração/deploy/merge nesta rodada.
+
+### Contrato de navegação por papel (20/11/2026)
+
+- Criado `src/rules/campaign-navigation.ts` com menus ordenados: mestre — Início, Anotações, Iniciativa, Compêndio, Menu; jogador — Início, Anotações, Ficha, Compêndio, Menu. Inventário é subpágina da Ficha. Testes verificam exclusão da iniciativa do menu do jogador.
+- **Ainda não ligado à navegação real** e não é controle de acesso. A aplicação deverá filtrar menus, rotas/abas restauradas e ações; a autorização de dados exige RLS e verificação do mestre autenticado no backend.
+- CI verde no commit `b12cfa6e`; conferir o novo HEAD. Sem merge, migração ou deploy.
