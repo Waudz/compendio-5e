@@ -25,4 +25,26 @@ describe('local creator vertical slice',()=>{
   expect(screen.getByText(/Força: 17/)).toBeTruthy();
   expect(screen.getByText(/Espada longa · quantidade 2/)).toBeTruthy();
  });
+ it('keeps incomplete level-four choices as drafts instead of completed characters',()=>{
+  render(<CharacterPilot/>);
+  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
+  fireEvent.change(screen.getByLabelText('Nível'),{target:{value:'4'}});
+  expect(screen.getByRole('note').textContent).toContain('rascunho incompleto');
+  fireEvent.click(screen.getByRole('button',{name:'Salvar rascunho local'}));
+  expect(screen.getByRole('status').textContent).toContain('Rascunho incompleto salvo');
+ });
+ it('rejects incompatible or malformed persisted data without crashing',()=>{
+  localStorage.setItem('compendio5e:dev:character-pilot:v1',JSON.stringify({
+   schemaVersion:999,draft:{name:'Corrupted'}
+  }));
+  render(<CharacterPilot/>);
+  expect((screen.getByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('');
+  cleanup();
+  localStorage.setItem('compendio5e:dev:character-pilot:v1',JSON.stringify({
+   schemaVersion:1,draft:{id:'broken',name:'Invalid',baseAbilities:{str:15},decisions:[],inventory:[],spentResources:{}}
+  }));
+  render(<CharacterPilot/>);
+  expect((screen.getByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('');
+ });
+
 });
