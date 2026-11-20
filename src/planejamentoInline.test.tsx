@@ -486,9 +486,10 @@ describe("planejamentos e anotações permanentes", () => {
     await screen.findByLabelText("Seção Sessão 5");
     fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
     const sec = await screen.findByLabelText("Seção Anotações");
-    fireEvent.change(within(sec).getByLabelText("Título do novo cartão"), { target: { value: "Cultos de Daggerford" } });
     fireEvent.click(within(sec).getByRole("button", { name: "Adicionar cartão" }));
-    await within(sec).findByLabelText("Título do cartão Cultos de Daggerford");
+    const titulo = await within(sec).findByLabelText("Título do cartão Novo cartão");
+    fireEvent.change(titulo, { target: { value: "Cultos de Daggerford" } }); fireEvent.blur(titulo);
+    await waitFor(() => expect(registros.dados.some(r => r.kind === "scene" && r.title === "Cultos de Daggerford")).toBe(true));
     expect(screen.queryByRole("button", { name: /Excluir o planejamento/ })).toBeNull();      // permanentes não se excluem
     fireEvent.click(screen.getByRole("button", { name: "Quadro" }));
     await screen.findByLabelText("Seção Sessão 5");
