@@ -344,8 +344,16 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
               <input className="secao-titulo" aria-label={`Nome da seção ${s.titulo}`} defaultValue={s.titulo} maxLength={80} onPointerDown={e => e.stopPropagation()}
                 onFocus={() => setSel([])} onBlur={e => { if (e.target.value.trim() && e.target.value !== s.titulo) gravar(q => renomearSecao(q, s.id, e.target.value)); else e.target.value = s.titulo; }}
                 onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
-              <button type="button" className={s.grande ? "icon ativo" : "icon"} aria-label={`Título grande na seção ${s.titulo}`} aria-pressed={!!s.grande} title="Título grande" onClick={() => gravar(q => alternarTituloGrande(q, s.id))}><Type size={14}/></button>
-              <button type="button" className="icon danger excluir-secao-discreto" aria-label={`Excluir seção ${s.titulo}`} title="Excluir seção" onClick={() => void excluirSecoesUI([s.id])}><Trash2 size={14}/></button>
+              {mobile ? <details className="secao-menu-mobile" onClick={e => e.stopPropagation()}>
+                <summary aria-label={`Mais ações da seção ${s.titulo}`}><MoreHorizontal size={17}/></summary>
+                <div className="secao-menu-opcoes">
+                  <button type="button" onClick={e => { e.currentTarget.closest("details")?.removeAttribute("open"); gravar(q => alternarTituloGrande(q, s.id)); }}><Type size={15}/> {s.grande ? "Título normal" : "Título grande"}</button>
+                  <button type="button" className="danger" onClick={e => { e.currentTarget.closest("details")?.removeAttribute("open"); void excluirSecoesUI([s.id]); }}><Trash2 size={15}/> Excluir seção</button>
+                </div>
+              </details> : <>
+                <button type="button" className={s.grande ? "icon ativo" : "icon"} aria-label={`Título grande na seção ${s.titulo}`} aria-pressed={!!s.grande} title="Título grande" onClick={() => gravar(q => alternarTituloGrande(q, s.id))}><Type size={14}/></button>
+                <button type="button" className="icon danger excluir-secao-discreto" aria-label={`Excluir seção ${s.titulo}`} title="Excluir seção" onClick={() => void excluirSecoesUI([s.id])}><Trash2 size={14}/></button>
+              </>}
             </header>}>
             <ListaSecao secaoId={s.id} ids={s.cartoes.filter(id => cenas[id])}>{s.cartoes.map(id => {
               const c = cenas[id]; if (!c) return null;
