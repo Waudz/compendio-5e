@@ -153,3 +153,10 @@ RLS filtra linhas, não oculta colunas por si só. Não conceder SELECT da tabel
 - Novos testes: WCAG axe, nome acessível/contraste, teclado/foco/menu/contexto, viewport 320–1440, divisão 50/50 e 30/70, histórico/reload, diagnose de performance. Corrigidos no ramo do Codex Q2-01 navegação setas menu contextual, Q2-02 retorno de foco Escape, Q2-03 modal mobile e contenção de foco. **Bloqueios reais** Q2-04 contraste e Q2-05 divergência rótulo/nome acessível (oito falhas axe). Evidências em `docs/QUALIDADE-ETAPA-2.md` na branch dele.
 - Nenhum merge, deploy nem Supabase. Dependency stack: #76 → #77, e #74 → #78; #75 deriva de #74. Planejar integração na ordem de dependência, reexecutando CI e acessibilidade após juntar alterações. Não tentar tornar CI verde omitindo regras axe; solicitação de correção direcionada ao Codex antes de integrar.
 - Revisão de PR #78 em paralelo: workflow `Validar projeto` ainda **in_progress** no HEAD `b1ed9e1` na última verificação.
+
+## Auditoria de persistência e segurança (20/11/2026)
+
+- CI do HEAD de #78 `b1ed9e1` (run `44832691893`) e de #75 `3313af2` (run `44832804091`) **confirmados success** no GitHub.
+- Novo documento `docs/REVISAO-SEGURANCA-PERSISTENCIA-2026-11-20.md`, commit `e7d04f3`: políticas RLS de `notes` e `campaign_members` inspecionadas somente leitura, matriz de visibilidade entre ficha privada, identidade pública e Enciclopédia, ordem de integração.
+- **Bloqueador adicional identificado:** rascunhos de RPCs `SECURITY DEFINER` em schema exposto `public` precisam revisão conforme checklist atual Supabase; não executar como estão. Preferir invoker ou arquitetura de gateway/schema privado com autorização e testes adequados. Não usar `notes.meta` para fichas privadas em registros de leitura compartilhada.
+- Nenhum SQL aplicado, nenhum merge ou deploy. Próximo trabalho: proposta revisada de autorização e testes de banco em ambiente isolado, com foco em privacidade real.
