@@ -129,16 +129,16 @@ describe("seletor de campanha", () => {
 describe("Planejamento", () => {
   it("aparece para o mestre com campanha ativa e abre a seção com estado vazio (sem recursos fictícios)", async () => {
     await montar([mA], "ca");
-    expect(nomesMenu()).toContain("Planejamento");
-    fireEvent.click(within(menu()).getByRole("button", { name: "Planejamento" }));
-    expect(tabs()).toContain("Planejamento");
+    expect(nomesMenu()).toContain("Anotações");
+    fireEvent.click(within(menu()).getByRole("button", { name: "Anotações" }));
+    expect(tabs()).toContain("Anotações");
     expect(await screen.findByRole("heading", { name: "Planejamento" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Planejamento" })).toBeTruthy();   // sem API de registros neste teste: aviso honesto, sem dados
+    expect(screen.getByRole("heading", { name: "Anotações" })).toBeTruthy();   // sem API de registros neste teste: aviso honesto, sem dados
     expect(document.querySelector(".content")!.textContent).toMatch(/Conta necessária/);
   });
   it("jogador não recebe ferramentas exclusivas do mestre", async () => {
     await montar([mA, mB], "cb");
-    expect(nomesMenu()).not.toContain("Planejamento"); expect(visibleSections(false).map(s => s.page)).not.toContain("planejamento");
+    expect(nomesMenu()).toContain("Anotações"); expect(visibleSections(false).map(s => s.page)).toContain("planejamento");
   });
   it("sem campanha ativa não há Planejamento no menu", async () => {
     await montar([mA], null);
