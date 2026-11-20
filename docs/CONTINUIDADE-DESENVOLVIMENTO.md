@@ -240,3 +240,9 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - `src/dev/public-identity-editor.tsx`: formulário isolado para nome, sobrenome, raça e classe reais/personalizados/ocultos, título, URL de retrato, descrição pública e prévia do que os outros jogadores verão. Permite salvar via callback do chamador ou configurar depois.
 - `src/dev/public-identity-editor.test.tsx`: testes de prévia, ocultação, personalização e adiamento. Ainda **não integrado ao criador real, persistência, Enciclopédia ou autorização do servidor**; nenhuma identidade pública está publicada por esta mudança.
 - Próximo passo: integrar o componente à etapa final do criador e a uma persistência segura separada da ficha, com regras RLS que impeçam leitura dos campos verdadeiros por outros jogadores. Não usar o estado completo do editor como resposta pública; projetar somente `publicIdentityCard`.
+
+### Integração do editor ao criador piloto (20/11/2026)
+
+- O criador experimental `src/dev/character-pilot.tsx` agora abre o editor público opcional; salva a configuração em chave local separada da ficha, vinculada ao ID do personagem, e a restaura ao reabrir. Fonte real do piloto: nome editável, raça Anão, classe Guerreiro, sobrenome vazio; não representa catálogo completo.
+- Teste de integração confirma edição, persistência separada e ocultação de classe na prévia.
+- **Atenção:** o armazenamento local do piloto não fornece segurança entre usuários. Para produção, não publicar a ficha privada para outros jogadores e aplicar controle de acesso no backend; editor e projeção continuam protótipos.
