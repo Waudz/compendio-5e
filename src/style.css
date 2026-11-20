@@ -565,3 +565,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   }
 }
 /* Em touch, manter as ações visíveis até existir menu contextual próprio. */
+
+/* Cartões novos não exigem um cabeçalho visível: adicionar título é opcional. */
+.planejamento .cartao-adicionar-titulo{background:transparent;border:0;color:var(--muted);font-size:12px;padding:2px 4px;text-align:left;cursor:pointer;opacity:.65}
+.planejamento .cartao-adicionar-titulo:hover,.planejamento .cartao-adicionar-titulo:focus-visible{opacity:1;color:var(--text)}

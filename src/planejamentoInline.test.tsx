@@ -140,7 +140,7 @@ describe("cartão simplificado: texto no cartão, salvamento automático", () =>
     fireEvent.click(screen.getByRole("button", { name: "Excluir cartão Julkoun" }));
     await waitFor(() => expect(registros.dados.some(r => r.id === "s1")).toBe(false));
   });
-  it("o título é editado no cabeçalho do cartão e Enter confirma; título vazio volta ao anterior", async () => {
+  it("o título é editado no cabeçalho e pode ser removido sem apagar o cartão", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     const t = await screen.findByLabelText("Título do cartão Julkoun") as HTMLInputElement;
@@ -148,8 +148,8 @@ describe("cartão simplificado: texto no cartão, salvamento automático", () =>
     await waitFor(() => expect(cenaDe(registros, "s1").title).toBe("Julkoun (vila)"));
     const t2 = await screen.findByLabelText("Título do cartão Julkoun (vila)") as HTMLInputElement;
     fireEvent.change(t2, { target: { value: "  " } }); fireEvent.blur(t2);
-    await waitFor(() => expect((screen.getByLabelText("Título do cartão Julkoun (vila)") as HTMLInputElement).value).toBe("Julkoun (vila)"));
-    expect(cenaDe(registros, "s1").title).toBe("Julkoun (vila)");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Adicionar título ao cartão" })).toBeTruthy());
+    expect(cenaDe(registros, "s1").title).toBe("Novo cartão");
   });
   it("celular: o mesmo cartão, com o botão '⋯' como alternativa ao botão direito", async () => {
     mobile = true;
@@ -486,7 +486,8 @@ describe("planejamentos e anotações permanentes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Anotações permanentes" }));
     const sec = await screen.findByLabelText("Seção Anotações");
     fireEvent.click(within(sec).getByRole("button", { name: "Adicionar cartão" }));
-    const titulo = await within(sec).findByLabelText("Título do cartão Novo cartão");
+    fireEvent.click(await within(sec).findByRole("button", { name: "Adicionar título ao cartão" }));
+    const titulo = await within(sec).findByLabelText("Novo título do cartão");
     fireEvent.change(titulo, { target: { value: "Cultos de Daggerford" } }); fireEvent.blur(titulo);
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene" && r.title === "Cultos de Daggerford")).toBe(true));
     expect(screen.queryByRole("button", { name: /Excluir o planejamento/ })).toBeNull();      // permanentes não se excluem
