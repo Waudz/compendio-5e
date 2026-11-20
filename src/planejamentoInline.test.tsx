@@ -385,7 +385,7 @@ describe("seções: título grande, seleção com o mouse e exclusão inteira", 
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(registros.dados.some(r => r.id === "s1")).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
-    fireEvent.click(screen.getByRole("button", { name: "Excluir seção", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^Excluir seção$/ }));
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
     await waitFor(() => expect(screen.queryByLabelText("Seção Sessão 5")).toBeNull());
     await waitFor(() => expect(plano(registros).colunas.map(c => c.secoes.map(s => s.titulo))).toEqual([["Floresta"]]));
@@ -398,7 +398,7 @@ describe("seções: título grande, seleção com o mouse e exclusão inteira", 
     await waitFor(() => expect(screen.queryByLabelText("Seção Floresta")).toBeNull());
     expect(screen.queryByRole("alertdialog")).toBeNull();                                        // vazia: sem confirmação
     fireEvent.click(s1.querySelector("header")!); fireEvent.keyDown(window, { key: "Delete" });  // atalho Delete
-    fireEvent.click(screen.getByRole("button", { name: "Excluir seção", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^Excluir seção$/ }));
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene")).toBe(false));
     expect(screen.queryByRole("alertdialog")).toBeNull();
   });
@@ -408,7 +408,7 @@ describe("seções: título grande, seleção com o mouse e exclusão inteira", 
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     await screen.findByLabelText("Seção Sessão 5");
     fireEvent.click(screen.getByRole("button", { name: "Excluir seção Sessão 5" }));
-    fireEvent.click(screen.getByRole("button", { name: "Excluir seção", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^Excluir seção$/ }));
     expect(await screen.findByText(/Não foi possível excluir 1 cartão/)).toBeTruthy();
     expect(screen.getByLabelText("Seção Sessão 5")).toBeTruthy();
     await waitFor(() => expect(plano(registros).colunas[0].secoes[0].cartoes).toEqual(["s2"]));
