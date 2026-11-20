@@ -138,9 +138,10 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
     const x = edRef.current[id]; if (!x || !api) return true;
     if (!edSujo(x)) return true;
     if (x.salvando) { timers.current.set(id, setTimeout(() => { timers.current.delete(id); void salvar(id); }, 300)); return false; }
-    const bad = validarTitulo(x.titulo); if (bad) { mexer(id, y => ({ ...y, erro: bad })); return false; }
+    const tituloPersistido = x.titulo.trim() || "Novo cartão";
+    const bad = validarTitulo(tituloPersistido); if (bad) { mexer(id, y => ({ ...y, erro: bad })); return false; }
     mexer(id, y => ({ ...y, salvando: true, erro: null }));
-    const r = await api.update(x.base.id, x.base.version, { title: x.titulo, content: x.blocos });
+    const r = await api.update(x.base.id, x.base.version, { title: tituloPersistido, content: x.blocos });
     if (!r.ok) {
       let conflito: Conflito | null = null;
       if (/alterou/i.test(r.error)) { const g = await api.get(id); if (g.ok) conflito = { registro: g.data }; }
