@@ -136,3 +136,11 @@ Links são **referências conhecidas**, não prova de acesso ou auditoria atual 
 - **Implementação:** `src/rules/character-build-pilot.ts` e testes de regressão; PR #74.
 - **Verificação:** testes adicionados; CI do HEAD ainda precisa ser confirmado.
 - **Pendências:** auditoria de regras 2014, métodos de geração, UI autenticada e E2E.
+
+### Entrega vertical — Guerreiro SRD 5.1 (20/11/2026)
+
+- **Decisão:** trocar a classe ilustrativa vazia do piloto por definição de Guerreiro 2014 conferida no SRD 5.1 (https://media.wizards.com/2023/downloads/dnd/SRD_CC_v5.1.pdf), compartilhada entre criador e Compêndio. Fonte SRD 5.1 sob CC BY 4.0.
+- **Implementação:** `src/rules/fighter-2014.ts` com 20 níveis estruturais, características principais, recursos e escolhas de estilo/Campeão/ASI; `src/dev/pilot-rules.ts` usa a definição; `src/dev/character-pilot.tsx` oferece escolhas e ficha calculada entre níveis 1–6.
+- **Alternativa rejeitada:** duplicar regras nos dois pilotos ou declarar os 20 níveis jogáveis sem todos os efeitos.
+- **Testes:** `src/rules/fighter-2014.test.ts` e `src/dev/character-pilot.test.tsx`; resultados de CI precisam ser verificados.
+- **Pendências:** arquétipo Campeão acima do nível 3, efeitos contextuais de estilos, proficiências, equipamento inicial, outros conteúdos e persistência autenticada. Raça e antecedente ainda ilustrativos. Sem merge/deploy/migração.
