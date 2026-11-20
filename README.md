@@ -82,3 +82,7 @@ O domínio experimental rejeita atributos-base não inteiros, não finitos ou fo
 ### Proteção do motor de regras chamado diretamente (20/11/2026)
 
 `buildCharacter` também valida atributos-base inteiros finitos de 1 a 30 e dados de vida inteiros positivos e consistentes em todos os 20 níveis, independentemente do adaptador e da ficha. Novos testes cobrem chamadas diretas ao motor. Essa redundância deliberada protege usos futuros e importações que contornem a interface; **não certifica regras SRD nem publica o criador**. CI do HEAD ainda requer confirmação.
+
+### Entrega vertical: Guerreiro SRD 5.1 (2014) — 20/11/2026
+
+O piloto local do criador agora usa a **mesma definição versionada de Guerreiro** apresentada no Compêndio, baseada na tabela e características do SRD 5.1 (CC BY 4.0). Permite escolher estilo de luta (nível 1), Campeão (nível 3), melhoria de atributo (níveis 4 e 6) e avançar entre níveis 1–6, com características, recursos, PV e atributos na ficha calculada. Testes de domínio e interface foram adicionados. **Limites:** outros arquétipos, progressão completa do Campeão, efeitos condicionais, proficiências, equipamento inicial e catálogo completo ainda não implementados; raça/antecedente seguem amostras. Executar `npm run build` e `npm test` e confirmar CI antes de declarar pronto. Sem merge, deploy ou banco.
