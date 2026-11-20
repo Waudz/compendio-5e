@@ -130,3 +130,9 @@ RLS filtra linhas, não oculta colunas por si só. Não conceder SELECT da tabel
 - `src/rules/encyclopedia-trash-gateway.test.ts` (commit `7265750`) cobre chamada correta, restauração, negação/sem mudança, UUID inválido, erro do servidor e falha de rede. **Aguardar CI do novo HEAD** antes de afirmar aprovação.
 - Ainda não há integração com UI ou Supabase ativo: RPCs são apenas rascunhos SQL. Quando autorizadas e testadas em ambiente isolado, conectar gateway ao cliente Supabase autenticado (nunca service role no navegador), atualizar estado local após sucesso e revalidar sessão/campanha.
 - Estado geral: #74 catálogo/pilotos CI verde; #76 E2E CI verde; #75 domínio e rascunhos de persistência, não deploy. Próxima etapa: preparar testes de banco com múltiplos papéis e revisar contrato de histórico, depois integração de interface.
+
+## Endurecimento do gateway (20/11/2026)
+
+- Commits `8cfecd1` e `56e8521`: o adaptador de lixeira passou a validar também a operação em tempo de execução. Antes, qualquer valor inesperado diferente de `trash` acionava `restore` por padrão. Agora retorna `invalid_operation` sem RPC; teste de regressão incluído.
+- CI do HEAD anterior `6105629` estava em execução (run `44825339046`) na consulta; **não presumir sucesso**. Conferir CI dos commits novos.
+- Sem modificação em Supabase, Claude ou Codex. Integração real permanece pendente de migração autorizada e testes de RLS.
