@@ -50,3 +50,7 @@ A etapa de staging é **somente uma função pura e testes**; ainda não há col
 ## Implementação de tradução independente (20/11/2026)
 
 `src/rules/catalogue-localization.ts` implementa `localizeCatalogue`: aplica nomes e descrições traduzidos a um **novo** objeto de catálogo, preservando `ContentRef`, revisões, dados mecânicos e catálogo original. Traduções inexistentes usam o idioma original. Traduções duplicadas, vazias ou sem registro correspondente são rejeitadas. `searchCompendium` usa o objeto localizado sem mudanças, permitindo pesquisa em português. Testes em `catalogue-localization.test.ts`. Ainda não há arquivo de traduções reais, interface de idioma nem importação de API.
+
+## Gate editorial (20/11/2026)
+
+Implementados `approveStagedSrd2014` e `reviewedRecordsForImport` com testes. Um registro staged só pode receber aprovação explícita após resolver todos os avisos e registrar responsável, data, licença verificada, confirmação de regras 2014 e direito de redistribuição. Dados são copiados para impedir alterações acidentais na fonte. **A confirmação é uma declaração editorial**, não verificação jurídica automatizada; uma aplicação de produção precisará de autenticação e trilha de auditoria no servidor. Ainda não foi aprovado/importado nenhum registro real.
