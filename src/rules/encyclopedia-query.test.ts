@@ -29,3 +29,16 @@ describe('encyclopedia safe query',()=>{
   expect(()=>encyclopediaPage(actor,[base],{offset:0,limit:101})).toThrow();
  });
 });
+
+describe('encyclopedia query cannot search undisclosed descriptions',()=>{
+ it('does not find summary entries by a private full-description keyword',()=>{
+  const summary={...base,visibility:'summary' as const,name:'Ferreiro',summary:'Artesão',publicDescription:'Senha secreta do portal'};
+  expect(encyclopediaPage(actor,[summary],{offset:0,limit:10,query:'portal'}).total).toBe(0);
+  expect(encyclopediaPage(actor,[summary],{offset:0,limit:10,query:'ferreiro'}).total).toBe(1);
+  expect(JSON.stringify(encyclopediaPage(actor,[summary],{offset:0,limit:10}))).not.toContain('portal');
+ });
+ it('does not allow players to search master notes even on full entries',()=>{
+  const full={...base,visibility:'full' as const,name:'Ferreiro',summary:'Artesão',masterNotes:'Senha rubra'};
+  expect(encyclopediaPage(actor,[full],{offset:0,limit:10,query:'rubra'}).total).toBe(0);
+ });
+});
