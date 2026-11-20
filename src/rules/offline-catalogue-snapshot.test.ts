@@ -14,7 +14,7 @@ describe('offline catalogue snapshot',()=>{
  it('rejects tampered indices, revisions and missing provenance',()=>{
   const snapshot=createOfflineCatalogueSnapshot(pilotRules,meta);
   expect(()=>readOfflineCatalogueSnapshot({...snapshot,entryKeys:[]})).toThrow('index');
-  expect(()=>readOfflineCatalogueSnapshot({...snapshot,catalogueRevision:'2'})).toThrow('revision');
+  expect(()=>readOfflineCatalogueSnapshot({...snapshot,catalogueRevision:'2'})).toThrow('index mismatch');
   expect(()=>readOfflineCatalogueSnapshot({...snapshot,provenance:{...snapshot.provenance,license:''}})).toThrow('metadata');
  });
  it('does not allow caller mutations to change snapshot source',()=>{
