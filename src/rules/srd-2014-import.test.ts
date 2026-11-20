@@ -17,8 +17,9 @@ describe('SRD 2014 reviewed import boundary',()=>{
   expect(()=>srd2014ResourcePath('classes','../2024')).toThrow('Invalid');
  });
  it('does not share mutable payload objects with the source',()=>{
-  const imported=importReviewedSrd2014([fighter],'1');
-  fighter.data.hit_die=8;
+  const source={...fighter,data:{hit_die:10}};
+  const imported=importReviewedSrd2014([source],'1');
+  source.data.hit_die=8;
   expect(imported.definitions[0].data.hit_die).toBe(10);
  });
 });
