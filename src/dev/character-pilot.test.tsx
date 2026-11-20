@@ -73,8 +73,8 @@ describe('local creator vertical slice',()=>{
   render(<CharacterPilot/>);
   fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
-  expect(screen.getByText(/Cota de malha · quantidade 1/)).toBeTruthy();
-  expect(screen.getByText(/Besta leve · quantidade 1/)).toBeTruthy();
+  expect(screen.getByText(/chain mail · quantidade 1/)).toBeTruthy();
+  expect(screen.getByText(/light crossbow · quantidade 1/)).toBeTruthy();
   expect(screen.getByText(/torch · quantidade 10/)).toBeTruthy();
   const initial=screen.getAllByRole('button',{name:/Adicionar quantidade/}).length;
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
@@ -82,8 +82,8 @@ describe('local creator vertical slice',()=>{
   vi.stubGlobal('confirm',vi.fn(()=>false));
   fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'leather-bow'}});
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
-  expect(screen.getByText(/Cota de malha · quantidade 1/)).toBeTruthy();
-  expect(screen.queryByText(/Armadura de couro · quantidade 1/)).toBeNull();
+  expect(screen.getByText(/chain mail · quantidade 1/)).toBeTruthy();
+  expect(screen.queryByText(/leather armor · quantidade 1/)).toBeNull();
  });
  it('replaces unedited starting equipment with consent and refuses changes after consumption',()=>{
   render(<CharacterPilot/>);
@@ -93,7 +93,7 @@ describe('local creator vertical slice',()=>{
   fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'leather-bow'}});
   fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
   expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
-  expect(screen.queryByText(/Cota de malha · quantidade 1/)).toBeNull();
+  expect(screen.queryByText(/chain mail · quantidade 1/)).toBeNull();
   fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'chain-mail'}});
   const remove=screen.getAllByRole('button',{name:/Remover quantidade/});
   fireEvent.click(remove[0]);
