@@ -178,3 +178,9 @@ Para cada nova regra: **fonte e licença → exemplo normativo independente → 
 O jogador poderá manter um personagem **morto** com ficha e histórico consultáveis na campanha e em Meus Personagens, e criar/vincular **outro personagem** à mesma campanha sem duplicar a identidade anterior. Cada personagem continua limitado a uma campanha ativa por vez, mas uma campanha pode conter vários personagens históricos do mesmo jogador. Morte não é exclusão, e ressurreição reusa o mesmo `characterId`. Lista principal prioriza ativos; histórico/filtros mostram mortos. Inventário, progressão e anotações do falecido não são automaticamente transferidos ao substituto.
 
 **Pendente de confirmação:** limitar a um personagem em atividade por jogador/campanha (recomendado), com troca explícita se houver ressurreição. Modelar separadamente estado narrativo `alive/dead` e participação `active/retired/archived`; validar regras de acesso e persistência antes de implementar. Nenhuma alteração de banco/produção.
+
+## Nova decisão — jogador remove da biblioteca, mestre preserva na campanha
+
+Quando um jogador exclui um personagem em **Meus Personagens**, a exclusão afeta sua **visibilidade/biblioteca pessoal**, não apaga o histórico da campanha. A campanha conserva a ficha histórica consultável e os vínculos de encontros, combates e notas compartilhadas até que o mestre decida removê-la. Morte e exclusão pessoal são estados distintos. Acesso do mestre restringe-se a informações pertencentes ao contexto da campanha, não às notas privadas do jogador.
+
+**Implicação:** ficha canônica enquanto ativa, snapshot/projeção histórica independente de sincronização após remoção pessoal; referências por IDs estáveis; exclusão lógica, tombstones e RLS. Histórico não conta como personagem ativo nem cria duplicação operacional. Política de dados pessoais, retenção, anexos e exclusão definitiva exigem especificação própria antes de migração. Sem código de persistência implementado.
