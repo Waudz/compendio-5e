@@ -184,3 +184,9 @@ O jogador poderá manter um personagem **morto** com ficha e histórico consult�
 Quando um jogador exclui um personagem em **Meus Personagens**, a exclusão afeta sua **visibilidade/biblioteca pessoal**, não apaga o histórico da campanha. A campanha conserva a ficha histórica consultável e os vínculos de encontros, combates e notas compartilhadas até que o mestre decida removê-la. Morte e exclusão pessoal são estados distintos. Acesso do mestre restringe-se a informações pertencentes ao contexto da campanha, não às notas privadas do jogador.
 
 **Implicação:** ficha canônica enquanto ativa, snapshot/projeção histórica independente de sincronização após remoção pessoal; referências por IDs estáveis; exclusão lógica, tombstones e RLS. Histórico não conta como personagem ativo nem cria duplicação operacional. Política de dados pessoais, retenção, anexos e exclusão definitiva exigem especificação própria antes de migração. Sem código de persistência implementado.
+
+## Nova decisão — personagem sem jogador pode ser transferido ou virar NPC
+
+Ao excluir personagem da biblioteca pessoal, o jogador encerra seu vínculo atual com o personagem; a campanha conserva **o mesmo `characterId`**, ficha, inventário e histórico. O registro mantém histórico de antigos proprietários/controladores, sem expor dados pessoais privados. Mestre pode atribuir o personagem a outro jogador ou convertê-lo em NPC, sem duplicar o registro. `characterRole` (PC/NPC), `controllerType` (jogador/mestre/sem controlador), `lifeStatus` (vivo/morto) e `participationStatus` são dimensões separadas. Mudança de controlador não ressuscita mortos nem altera inventário automaticamente.
+
+**Pendente:** aceite do novo jogador, permissões de edição, direitos de dados, histórico de eventos, política de NPC e migração. Criar contratos e testes antes da persistência. Não há implementação em UI/Supabase.
