@@ -432,6 +432,36 @@ describe("planejamentos e anotações permanentes", () => {
     expect(boards(registros).some(b => (b.meta as { permanente?: boolean }).permanente)).toBe(true);
     expect((within(nav).getByLabelText("Nome do planejamento") as HTMLInputElement).value).toBe("Quadro");   // o planejamento existente continua ativo
   });
+  it("permite criar várias abas permanentes, renomear e manter após recarregar", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    fireEvent.click(screen.getByRole("button", { name: "Nova anotação permanente" }));
+    const nome = await screen.findByLabelText("Nome do planejamento") as HTMLInputElement;
+    expect(nome.value).toBe("Anotações permanentes 2");
+    fireEvent.change(nome, { target: { value: "Personagens recorrentes" } }); fireEvent.blur(nome);
+    await waitFor(() => expect(boards(registros).some(b => b.title === "Personagens recorrentes" && (b.meta as { permanente?: boolean }).permanente)).toBe(true));
+    r.unmount(); cleanup();
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    expect(screen.getByRole("button", { name: "Anotações permanentes" })).toBeTruthy();
+    expect((screen.getByLabelText("Nome do planejamento") as HTMLInputElement).value).toBe("Personagens recorrentes");
+  });
+  it("reordena abas de sessão e mantém a ordem após recarregar", async () => {
+    const registros = registrosEmMemoria("mestre", me.id, dados());
+    const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    fireEvent.click(screen.getByRole("button", { name: "Novo planejamento" }));
+    await screen.findByLabelText("Seção Seção 1");
+    fireEvent.click(screen.getByRole("button", { name: "Mover Sessão 2 para esquerda" }));
+    await waitFor(() => {
+      const nav = screen.getByRole("navigation", { name: "Planejamentos" });
+      const nomes = [...nav.querySelectorAll(".plano")].map(x => x.textContent);
+      expect(nomes.findIndex(x => x?.includes("Sessão 2"))).toBeLessThan(nomes.findIndex(x => x?.includes("Quadro")));
+    });
+    r.unmount(); cleanup();
+    await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
+    const nav = screen.getByRole("navigation", { name: "Planejamentos" });
+    const nomes = [...nav.querySelectorAll(".plano")].map(x => x.textContent);
+    expect(nomes.findIndex(x => x?.includes("Sessão 2"))).toBeLessThan(nomes.findIndex(x => x?.includes("Quadro")));
+  });
   it("novo planejamento cria um quadro vazio e troca para ele; voltar mostra o anterior com seus cartões", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
