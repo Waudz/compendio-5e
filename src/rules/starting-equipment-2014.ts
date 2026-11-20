@@ -30,3 +30,10 @@ export function expandEquipmentBundle(bundle:EquipmentBundle):EquipmentComponent
   return {itemId,quantity};
  });
 }
+
+/** Only expand when every component resolves to the same catalogue used by the Compendium. */
+export function resolvePackItems(bundle:EquipmentBundle,knownItemIds:ReadonlySet<string>):EquipmentComponent[]{
+ const components=expandEquipmentBundle(bundle);
+ for(const item of components)if(!knownItemIds.has(item.itemId))throw Error('Unknown catalogue item: '+item.itemId);
+ return components;
+}
