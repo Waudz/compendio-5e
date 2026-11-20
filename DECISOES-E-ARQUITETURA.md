@@ -187,3 +187,9 @@ Integrados: base React e workspace (PRs #1–#4); FlexLayout (#8); abas compacta
 - **Implementação:** guia central e links no README/documentos; PR #74.
 - **Verificação:** conferência dos arquivos enviados ao GitHub; não se aplica teste de lógica. CI do HEAD deve ser consultado.
 - **Pendências:** manter o registro vivo, reconciliar decisões históricas conforme cada módulo for desenvolvido e conferir periodicamente links e status.
+
+## Decisão posterior validada com jogadores — 20/11/2026
+
+**Iniciativa é exclusiva do mestre.** Nenhum jogador pode ver a ordem de iniciativa, turnos, rodadas, resultados ou metadados de participantes, nem mesmo do próprio personagem. Ocultar apenas a aba não basta: leituras e operações de iniciativa devem ser autorizadas no servidor, por campanha e papel de mestre, inclusive RPC, consultas e canais Realtime. O jogador mantém acesso aos dados permitidos de sua ficha (como PV, condições e recursos), sem receber dados do rastreador de iniciativa. Esta decisão prevalece sobre qualquer planejamento antigo que exponha iniciativa aos jogadores.
+
+Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio, Menu; jogador — Início, Anotações, Ficha, Compêndio, Menu. Inventário dentro de Ficha. **Estado:** decisão aprovada e contrato de domínio em PR #74; ainda pendente de integração com interface e RLS. Não aplicar migração sem aprovação.
