@@ -51,6 +51,7 @@ describe('local creator vertical slice',()=>{
 
  it('applies real Fighter level features and exposes resources in the calculated sheet',()=>{
   render(<CharacterPilot/>);
+  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
   expect(screen.getByText(/Características:/).textContent).toContain('second-wind');
   expect(screen.getByText(/Recursos:/).textContent).toContain('second-wind 1/1');
   fireEvent.change(screen.getByLabelText('fighter-style-1'),{target:{value:'archery'}});
