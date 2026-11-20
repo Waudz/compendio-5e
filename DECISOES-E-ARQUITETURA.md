@@ -146,3 +146,18 @@ Integrados: base React e workspace (PRs #1–#4); FlexLayout (#8); abas compacta
 **Visibilidade:** página pública aos jogadores apenas se publicada pelo mestre; notas secretas e informações de bastidores permanecem restritas, e notas privadas do antigo jogador nunca passam a ser visíveis por transferência. Preservar vínculos por IDs e histórico de alterações. A seção deve coexistir com NPCs criados diretamente pelo mestre e não exigir ficha completa de jogador para cada NPC secundário; NPCs simples podem usar registro narrativo e, se necessário, ganhar ficha depois.
 
 **Estado:** decisão de arquitetura/documentação; ainda não há seção de personagens implementada na UI nem migração no banco. Detalhes de layout, permissões e fluxo de transferência serão refinados antes de implementar.
+
+## Decisão aprovada — Compêndio como catálogo canônico de regras (20/11/2026)
+
+**Aprovado explicitamente pelo responsável:** o Compêndio será a **fonte única de definições de conteúdo e regras estruturadas** para criação, progressão, ficha e inventário, em D&D 5e 2014. Não manter cópias independentes de raça, sub-raça, classe, subclasse, antecedente, talento, magia ou item em cada tela. A interface do Compêndio e o criador devem consultar o mesmo catálogo versionado e as mesmas referências estáveis; um motor de regras separado interpreta as definições e calcula a ficha.
+
+**Separação de responsabilidades:**
+- Catálogo: identificador estável, fonte/licença, versão, texto de apresentação, opções, pré-requisitos, progressão e efeitos estruturados.
+- Motor: validação de escolhas, pré-requisitos e compatibilidade, cálculos e exceções de regras; não duplica a base de dados do Compêndio.
+- Personagem: IDs/revisões das escolhas, valores próprios (atributos base, PV atuais, recursos gastos, inventário e anotações privadas); não duplica definições de classe/raça.
+- Enciclopédia da campanha > Personagens: projeção narrativa de personagens, **distinta** do catálogo de regras e da ficha canônica.
+- Conteúdo adicional: suplementos licenciados e homebrew com proveniência e versão; não misturar regras de 2014 e 2024.
+
+**Integridade:** não alterar silenciosamente personagens quando um registro de regra for corrigido. Usar revisão fixada por personagem e migração explícita/validada. Conteúdo incompleto não pode produzir ficha aparentemente completa: apresentar escolhas pendentes e impedir finalização inválida. Testar concordância entre Compêndio, criador e ficha, níveis 1–20, reabertura, edição e progressão. Não copiar automaticamente textos protegidos de fontes externas.
+
+**Status:** decisão registrada; há protótipos de catálogo, motor e ASI no PR #74, mas **a integração real de telas e banco ainda não foi concluída**. Não autoriza merge, deploy ou migração em produção.
