@@ -11,6 +11,7 @@ export function validateRulesCatalogue(catalogue: RulesCatalogue): void {
   const defined = new Set<string>();
   for (const definition of catalogue.definitions) {
     const key = contentKey(definition.ref);
+    if (!catalogue.registry.entries.some(e=>contentKey(e.ref)===key && e.ref.kind===definition.ref.kind)) throw new Error('Definition reference mismatch');
     if (!entries.has(key)) throw new Error('Definition has no registered entry');
     if (defined.has(key)) throw new Error('Duplicate rule definition');
     if (!definition.description.trim() || !definition.data || Array.isArray(definition.data) ||
