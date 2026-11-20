@@ -1,3 +1,5 @@
+> **Guia para novas conversas:** [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md). Atualizar estimativas apenas com justificativa; registrar evidência de testes, CI e diferença entre branch e produção. Nunca transformar percentuais estimados em declaração de prontidão.
+
 # Estado verificável das funcionalidades — Compêndio 5e 2.0
 
 Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medida de testes nem percentual calculado automaticamente. Diferenciar implementação de domínio, interface, persistência, segurança e entrega.
