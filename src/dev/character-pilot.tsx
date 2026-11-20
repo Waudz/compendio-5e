@@ -3,20 +3,8 @@ import { useState } from 'react';
 import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter';
 import { coreClassAsiAdvancements } from '../rules/class-asi-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
-import type { RulesCatalogue } from '../rules/rules-catalogue';
-const race = { sourceId:'srd-2014',kind:'race' as const,id:'dwarf',revision:'1' };
-const background = { sourceId:'srd-2014',kind:'background' as const,id:'acolyte',revision:'1' };
-const klass = { sourceId:'srd-2014',kind:'class' as const,id:'fighter',revision:'1' };
-const entries = [
- {ref:race,name:'Anão',data:{id:'dwarf',grants:[{type:'ability',ability:'con',amount:2,source:'dwarf'}]}},
- {ref:background,name:'Acólito',data:{id:'acolyte',grants:[]}},
- {ref:klass,name:'Guerreiro',data:{id:'fighter',levels:Array.from({length:20},(_,i)=>({level:i+1,hitDie:10,grants:[]}))}}
-];
-const rules:RulesCatalogue = {registry:{
- sources:[{id:'srd-2014',origin:'srd-2014',title:'SRD 2014 — piloto ilustrativo',ruleset:'5e-2014'}],
- entries:entries.map(e=>({ref:e.ref,name:e.name,ruleset:'5e-2014'}))
-},definitions:entries.map(e=>({ref:e.ref,description:e.name,data:e.data}))};
-const {catalog,ids} = buildPilotCharacterCatalog(rules,{race,background,class:klass},coreClassAsiAdvancements('fighter'));
+import {pilotRefs,pilotRules} from './pilot-rules';
+const {catalog,ids} = buildPilotCharacterCatalog(pilotRules,{race:pilotRefs.race,background:pilotRefs.background,class:pilotRefs.class},coreClassAsiAdvancements('fighter'));
 const KEY='compendio5e:dev:character-pilot:v1';
 const STORAGE_SCHEMA=1;
 type SavedPilot = { schemaVersion:number; draft:CharacterDraft };
