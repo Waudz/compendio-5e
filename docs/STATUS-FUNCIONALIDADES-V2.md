@@ -36,3 +36,7 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 ## Incremento Compêndio — 20/11/2026
 
 Criado `src/rules/compendium-query.ts` com `searchCompendium`: filtro por tipo e fonte, busca textual sem diferenciação de acentos, ordenação estável pt-BR e chave imutável `sourceId:kind:id:revision`. Os resultados resolvem a **mesma definição** de `RulesCatalogue` usada pelo criador; não criam uma segunda tabela de regras. Testes cobrem renomeação sem quebrar IDs, pesquisa e falha de definições ausentes. `CompendiumView` prevê lista/grade, mas **não há componente visual implementado nem catálogo SRD completo nesta rodada**. Percentual estimado permanece 15% até integração real.
+
+## Piloto visual do Compêndio — 20/11/2026
+
+Adicionado `src/dev/compendium-pilot.tsx` com pesquisa, filtro por tipo, alternância **lista/grade** e abertura de detalhes pela chave `sourceId:kind:id:revision`; teste de interface `src/dev/compendium-pilot.test.tsx`. Acesso local em `?demo=compendio-piloto` usando `npm run dev` (respeitar base do Vite). **Não está na interface autenticada/publicada**; contém somente três entradas ilustrativas, não o SRD completo. Próxima etapa: catálogo auditado com fontes/licenças e integração à navegação real. O percentual permanece conservador até essa integração.
