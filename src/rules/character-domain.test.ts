@@ -131,4 +131,12 @@ describe('character domain: sheet, decisions and inventory', () => {
     expect(draft.inventory).toHaveLength(1);
   });
 
+  it('rejects non-finite, fractional and out-of-range base ability scores', () => {
+    for (const invalid of [NaN, Infinity, -Infinity, 0, -1, 31, 12.5]) {
+      expect(() => createCharacterSheet({ ...draft, baseAbilities: { ...draft.baseAbilities, str: invalid } }, catalog))
+        .toThrow('Invalid base ability scores');
+    }
+    expect(createCharacterSheet({ ...draft, baseAbilities: { ...draft.baseAbilities, str: 30 } }, catalog).abilities.str).toBe(30);
+  });
+
 });
