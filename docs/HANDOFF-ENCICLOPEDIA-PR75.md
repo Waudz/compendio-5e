@@ -67,6 +67,13 @@ Consultadas as definições reais via `pg_get_functiondef`, **sem alteração no
 - `campaign_members` não possui coluna `active` nem `left_at` no esquema inspecionado; a participação atual é representada pela existência do vínculo. Revisar regra de saída/remoção de membro antes da migração.
 - A RPC pública em rascunho usa `public.is_member` e não confia em `actorIsMaster` do navegador. Falta auditoria de privilégios de execução, dono e testes de sessão autenticada antes de implantação.
 
+### Adaptação de papéis implementada (20/11/2026)
+
+- `src/rules/encyclopedia-membership.ts` e `src/rules/encyclopedia-membership.test.ts`: mapeiam `mestre → master` e `jogador → player`, rejeitando sessão ausente, usuário divergente, campanha divergente e papel desconhecido. **É um adaptador puro, não um serviço de autenticação.** Somente aceitar linha de participação obtida sob autenticação/RLS; servidor continua sendo a autoridade.
+- O CHECK real `campaign_members_role_check` foi verificado por SQL somente leitura: apenas `mestre` e `jogador`.
+- Commits `f6ab5ba` e `d831e79`. Testes adicionados; validar no CI antes de declarar sucesso.
+- Nenhum arquivo do Claude/Codex foi alterado, nenhuma tabela criada, nenhum deploy.
+
 ## Situação do CI e próximo passo obrigatório
 
 - A execução GitHub Actions do commit `3cc55e8` **falhou** por `TS1127 Invalid character` em `encyclopedia-query.ts`, decorrente de sequências `\\n` literais. Corrigido em `6338f34`.
