@@ -271,3 +271,29 @@ Fichas e Iniciativa vêm antes dos Documentos avançados. Antes da 6, resolver a
 - **19/11:** arquitetura, regras de campanhas, anotações, notas, segurança e navegação consolidadas nos documentos antigos; algumas seções estão defasadas.
 - **20/11:** Anotações ganharam guias/quadros/cartões e navegação por abas (PRs #44–#60); #62 e #64 mesclados; #61 fechado por adiamento; #63 substituído pelo #64. Testes visuais e sincronização ainda pendentes.
 - Decisões recuperadas de chats anteriores incluídas neste documento, **sem alegar que todos os itens foram auditados no código**.
+
+## 12. Ponto de parada das Anotações e próxima frente — 20/11/2026
+
+**Decisão:** pausar novas funcionalidades de Anotações e iniciar a construção funcional do **Compêndio 5e**. Não considerar as pendências abaixo canceladas; retomá-las após a base do Compêndio. Este registro complementa o histórico e não altera os contratos de segurança ou de dados.
+
+### O que já foi integrado
+- PR #71: seções mantêm título visível, com apenas o controle de tamanho de fonte; cartões podem ter título visual opcional.
+- PR #72: no celular, ações da seção reunidas no menu de três pontos; ambos PRs confirmados mesclados na `main` em 20/11/2026.
+- Abas, guias, seções e cartões são a base atual; ainda exigem testes reais em dispositivos e com diferentes contas antes de declarar a experiência concluída.
+
+### Pendências preservadas para retomar nas Anotações
+1. **Imagens dentro de cartões:** editor atual exclui blocos de imagem/vídeo/áudio/arquivo; projetar upload seguro, armazenamento, permissões, limites, prévias e remoção de arquivos órfãos antes de habilitar. Não aceitar URLs/arquivos sem validação.
+2. **Vínculos internos:** cartões, seções, guias e documentos; identificadores estáveis, abrir destino na aba adequada, resolver destinos excluídos ou sem permissão, sem duplicar dados.
+3. **Busca nas Anotações:** pesquisar guias, seções e conteúdo dos cartões, respeitando escopo, permissões e desempenho.
+4. **Vínculos com o Compêndio:** digitar `@` para buscar monstro/item/magia/personagem/anotação e inserir referência; selecionar texto existente e escolher **Vincular**. **Preservar o menu `/` nativo do BlockNote**. Depende de catálogo e páginas de detalhes funcionais.
+5. **Encontros dentro de cartões:** integrar ao módulo Encontros e ao motor único de Iniciativa, sem inventar segundo sistema de combate.
+6. **Futuro:** histórico/desfazer, backlinks, pastas, etiquetas e outras formas de organização; priorizar depois de validar os fluxos essenciais.
+
+### Próxima prioridade: Compêndio
+1. Criar **página real do Compêndio**, substituindo o painel demonstrativo; garantir navegação por abas e layouts desktop/celular.
+2. Implementar **busca, filtros e alternância lista/grade**, preservando as preferências de apresentação do projeto anterior sem reutilizar seu banco.
+3. Incluir **catálogos SRD 5e 2014** (monstros, magias e itens) com proveniência/licença verificadas, esquema coerente e separação de dados descritivos e mecânicos.
+4. Criar **detalhes navegáveis** por identificadores estáveis, para que as Anotações possam referenciá-los depois.
+5. Em seguida, priorizar **Personagens/Ficha/Inventário**, **Encontros/Iniciativa** e integração cruzada; ajustar sequência conforme dependências e testes.
+
+**Cuidado:** o item Compêndio aparece no menu, mas `src/Panel.tsx` ainda exibe um placeholder; não confundir a navegação pronta com o módulo implementado. Nenhuma migração Supabase sem aprovação explícita. O arquivo possui trechos históricos anteriores a estes PRs; esta seção prevalece como registro das decisões mais recentes, sem afirmar auditoria completa dos módulos antigos.
