@@ -128,3 +128,13 @@ Para cada nova regra: **fonte e licença → exemplo normativo independente → 
 **Limites e cuidado:** `advancements` é opcional e **experimental**; não representa catálogo SRD completo. Concessões fixas de classe que já estejam em `ClassDefinition.levels[].grants` **não devem** ser repetidas em `advancements[].grants`; o contrato definitivo precisará consolidar uma única fonte por característica. Ainda não há efeitos, magias, inventário inicial completo, ASI de +1/+1, multiclasse ou integração visual. Os testes são fixtures de contrato, não homologação da classe.
 
 **Próximo passo:** confirmar CI do commit `efe9df0` ou posterior, corrigir qualquer erro, depois validar invariantes de progressão (opções, IDs, concessões duplicadas e edição de nível), refatorar a dupla representação de concessões e avançar com catálogo 2014 auditado. Atualizar SHA/run após verificação.
+
+## Rodada — proteção contra concessões automáticas duplicadas
+
+**Pré-condição:** run [44768373013](https://github.com/Waudz/compendio-5e/actions/runs/44768373013) do commit `65a114e737ac29fcad44dc08317e6495c630a6a8` concluído com **success**. PR #74 continua aberto; nenhuma alteração em `main`, Supabase ou produção.
+
+**Código:** `src/rules/character-domain.ts` agora rejeita concessões automáticas **idênticas** (mesmo objeto serializado) quando repetidas entre `ClassDefinition.levels[].grants` e `advancements[].grants`, e também dentro de avanços automáticos. Mantém exceção provisória para repetição de recursos no catálogo legado de níveis (o piloto usa substituição do máximo por nível). `src/rules/character-domain.test.ts` contém teste de regressão para característica `rage` duplicada.
+
+**Limite importante:** a verificação é estrutural (JSON idêntico), **não semântica**; benefícios equivalentes com fontes diferentes podem passar. Nem toda concessão repetida é erro: proficiências vindas de origens diferentes podem se sobrepor e recursos de classe podem ser atualizados em níveis sucessivos. A solução definitiva é definir **propriedade única de cada progressão de classe** e efeitos tipados com semântica de acumulação/substituição. Não transformar essa guarda provisória em deduplicação universal.
+
+**Próximo passo:** confirmar CI do novo SHA; criar esquema definitivo de `advancement` como única fonte de concessões de classe, migrando gradualmente fixtures, sem reescrever dados de usuários; ampliar testes de mudanças de nível, subclasses e ASI +1/+1 e verificar regras contra SRD 2014.
