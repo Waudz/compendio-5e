@@ -7,8 +7,9 @@ import type {RulesCatalogue} from './rules-catalogue';
  */
 export function inventoryCompendiumEntry(catalogue:RulesCatalogue,itemId:string):CompendiumRow|null {
  const matches=searchCompendium(catalogue,{kind:'item'});
- const entry=matches.find(row=>row.ref.id===itemId);
- return entry??null;
+ const entries=matches.filter(row=>row.ref.id===itemId);
+ // An unversioned inventory ID cannot choose between two editions or revisions.
+ return entries.length===1?entries[0]:null;
 }
 export function inventoryCompendiumEntryByRef(catalogue:RulesCatalogue,ref:ContentRef):CompendiumRow|null {
  if(ref.kind!=='item')return null;
