@@ -123,3 +123,10 @@ RLS filtra linhas, não oculta colunas por si só. Não conceder SELECT da tabel
 - `docs/CONTINUIDADE-DESENVOLVIMENTO.md` na branch #74 já contém decisões confirmadas sobre bestiário/discovery, recipientes comuns sem inventários aninhados, personagens ativos/inativos, transferência de controle e notas privadas. **Não reabrir essas decisões por padrão**.
 - Prioridade arquitetural recomendada ao Claude: tornar fluxo vertical do Guerreiro utilizável na navegação real e com persistência segura antes de importar todos os catálogos; evitar aumentar indefinidamente o PR #74 e não fazer rebase destrutivo/merge automático.
 - Atenção à sobreposição: `src/rules/public-character-encyclopedia.ts` do Claude projeta identidade pública; nossa `src/rules/encyclopedia-visibility.ts` e RPCs projetam entradas narrativas. Na integração, usar uma única fronteira de autorização no servidor, sem devolver ficha privada. Nossa branch #75 foi baseada na branch #74, mas precisa ser reconciliada com commits novos antes do merge.
+
+## Gateway tipado da lixeira (20/11/2026)
+
+- `src/rules/encyclopedia-trash-gateway.ts` (commit `8a750a9`) define um cliente RPC mínimo e `updateNarrativeTrash(client,'trash'|'restore',entryId)`; envia **somente** `p_entry_id`, sem aceitar papel/identidade/timestamp do cliente. Valida formato UUID e não expõe detalhes internos de erros.
+- `src/rules/encyclopedia-trash-gateway.test.ts` (commit `7265750`) cobre chamada correta, restauração, negação/sem mudança, UUID inválido, erro do servidor e falha de rede. **Aguardar CI do novo HEAD** antes de afirmar aprovação.
+- Ainda não há integração com UI ou Supabase ativo: RPCs são apenas rascunhos SQL. Quando autorizadas e testadas em ambiente isolado, conectar gateway ao cliente Supabase autenticado (nunca service role no navegador), atualizar estado local após sucesso e revalidar sessão/campanha.
+- Estado geral: #74 catálogo/pilotos CI verde; #76 E2E CI verde; #75 domínio e rascunhos de persistência, não deploy. Próxima etapa: preparar testes de banco com múltiplos papéis e revisar contrato de histórico, depois integração de interface.
