@@ -5,7 +5,31 @@ import { type NavMode } from "./navigation";
 import { Panel } from "./Panel";
 import { OrigemAbaContext } from "./abrirEmAba";
 import { tabId, visibleSections, defaultTitle, type TabSpec } from "./workspace";
+import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
+import { useRegistros } from "./RegistrosContext";
+import { useUnsaved } from "./unsaved";
+
+/** Ficha usada por último neste aparelho (só o id; fica sob a chave do usuário, então o logout a apaga). */
+const chaveFicha = (uid: string, cid: string) => `compendio5e:ficha-recente:${uid}:${cid}`;
+const lerFicha = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
+const gravarFicha = (k: string, id: string) => { try { localStorage.setItem(k, id); } catch { /* sem armazenamento */ } };
+
+/** Restaura a rolagem mesmo quando o conteúdo carrega depois: tenta de novo enquanto a tela cresce (até ~1,5 s) e para se a pessoa rolar. */
+function restaurarRolagem(el: HTMLElement | null, alvo: number): () => void {
+  if (!el) return () => {};
+  if (alvo <= 0) { el.scrollTop = 0; return () => {}; }
+  let ativo = true, tentativas = 0, ultimo = -1;
+  const tentar = () => {
+    if (!ativo) return;
+    if (ultimo >= 0 && Math.abs(el.scrollTop - ultimo) > 2) return;   // a pessoa rolou: não brigar com ela
+    el.scrollTop = alvo; ultimo = el.scrollTop;
+    if (el.scrollTop >= alvo - 1 || ++tentativas > 30) return;
+    setTimeout(tentar, 50);
+  };
+  tentar();
+  return () => { ativo = false; };
+}
 
 type Props = {
   model: Model; onChange: () => void; titleOf: (t: TabNode) => string;
@@ -18,7 +42,7 @@ type Props = {
 
 /** Navegação mobile independente das abas e colunas do FlexLayout do desktop. */
 export function Mobile(_props: Props) {
-  const { active } = useCampaigns();
+  const { active } = useCampaigns(), { user } = useAuth(), registros = useRegistros(), unsaved = useUnsaved();
   const home: TabSpec = active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: "campanhas" };
   const [screen, setScreen] = useState<TabSpec>(home);
   const [history, setHistory] = useState<TabSpec[]>([]);
@@ -33,21 +57,39 @@ export function Mobile(_props: Props) {
     positions.current.clear();
     setMenuOpen(false);
   }, [scope]);
-  const navigate = (spec: TabSpec) => {
+  /** Troca de tela: NUNCA descarta alterações não salvas em silêncio (pergunta antes, como fechar uma aba no desktop). */
+  const irPara = (spec: TabSpec) => {
     setMenuOpen(false);
     if (tabId(spec) === current) return;
-    positions.current.set(current, scroll.current?.scrollTop ?? 0);
-    setHistory(h => [...h.slice(-39), screen]);
-    setScreen(spec);
+    unsaved.guard("all", () => {
+      positions.current.set(current, scroll.current?.scrollTop ?? 0);
+      setHistory(h => [...h.slice(-39), screen]);
+      setScreen(spec);
+      if (spec.kind === "ficha" && user && active) gravarFicha(chaveFicha(user.id, active.campaign.id), spec.ref);
+    });
   };
+  const navigate = irPara;
   const goBack = () => {
-    if (!history.length) { navigate(home); return; }
-    positions.current.set(current, scroll.current?.scrollTop ?? 0);
-    const previous = history[history.length - 1];
-    setHistory(h => h.slice(0, -1));
-    setScreen(previous);
+    if (!history.length) { irPara(home); return; }
+    unsaved.guard("all", () => {
+      positions.current.set(current, scroll.current?.scrollTop ?? 0);
+      const previous = history[history.length - 1];
+      setHistory(h => h.slice(0, -1));
+      setScreen(previous);
+    });
   };
-  useEffect(() => { if (scroll.current) scroll.current.scrollTop = positions.current.get(current) ?? 0; }, [current]);
+  useEffect(() => restaurarRolagem(scroll.current, positions.current.get(current) ?? 0), [current]);
+  /** Botão "Ficha" do jogador: abre A ficha (a usada por último, ou a mais recente dele), não só a lista; sem ficha ainda, abre a lista para criar. */
+  const abrirMinhaFicha = async () => {
+    setMenuOpen(false);
+    const lista: TabSpec = { kind: "secao", ref: "personagens" };
+    if (!registros || !active || !user) { irPara(lista); return; }
+    const r = await registros.list(active.campaign.id, "character");
+    const minhas = r.ok ? r.data.filter(x => x.ownerId === user.id).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) : [];
+    const lembrada = lerFicha(chaveFicha(user.id, active.campaign.id));
+    const alvo = minhas.find(x => x.id === lembrada) ?? minhas[0];
+    irPara(alvo ? { kind: "ficha", ref: alvo.id, title: alvo.title } : lista);
+  };
   const isPage = (ref: string) => screen.kind === "secao" && screen.ref === ref;
   const isMaster = active?.role === "mestre";
   const sections = visibleSections(isMaster);
@@ -56,7 +98,7 @@ export function Mobile(_props: Props) {
     { label: "Anotações", icon: NotebookPen, spec: { kind: "secao", ref: "planejamento" } as TabSpec, selected: isPage("planejamento") },
     isMaster
       ? { label: "Iniciativa", icon: Swords, spec: { kind: "secao", ref: "iniciativa" } as TabSpec, selected: isPage("iniciativa") }
-      : { label: "Ficha", icon: UserRound, spec: { kind: "secao", ref: "personagens" } as TabSpec, selected: isPage("personagens") || screen.kind === "ficha" },
+      : { label: "Ficha", icon: UserRound, spec: { kind: "secao", ref: "personagens" } as TabSpec, selected: isPage("personagens") || screen.kind === "ficha", onClick: abrirMinhaFicha },
     { label: "Compêndio", icon: ScrollText, spec: { kind: "secao", ref: "compendio" } as TabSpec, selected: isPage("compendio") },
   ];
   return <div className="mobile mobile-simple">
@@ -71,7 +113,7 @@ export function Mobile(_props: Props) {
       </OrigemAbaContext.Provider>
     </div>
     <nav className="mobile-bottom-nav" aria-label="Navegação mobile">
-      {navItems.map(item => <button key={item.label} className={item.selected ? "active" : ""} aria-current={item.selected ? "page" : undefined} onClick={() => navigate(item.spec)}><item.icon size={22}/><span>{item.label}</span></button>)}
+      {navItems.map(item => <button key={item.label} className={item.selected ? "active" : ""} aria-current={item.selected ? "page" : undefined} onClick={() => (item as { onClick?: () => void }).onClick ? (item as { onClick: () => void }).onClick() : navigate(item.spec)}><item.icon size={22}/><span>{item.label}</span></button>)}
       <button className={menuOpen ? "active" : ""} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/><span>Menu</span></button>
     </nav>
     {menuOpen && <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>

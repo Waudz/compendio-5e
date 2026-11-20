@@ -7,7 +7,6 @@ import { AuthGate } from "./AuthGate";
 import { AuthProvider } from "./AuthContext";
 import { CampaignsProvider, activeKey } from "./CampaignsContext";
 import { normalizeCode, type Campaign, type CampaignApi, type Invite, type Member, type Membership, type Res } from "./campaigns";
-import { storageKey } from "./persistence";
 import { inviteUrl } from "./CampaignPanels";
 import { memoryStorage } from "./testUtils";
 
@@ -42,7 +41,11 @@ function mount(api: ReturnType<typeof fakeApi> | null, user: User | null = me) {
 }
 const nav = (name: string) => within(screen.getByRole("navigation", { name: "Menu principal" })).getByRole("button", { name });
 /** O jsdom não mede tamanhos, então o conteúdo do FlexLayout não é desenhado: usamos a visão simples (celular), que usa o mesmo estado e os mesmos painéis. */
-const openMobile = async (section: string) => { fireEvent.click(await screen.findByRole("button", { name: section })); };
+const openMobile = async (section: string) => {
+  // visão simples: as demais telas ficam no menu; a tela remonta ao carregar as campanhas, então tenta até o menu aparecer
+  await waitFor(() => { const m = document.querySelector<HTMLElement>(".mobile-simple"); if (!m) throw new Error("visão simples ausente"); if (!document.querySelector('[role="dialog"][aria-label="Menu de navegação"]')) fireEvent.click(within(m).getByRole("button", { name: "Abrir menu" })); expect(document.querySelector('[role="dialog"][aria-label="Menu de navegação"]')).toBeTruthy(); });
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: section === "Campanhas" ? "Gerenciar campanhas" : section }));
+};
 const fill = (label: string | RegExp, v: string) => fireEvent.change(screen.getByLabelText(label), { target: { value: v } });
 
 beforeEach(() => {
@@ -115,9 +118,8 @@ describe("campanhas (interface)", () => {
     await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Costa Rubra"));
     await openMobile("Campanhas");
     await waitFor(() => expect(screen.getAllByText("Ativa")).toHaveLength(1));
-    // cada campanha tem o seu layout salvo
-    expect(localStorage.getItem(storageKey({ user: "me", campaign: "c2", device: "navegador" }))).not.toBeNull();
-    expect(localStorage.getItem(storageKey({ user: "me", campaign: "c1", device: "navegador" }))).not.toBeNull();
+    expect(localStorage.getItem(activeKey("me"))).toBe("c2");   // a escolha vale para a conta; o layout por campanha (desktop) é coberto em navegacaoCampanha.test.tsx e etapa1.test.tsx
+    expect(document.querySelector(".mobile-simple")).toBeTruthy();   // o celular não usa layout de colunas: nada de FlexLayout salvo para ele
   });
 
   it("campanha ativa salva é restaurada; se o usuário não participa mais, é descartada", async () => {
