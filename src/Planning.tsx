@@ -51,7 +51,7 @@ const chavePlano = (uid: string | undefined, cid: string) => `compendio5e:plano-
 const lerPlanoSalvo = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const gravarPlanoSalvo = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* sem armazenamento */ } };
 
-export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) {
+export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardId?: string; onOpenContent?: (s: TabSpec) => void } = {}) {
   const { active } = useCampaigns(), api = useRegistros(), { user } = useAuth(), { aoClicarDireito, abrirMenuEm } = useAbrirEmAba();
   const cid = active?.campaign.id;
   const origem = useRef(novaOrigem()).current;
@@ -91,11 +91,11 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     lista = ordenarPlanos(lista);
     for (const x of lista) versoes.current.set(x.id, x.version);
     const salvo = lerPlanoSalvo(chave);
-    const atual = lista.find(x => x.id === boardIdRef.current) ?? lista.find(x => x.id === salvo) ?? lista.find(x => !ehPermanente(x)) ?? lista[0];
+    const atual = lista.find(x => x.id === initialBoardId) ?? lista.find(x => x.id === boardIdRef.current) ?? lista.find(x => x.id === salvo) ?? lista.find(x => !ehPermanente(x)) ?? lista[0];
     setErro(null); setBoards(lista); setBoardId(atual.id);
     setCenas(prev => { const novo = Object.fromEntries(s.data.filter(r => r.ownerId === user?.id && r.visibility === "private").map(r => [r.id, r])); for (const id of Object.keys(edRef.current)) if (prev[id] && !novo[id]) novo[id] = prev[id]; return novo; });   // cartão com rascunho nunca some numa recarga
     setCarregado(true);
-  }, [api, cid, chave, user?.id]);
+  }, [api, cid, chave, user?.id, initialBoardId]);
   useEffect(() => { setCarregado(false); setBoards([]); setBoardId(null); setEd({}); setSel([]); void carregar(); }, [carregar]);
   useEffect(() => () => { timers.current.forEach(clearTimeout); timers.current.clear(); }, []);
 
@@ -327,7 +327,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     </div>}
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Anotações</h1>
-    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onFixar={b => void alternarFixacao(b)} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={solicitarExclusaoPlano}/>}
+    {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onFixar={b => void alternarFixacao(b)} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={solicitarExclusaoPlano} onAbrirEmAba={onOpenContent ? b => onOpenContent({ kind: "secao", ref: `planejamento:${b.id}`, title: `Anotações · ${b.title}` }) : undefined}/>}
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
     {aviso && <div className="notice err" role="alert">{aviso}</div>}
     {!carregado && <p className="muted" role="status">Carregando anotações…</p>}
@@ -396,7 +396,7 @@ function excluirSecoesVazia(q: Quadro, id: string): Quadro {
 }
 
 /** Seletor de planejamentos: anotações permanentes (fixas, primeiro) e um planejamento por sessão. O ativo tem o nome editável. */
-function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear, onExcluir }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onFixar: (b: Registro) => void; onMover: (id: string, direcao: -1 | 1, alvoId?: string) => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void }) {
+function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear, onExcluir, onAbrirEmAba }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onFixar: (b: Registro) => void; onMover: (id: string, direcao: -1 | 1, alvoId?: string) => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void; onAbrirEmAba?: (b: Registro) => void }) {
   const [arrastada, setArrastada] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [listaAberta, setListaAberta] = useState(false);
@@ -443,6 +443,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
       const grupo = ehPermanente(b) ? fixadas : comuns;
       const i = grupo.findIndex(x => x.id === b.id);
       return <div className="plano-contexto" style={{ left: menu.x, top: menu.y }} role="menu" aria-label={`Opções de ${b.title}`}>
+        {onAbrirEmAba && <button type="button" role="menuitem" onClick={() => { onAbrirEmAba(b); setMenu(null); }}>Abrir em nova aba</button>}
         <button type="button" role="menuitem" onClick={() => { onFixar(b); setMenu(null); }}>{ehPermanente(b) ? "Desafixar" : "Fixar"}</button>
         <button type="button" role="menuitem" onClick={() => { setRenomeando(b.id); setMenu(null); }}>Renomear</button>
         <button type="button" role="menuitem" disabled={i <= 0} onClick={() => { onMover(b.id, -1); setMenu(null); }}>Mover para esquerda</button>
