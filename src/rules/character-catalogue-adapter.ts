@@ -69,7 +69,32 @@ function classDefinition(value: unknown): value is ClassDefinition {
   return object(value) && identifier(value.id) && Array.isArray(value.levels) &&
     value.levels.length === 20 && value.levels.every((level,i) => object(level) &&
       level.level === i+1 && Number.isSafeInteger(level.hitDie) &&
-      (level.hitDie as number) > 0 && grants(level.grants));
+      (level.hitDie as number) > 0 && level.hitDie === (value.levels as Record<string, unknown>[])[0]?.hitDie && grants(level.grants));
+}
+/** Validate advancements at the catalogue boundary, before any character calculation. */
+function validAdvancements(value: unknown): value is Advancement[] {
+  if (!Array.isArray(value)) return false;
+  const advancementIds = new Set<string>();
+  const choiceIds = new Set<string>();
+  for (const entry of value) {
+    if (!object(entry) || !identifier(entry.id) || advancementIds.has(entry.id) ||
+        !Number.isSafeInteger(entry.level) || (entry.level as number) < 1 || (entry.level as number) > 20 ||
+        !grants(entry.grants) || (entry.choices !== undefined && !Array.isArray(entry.choices))) return false;
+    advancementIds.add(entry.id);
+    for (const choice of (entry.choices ?? []) as unknown[]) {
+      if (!object(choice) || !identifier(choice.id) || choiceIds.has(choice.id) ||
+          choice.level !== entry.level || !Number.isSafeInteger(choice.count) ||
+          (choice.count as number) < 1 || !Array.isArray(choice.options) ||
+          (choice.count as number) > choice.options.length) return false;
+      choiceIds.add(choice.id);
+      const optionIds = new Set<string>();
+      for (const option of choice.options) {
+        if (!object(option) || !identifier(option.id) || optionIds.has(option.id) || !grants(option.grants)) return false;
+        optionIds.add(option.id);
+      }
+    }
+  }
+  return true;
 }
 export function buildPilotCharacterCatalog(
   catalogue: RulesCatalogue, refs: PilotCharacterReferences, advancements: Advancement[] = []
@@ -83,6 +108,13 @@ export function buildPilotCharacterCatalog(
     throw new Error('Incomplete or invalid character rules definition');
   if (race.id !== refs.race.id || background.id !== refs.background.id || klass.id !== refs.class.id)
     throw new Error('Character rule ID mismatch');
+  if (!validAdvancements(advancements)) throw new Error('Invalid character advancements');
+  const choiceIds = new Set<string>();
+  for (const choice of [...(race.choices ?? []), ...(background.choices ?? []),
+    ...advancements.flatMap(entry => entry.choices ?? [])]) {
+    if (choiceIds.has(choice.id)) throw new Error('Duplicate character choice ID');
+    choiceIds.add(choice.id);
+  }
   const raceId=contentKey(refs.race),backgroundId=contentKey(refs.background),classId=contentKey(refs.class);
   const version=selected.map(contentKey).join('|');
   return {ids:{raceId,backgroundId,classId},catalog:{
