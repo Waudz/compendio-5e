@@ -428,31 +428,35 @@ describe("planejamentos e anotações permanentes", () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     const nav = await screen.findByRole("navigation", { name: "Planejamentos" });
-    expect(within(nav).getByRole("button", { name: "Desafixar Anotações permanentes" })).toBeTruthy();               // fixas, sempre primeiro
+    expect(within(nav).getByRole("button", { name: "Anotações permanentes" })).toBeTruthy();               // fixas, sempre primeiro
     expect(boards(registros).some(b => (b.meta as { permanente?: boolean }).permanente)).toBe(true);
-    expect((within(nav).getByLabelText("Nome do planejamento") as HTMLInputElement).value).toBe("Quadro");   // o planejamento existente continua ativo
+    expect(within(nav).getByRole("button", { name: "Quadro" }).getAttribute("aria-pressed")).toBe("true");   // o planejamento existente continua ativo
   });
   it("permite criar várias abas permanentes, renomear e manter após recarregar", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     fireEvent.click(await screen.findByRole("button", { name: "Nova guia" }));
-    await waitFor(() => expect((screen.getByLabelText("Nome do planejamento") as HTMLInputElement).value).toBe("Nova guia 3"));
-    const nome = screen.getByLabelText("Nome do planejamento") as HTMLInputElement;
-    fireEvent.click(screen.getByRole("button", { name: "Fixar Nova guia 3" }));
+    await screen.findByRole("button", { name: "Nova guia 3" });
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Nova guia 3" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Fixar" }));
     await waitFor(() => expect(boards(registros).some(b => b.title === "Nova guia 3" && (b.meta as { permanente?: boolean }).permanente === true)).toBe(true));
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Nova guia 3" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Renomear" }));
+    const nome = screen.getByLabelText("Renomear guia") as HTMLInputElement;
     fireEvent.change(nome, { target: { value: "Personagens recorrentes" } }); fireEvent.blur(nome);
     await waitFor(() => expect(boards(registros).some(b => b.title === "Personagens recorrentes")).toBe(true));
     r.unmount(); cleanup();
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     expect(screen.getByRole("button", { name: "Anotações permanentes" })).toBeTruthy();
-    expect((screen.getByLabelText("Nome do planejamento") as HTMLInputElement).value).toBe("Personagens recorrentes");
+    expect(screen.getByRole("button", { name: "Personagens recorrentes" })).toBeTruthy();
   });
   it("reordena abas de sessão e mantém a ordem após recarregar", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     const r = await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     fireEvent.click(await screen.findByRole("button", { name: "Nova guia" }));
     await screen.findByLabelText("Seção Seção 1");
-    fireEvent.click(screen.getByRole("button", { name: "Mover Nova guia 3 para esquerda" }));
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Nova guia 3" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Mover para esquerda" }));
     await waitFor(() => {
       const nav = screen.getByRole("navigation", { name: "Planejamentos" });
       const nomes = [...nav.querySelectorAll(".plano")].map(x => x.textContent);
@@ -495,16 +499,18 @@ describe("planejamentos e anotações permanentes", () => {
   it("renomear o planejamento ativo; excluir pede confirmação e apaga os cartões dele", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
-    const nome = await screen.findByLabelText("Nome do planejamento") as HTMLInputElement;
+    fireEvent.contextMenu(await screen.findByRole("button", { name: "Quadro" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Renomear" }));
+    const nome = screen.getByLabelText("Renomear guia") as HTMLInputElement;
     fireEvent.change(nome, { target: { value: "Sessão 4 — Daggerford" } }); fireEvent.blur(nome);
     await waitFor(() => expect(registros.dados.find(r => r.id === "b1")!.title).toBe("Sessão 4 — Daggerford"));
     const conf = vi.spyOn(window, "confirm").mockReturnValue(false);
-    fireEvent.click(screen.getByRole("button", { name: "Excluir o planejamento Sessão 4 — Daggerford" }));
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Sessão 4 — Daggerford" })); fireEvent.click(screen.getByRole("menuitem", { name: "Excluir" }));
     expect(conf.mock.calls[0][0]).toMatch(/2 cartões/); expect(registros.dados.some(r => r.id === "b1")).toBe(true);
-    conf.mockReturnValue(true); fireEvent.click(screen.getByRole("button", { name: "Excluir o planejamento Sessão 4 — Daggerford" }));
+    conf.mockReturnValue(true); fireEvent.contextMenu(screen.getByRole("button", { name: "Sessão 4 — Daggerford" })); fireEvent.click(screen.getByRole("menuitem", { name: "Excluir" }));
     await waitFor(() => expect(registros.dados.some(r => r.id === "b1")).toBe(false));
     expect(registros.dados.some(r => r.kind === "scene")).toBe(false);
-    expect(await screen.findByLabelText("Nome do planejamento")).toBeTruthy();               // um novo planejamento é criado: nunca fica sem nenhum
+    expect(await screen.findByRole("button", { name: "Anotações permanentes" })).toBeTruthy();               // um novo planejamento é criado: nunca fica sem nenhum
   });
   it("o planejamento escolhido é lembrado ao recarregar; trocar com rascunho não salvo pergunta antes", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
