@@ -150,11 +150,11 @@ describe("Início: edição protegida", () => {
 describe("ordem do menu por papel", () => {
   const nomes = (l: { title: string }[]) => l.map(s => s.title);
   it("mestre: Planejamento, Diário, Iniciativa, Encontros, Personagens, Enciclopédia, Documentos, Compêndio", () =>
-    expect(nomes(desktopSections("mestre"))).toEqual(["Planejamento", "Diário", "Iniciativa", "Encontros", "Personagens", "Enciclopédia", "Documentos", "Compêndio"]));
+    expect(nomes(desktopSections("mestre"))).toEqual(["Anotações", "Diário", "Iniciativa", "Encontros", "Personagens", "Enciclopédia", "Documentos", "Compêndio"]));
   it("jogador: Personagens, Diário, Enciclopédia, Documentos, Compêndio", () =>
-    expect(nomes(desktopSections("jogador"))).toEqual(["Personagens", "Diário", "Enciclopédia", "Documentos", "Compêndio"]));
+    expect(nomes(desktopSections("jogador"))).toEqual(["Anotações", "Personagens", "Diário", "Enciclopédia", "Documentos", "Compêndio"]));
   it("sem campanha ativa mantém as seções comuns; Planejamento nunca aparece para quem não é mestre", () => {
-    expect(nomes(desktopSections(null))).toContain("Iniciativa"); expect(nomes(visibleSections(false))).not.toContain("Planejamento");
+    expect(nomes(desktopSections(null))).toContain("Iniciativa"); expect(nomes(visibleSections(false))).toContain("Anotações");
   });
 });
 
@@ -178,14 +178,14 @@ describe("Início no aplicativo", () => {
   it("mestre: Início é o primeiro item do menu e a primeira entrada na campanha abre o Início", async () => {
     await abrir([mestre()]);
     const nomes = menu().getAllByRole("button").map(b => b.textContent);
-    expect(nomes.slice(0, 9)).toEqual(["Início", "Planejamento", "Diário", "Iniciativa", "Encontros", "Personagens", "Enciclopédia", "Documentos", "Compêndio"]);
+    expect(nomes.slice(0, 9)).toEqual(["Início", "Anotações", "Diário", "Iniciativa", "Encontros", "Personagens", "Enciclopédia", "Documentos", "Compêndio"]);
     expect(await screen.findByTestId("campanha-inicio")).toBeTruthy();
     expect([...document.querySelectorAll(strip)].map(e => e.textContent)).toEqual(["Mesa dos Dragões"]);
   });
   it("jogador: Início primeiro, sem Planejamento, Iniciativa e Encontros", async () => {
     await abrir([jogador()]);
     const nomes = menu().getAllByRole("button").map(b => b.textContent);
-    expect(nomes.slice(0, 6)).toEqual(["Início", "Personagens", "Diário", "Enciclopédia", "Documentos", "Compêndio"]);
+    expect(nomes.slice(0, 7)).toEqual(["Início", "Anotações", "Personagens", "Diário", "Enciclopédia", "Documentos", "Compêndio"]);
     expect(await screen.findByTestId("campanha-inicio")).toBeTruthy();
   });
   it("Início e o nome da campanha abrem a MESMA aba campanha:<id> (sem duplicar)", async () => {

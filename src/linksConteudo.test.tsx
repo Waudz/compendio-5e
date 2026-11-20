@@ -43,7 +43,6 @@ const tabs = () => rawTabs().map(t => t?.replace(/\s*\(fixada\)$/, ""));
 const tabEl = (name: string) => screen.getByText(name, { selector: strip });
 const key = storageKey({ user: me.id, campaign: "nenhuma", device: "navegador" });
 const saved = () => JSON.parse(localStorage.getItem(key)!);
-const mTabs = () => within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent?.replace(/\s*\(fixada\)$/, ""));
 const menuItems = () => within(screen.getByRole("menu")).getAllByRole("menuitem").map(i => i.textContent);
 const pick = (name: string) => fireEvent.click(within(screen.getByRole("menu")).getByRole("menuitem", { name }));
 const link = (name = "link d1", index = 0) => fireEvent.click(screen.getAllByRole("button", { name })[index]);
@@ -134,14 +133,13 @@ describe("link de conteúdo (desktop)", () => {
 describe("link de conteúdo (celular, 375 px)", () => {
   beforeEach(() => { mobile = true; Object.defineProperty(window, "innerWidth", { value: 375, configurable: true }); });
 
-  it("abre aba fixada logo após a atual, preserva a origem e não duplica", async () => {
+  it("abre o conteúdo na tela atual (sem abas), preserva a origem no histórico (uma volta basta)", async () => {
     await renderApp();
+    expect(screen.queryByRole("tablist")).toBeNull();
     link();
-    expect(mTabs()).toEqual(["Personagens", "Resumo da Sessão 3"]);
-    expect(document.querySelectorAll(".m-tab.pinned")).toHaveLength(1);
-    expect(document.querySelector(".m-tab.pinned")?.textContent).toContain("Resumo da Sessão 3");
-    fireEvent.click(within(screen.getByRole("tablist")).getByRole("tab", { name: "Personagens" }));
-    link();                                                                  // já aberta: seleciona
-    expect(mTabs()).toEqual(["Personagens", "Resumo da Sessão 3"]);
+    expect(document.querySelector(".mobile-page-title")?.textContent).toBe("Resumo da Sessão 3");
+    fireEvent.click(screen.getByRole("button", { name: "Voltar" }));         // uma única volta leva à origem
+    expect(document.querySelector(".mobile-page-title")?.textContent).not.toBe("Resumo da Sessão 3");
+    expect(screen.queryByRole("tablist")).toBeNull();
   });
 });

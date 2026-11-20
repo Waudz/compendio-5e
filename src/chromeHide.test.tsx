@@ -49,7 +49,7 @@ describe("ocultar no celular (App)", () => {
 
   /** Rola o contêiner interno (.content) como o navegador faria. */
   const scrollTo = (el: HTMLElement, top: number) => { el.scrollTop = top; fireEvent.scroll(el); };
-  const scroller = () => { const el = document.querySelector<HTMLElement>(".mobile .content")!; Object.defineProperty(el, "scrollHeight", { value: 3000, configurable: true }); Object.defineProperty(el, "clientHeight", { value: 600, configurable: true }); return el; };
+  const scroller = () => { const el = document.querySelector<HTMLElement>(".mobile-screen")!; Object.defineProperty(el, "scrollHeight", { value: 3000, configurable: true }); Object.defineProperty(el, "clientHeight", { value: 600, configurable: true }); return el; };
   const app = () => document.querySelector(".app")!;
 
   it("rolar para baixo no contêiner interno oculta; para cima mostra; topo mostra", async () => {
@@ -80,7 +80,7 @@ describe("ocultar no celular (App)", () => {
   it("ignora rolagem de faixa que não rola na vertical (abas)", async () => {
     await montar(); scroller(); scrollTo(el0(), 300);
     expect(app().classList.contains("chrome-hidden")).toBe(false);
-    function el0() { return document.querySelector<HTMLElement>(".m-tabs")!; }
+    function el0() { return document.querySelector<HTMLElement>(".mobile-bottom-nav")!; }
   });
 
   it("no desktop nunca oculta", async () => {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { storageKey } from "./persistence";
 import { memoryStorage, me, renderApp } from "./testUtils";
 
@@ -31,13 +31,13 @@ describe("workspace (interface)", () => {
   });
 
   it("abre ficha por link de conteúdo (id ficha:ID, aba permanente, sem duplicar) e persiste o layout", async () => {
-    mobile = true; // o jsdom não mede tamanhos, então o conteúdo do FlexLayout não é desenhado; a visão simples usa o mesmo estado
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(() => ({ x: 0, y: 0, left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600, toJSON() {} }) as DOMRect);   // o jsdom não mede; sem isso o FlexLayout não desenha o conteúdo
     await renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));                 // link de conteúdo: nova aba permanente, origem preservada
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir Ficha: Lydia" }));          // link de conteúdo: nova aba permanente, origem preservada
+    expect(tabNames()).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
     more("Personagens");
-    fireEvent.click(screen.getByRole("button", { name: "Abrir Ficha: Lydia" }));                 // já aberta: seleciona, não duplica
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir Ficha: Lydia" }));          // já aberta: seleciona, não duplica
+    expect(tabNames()).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
     const tabsSaved = saved().layout.children[0].children as { id: string; pinned?: boolean }[];
     expect(tabsSaved.map(t => t.id)).toEqual(["secao:personagens", "ficha:lydia"]);
     expect(tabsSaved.map(t => t.pinned === true)).toEqual([false, true]);
@@ -102,15 +102,18 @@ describe("workspace (interface)", () => {
     expect(document.querySelector(".sidebar.collapsed")).toBeNull();
   });
 
-  it("celular: usa a visão simples (sem FlexLayout), abre pela barra e fecha abas", async () => {
+  it("celular: usa a visão simples (sem FlexLayout e sem abas), abre pelo menu e volta pelo histórico", async () => {
     mobile = true;
     await renderApp();
     expect(document.querySelector(".flexlayout__layout")).toBeNull();
-    more("Iniciativa");
-    const tabs = within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent);
-    expect(tabs).toEqual(["Personagens", "Iniciativa"]);
-    expect(screen.getByRole("heading", { name: "Iniciativa" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Fechar Iniciativa" }));
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab")).toHaveLength(1);
+    expect(screen.queryByRole("tablist")).toBeNull();                                            // sem abas nem colunas no celular
+    expect(document.querySelector(".mobile-simple")).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Navegação mobile" })).getByRole("button", { name: "Menu" }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: "Iniciativa" }));
+    expect(await screen.findByRole("heading", { name: "Iniciativa" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Voltar" }));                             // histórico próprio (botão Voltar)
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Iniciativa" })).toBeNull());
+    expect((screen.getByRole("button", { name: "Voltar" }) as HTMLButtonElement).disabled).toBe(true);   // voltou à tela inicial
+    expect(screen.queryByRole("tablist")).toBeNull();
   });
 });

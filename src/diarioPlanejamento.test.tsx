@@ -7,7 +7,7 @@ import { activeKey } from "./CampaignsContext";
 import type { CapaApi } from "./capa";
 import type { Registro } from "./registros";
 import { registrosEmMemoria } from "./registrosMemoria";
-import { me, memoryStorage, renderApp } from "./testUtils";
+import { me, memoryStorage, other, renderApp } from "./testUtils";
 
 // O BlockNote real é carregado sob demanda e testado à parte (editorRico.test.tsx); aqui um editor mínimo com o mesmo contrato.
 vi.mock("./PageEditor", async () => {
@@ -115,10 +115,61 @@ describe("Diário (jogador)", () => {
     expect((await registros.get("d2")).ok && (await registros.get("d2") as { data: unknown }).data).toBeNull();
     expect((await registros.get("s1") as { data: unknown }).data).toBeNull();
   });
-  it("o menu do jogador não tem Planejamento e o painel recusa o acesso", async () => {
+  it("o menu do jogador tem Anotações (como o do mestre) e a seção abre", async () => {
     await renderApp({ api: apiC(jogador), registros: registrosEmMemoria("jogador", "u2", dados()) });
-    await waitFor(() => expect(menu().getByRole("button", { name: "Diário" })).toBeTruthy());
-    expect(menu().queryByRole("button", { name: "Planejamento" })).toBeNull();
+    await abrirSecao("Anotações");
+    expect(await screen.findByRole("heading", { name: "Anotações" })).toBeTruthy();
+  });
+});
+
+describe("Anotações: cada usuário só vê as próprias (mestre e jogador)", () => {
+  const quadro = (id: string, owner: string, titulo: string, cartao: string, permanente = false) =>
+    reg({ id, kind: "board", ownerId: owner, title: titulo, meta: { ...(permanente && { permanente: true }), colunas: [{ id: `${id}-c`, secoes: [{ id: `${id}-s`, titulo: `Seção de ${owner}`, cartoes: [cartao] }] }] } });
+  const dadosDois = () => [
+    quadro("bm1", "u1", "Sessão do Mestre", "cm1"), quadro("bm2", "u1", "Anotações permanentes", "cm2", true),
+    reg({ id: "cm1", kind: "scene", ownerId: "u1", title: "Cena secreta do mestre", content: [par("o vilão é o taverneiro")] }),
+    reg({ id: "cm2", kind: "scene", ownerId: "u1", title: "Nota permanente do mestre" }),
+    quadro("bj1", "u2", "Sessão do Jogador", "cj1"), quadro("bj2", "u2", "Anotações permanentes", "cj2", true),
+    reg({ id: "cj1", kind: "scene", ownerId: "u2", title: "Minha cena de jogador", content: [par("desconfio do taverneiro")] }),
+    reg({ id: "cj2", kind: "scene", ownerId: "u2", title: "Minha nota permanente" }),
+  ];
+  /** Servidor "vazador": devolve tudo, sem filtrar por dono. A interface não pode confiar nisso para mostrar dados alheios. */
+  const vazador = (api: ReturnType<typeof registrosEmMemoria>, todos: Registro[]) => ({ ...api, list: async (cid: string, kind: string) => ({ ok: true as const, data: todos.filter(r => r.campaignId === cid && r.kind === kind) }) }) as unknown as typeof api;
+
+  it("jogador: vê só os próprios quadros e cartões; nada do mestre aparece (nem com um servidor que devolve tudo)", async () => {
+    const dados2 = dadosDois();
+    localStorage.setItem(activeKey(other.id), "ca");   // a conta logada é a do jogador (u2)
+    await renderApp({ user: other, api: apiC(jogador), registros: vazador(registrosEmMemoria("jogador", "u2", dados2), dados2) });
+    await abrirSecao("Anotações");
+    expect(await screen.findByLabelText("Seção Seção de u2")).toBeTruthy();
+    expect(await screen.findByLabelText("Título do cartão Minha cena de jogador")).toBeTruthy();
+    expect(screen.queryByText(/Seção de u1/)).toBeNull();
+    expect(screen.queryByText("Cena secreta do mestre")).toBeNull(); expect(screen.queryByLabelText("Título do cartão Cena secreta do mestre")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Sessão do Mestre|taverneiro" ?$/);
+  });
+  it("mestre: vê só os próprios; os quadros e cartões do jogador nunca aparecem", async () => {
+    const dados2 = dadosDois();
+    await renderApp({ api: apiC(mestre), registros: vazador(registrosEmMemoria("mestre", "u1", dados2), dados2) });
+    await abrirSecao("Anotações");
+    expect(await screen.findByLabelText("Seção Seção de u1")).toBeTruthy();
+    expect(screen.queryByText(/Seção de u2/)).toBeNull(); expect(screen.queryByLabelText("Título do cartão Minha cena de jogador")).toBeNull();
+    expect(screen.queryByText("Sessão do Jogador")).toBeNull();
+  });
+  it("quadros alheios que o servidor devolva também não viram 'Sessão do Jogador' na lista de planos do mestre", async () => {
+    const dados2 = dadosDois();
+    await renderApp({ api: apiC(mestre), registros: vazador(registrosEmMemoria("mestre", "u1", dados2), dados2) });
+    await abrirSecao("Anotações");
+    await screen.findByLabelText("Seção Seção de u1");
+    const planos = screen.getByRole("navigation", { name: "Planejamentos" });
+    expect(within(planos).queryByText("Sessão do Jogador")).toBeNull();
+  });
+  it("sem quadros ainda, o jogador vê erro claro (o banco proposto na 0006 só deixa o mestre criar quadros) e nada é criado nem perdido", async () => {
+    const registros = registrosEmMemoria("jogador", "u2");
+    localStorage.setItem(activeKey(other.id), "ca");
+    await renderApp({ user: other, api: apiC(jogador), registros });
+    await abrirSecao("Anotações");
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Apenas o mestre/);
+    expect(registros.dados).toHaveLength(0);
   });
 });
 
@@ -126,7 +177,7 @@ describe("Planejamento (mestre)", () => {
   it("cria o planejamento e as anotações permanentes, adiciona colunas, seções e cartões sem nome, exclui, com persistência", async () => {
     const registros = registrosEmMemoria("mestre");
     await renderApp({ api: apiC(mestre), registros });
-    await abrirSecao("Planejamento");
+    await abrirSecao("Anotações");
     await screen.findByLabelText("Seção Seção 1");
     const plano = () => registros.dados.find(r => r.kind === "board" && !(r.meta as { permanente?: boolean }).permanente)!;
     expect(registros.dados.filter(r => r.kind === "board").map(r => r.title).sort()).toEqual(["Anotações permanentes", "Sessão 1"]);
@@ -151,7 +202,7 @@ describe("Planejamento (mestre)", () => {
       reg({ id: "s1", kind: "scene", title: "Estrada", content: [par("Carroça atolada.")] }),
     ]);
     await renderApp({ api: apiC(mestre), registros });
-    await abrirSecao("Planejamento");
+    await abrirSecao("Anotações");
     fireEvent.click(await screen.findByRole("button", { name: "Editar o texto de Estrada" }));
     fireEvent.change(await screen.findByLabelText("Conteúdo de Estrada"), { target: { value: "Carroça atolada.\n\nBandidos." } });
     await waitFor(() => expect(registros.dados.find(r => r.id === "s1")!.content).toHaveLength(2), { timeout: 4000 });
@@ -161,7 +212,7 @@ describe("Planejamento (mestre)", () => {
   it("conflito de versão não sobrescreve: mostra aviso e recarrega", async () => {
     const registros = registrosEmMemoria("mestre", "u1", [reg({ id: "b1", kind: "board", title: "Quadro", meta: { colunas: [{ id: "k", titulo: "A", cartoes: [] }] } })]);
     await renderApp({ api: apiC(mestre), registros });
-    await abrirSecao("Planejamento"); await screen.findByLabelText("Seção A");
+    await abrirSecao("Anotações"); await screen.findByLabelText("Seção A");
     registros.dados[0] = { ...registros.dados[0], version: 7 };      // outra aba/aparelho gravou antes
     fireEvent.click(screen.getByRole("button", { name: "Adicionar coluna" }));
     expect((await screen.findByText(/Outra pessoa alterou/)).getAttribute("role")).toBe("alert");

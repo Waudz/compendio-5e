@@ -27,7 +27,7 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   window.history.pushState({}, "", "/");
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("porta de entrada: sem sessão, nada do aplicativo", () => {
   const gate = (client: ReturnType<typeof fakeAuth>["client"] | null) => render(<AuthProvider client={client}><AuthGate><div data-testid="app">APP</div></AuthGate></AuthProvider>);
@@ -149,15 +149,17 @@ describe("isolamento dos dados locais entre contas", () => {
   });
 });
 
+const medir = () => vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(() => ({ x: 0, y: 0, left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600, toJSON() {} }) as DOMRect);   // o jsdom não mede; sem isso o FlexLayout não desenha o conteúdo
+
 describe("layout guarda só ids (nunca títulos)", () => {
   const m: Membership = { role: "mestre", campaign: { id: "c1", name: "Segredo da Mesa Sombria", description: "desc", created_at: "" } };
 
   it("o título da campanha aparece na aba, mas não é gravado no aparelho", async () => {
-    mobile = true;
+    medir();
     await renderApp({ api: campApi([m]) });
-    fireEvent.click(nav("Campanhas"));
+    fireEvent.click(screen.getByRole("button", { name: "Nenhuma campanha ativa: escolher ou criar" }));
     fireEvent.click(within((await screen.findByText("Segredo da Mesa Sombria")).closest("li")!).getByRole("button", { name: "Abrir" }));
-    expect(within(screen.getByRole("tablist")).getByRole("tab", { name: "Segredo da Mesa Sombria" })).toBeTruthy();
+    expect(tabNames()).toContain("Segredo da Mesa Sombria");
     const dump = store.key(0) === null ? "" : [...Array(store.length).keys()].map(i => `${store.key(i)}=${store.getItem(store.key(i)!)}`).join("\n");
     expect(dump).toContain("campanha:c1");
     expect(dump).not.toContain("Segredo da Mesa Sombria");
@@ -165,21 +167,21 @@ describe("layout guarda só ids (nunca títulos)", () => {
   });
 
   it("ao recarregar, o título vem da API; um layout antigo com nomes salvos não os exibe", async () => {
-    mobile = true;
+    medir();
     localStorage.setItem(layoutKey(me.id), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", weight: 100, selected: 1, children: [
       { type: "tab", id: "secao:personagens", name: "Nome antigo vazado" }, { type: "tab", id: "campanha:c1", name: "Titulo antigo vazado" }] }] } }));
     await renderApp({ api: campApi([m]) });
-    const tabs = within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent);
+    const tabs = tabNames();
     expect(tabs).toEqual(["Personagens", "Segredo da Mesa Sombria"]);
     expect(document.body.textContent).not.toMatch(/vazado/);
   });
 
   it("campanha sem acesso (removido) cai no rótulo genérico, sem revelar o nome", async () => {
-    mobile = true;
+    medir();
     localStorage.setItem(layoutKey(me.id), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", weight: 100, selected: 1, children: [
       { type: "tab", id: "secao:personagens" }, { type: "tab", id: "campanha:c1" }] }] } }));
     await renderApp({ api: campApi([]) });
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent)).toEqual(["Personagens", "Campanha"]);
+    expect(tabNames()).toEqual(["Personagens", "Campanha"]);
     expect(screen.getByText(/não participa desta campanha/)).toBeTruthy();
   });
 });

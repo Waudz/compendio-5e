@@ -17,7 +17,7 @@ export type Section = { page: Page; title: string; icon: typeof Users; masterOnl
 /** Itens do menu principal. "Campanhas" NÃO está aqui: a gestão de campanhas fica no seletor junto à campanha ativa (ver `campaignsHub`). */
 export const sections: Section[] = [
   { page: "personagens", title: "Personagens", icon: Users },
-  { page: "planejamento", title: "Planejamento", icon: ClipboardList, masterOnly: true },
+  { page: "planejamento", title: "Anotações", icon: ClipboardList },
   { page: "diario", title: "Diário", icon: BookMarked },
   { page: "iniciativa", title: "Iniciativa", icon: Swords },
   { page: "encontros", title: "Encontros", icon: Shield },
@@ -28,12 +28,12 @@ export const sections: Section[] = [
 /** Gestão de campanhas (criar, entrar, ativar): continua sendo uma seção válida (abas salvas, convites, seletor), mas não é item do menu principal do desktop. */
 export const campaignsHub: Section = { page: "campanhas", title: "Campanhas", icon: Castle };
 const knownSections: Section[] = [campaignsHub, ...sections];
-/** Seções do menu para o papel atual: o Planejamento só aparece para o mestre de uma campanha ativa. */
+/** Seções do menu para o papel atual. Anotações são acessíveis a ambos os papéis. */
 export const visibleSections = (isMaster: boolean): Section[] => sections.filter(s => !s.masterOnly || isMaster);
 /** Ordem do menu do desktop por papel (Início vem antes, separado). Sem campanha ativa (papel null) mantém todas as seções comuns. */
 const menuOrder: Record<"mestre" | "jogador", Page[]> = {
   mestre: ["planejamento", "diario", "iniciativa", "encontros", "personagens", "enciclopedia", "documentos", "compendio"],
-  jogador: ["personagens", "diario", "enciclopedia", "documentos", "compendio"],
+  jogador: ["planejamento", "personagens", "diario", "enciclopedia", "documentos", "compendio"],
 };
 export const desktopSections = (role: "mestre" | "jogador" | null): Section[] => role ? menuOrder[role].map(p => sections.find(s => s.page === p)!) : visibleSections(false);
 export const kinds = Object.keys(kindLabel) as Kind[];

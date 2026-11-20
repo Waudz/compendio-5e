@@ -47,7 +47,11 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const strip = ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content";
 const menu = () => within(screen.getByRole("navigation", { name: "Menu principal" }));
 const abas = () => [...document.querySelectorAll(strip)].map(e => e.textContent);
-const abrirPlanejamento = async () => { await waitFor(() => expect(menu().getByRole("button", { name: "Planejamento" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Planejamento" })); };
+const abrirPlanejamento = async () => {
+  // celular: navegação independente (barra inferior); desktop: menu lateral
+  const barra = () => mobile ? within(screen.getByRole("navigation", { name: "Navegação mobile" })) : menu();
+  await waitFor(() => expect(barra().getByRole("button", { name: "Anotações" })).toBeTruthy()); fireEvent.click(barra().getByRole("button", { name: "Anotações" }));
+};
 const editarCartao = async (nome: string) => { const alvo = await screen.findByRole("button", { name: `Editar o texto de ${nome}` }); fireEvent.pointerDown(alvo); fireEvent.click(alvo); return await screen.findByLabelText(`Conteúdo de ${nome}`) as HTMLTextAreaElement; };
 const cenaDe = (r: ReturnType<typeof registrosEmMemoria>, id: string) => r.dados.find(x => x.id === id)!;
 const SEM_CONEXAO = "Sem conexão com o servidor. Tente de novo.";
@@ -173,7 +177,7 @@ describe("menu de contexto 'Abrir em nova aba'", () => {
     fireEvent.contextMenu(alvo); fireEvent.pointerDown(document.body); expect(screen.queryByRole("menu")).toBeNull();
     fireEvent.contextMenu(alvo); fireEvent.click(screen.getByRole("menuitem", { name: "Abrir em nova aba" }));
     await waitFor(() => expect(abas().filter(t => t?.startsWith("Estrada"))).toHaveLength(1));
-    fireEvent.click(menu().getByRole("button", { name: "Planejamento" }));
+    fireEvent.click(menu().getByRole("button", { name: "Anotações" }));
     fireEvent.contextMenu(await screen.findByRole("button", { name: "Editar o texto de Estrada" })); fireEvent.click(screen.getByRole("menuitem", { name: "Abrir em nova aba" }));
     await waitFor(() => expect(abas().filter(t => t?.startsWith("Estrada"))).toHaveLength(1));
   });

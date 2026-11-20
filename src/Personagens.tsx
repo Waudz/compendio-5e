@@ -1,7 +1,7 @@
 // Personagens da campanha: lista (retrato, nome, classe, nível) e perfil de cada um. Qualquer participante cria o seu; só o dono edita.
 // Visível para a campanha = publicado; privado = só o dono vê. A ficha completa (atributos, magias, inventário) ainda não existe.
 import { Plus, Trash2, UserRound } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { Aviso } from "./Diario";
 import { useAuth } from "./AuthContext";
@@ -58,9 +58,25 @@ export function FichaPagina({ id }: { id: string }) {
   const api = useRegistros(), capa = useCapa(), { user } = useAuth();
   const [reg, setReg] = useState<Registro | null | undefined>(undefined), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [nome, setNome] = useState(""), [classe, setClasse] = useState(""), [nivel, setNivel] = useState("1"), [publico, setPublico] = useState(false), [retrato, setRetrato] = useState<string | null>(null);
+  const [subsecao, setSubsecao] = useState<"ficha" | "inventario">("ficha");
+  const [inventario, setInventario] = useState<string[]>([]);
+  const [novoItem, setNovoItem] = useState("");
+  const toque = useRef<{ x: number; y: number } | null>(null);
+  const gesto = {
+    onTouchStart: (e: React.TouchEvent<HTMLDivElement>) => { const t = e.touches[0]; toque.current = { x: t.clientX, y: t.clientY }; },
+    onTouchEnd: (e: React.TouchEvent<HTMLDivElement>) => {
+      if (!toque.current || window.matchMedia("(min-width:701px)").matches) return;
+      const t = e.changedTouches[0], dx = t.clientX - toque.current.x, dy = t.clientY - toque.current.y;
+      toque.current = null;
+      if (Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      if ((e.target as HTMLElement).closest("input,textarea,select,[contenteditable],button")) return;
+      setSubsecao(dx < 0 ? "inventario" : "ficha");
+    }
+  };
+  const secoes = <nav className="ficha-subnav" aria-label="Seções da ficha"><button type="button" className={subsecao === "ficha" ? "active" : ""} onClick={() => setSubsecao("ficha")}>Ficha</button><button type="button" className={subsecao === "inventario" ? "active" : ""} onClick={() => setSubsecao("inventario")}>Inventário</button></nav>;
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null), [busy, setBusy] = useState(false), [confirmar, setConfirmar] = useState(false);
   const aplicar = useCallback((r: Registro) => {
-    const p = lerPerfil(r.meta); setReg(r); registrarTitulo(id, r.title); setNome(r.title); setClasse(p.classe); setNivel(String(p.nivel)); setPublico(r.visibility === "campaign"); setRetrato(p.retrato);
+    const p = lerPerfil(r.meta); setReg(r); registrarTitulo(id, r.title); setNome(r.title); setClasse(p.classe); setNivel(String(p.nivel)); setPublico(r.visibility === "campaign"); setRetrato(p.retrato); setInventario(Array.isArray(r.meta.inventario) ? r.meta.inventario.filter((x): x is string => typeof x === "string") : []);
   }, [id]);
   useEffect(() => {
     if (!api) return; let vivo = true;
@@ -69,7 +85,7 @@ export function FichaPagina({ id }: { id: string }) {
   }, [api, id, aplicar, tentativa]);
   const dono = !!reg && reg.ownerId === user?.id;
   const original = reg ? lerPerfil(reg.meta) : null;
-  const sujo = !!reg && dono && (nome !== reg.title || classe !== original!.classe || nivel !== String(original!.nivel) || publico !== (reg.visibility === "campaign") || retrato !== original!.retrato);
+  const sujo = !!reg && dono && (nome !== reg.title || classe !== original!.classe || nivel !== String(original!.nivel) || publico !== (reg.visibility === "campaign") || retrato !== original!.retrato || JSON.stringify(inventario) !== JSON.stringify(Array.isArray(reg.meta.inventario) ? reg.meta.inventario : []));
   useUnsavedGuard(`ficha:${id}`, sujo);
 
   if (!api) return <div className="content"><Aviso t="Conta necessária."/></div>;
@@ -79,13 +95,13 @@ export function FichaPagina({ id }: { id: string }) {
 
   if (!dono) {
     const p = lerPerfil(reg.meta);
-    return <div className="content ficha"><div className="eyebrow">PERSONAGEM</div>
-      <div className="ficha-topo"><Retrato caminho={p.retrato} nome={reg.title} tamanho={72}/><div><h1>{reg.title}</h1><p>{p.classe || "Sem classe"} · nível {p.nivel}</p></div></div></div>;
+    return <div className="content ficha" {...gesto}><div className="eyebrow">PERSONAGEM</div>
+      <div className="ficha-topo"><Retrato caminho={p.retrato} nome={reg.title} tamanho={72}/><div><h1>{reg.title}</h1><p>{p.classe || "Sem classe"} · nível {p.nivel}</p></div></div>{secoes}{subsecao === "inventario" && <ul>{inventario.map((item, i) => <li key={i}>{item}</li>)}</ul>}</div>;
   }
   const salvar = async (): Promise<boolean> => {
     const n = Number(nivel); const bad = validarPerfil(nome, classe, n); if (bad) { setMsg({ ok: false, t: bad }); return false; }
     setBusy(true); setMsg(null);
-    const r = await api.update(reg.id, reg.version, { title: nome, visibility: publico ? "campaign" : "private", meta: { ...reg.meta, classe: classe.trim(), nivel: n, retrato } });
+    const r = await api.update(reg.id, reg.version, { title: nome, visibility: publico ? "campaign" : "private", meta: { ...reg.meta, classe: classe.trim(), nivel: n, retrato, inventario } });
     setBusy(false);
     if (!r.ok) { setMsg({ ok: false, t: r.error }); return false; }
     aplicar(r.data); setMsg({ ok: true, t: "Personagem salvo." }); avisarRegistros(); return true;
@@ -96,15 +112,23 @@ export function FichaPagina({ id }: { id: string }) {
     if (r.ok) setRetrato(r.data); else setMsg({ ok: false, t: r.error });   // vale ao salvar; o arquivo anterior é apagado depois do salvamento
   };
   const excluir = async () => { setBusy(true); const r = await api.remove(reg.id); setBusy(false); if (!r.ok) { setMsg({ ok: false, t: r.error }); return; } if (original?.retrato && capa) void capa.apagar(original.retrato); setReg(null); avisarRegistros(); };
-  return <div className="content ficha auth wide"><div className="eyebrow">PERSONAGEM · {reg.visibility === "campaign" ? "VISÍVEL PARA A CAMPANHA" : "PRIVADO (SÓ VOCÊ VÊ)"}</div>
+  return <div className="content ficha auth wide" {...gesto}><div className="eyebrow">PERSONAGEM · {reg.visibility === "campaign" ? "VISÍVEL PARA A CAMPANHA" : "PRIVADO (SÓ VOCÊ VÊ)"}</div>
+    {secoes}
     <form noValidate onSubmit={e => { e.preventDefault(); void salvar().then(ok => { if (ok && original?.retrato && retrato !== original.retrato && capa) void capa.apagar(original.retrato); }); }}>
-      <div className="ficha-topo"><Retrato caminho={retrato} nome={nome} tamanho={72}/>
+      {subsecao === "ficha" && <><div className="ficha-topo"><Retrato caminho={retrato} nome={nome} tamanho={72}/>
         <div className="row"><label className="btn-secondary file-btn">{retrato ? "Trocar retrato" : "Adicionar retrato"}<input type="file" hidden accept="image/jpeg,image/png,image/webp" disabled={busy || !capa} onChange={e => { void escolherRetrato(e.target.files?.[0]); e.target.value = ""; }}/></label>
           {retrato && <button type="button" className="btn-secondary" onClick={() => setRetrato(null)}>Remover retrato</button>}</div></div>
       <label>Nome<input value={nome} maxLength={120} onChange={e => setNome(e.target.value)}/></label>
       <label>Classe<input value={classe} maxLength={40} onChange={e => setClasse(e.target.value)} placeholder="Ex.: Clériga"/></label>
       <label>Nível<input type="number" min={NIVEL_MIN} max={NIVEL_MAX} value={nivel} onChange={e => setNivel(e.target.value)}/></label>
       <label className="check"><input type="checkbox" checked={publico} onChange={e => setPublico(e.target.checked)}/> Visível para a campanha (aparece em Aventureiros no Início)</label>
+      </>}
+      {subsecao === "inventario" && <section className="ficha-inventario">
+        <h2>Inventário</h2>
+        <p>Itens carregados pelo personagem. Salve para sincronizar entre dispositivos.</p>
+        <ul>{inventario.map((item, i) => <li key={i}><span>{item}</span><button type="button" className="btn-secondary" onClick={() => setInventario(items => items.filter((_, j) => j !== i))}>Remover</button></li>)}</ul>
+        <div className="row"><input aria-label="Nome do item" placeholder="Novo item" value={novoItem} onChange={e => setNovoItem(e.target.value)}/><button type="button" className="btn-secondary" onClick={() => { if (novoItem.trim()) { setInventario(items => [...items, novoItem.trim()]); setNovoItem(""); } }}>Adicionar</button></div>
+      </section>}
       <div className="row"><button className="btn-primary" disabled={busy}>{busy ? "Salvando…" : "Salvar"}</button>
         {!confirmar ? <button type="button" className="btn-secondary danger" onClick={() => setConfirmar(true)}><Trash2 size={15} aria-hidden="true"/> Excluir</button>
           : <><button type="button" className="btn-secondary danger" disabled={busy} onClick={() => void excluir()}>Confirmar exclusão</button><button type="button" className="btn-secondary" onClick={() => setConfirmar(false)}>Cancelar</button></>}</div>
