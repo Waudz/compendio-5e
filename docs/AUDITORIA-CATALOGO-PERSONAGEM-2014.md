@@ -458,3 +458,39 @@ Fontes: [Foundry dnd5e Advancement](https://github.com/foundryvtt/dnd5e/wiki/Adv
 7. **Testes**: fonte primária como oráculo independente; contratos unitários por concessão, testes de propriedades, combinação por pares, cenários 1–20, regressões, import/export e interface E2E.
 
 **Política:** não converter o piloto em produção por mera ampliação de fixtures. Primeiro especificar esquema de decisões/progressão e testar 1 personagem integral, incluindo equipamentos, subclasse, ASI, magias quando aplicável, estado e persistência. Verificar permissões de distribuição para conteúdo fora do SRD 5.1. Documentação Foundry é referência conceitual, não autorização para copiar dados ou código.
+
+## Rodada 11 — levantamento de APIs e bibliotecas para acelerar o criador (pesquisa, sem dependências adicionadas)
+
+Fontes oficiais consultadas:
+- [5e SRD API 2014](https://docs.dnd5eapi.co/introduction) e [FAQ/licenciamento](https://docs.dnd5eapi.co/faq): REST/GraphQL sem autenticação, conteúdo SRD, base de dados disponível para hospedagem própria; **não** contém opções fora do SRD.
+- [Open5e V2](https://open5e.com/api-docs/) e [repositório](https://github.com/open5e/open5e-api): conteúdo aberto de várias fontes; V1 em manutenção; rastrear livro/licença/edição por entrada.
+- [Foundry dnd5e](https://github.com/foundryvtt/dnd5e) e [Advancement](https://github.com/foundryvtt/dnd5e/wiki/Advancement): referência de implementação de progressão e atividades; código MIT, conteúdo e imagens com licenças distintas.
+- [Zod](https://zod.dev/), [React Hook Form](https://react-hook-form.com/docs/useform), [fast-check](https://fast-check.dev/docs/introduction/), [Playwright](https://playwright.dev/docs/intro), [Dexie](https://dexie.org/docs/dexie-react-hooks/useLiveQuery%28%29), [TanStack Virtual](https://tanstack.com/virtual/latest/docs/introduction), [XState](https://stately.ai/docs/xstate), [Ajv](https://ajv.js.org/).
+
+### Matriz de decisão
+
+| Componente | Escolha recomendada | Decisão / cautela |
+|---|---|---|
+| Importação SRD 2014 | 5e SRD API + dataset versionado | **Priorizar dataset local com hash, proveniência e validação**, não chamadas remotas durante criação; não confundir API 2014 com 2024 |
+| Fontes abertas complementares | Open5e V2 | Usar como candidatos auditáveis; conteúdo de terceiros pode ter regras diferentes e licenças específicas |
+| Validação de objetos TypeScript | Zod | Prioridade 1: esquema para catálogo, escolhas e ficha; validação semântica do motor é adicional |
+| Validação massiva JSON | Ajv (alternativa) | Não instalar Zod e Ajv para o mesmo propósito sem benchmark/necessidade |
+| Formulário guiado | React Hook Form + resolver Zod | Prioridade 2 após estabilizar esquema; integrar componentes Mantine existentes |
+| Testes de invariantes | fast-check + Vitest existente | Prioridade 1: testes de propriedades, seed reprodutível e contraexemplos mínimos |
+| Fluxos de navegador | Playwright | Prioridade 2: criação, nível, desfazer, reload, offline e import/export |
+| Persistência local | Dexie | Avaliar **somente após** inventariar IndexedDB atual; não duplicar armazenamento |
+| Listas grandes | TanStack Virtual | Avaliar após perfil de desempenho, especialmente magias/itens/monstros |
+| Máquina de estados | XState | Adotar apenas se a complexidade real do fluxo justificar; não confundir estado de interface com motor de regras |
+
+### Pipeline recomendado
+
+1. **Extrair** snapshot de fontes abertas em etapa de desenvolvimento/CI, sem dependência de API durante o jogo.
+2. **Normalizar** IDs, fontes, licenças, versões, escolhas, concessões e progressão; rejeitar entradas desconhecidas e conflitos de edição.
+3. **Auditar** contra fonte normativa independente; produzir relatório por opção com lacunas e cobertura.
+4. **Gerar** catálogo estático versionado somente dos registros aprovados.
+5. **Consumir** no motor puro e no Compêndio; manter fichas e decisões em armazenamento local/sincronizado.
+6. **Testar** esquema, invariantes, cenários por nível, combinações e interface real no CI.
+
+**Não fazer:** usar API como autoridade em tempo de execução, instalar tudo de uma vez, importar conteúdo fora do SRD sem autorização, copiar implementação do Foundry cegamente ou substituir a stack React/Vite/Supabase atual.
+
+**Status:** pesquisa documentada; nenhuma biblioteca instalada; nenhum dado importado; Supabase intacto.
