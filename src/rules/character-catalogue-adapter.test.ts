@@ -101,4 +101,31 @@ describe('canonical Compendium to character kernel integration',()=>{
   expect(built.ids.backgroundId).toBe('srd-2014:background:acolyte:1');
  });
 
+ it('rejects invalid class advancement payloads before exposing the character catalogue',()=>{
+  const invalid=[
+    [{id:'level-four',level:4,grants:[{type:'ability',ability:'str',amount:NaN,source:'class'}]}],
+    [{id:'level-four',level:21,grants:[]}],
+    [{id:'level-four',level:4,grants:[],choices:[{id:'asi',level:3,count:1,options:[{id:'str',grants:[]}]}]}],
+    [{id:'level-four',level:4,grants:[],choices:[{id:'asi',level:4,count:1,options:[{id:'str',grants:[]},{id:'str',grants:[]}]}]}],
+    [{id:'level-four',level:4,grants:[],choices:[{id:'asi',level:4,count:1,options:[{id:'str',grants:[{type:'resource',resource:'rage',uses:-1,source:'class'}]}]}]}]
+  ];
+  for (const advancements of invalid) {
+    expect(()=>buildPilotCharacterCatalog(catalogue,{race,background,class:klass},advancements as never))
+      .toThrow('Invalid character advancements');
+  }
+ });
+ it('rejects ambiguous choice identifiers across race, background and class advancement',()=>{
+  const withRaceChoice={...catalogue,definitions:definitions.map(d=>d.ref.kind==='race'
+    ?{...d,data:{id:'dwarf',grants:[],choices:[{id:'shared-choice',count:1,options:[{id:'first',grants:[]}]}]}}:d)};
+  const advancements=[{id:'level-four',level:4,grants:[],choices:[{id:'shared-choice',level:4,count:1,options:[{id:'second',grants:[]}]}]}];
+  expect(()=>buildPilotCharacterCatalog(withRaceChoice,{race,background,class:klass},advancements))
+    .toThrow('Duplicate character choice ID');
+ });
+ it('rejects inconsistent hit dice across levels in a single-class catalogue',()=>{
+  const invalid={...catalogue,definitions:definitions.map(d=>d.ref.kind==='class'
+    ?{...d,data:{id:'fighter',levels:Array.from({length:20},(_,i)=>({level:i+1,hitDie:i===3?8:10,grants:[]}))}}:d)};
+  expect(()=>buildPilotCharacterCatalog(invalid,{race,background,class:klass}))
+    .toThrow('Incomplete or invalid character rules definition');
+ });
+
 });
