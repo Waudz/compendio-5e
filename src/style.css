@@ -407,3 +407,22 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .ficha-inventario li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
 .ficha-inventario .row input{min-width:0;flex:1}
 @media(min-width:701px){.ficha-subnav{max-width:520px}}
+
+/* Guias fixadas sempre acessíveis; guias normais com rolagem independente. */
+.planos{display:flex;flex-wrap:nowrap;min-width:0;position:relative;align-items:center}
+.planos-fixados{display:flex;flex:none;gap:5px;max-width:40%;overflow-x:auto;scrollbar-width:thin}
+.planos-rolagem{display:flex;flex:1;min-width:0;gap:6px;overflow-x:auto;scrollbar-width:thin}
+.planos .plano{flex:none;position:relative}
+.planos .plano.compacta{padding:5px 9px}
+.planos .plano.compacta .plano-selecionar{min-width:16px;justify-content:center}
+.planos-lista-wrapper{position:relative;flex:none}
+.planos-lista{position:absolute;right:0;top:calc(100% + 6px);z-index:120;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px #0005;padding:9px;width:min(300px,80vw)}
+.planos-lista input{width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:8px}
+.planos-lista-itens{max-height:300px;overflow-y:auto;display:flex;flex-direction:column}
+.planos-lista-itens button{display:flex;align-items:center;gap:8px;text-align:left;background:transparent;color:var(--text);border:0;padding:9px;cursor:pointer}
+.planos-lista-itens button:hover,.plano-contexto button:hover{background:var(--hover)}
+.plano-contexto{position:absolute;left:0;top:calc(100% + 5px);z-index:150;display:flex;flex-direction:column;min-width:170px;padding:5px;border:1px solid var(--line);border-radius:8px;background:var(--panel);box-shadow:0 8px 24px #0005}
+.plano-contexto button{border:0;background:transparent;color:var(--text);text-align:left;padding:8px;cursor:pointer}
+.plano-contexto button:disabled{opacity:.4;cursor:default}
+.planos-fechar-menu{position:fixed;inset:0;z-index:100;background:transparent;border:0;cursor:default}
+@media(max-width:700px){.planos{overflow:visible;max-width:100%;padding-bottom:5px}.planos-fixados{max-width:36%}.planos-rolagem{overflow-x:auto}.plano-contexto{position:fixed;left:12px;right:12px;top:auto;bottom:75px;z-index:150}}
