@@ -1,3 +1,5 @@
+> **Continuidade:** consulte [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md) antes de retomar a importação. Toda decisão sobre fonte, licença, mapeamento, revisão ou promoção de conteúdo deve entrar no registro central e na arquitetura; dados staged não são aprovados.
+
 # Reaproveitamento do Compêndio 1.0 — plano executável
 
 ## Fontes inspecionadas no repositório legado
