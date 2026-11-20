@@ -2,24 +2,13 @@
 import {useMemo,useState} from 'react';
 import {searchCompendium,type CompendiumView} from '../rules/compendium-query';
 import type {ContentKind} from '../rules/content-registry';
-import type {RulesCatalogue} from '../rules/rules-catalogue';
-const race={sourceId:'srd-2014',kind:'race' as const,id:'dwarf',revision:'1'};
-const item={sourceId:'srd-2014',kind:'item' as const,id:'longsword',revision:'1'};
-const klass={sourceId:'srd-2014',kind:'class' as const,id:'fighter',revision:'1'};
-export const demoCatalogue:RulesCatalogue={
- registry:{sources:[{id:'srd-2014',origin:'srd-2014',title:'SRD 2014 — amostra ilustrativa',ruleset:'5e-2014'}],
- entries:[{ref:race,name:'Anão',ruleset:'5e-2014'},{ref:item,name:'Espada longa',ruleset:'5e-2014'},
- {ref:klass,name:'Guerreiro',ruleset:'5e-2014'}]},
- definitions:[{ref:race,description:'Raça de demonstração',data:{id:'dwarf',grants:[]}},
- {ref:item,description:'Item de demonstração',data:{id:'longsword'}},
- {ref:klass,description:'Classe de demonstração',data:{id:'fighter'}}]
-};
+import {pilotRules} from './pilot-rules';
 const types:{value:ContentKind;label:string}[]=[
- {value:'race',label:'Raças'},{value:'class',label:'Classes'},{value:'item',label:'Itens'}];
+ {value:'race',label:'Raças'},{value:'background',label:'Antecedentes'},{value:'class',label:'Classes'},{value:'item',label:'Itens'}];
 export default function CompendiumPilot(){
  const [text,setText]=useState(''),[kind,setKind]=useState<ContentKind|''>(''),[view,setView]=useState<CompendiumView>('list');
  const [selected,setSelected]=useState<string|null>(null);
- const rows=useMemo(()=>searchCompendium(demoCatalogue,{text,kind:kind||undefined}),[text,kind]);
+ const rows=useMemo(()=>searchCompendium(pilotRules,{text,kind:kind||undefined}),[text,kind]);
  const active=rows.find(row=>row.key===selected);
  return <main style={{maxWidth:960,margin:'2rem auto',padding:20,fontFamily:'system-ui'}}>
   <h1>Compêndio — piloto de consulta</h1>
