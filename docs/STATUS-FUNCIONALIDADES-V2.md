@@ -44,3 +44,7 @@ Adicionado `src/dev/compendium-pilot.tsx` com pesquisa, filtro por tipo, altern�
 ## Fonte única entre pilotos — 20/11/2026
 
 Eliminadas as duas definições de demonstração divergentes: `src/dev/pilot-rules.ts` é a fonte **única** dos exemplos usados tanto em `?demo=compendio-piloto` quanto em `?demo=criador-piloto`. A consulta exibe quatro entradas (raça, antecedente, classe e item); o criador calcula atributos a partir dessas mesmas definições e revisões. Teste de integração verifica o vínculo. Continua sendo uma amostra ilustrativa, não conteúdo SRD auditado ou catálogo de produção.
+
+## Auditoria de vínculos do catálogo — 20/11/2026
+
+Criado `src/rules/catalogue-integrity.ts` com `auditCatalogueLinks`: analisa vínculos **explicitamente fornecidos** entre registros versionados, acusa destino/revisão ausente, origem não registrada, vínculos duplicados e suplementos sem metadados de licença. Testes automatizados cobrem casos válidos e inválidos. **Limitação deliberada:** ainda não extrai automaticamente referências internas dos payloads de raças/classes/magias/itens; isso depende de schemas tipados por categoria. Aviso de licença ausente não significa permissão concedida quando o campo estiver preenchido: licenças exigem auditoria jurídica/editorial separada. Nenhum importador real executado.
