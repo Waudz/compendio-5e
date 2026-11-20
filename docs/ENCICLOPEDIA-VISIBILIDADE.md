@@ -1,5 +1,7 @@
 # Enciclopédia — contrato de descoberta (implementação isolada)
 
+> **Continuidade e isolamento entre agentes:** antes de retomar este trabalho, ler [`HANDOFF-ENCICLOPEDIA-PR75.md`](./HANDOFF-ENCICLOPEDIA-PR75.md). Esse arquivo registra decisões, código, Supabase somente leitura, CI, bloqueios e a divisão Claude/ChatGPT/Codex. Não fazer merge ou aplicar SQL sem autorização.
+
 Branch independente do desenvolvimento de ficha/Compêndio. Módulo: `src/rules/encyclopedia-visibility.ts`; testes: `src/rules/encyclopedia-visibility.test.ts`.
 
 ## Regra de acesso
