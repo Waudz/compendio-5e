@@ -5,7 +5,7 @@ const stats:Abilities={str:15,dex:13,con:14,int:10,wis:12,cha:8};
 const dwarf:Option={id:'hill-dwarf-2014',grants:[
   {type:'ability',ability:'con',amount:2,source:'hill-dwarf'},
   {type:'ability',ability:'wis',amount:1,source:'hill-dwarf'},
-  {type:'feature',feature:'dwarven-toughness',source:'hill-dwarf'}
+  {type:'feature',feature:'dwarven-toughness',source:'hill-dwarf'},\n  {type:'hp-per-level',amount:1,source:'hill-dwarf'}
 ]};
 const acolyte:Option={id:'acolyte-2014',grants:[
   {type:'skill',skill:'insight',source:'acolyte'},{type:'skill',skill:'religion',source:'acolyte'},
@@ -38,7 +38,7 @@ describe('2014 character creation pilot: actual instances and level transitions'
     expect(c.languages).toEqual(['elvish','draconic']);
     expect(c.items).toEqual([{item:'incense',quantity:5}]);
     expect(c.resources.rage).toBe(2);
-    expect(c.maxHp).toBe(15);
+    expect(c.maxHp).toBe(16);
     expect(c.provenance.some(g=>g.source==='hill-dwarf')).toBe(true);
     expect(c.pending).toEqual([]);
   });
