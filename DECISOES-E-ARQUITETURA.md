@@ -96,3 +96,11 @@ Integrados: base React e workspace (PRs #1–#4); FlexLayout (#8); abas compacta
 6. Comunicar curto, direto e objetivo; **não gerar imagens de mockup** (usar descrição curta, esquema textual ou protótipo funcional).
 
 **Regra de ouro:** quando houver conflito entre este documento e uma decisão explícita mais recente do responsável, prevalece a decisão mais recente; atualizar o documento.
+
+## Decisão adicional (20/11/2026) — catálogo extensível e ficha universal
+
+**Aprovado:** o modelo de regras deve permitir futuramente raças, sub-raças, classes, subclasses, talentos e origens **homebrew** e de **suplementos licenciados**, sem reconstruir criador ou ficha. Cada opção terá fonte, edição, revisão e ID estável; conteúdo de terceiros só entra mediante direitos adequados. Contrato experimental em `src/rules/content-registry.ts`, detalhado em `docs/CRIADOR-FICHA-INVENTARIO.md`. Editor, importação, compartilhamento e persistência **ainda não implementados**.
+
+**Ficha universal:** toda aparição do personagem aponta para **uma identidade por `characterId`**; nenhuma tela mantém cópia independente do personagem. O estado jogável é identificado também por **escopo**: pessoal ou participação específica na campanha. **Não confundir identidade única com estado global único:** a decisão anterior deste documento (§8) preserva progressão, inventário e carteira independentes por campanha. Dentro de cada contexto, ficha, iniciativa, encontro e campanha devem refletir os mesmos PV, recursos e demais alterações, respeitando RLS e controle de versões. O mestre não modifica a ficha pessoal de outro usuário.
+
+**Implementação atual:** somente contratos e testes de domínio, sem integração com UI/Supabase; não declarar sincronização universal concluída.
