@@ -5,7 +5,7 @@
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, closestCorners, pointerWithin, rectIntersection, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ClipboardList, GripVertical, MoreHorizontal, Pin, Plus, Trash2, Type } from "lucide-react";
+import { ClipboardList, EyeOff, GripVertical, MoreHorizontal, Pin, Plus, Trash2, Type } from "lucide-react";
 import { Fragment, createContext, useCallback, useContext, useEffect, useRef, useState, type KeyboardEvent as RKeyEvent, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { useAuth } from "./AuthContext";
@@ -346,7 +346,7 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
                 : <input className="secao-titulo" aria-label={`Nome da seção ${s.titulo}`} defaultValue={s.titulo} maxLength={80} onPointerDown={e => e.stopPropagation()}
                     onFocus={() => setSel([])} onBlur={e => { if (e.target.value.trim() && e.target.value !== s.titulo) gravar(q => renomearSecao(q, s.id, e.target.value)); else e.target.value = s.titulo; }}
                     onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>}
-              <button type="button" className="icon" aria-label={s.semTitulo ? `Exibir título da seção ${s.titulo}` : `Ocultar título da seção ${s.titulo}`} aria-pressed={!!s.semTitulo} title={s.semTitulo ? "Exibir título" : "Ocultar título"} onClick={() => gravar(q => alternarTituloSecao(q, s.id))}><Type size={13}/></button>
+              <button type="button" className="icon" aria-label={s.semTitulo ? `Exibir título da seção ${s.titulo}` : `Ocultar título da seção ${s.titulo}`} aria-pressed={!!s.semTitulo} title={s.semTitulo ? "Exibir título" : "Ocultar título"} onClick={() => gravar(q => alternarTituloSecao(q, s.id))}><EyeOff size={14}/></button>
               <button type="button" className={s.grande ? "icon ativo" : "icon"} aria-label={`Título grande na seção ${s.titulo}`} aria-pressed={!!s.grande} title="Título grande" onClick={() => gravar(q => alternarTituloGrande(q, s.id))}><Type size={14}/></button>
               <button type="button" className="icon danger excluir-secao-discreto" aria-label={`Excluir seção ${s.titulo}`} title="Excluir seção" onClick={() => void excluirSecoesUI([s.id])}><Trash2 size={14}/></button>
             </header>}>
