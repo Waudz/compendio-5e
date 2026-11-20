@@ -41,6 +41,11 @@ export function createCharacterSheet(draft: CharacterDraft, catalog: CharacterCa
   if (!Number.isSafeInteger(draft.currentHp) || draft.currentHp < 0 || !Number.isSafeInteger(draft.temporaryHp) || draft.temporaryHp < 0)
     throw new Error('Invalid hit points');
   const pending: string[] = [];
+  const decisionIds = new Set<string>();
+  for (const decision of draft.decisions) {
+    if (decisionIds.has(decision.id)) throw new Error('Duplicate decision ID');
+    decisionIds.add(decision.id);
+  }
   const seen = new Set<string>();
   for (const option of [race, background]) for (const choice of option.choices ?? []) {
     if (seen.has(choice.id)) throw new Error('Duplicate choice ID');
