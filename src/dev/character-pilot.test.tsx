@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import {afterEach,beforeEach,describe,expect,it} from 'vitest';
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
 import {cleanup,fireEvent,render,screen} from '@testing-library/react';
 import CharacterPilot from './character-pilot';
 beforeEach(()=>localStorage.clear());
-afterEach(()=>cleanup());
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 describe('local creator vertical slice',()=>{
  it('creates, levels, edits inventory, saves and reopens without a server',()=>{
   const view=render(<CharacterPilot/>);
@@ -69,4 +69,35 @@ describe('local creator vertical slice',()=>{
   expect(screen.getByText(/Características:/).textContent).toContain('extra-attack-2');
  });
 
+ it('adds four equipment groups and keeps the original items when replacement is refused',()=>{
+  render(<CharacterPilot/>);
+  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
+  expect(screen.getByText(/Cota de malha · quantidade 1/)).toBeTruthy();
+  expect(screen.getByText(/Besta leve · quantidade 1/)).toBeTruthy();
+  expect(screen.getByText(/torch · quantidade 10/)).toBeTruthy();
+  const initial=screen.getAllByRole('button',{name:/Adicionar quantidade/}).length;
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
+  expect(screen.getAllByRole('button',{name:/Adicionar quantidade/})).toHaveLength(initial);
+  vi.stubGlobal('confirm',vi.fn(()=>false));
+  fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'leather-bow'}});
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
+  expect(screen.getByText(/Cota de malha · quantidade 1/)).toBeTruthy();
+  expect(screen.queryByText(/Armadura de couro · quantidade 1/)).toBeNull();
+ });
+ it('replaces unedited starting equipment with consent and refuses changes after consumption',()=>{
+  render(<CharacterPilot/>);
+  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Dorna'}});
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
+  vi.stubGlobal('confirm',vi.fn(()=>true));
+  fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'leather-bow'}});
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
+  expect(screen.getByText(/leather armor · quantidade 1/)).toBeTruthy();
+  expect(screen.queryByText(/Cota de malha · quantidade 1/)).toBeNull();
+  fireEvent.change(screen.getByLabelText('Equipamento armor'),{target:{value:'chain-mail'}});
+  const remove=screen.getAllByRole('button',{name:/Remover quantidade/});
+  fireEvent.click(remove[0]);
+  fireEvent.click(screen.getByRole('button',{name:'Confirmar equipamentos iniciais'}));
+  expect(screen.getByRole('status').textContent).toContain('edited');
+ });
 });
