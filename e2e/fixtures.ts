@@ -37,7 +37,7 @@ export { expect };
 export async function openDemo(page: Page, role: DemoRole = 'mestre') {
   await page.goto(`?demo=${role}`);
   await expect(page.getByRole('heading', { name: campaignName, exact: true })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Diário', exact: true })).toContainText('3ª Sessão');
+  await expect(page.getByRole('region', { name: 'Diário', exact: true }).getByRole('button', { name: 'Ver registro completo', exact: true })).toBeVisible();
 }
 
 export async function navigate(page: Page, name: string) {

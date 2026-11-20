@@ -14,6 +14,6 @@ for (const role of ['mestre', 'jogador'] as const) {
     await openDemo(page, role);
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Sociedade do Véu Negro', exact: true })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Diário', exact: true })).toContainText('3ª Sessão');
+    await expect(page.getByRole('region', { name: 'Diário', exact: true }).getByRole('button', { name: 'Ver registro completo', exact: true })).toBeVisible();
   });
 }

@@ -2,7 +2,7 @@ name: E2E e responsividade
 on:
   pull_request:
   push:
-    branches: [main, test/playwright-e2e]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
