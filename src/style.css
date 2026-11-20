@@ -486,3 +486,18 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .planejamento .planos .plano.compacta .plano-selecionar{max-width:88px}
   .planejamento .planos .plano.compacta .plano-fixada-titulo{max-width:65px}
 }
+
+/* Painel compacto: exibe somente a guia ativa; demais acessíveis em •••.
+   O seletor existente mantém busca e identificação das guias fixadas. */
+@container (max-width: 680px){
+  .planejamento .planos-fixados,
+  .planejamento .planos-rolagem{overflow:visible;scrollbar-width:none;max-width:none}
+  .planejamento .planos-fixados{flex:0 1 auto}
+  .planejamento .planos-rolagem{flex:0 1 auto}
+  .planejamento .planos-fixados>.plano:not(.ativo),
+  .planejamento .planos-rolagem>.plano:not(.ativo):not(.mais){display:none}
+  .planejamento .planos .plano.ativo{max-width:min(230px, 45cqw)}
+  .planejamento .planos .plano.ativo .plano-selecionar{max-width:min(195px, 38cqw)}
+  .planejamento .planos .plano.ativo .plano-fixada-titulo{max-width:min(170px, 32cqw)}
+  .planejamento .planos-lista-wrapper{margin-left:0}
+}
