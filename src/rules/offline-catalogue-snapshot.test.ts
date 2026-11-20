@@ -9,7 +9,7 @@ describe('offline catalogue snapshot',()=>{
   const snapshot=createOfflineCatalogueSnapshot(pilotRules,meta);
   const restored=readOfflineCatalogueSnapshot(JSON.parse(JSON.stringify(snapshot)));
   expect(searchCompendium(restored,{kind:'class'}).map(x=>x.name)).toEqual(['Guerreiro']);
-  expect(snapshot.entryKeys).toHaveLength(4);
+  expect(snapshot.entryKeys).toHaveLength(pilotRules.registry.entries.length);
  });
  it('rejects tampered indices, revisions and missing provenance',()=>{
   const snapshot=createOfflineCatalogueSnapshot(pilotRules,meta);
