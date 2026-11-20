@@ -32,6 +32,11 @@ describe('encyclopedia visibility boundaries',()=>{
   expect(readEncyclopediaEntry({...player,isActiveMember:false},{...base,visibility:'full'})).toEqual({access:'denied'});
   expect(readEncyclopediaEntry({...master,campaignId:'campaign-b'},base)).toEqual({access:'denied'});
  });
+ it('fails closed on malformed visibility values from imported records',()=>{
+  const corrupted={...base,visibility:'published' as EncyclopediaEntry['visibility']};
+  expect(readEncyclopediaEntry(player,corrupted)).toEqual({access:'denied'});
+  expect(listEncyclopediaEntries(player,[corrupted])).toEqual([]);
+ });
  it('filters before counts, retaining only discovered entries',()=>{
   const entries=[base,{...base,id:'npc-2',visibility:'summary' as const},{...base,id:'npc-3',visibility:'full' as const}];
   const result=listEncyclopediaEntries(player,entries);
