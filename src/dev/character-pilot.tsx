@@ -68,12 +68,10 @@ export default function CharacterPilot(){
   const bundle=adventuringPacks2014[packId];
   if(!bundle){setMessage('Pacote desconhecido');return;}
   try{
-   if(draft.inventory.some(item=>item.id.startsWith('starting-pack:'))){setMessage('Remova ou revise o pacote inicial existente antes de adicionar outro');return;}
    const known=new Set(pilotRules.registry.entries.filter(entry=>entry.ref.kind==='item').map(entry=>entry.ref.id));
    const components=resolvePackItems(bundle,known);
-   const inventory=components.reduce<CharacterDraft['inventory']>((all,item)=>[
-    ...all,{id:'starting-pack:'+packId+':'+item.itemId,itemId:item.itemId,quantity:item.quantity,equipped:false,origin:'starting'}],draft.inventory);
-   change({...draft,inventory});setMessage('Itens do pacote adicionados ao inventário; revise antes de salvar');
+   const next=applyStartingEquipmentSelection(draft,{sourceId:'fighter-pack',optionId:packId,components},known);
+   change(next);setMessage('Equipamentos iniciais vinculados à escolha da classe; revise antes de salvar');
   }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível adicionar o pacote');}
  };
  const save=()=>{
@@ -137,11 +135,13 @@ export default function CharacterPilot(){
    <p>Recursos: {Object.entries(sheet.resources).map(([name,value])=>name+' '+String(value.remaining)+'/'+String(value.maximum)).join(' · ')||'nenhum'}</p>
    <p>Escolhas pendentes: {sheet.pending.length?sheet.pending.join(', '):'nenhuma'}</p>
    <p role="note">{!draft.name.trim() || sheet.pending.length?'Estado: rascunho incompleto':'Estado: rascunho completo (não publicado)'}</p>
-   <h2>Inventário</h2>
+   <h2>Equipamentos iniciais — Guerreiro</h2>
    <label>Pacote de aventureiro <select aria-label="Pacote de aventureiro" value={packChoice} onChange={e=>setPackChoice(e.target.value)}>
     <option value="explorer">Explorador</option><option value="dungeoneer">Aventureiro de Masmorras</option>
    </select></label>
-   <button onClick={()=>addPack(packChoice)}>Adicionar pacote ao inventário</button>
+   <p>O pacote é uma escolha de equipamento da classe e seus componentes são concedidos como itens individuais.</p>
+   <button onClick={()=>addPack(packChoice)}>Confirmar pacote inicial</button>
+   <h2>Inventário</h2>
    <button onClick={()=>change(addInventoryInstance(draft,{id:crypto.randomUUID(),itemId:'longsword',quantity:1,equipped:false,origin:'acquired'}))}>
     Adicionar espada longa
    </button>
