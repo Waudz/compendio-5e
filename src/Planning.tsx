@@ -2,7 +2,7 @@
 // Cada planejamento é um quadro: COLUNAS lado a lado (largura ajustável) -> SEÇÕES empilhadas (título próprio, normal ou grande) -> CARTÕES (páginas privadas).
 // O cartão é só o texto: título no cabeçalho, conteúdo inteiro abaixo; clique no texto para editar ali mesmo (salva sozinho). O rascunho vive aqui no painel:
 // mover, arrastar, trocar de planejamento ou clicar em outro cartão nunca perde o que foi digitado; se o salvamento falhar o texto continua na tela.
-import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCorners, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, closestCorners, pointerWithin, rectIntersection, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ClipboardList, GripVertical, MoreHorizontal, Pin, Plus, Trash2, Type } from "lucide-react";
@@ -56,7 +56,10 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   const [boards, setBoards] = useState<Registro[]>([]), [boardId, setBoardId] = useState<string | null>(null);
   const [cenas, setCenas] = useState<Record<string, Registro>>({}); const cenasRef = useRef(cenas); cenasRef.current = cenas;
   const [ed, setEd] = useState<Record<string, Ed>>({}); const edRef = useRef(ed); edRef.current = ed;
-  const [sel, setSel] = useState<string[]>([]);   // seções selecionadas com o mouse
+  const [sel, setSel] = useState<string[]>([]);
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+  useEffect(() => { const mq = window.matchMedia("(max-width: 767px)"); const atualizar = () => setMobile(mq.matches); atualizar(); mq.addEventListener?.("change", atualizar); return () => mq.removeEventListener?.("change", atualizar); }, []);   // seções selecionadas com o mouse
   const [carregado, setCarregado] = useState(false), [erro, setErro] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
   const board = boards.find(b => b.id === boardId) ?? null;
   const boardRef = useRef<Registro | null>(null); boardRef.current = board;
@@ -249,10 +252,13 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
   };
   const soltar = (e: DragEndEvent) => {
     const a = String(e.active.id), o = e.over ? String(e.over.id) : null;
+    setArrastando(null);
+    if (mobile) return;
     if (a.startsWith("secao:")) gravar(q => soltarSecao(q, a.slice(6), o)); else gravar(q => soltarCartao(q, a, o));
   };
 
   return <div className="content planejamento" data-testid="planejamento">
+    <style>{`@media(max-width:767px){.planejamento .quadro-mobile{display:flex;flex-direction:column;overflow:visible;gap:12px}.planejamento .quadro-mobile .coluna{min-width:0!important;width:100%!important;flex-basis:100%!important;max-width:100%!important}.planejamento .quadro-mobile .coluna-redim{display:none}.planejamento .quadro-mobile .secao{width:100%;max-width:100%}}`}</style>
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Anotações</h1>
     {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={b => void excluirPlano(b)}/>}
@@ -262,12 +268,12 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
     {sel.length > 0 && <div className="selecao-barra" role="toolbar" aria-label="Seções selecionadas"><strong>{sel.length} {sel.length === 1 ? "seção selecionada" : "seções selecionadas"}</strong>
       <button className="btn-secondary danger" onClick={() => void excluirSecoesUI(sel)}><Trash2 size={14} aria-hidden="true"/> Excluir {sel.length === 1 ? "seção" : "seções"}</button>
       <button className="btn-secondary" onClick={() => setSel([])}>Limpar seleção</button></div>}
-    {carregado && board && <DndContext sensors={sensores} collisionDetection={closestCorners} onDragEnd={soltar}><div className="quadro" role="list" aria-label="Colunas do planejamento" onClick={e => { if (e.target === e.currentTarget) setSel([]); }}>
-      {quadro.colunas.map(col => <Coluna key={col.id} id={col.id} largura={col.largura ?? LARGURA_PADRAO} onLargura={w => gravar(q => redimensionarColuna(q, col.id, w))}>
+    {carregado && board && <DndContext sensors={mobile ? [] : sensores} collisionDetection={args => { const hits = pointerWithin(args); return hits.length ? hits : rectIntersection(args).length ? rectIntersection(args) : closestCorners(args); }} onDragStart={e => setArrastando(String(e.active.id))} onDragCancel={() => setArrastando(null)} onDragEnd={soltar}><div className={mobile ? "quadro quadro-mobile" : "quadro"} role="list" aria-label="Colunas do planejamento" onClick={e => { if (e.target === e.currentTarget) setSel([]); }}>
+      {quadro.colunas.map(col => <Coluna key={col.id} id={col.id} largura={col.largura ?? LARGURA_PADRAO} mobile={mobile} onLargura={w => gravar(q => redimensionarColuna(q, col.id, w))}>
         <SortableContext items={col.secoes.map(s => `secao:${s.id}`)} strategy={verticalListSortingStrategy}>
           {col.secoes.map(s => <Fragment key={s.id}><SecaoOrdenavel secao={s} selecionada={sel.includes(s.id)} aoClicar={e => clicarSecao(s.id, e)}
             cabecalho={<header className={s.grande ? "secao-topo grande" : "secao-topo"} onClick={e => { if ((e.target as HTMLElement).closest("input, button")) return; clicarSecao(s.id, e); }}>
-              <SecaoAlca titulo={s.titulo}/>
+              {!mobile && <SecaoAlca titulo={s.titulo}/>}
               <input className="secao-titulo" aria-label={`Nome da seção ${s.titulo}`} defaultValue={s.titulo} maxLength={80} onPointerDown={e => e.stopPropagation()}
                 onFocus={() => setSel([])} onBlur={e => { if (e.target.value.trim() && e.target.value !== s.titulo) gravar(q => renomearSecao(q, s.id, e.target.value)); else e.target.value = s.titulo; }}
                 onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
@@ -278,7 +284,7 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
               const c = cenas[id]; if (!c) return null;
               const x = ed[id], sujo = !!x && edSujo(x), blocos = x?.blocos ?? c.content, spec: TabSpec = { kind: "documento", ref: id, title: c.title };
               const editar = () => mexer(id, y => ({ ...y, editando: true }));
-              return <Ordenavel key={id} id={id} alca={`Arrastar o cartão ${c.title}`} onContextMenu={e => aoClicarDireito(e, spec)}>
+              return <Ordenavel key={id} id={id} mobile={mobile} alca={`Arrastar o cartão ${c.title}`} onContextMenu={e => aoClicarDireito(e, spec)}>
                 <CartaoTopo>
                   <div className="cartao-linha">
                     <input className="cartao-titulo" aria-label={`Título do cartão ${c.title}`} value={x?.titulo ?? c.title} maxLength={120}
@@ -307,11 +313,12 @@ export function PlanningPanel(_: { onOpenContent?: (s: TabSpec) => void } = {}) 
             })}</ListaSecao>
             <NovoCartao onCriar={t => novoCartao(s.id, t)}/>
           </SecaoOrdenavel>
-          <MaisAbaixo secaoId={s.id} titulo={s.titulo} onClick={() => gravar(q => novaSecaoDepois(q, s.id))}/></Fragment>)}
+          </Fragment>)}
+          {col.secoes.length > 0 && <MaisAbaixo secaoId={col.secoes[col.secoes.length - 1].id} titulo={col.secoes[col.secoes.length - 1].titulo} onClick={() => gravar(q => novaSecaoDepois(q, col.secoes[col.secoes.length - 1].id))}/>}
         </SortableContext>
       </Coluna>)}
-      <MaisColuna onClick={() => gravar(q => novaColuna(q))}/>
-    </div></DndContext>}
+      {!mobile && <MaisColuna onClick={() => gravar(q => novaColuna(q))}/>}
+    </div><DragOverlay>{!mobile && arrastando ? <div className="secao" style={{ padding: 16, minWidth: 200, opacity: 0.95, pointerEvents: "none" }}>{arrastando.startsWith("secao:") ? quadro.colunas.flatMap(c => c.secoes).find(s => s.id === arrastando.slice(6))?.titulo : cenas[arrastando]?.title}</div> : null}</DragOverlay></DndContext>}
     {carregado && board && quadro.colunas.length === 0 && <div className="placeholder"><ClipboardList size={30} aria-hidden="true"/><strong>Nenhuma coluna</strong><span>Use o “+” à direita para criar a primeira coluna.</span></div>}
   </div>;
 }
@@ -388,14 +395,14 @@ function CartaoTopo({ children }: { children: ReactNode }) {
   const l = useContext(CartaoCtx);
   return <div className="cartao-topo arrastavel" {...l}>{children}</div>;
 }
-function Ordenavel({ id, alca, onContextMenu, children }: { id: string; alca: string; onContextMenu: (e: RMouseEvent) => void; children: ReactNode }) {
+function Ordenavel({ id, alca, mobile, onContextMenu, children }: { id: string; alca: string; mobile: boolean; onContextMenu: (e: RMouseEvent) => void; children: ReactNode }) {
   const s = useSortable({ id });
   return <CartaoCtx.Provider value={(s.listeners ?? {}) as Record<string, unknown>}><li ref={s.setNodeRef} className={s.isDragging ? "cartao arrastando" : "cartao"} style={{ transform: CSS.Transform.toString(s.transform), transition: s.transition }} onContextMenu={onContextMenu}>
-    <button type="button" className="alca" aria-label={alca} {...s.attributes} {...s.listeners}><GripVertical size={14}/></button>{children}</li></CartaoCtx.Provider>;
+    {!mobile && <button type="button" className="alca" aria-label={alca} {...s.attributes} {...s.listeners}><GripVertical size={14}/></button>}{children}</li></CartaoCtx.Provider>;
 }
 
 /** Coluna: faixa vertical com largura própria (borda direita arrastável), que empilha as seções. */
-function Coluna({ id, largura, onLargura, children }: { id: string; largura: number; onLargura: (w: number) => void; children: ReactNode }) {
+function Coluna({ id, largura, mobile, onLargura, children }: { id: string; largura: number; mobile: boolean; onLargura: (w: number) => void; children: ReactNode }) {
   const [vivo, setVivo] = useState<number | null>(null);   // largura durante o arraste; só vira dado ao soltar
   const ref = useRef<{ x: number; w: number } | null>(null);
   const w = vivo ?? largura;
@@ -403,8 +410,8 @@ function Coluna({ id, largura, onLargura, children }: { id: string; largura: num
   const mover = (e: RPointerEvent) => { if (ref.current) setVivo(limitarLargura(ref.current.w + e.clientX - ref.current.x)); };
   const soltar = (e: RPointerEvent) => { if (!ref.current) return; const nova = limitarLargura(ref.current.w + e.clientX - ref.current.x); ref.current = null; setVivo(null); if (nova !== largura) onLargura(nova); };
   const teclas = (e: RKeyEvent) => { const d = e.key === "ArrowRight" ? 20 : e.key === "ArrowLeft" ? -20 : 0; if (d) { e.preventDefault(); onLargura(limitarLargura(largura + d)); } };
-  return <div className={"coluna" + (vivo !== null ? " redimensionando" : "")} role="listitem" data-coluna={id} style={{ flexBasis: w, width: w }}>{children}
-    <div className="coluna-redim" role="separator" aria-orientation="vertical" aria-label="Redimensionar a coluna" aria-valuemin={LARGURA_MIN} aria-valuemax={LARGURA_MAX} aria-valuenow={w} tabIndex={0}
-      onPointerDown={comecar} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar} onKeyDown={teclas} title="Arraste para ajustar a largura da coluna"/>
+  return <div className={"coluna" + (vivo !== null ? " redimensionando" : "")} role="listitem" data-coluna={id} style={mobile ? { flexBasis: "100%", width: "100%", maxWidth: "100%" } : { flexBasis: w, width: w }}>{children}
+    {!mobile && <div className="coluna-redim" role="separator" aria-orientation="vertical" aria-label="Redimensionar a coluna" aria-valuemin={LARGURA_MIN} aria-valuemax={LARGURA_MAX} aria-valuenow={w} tabIndex={0}
+      onPointerDown={comecar} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar} onKeyDown={teclas} title="Arraste para ajustar a largura da coluna"/>}
   </div>;
 }
