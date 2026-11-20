@@ -186,7 +186,8 @@ describe("Planejamento (mestre)", () => {
     await screen.findByLabelText("Seção Seção 2");
     const sec1 = within(screen.getByLabelText("Seção Seção 1"));
     fireEvent.click(sec1.getByRole("button", { name: "Adicionar cartão" }));
-    const titulo = await sec1.findByLabelText("Título do cartão Novo cartão");
+    fireEvent.click(await sec1.findByRole("button", { name: "Adicionar título ao cartão" }));
+    const titulo = await sec1.findByLabelText("Novo título do cartão");
     fireEvent.change(titulo, { target: { value: "O bar" } }); fireEvent.blur(titulo);
     await waitFor(() => expect(registros.dados.some(r => r.kind === "scene" && r.title === "O bar")).toBe(true));
     expect(registros.dados.filter(r => r.kind === "scene").map(r => r.title)).toEqual(["O bar"]);
