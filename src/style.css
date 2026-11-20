@@ -332,6 +332,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .plano{display:inline-flex;align-items:center;gap:6px;background:var(--panel);color:var(--text-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer}
 .plano:hover{border-color:var(--accent);color:var(--text)}
 .plano.ativo{border-color:var(--accent);color:var(--text);background:var(--hover)}
+.plano.solta{background:transparent;border-color:var(--line);opacity:.78}
+.plano.solta:hover{opacity:1}
+.plano.fixada{background:var(--panel)}
+.plano .plano-pin{opacity:.55;flex:none}
+.plano .plano-pin.fixado{opacity:1;color:var(--accent)}
+.plano.ativo .plano-pin{opacity:1}
+
 .plano input{background:transparent;border:0;color:var(--text);font:inherit;font-size:13px;font-weight:600;width:14ch;min-width:8ch;padding:0}.plano input:focus{outline:none}
 .plano.mais{padding:5px 9px;border-style:dashed;background:transparent}
 /* As abas continuam compactas mesmo com ações de edição e ordenação. */
