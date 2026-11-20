@@ -42,3 +42,14 @@ describe('encyclopedia query cannot search undisclosed descriptions',()=>{
   expect(encyclopediaPage(actor,[full],{offset:0,limit:10,query:'rubra'}).total).toBe(0);
  });
 });
+
+describe('encyclopedia query input validation',()=>{
+ it('rejects unsupported kinds and oversized search input',()=>{
+  expect(()=>encyclopediaPage(actor,[base],{offset:0,limit:10,kind:'unknown' as typeof base.kind})).toThrow();
+  expect(()=>encyclopediaPage(actor,[base],{offset:0,limit:10,query:'x'.repeat(201)})).toThrow();
+ });
+ it('does not search master notes for a player even when the master can',()=>{
+  const record={...base,visibility:'full' as const,name:'Mestre Ferreiro',masterNotes:'Esconderijo lunar'};
+  expect(encyclopediaPage(actor,[record],{offset:0,limit:10,query:'lunar'}).total).toBe(0);
+ });
+});
