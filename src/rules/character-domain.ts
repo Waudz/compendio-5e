@@ -66,6 +66,25 @@ export function createCharacterSheet(draft: CharacterDraft, catalog: CharacterCa
     for (const id of decision.optionIds) grantedChoices.push(...choice.options.find(o => o.id === id)!.grants);
   }
   // Class advancement is evaluated separately from level grants; never include the same grant in both catalogues.
+  // Reject duplicate automatic grants before calculating the sheet. A class feature must
+  // have exactly one catalogue owner: the level table OR the advancement table.
+  // Selected options are intentionally excluded: distinct choices can legitimately
+  // grant the same proficiency, which is deduplicated by the sheet's semantics.
+  const automaticGrantKeys = new Set<string>();
+  for (const classLevel of classDef.levels) for (const grant of classLevel.grants) {
+    const key = JSON.stringify(grant);
+    if (automaticGrantKeys.has(key)) {
+      // Repeated level resources can represent a replacement of the maximum;
+      // the legacy pilot currently relies on last-write-wins for those values.
+      if (grant.type !== 'resource') throw new Error('Duplicate automatic class grant');
+    }
+    automaticGrantKeys.add(key);
+  }
+  for (const entry of classAdvancements) for (const grant of entry.grants) {
+    const key = JSON.stringify(grant);
+    if (automaticGrantKeys.has(key)) throw new Error('Duplicate automatic class grant');
+    automaticGrantKeys.add(key);
+  }
   const advancement = evaluateAdvancements(classAdvancements, draft.level,
     draft.decisions.filter(d => classChoices.has(d.id)).map(d => ({ choiceId: d.id, optionIds: d.optionIds })));
   pending.push(...advancement.pending);
