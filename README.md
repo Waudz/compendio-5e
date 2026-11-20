@@ -95,3 +95,31 @@ sem segredos, deploy ou merge automático. Vitest continua separado e exclui `e2
   ambiente, `npm run build -- --configLoader runner` e
   `npm test -- --configLoader runner --maxWorkers=2` evitam o empacotamento da configuração;
   isso não elimina a restrição do otimizador de dependências do Vite dev.
+
+
+## Qualidade — segunda etapa (PR dependente do #76)
+
+A branch `test/quality-stage-2` depende de `test/playwright-e2e` no commit `33eab06`.
+Seu PR aponta para a branch do #76 para apresentar só o incremento; **integrar o #76 primeiro**
+e então revisar/retargetar para `main`, sem copiar ou reaplicar os arquivos da infraestrutura.
+Não incorpora os desenvolvimentos #74/#75. Escopo e resultados: [QUALIDADE-ETAPA-2](docs/QUALIDADE-ETAPA-2.md).
+
+```bash
+npm ci
+npx playwright install chromium          # Linux: --with-deps
+npm run test:e2e:types
+npm run test:quality                     # 320, 360, 390, 700, 701, 768, 1024, 1440 px
+npm run test:quality -- --project=qualidade-1440
+npm run test:quality:ui
+npx playwright show-report playwright-report/quality
+```
+
+A configuração importa o servidor, isolamento, navegador e proteção de rede do #76. Os arquivos
+`*.quality.ts` não entram nos 36 testes originais nem no Vitest. O CI executa as duas etapas;
+relatórios/capturas ficam separados. Axe verifica semântica/contraste automaticamente, não substitui
+NVDA/VoiceOver. Teclado e divisões 50/50 e 30/70 usam a interface real; não se injeta o workspace.
+As divisões proporcionais são exercitadas em 1024/1440 px, respeitando o mínimo de 220 px por coluna.
+Métricas de rede, tarefas longas e mutações DOM são anexadas como diagnóstico, **sem orçamentos de
+tempo/bytes arbitrários**; mutações não são contagem de renders React e Vite dev não mede desempenho
+de produção. A proteção de rede desativa o cache HTTP do navegador; não usar esses números como
+benchmark de cache. As demais limitações e o bloqueio local do Windows continuam válidos.
