@@ -71,4 +71,19 @@ describe('2014 character creation pilot: actual instances and level transitions'
     expect(()=>buildCharacter({baseAbilities:stats,race:dwarf,background:acolyte,classDef:{...barbarian,levels:barbarian.levels.slice(0,19)},level:1,selected:{}})).toThrow('Incomplete class progression');
     expect(()=>buildCharacter({baseAbilities:stats,race:dwarf,background:acolyte,classDef:barbarian,level:2,selected:{'acolyte-languages':[0,1]},hpRolls:[13]})).toThrow('Invalid HP roll');
   });
+  it('protects direct kernel calls against invalid abilities and class hit dice',()=>{
+    for (const score of [NaN,Infinity,-Infinity,0,31,10.5]) {
+      expect(()=>buildCharacter({baseAbilities:{...stats,str:score},race:dwarf,background:acolyte,
+        classDef:barbarian,level:1,selected:{}})).toThrow('Invalid base ability scores');
+    }
+    for (const hitDie of [0,-1,NaN,10.5]) {
+      const badClass={...barbarian,levels:barbarian.levels.map((entry,i)=>i===0?{...entry,hitDie}:entry)};
+      expect(()=>buildCharacter({baseAbilities:stats,race:dwarf,background:acolyte,
+        classDef:badClass,level:1,selected:{}})).toThrow('Incomplete class progression');
+    }
+    const inconsistent={...barbarian,levels:barbarian.levels.map((entry,i)=>i===5?{...entry,hitDie:8}:entry)};
+    expect(()=>buildCharacter({baseAbilities:stats,race:dwarf,background:acolyte,
+      classDef:inconsistent,level:6,selected:{}})).toThrow('Incomplete class progression');
+  });
+
 });
