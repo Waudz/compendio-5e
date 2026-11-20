@@ -86,3 +86,18 @@ Consultadas as definições reais via `pg_get_functiondef`, **sem alteração no
 ## Atenções de segurança
 
 RLS filtra linhas, não oculta colunas por si só. Não conceder SELECT da tabela de registros a jogadores se contiver `public_description` de entradas `summary`; usar projeção auditada. Nunca expor `master_notes`, `mechanics_link`, dados ocultos, lixeira ou contagens a jogadores. `auth.uid()`/papéis devem ser verificados no servidor. Não habilitar Realtime nas tabelas base sem revisão. Não usar SQL rascunho como migração pronta.
+
+## Entrega do Codex — PR #76 (20/11/2026)
+
+- PR https://github.com/Waudz/compendio-5e/pull/76, branch `test/playwright-e2e`, base **`main`**; commit conferido `33eab06ed1cbbfd7c5adfbe088a884c0c85419c3`; aberto e **não integrado**.
+- GitHub Actions conferido diretamente: `E2E e responsividade` execução `44823453228` **success**; `Validar projeto` execução `44823453291` **success**.
+- Relatório do Codex: **36 testes E2E aprovados** em Chromium, quatro viewports (1440×900, 1024×768, 390×844, 320×740), além do limite 700/701 px; **560 testes Vitest**, build e tipos aprovados. Capturas/artefatos no workflow, retenção de sete dias.
+- Arquivos afetados: `.github/workflows/e2e.yml`, `.gitignore`, `README.md`, `e2e/environment.ts`, `e2e/fixtures.ts`, `e2e/loading.spec.ts`, `e2e/navigation.spec.ts`, `e2e/responsive.spec.ts`, `e2e/tsconfig.json`, `package-lock.json`, `package.json`, `playwright.config.ts`, `vite.config.ts`. **Nenhum arquivo em `src/` foi modificado no PR #76.**
+- Segurança do harness: alvo fixo `http://127.0.0.1:4187/compendio-5e/`; Supabase URL/chave vazias; navegador bloqueia tráfego HTTP/WebSocket externo e service workers; contexto limpo por teste; servidor local não é reutilizado.
+- Limitações explícitas: sem autenticação real, Supabase, RLS, Storage, Realtime, aparelhos físicos, Firefox/WebKit; execução local no Windows bloqueada pelo sandbox. Testa UI **da main atual**, inclusive placeholder de iniciativa; **não cobre PR #74 nem PR #75**.
+- **Integração planejada:** não editar a branch do Codex. Ao integrar futuramente, reconciliar `README.md`, `vite.config.ts`, dependências e workflows; atualizar cenários E2E da UI final e criar testes multiusuário/RLS em ambiente seguro, antes de qualquer publicação. Não fazer merge automático sem autorização.
+
+## CI recente de nosso PR #75
+
+- GitHub Actions `Validar projeto` do commit `35aaab4b8dc16d306e0d8e56e21dda02b6adcb19`: execução `44823857671`, **concluída com sucesso** em 20/11/2026.
+- Este resultado valida o código existente na branch naquele commit; **não** atesta uma migração Supabase nem integração à UI.
