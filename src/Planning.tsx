@@ -396,21 +396,21 @@ function excluirSecoesVazia(q: Quadro, id: string): Quadro {
 /** Seletor de planejamentos: anotações permanentes (fixas, primeiro) e um planejamento por sessão. O ativo tem o nome editável. */
 function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear, onExcluir }: { boards: Registro[]; ativo: string | null; onTrocar: (id: string) => void; onNovo: () => void; onFixar: (b: Registro) => void; onMover: (id: string, direcao: -1 | 1, alvoId?: string) => void; onRenomear: (b: Registro, t: string) => void; onExcluir: (b: Registro) => void }) {
   const [arrastada, setArrastada] = useState<string | null>(null);
-  const [menu, setMenu] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [listaAberta, setListaAberta] = useState(false);
   const [busca, setBusca] = useState("");
   const [renomeando, setRenomeando] = useState<string | null>(null);
   const toque = useRef<ReturnType<typeof setTimeout> | null>(null);
   const limparToque = () => { if (toque.current) clearTimeout(toque.current); toque.current = null; };
-  const abrirMenu = (id: string) => { setMenu(id); setListaAberta(false); };
+  const abrirMenu = (id: string, x: number, y: number) => { setMenu({ id, x: Math.max(8, Math.min(x, window.innerWidth - 200)), y: Math.max(8, Math.min(y, window.innerHeight - 230)) }); setListaAberta(false); };
   const fixadas = boards.filter(ehPermanente), comuns = boards.filter(b => !ehPermanente(b));
   const renderizar = (b: Registro, grupo: Registro[]) => {
     const perm = ehPermanente(b), on = b.id === ativo;
     const i = grupo.findIndex(x => x.id === b.id);
     const editar = renomeando === b.id;
     return <span key={b.id} className={`plano ${on ? "ativo " : ""}${perm ? "fixada compacta" : "solta"}`} draggable
-      onContextMenu={e => { e.preventDefault(); abrirMenu(b.id); }}
-      onTouchStart={() => { limparToque(); toque.current = setTimeout(() => abrirMenu(b.id), 550); }}
+      onContextMenu={e => { e.preventDefault(); abrirMenu(b.id, e.clientX, e.clientY); }}
+      onTouchStart={e => { limparToque(); const t = e.touches[0]; const x = t.clientX, y = t.clientY; toque.current = setTimeout(() => abrirMenu(b.id, x, y), 550); }}
       onTouchEnd={limparToque} onTouchMove={limparToque} onTouchCancel={limparToque}
       onDragStart={e => { if ((e.target as HTMLElement).closest("input,button")) { e.preventDefault(); return; } setArrastada(b.id); e.dataTransfer.effectAllowed = "move"; }}
       onDragOver={e => { if (arrastada && arrastada !== b.id && grupo.some(x => x.id === arrastada)) e.preventDefault(); }}
@@ -418,13 +418,12 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
       onDragEnd={() => setArrastada(null)}>
       {editar ? <input aria-label="Renomear guia" autoFocus defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); setRenomeando(null); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = b.title; e.currentTarget.blur(); } }}/>
         : <button type="button" className="plano-selecionar" aria-label={b.title} title={b.title} aria-pressed={on} onClick={() => { setMenu(null); onTrocar(b.id); }}>{perm ? <><Pin size={13} fill="currentColor" aria-hidden="true"/><span className="plano-fixada-titulo">{b.title}</span></> : b.title}</button>}
-
+      {on && boards.length > 1 && <button type="button" className="plano-fechar" aria-label={`Excluir guia ${b.title}`} title="Excluir guia" onClick={() => { setMenu(null); onExcluir(b); }}>×</button>}
     </span>;
   };
   return <nav className="planos" aria-label="Planejamentos">
     <div className="planos-fixados" aria-label="Guias fixadas">{fixadas.map(b => renderizar(b, fixadas))}</div>
-    <div className="planos-rolagem" aria-label="Outras guias">{comuns.map(b => renderizar(b, comuns))}</div>
-    <button type="button" className="plano mais" aria-label="Nova guia" title="Criar guia" onClick={onNovo}><Plus size={14}/></button>
+    <div className="planos-rolagem" aria-label="Outras guias">{comuns.map(b => renderizar(b, comuns))}<button type="button" className="plano mais" aria-label="Nova guia" title="Criar guia" onClick={onNovo}><Plus size={14}/></button></div>
     <div className="planos-lista-wrapper">
       <button type="button" className="plano mais" aria-label="Listar guias" title="Todas as guias" aria-expanded={listaAberta} onClick={() => { setListaAberta(v => !v); setMenu(null); }}><MoreHorizontal size={16}/></button>
       {listaAberta && <div className="planos-lista">
@@ -433,11 +432,11 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
       </div>}
     </div>
     {menu && (() => {
-      const b = boards.find(x => x.id === menu);
+      const b = boards.find(x => x.id === menu.id);
       if (!b) return null;
       const grupo = ehPermanente(b) ? fixadas : comuns;
       const i = grupo.findIndex(x => x.id === b.id);
-      return <div className="plano-contexto" role="menu" aria-label={`Opções de ${b.title}`}>
+      return <div className="plano-contexto" style={{ left: menu.x, top: menu.y }} role="menu" aria-label={`Opções de ${b.title}`}>
         <button type="button" role="menuitem" onClick={() => { onFixar(b); setMenu(null); }}>{ehPermanente(b) ? "Desafixar" : "Fixar"}</button>
         <button type="button" role="menuitem" onClick={() => { setRenomeando(b.id); setMenu(null); }}>Renomear</button>
         <button type="button" role="menuitem" disabled={i <= 0} onClick={() => { onMover(b.id, -1); setMenu(null); }}>Mover para esquerda</button>
