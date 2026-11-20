@@ -405,3 +405,17 @@ Implementar testes automatizados de cenário que:
 **Atenção à explosão combinatória:** 38 × 12 × 13 × 20 = **118.560** combinações de raça/classe/origem/nível **antes** de subclasses e escolhas. Não executar todas as combinações de magias, itens e talentos por força bruta. Usar testes exaustivos de concessões por opção, pares de combinações, cenários de risco e propriedades/invariantes.
 
 **Estado:** teste estrutural executado; criação real pendente; nenhuma opção certificada para o criador.
+
+## Rodada 8 — primeiro protótipo executável de criação (código e testes adicionados)
+
+Criados **no novo repositório**, isolados do aplicativo e sem acesso ao Supabase:
+- `src/rules/character-build-pilot.ts`: função pura `buildCharacter`, tipos de concessões, escolhas, proveniência, atributos, inventário, perícias, idiomas, recursos e PV.
+- `src/rules/character-build-pilot.test.ts`: cenários Vitest com personagem **Anão da Colina + Bárbaro + Acólito** e reconstrução dos níveis **1–20**, escolhas de idiomas, equipamento, integridade e erros de entrada.
+
+**Detalhe importante descoberto durante a implementação:** Robustez Anã precisa ser representada como **+1 PV por nível**, e não apenas texto de característica. Foi introduzido o tipo `hp-per-level` e ajustado o teste do nível 1 para **16 PV** (d12 + modificador Con +3 + Robustez Anã +1). Esse exemplo ilustra por que a auditoria deve testar resultados finais.
+
+**Limites explícitos:** a tabela de Bárbaro usada no teste é uma **fixture parcial** (Fúria, Defesa sem Armadura, Ataque Descuidado e Campeão Primitivo, com quantidades de Fúria); não contém todas as concessões, ASI, escolhas de subclasse, equipamento de classe ou efeitos temporários. A fixture de Acólito também é parcial. **Não aprovar essas opções** como completas nem confundir a fixture com o catálogo oficial. O protótipo ainda não está conectado à UI, ao banco ou ao motor definitivo.
+
+**Execução:** os arquivos foram enviados ao PR; **nenhuma execução do Vitest foi confirmada nesta rodada** (consulta aos workflows do último commit retornou lista vazia). A existência de testes escritos não significa que passaram. Próximo passo: obter execução do CI, corrigir eventuais falhas e expandir o piloto até cobrir uma opção integral antes de importações em escala.
+
+**Risco técnico ainda pendente:** cálculo de PV em mudanças retroativas de Constituição e multiclasses exige histórico de dados de vida e política de recomputação; o piloto apenas calcula uma classe, sem esses fluxos. Escolhas incompletas são reportadas em `pending` em vez de serem silenciosamente aceitas; uma futura camada de confirmação deverá bloquear conclusão quando houver pendências.
