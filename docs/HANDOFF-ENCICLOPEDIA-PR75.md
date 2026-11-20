@@ -57,6 +57,16 @@ Documentos de proposta, **não executáveis sem revisão**:
 - `docs/ENCICLOPEDIA-LEITURA-RPC-RASCUNHO.sql`: RPC `SECURITY DEFINER` com projeção pública e checagem de participação, limites de busca; **não executar** antes de auditar proprietário, grants, políticas e testar com identidades reais. Busca SQL atualmente não remove acentos (diferente do domínio JS). Nenhuma exposição via Realtime foi autorizada.
 - Há divergência de nome/modelo entre proposta (`encyclopedia_character_history`) e SQL (`encyclopedia_history`): **reconciliar antes de criar migração**.
 
+
+### Auditoria das funções de autorização (leitura em 20/11/2026)
+
+Consultadas as definições reais via `pg_get_functiondef`, **sem alteração no banco**:
+- `public.is_master(cid uuid)` é `STABLE SECURITY DEFINER SET search_path = ''`; retorna verdadeiro quando `campaign_members.campaign_id=cid`, `user_id=auth.uid()` e **`role='mestre'`**.
+- `public.is_member(cid uuid)` é `STABLE SECURITY DEFINER SET search_path = ''`; retorna verdadeiro quando há vínculo de `campaign_members` com `user_id=auth.uid()`.
+- **Diferença crítica:** o modelo de domínio TS usa `role:'master'`, mas o banco usa `role='mestre'`. Nunca comparar a string TS diretamente com o banco; adaptar na camada de integração. Não reescrever a função existente sem coordenação.
+- `campaign_members` não possui coluna `active` nem `left_at` no esquema inspecionado; a participação atual é representada pela existência do vínculo. Revisar regra de saída/remoção de membro antes da migração.
+- A RPC pública em rascunho usa `public.is_member` e não confia em `actorIsMaster` do navegador. Falta auditoria de privilégios de execução, dono e testes de sessão autenticada antes de implantação.
+
 ## Situação do CI e próximo passo obrigatório
 
 - A execução GitHub Actions do commit `3cc55e8` **falhou** por `TS1127 Invalid character` em `encyclopedia-query.ts`, decorrente de sequências `\\n` literais. Corrigido em `6338f34`.
