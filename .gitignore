@@ -3,3 +3,6 @@ dist/
 .env
 .env.local
 *.tsbuildinfo
+
+# Locally collected unreviewed API data; never commit automatically
+.srd-2014-staging/
