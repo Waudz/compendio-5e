@@ -28,7 +28,8 @@ function validDraftShape(value:unknown):value is CharacterDraft {
   !isRecord(value.baseAbilities) || !isRecord(value.spentResources) ||
   typeof value.name!=='string' || typeof value.id!=='string') return false;
  const abilities=['str','dex','con','int','wis','cha'];
- return abilities.every(k=>Number.isInteger(value.baseAbilities[k]) && Number(value.baseAbilities[k])>=1 && Number(value.baseAbilities[k])<=30) &&
+ const baseAbilities=value.baseAbilities;
+ return abilities.every(k=>Number.isInteger(baseAbilities[k]) && Number(baseAbilities[k])>=1 && Number(baseAbilities[k])<=30) &&
   value.decisions.every(x=>isRecord(x) && typeof x.id==='string' && Array.isArray(x.optionIds) && x.optionIds.every(id=>typeof id==='string')) &&
   value.inventory.every(x=>isRecord(x) && typeof x.id==='string' && typeof x.itemId==='string' &&
    typeof x.equipped==='boolean' && (x.origin==='starting'||x.origin==='acquired'));
