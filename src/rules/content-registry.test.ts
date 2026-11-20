@@ -42,4 +42,15 @@ describe('extensible character content registry', () => {
       characterId: 'hero-1', campaignId: '', snapshotId: 'at-release'
     })).toThrow();
   });
+  it('keeps references stable when display names change, including items and spells', () => {
+    for (const kind of ['race','class','spell','item','feature','effect'] as const) {
+      const ref = {sourceId:'srd-2014',kind,id:'stable-entry',revision:'1'};
+      const original: ContentRegistry = {sources:registry.sources,entries:[{ref,name:'Original',ruleset:'5e-2014'}]};
+      const renamed: ContentRegistry = {sources:registry.sources,entries:[{ref,name:'Nome traduzido',ruleset:'5e-2014'}]};
+      expect(() => validateContentRegistry(original)).not.toThrow();
+      expect(() => validateContentRegistry(renamed)).not.toThrow();
+      expect(contentKey(original.entries[0].ref)).toBe(contentKey(renamed.entries[0].ref));
+    }
+  });
+
 });
