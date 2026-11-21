@@ -8,7 +8,7 @@ import type { CapaApi } from "./capa";
 import { lerPerfil, validarPerfil } from "./perfilPersonagem";
 import type { Registro, RegistrosApi } from "./registros";
 import { registrosEmMemoria } from "./registrosMemoria";
-import { me, memoryStorage, other, renderApp } from "./testUtils";
+import { me, memoryStorage, renderApp } from "./testUtils";
 
 const camp = { id: "ca", name: "Mesa dos Dragões", description: "Desc.", created_at: "" };
 const mestre: Membership = { role: "mestre", campaign: camp }, jogador: Membership = { role: "jogador", campaign: camp };
