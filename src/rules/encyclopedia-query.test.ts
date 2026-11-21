@@ -53,3 +53,18 @@ describe('encyclopedia query input validation',()=>{
   expect(encyclopediaPage(actor,[record],{offset:0,limit:10,query:'lunar'}).total).toBe(0);
  });
 });
+
+
+describe('encyclopedia trash and pagination isolation',()=>{
+ it('never reveals deleted entries through search, totals, or page offsets',()=>{
+  const records:EncyclopediaIndexedEntry[]=[
+   {...base,id:'deleted',name:'Dragão Esmeralda',visibility:'full',deletedAt:'2026-11-21T00:00:00Z',deletedBy:'dm'},
+   {...base,id:'active',name:'Dragão Azul',visibility:'summary'}
+  ];
+  expect(encyclopediaPage(actor,records,{offset:0,limit:10,query:'esmeralda'})).toEqual({items:[],total:0,offset:0,limit:10});
+  expect(encyclopediaPage(actor,records,{offset:0,limit:1,includeTrash:true}).items.map(x=>x.id)).toEqual(['active']);
+  expect(encyclopediaPage(actor,records,{offset:1,limit:1,includeTrash:true}).total).toBe(1);
+  expect(encyclopediaPage({...actor,role:'master'},records,{offset:0,limit:10,query:'esmeralda'}).total).toBe(0);
+  expect(encyclopediaPage({...actor,role:'master'},records,{offset:0,limit:10,query:'esmeralda',includeTrash:true}).total).toBe(1);
+ });
+});
