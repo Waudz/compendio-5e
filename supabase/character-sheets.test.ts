@@ -1,5 +1,5 @@
-// Migrações 0011 (base, já aplicada) e 0012 (proposta) de `character_sheets`, no Postgres em memória (PGlite), com papéis `anon`/`authenticated` e
-// `auth.uid()` simulado por sessão. Dados FICTÍCIOS. Não é o Supabase hospedado: a 0012 NÃO foi aplicada lá; isto valida o SQL e as políticas.
+// Migrações 0007 (base, já aplicada) e 0008 (proposta) de `character_sheets`, no Postgres em memória (PGlite), com papéis `anon`/`authenticated` e
+// `auth.uid()` simulado por sessão. Dados FICTÍCIOS. Não é o Supabase hospedado: a 0008 NÃO foi aplicada lá; isto valida o SQL e as políticas.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
@@ -62,9 +62,9 @@ beforeAll(async () => {
   C2 = (await rpc(U.dora, "create_campaign", "Mesa de fora", "")).rows[0].r as string;   // dora: mestre de outra campanha
 });
 
-describe("estado remoto atual (só a 0011): fechado para a API", () => {
+describe("estado remoto atual (só a 0007): fechado para a API", () => {
   it("authenticated e anon não leem nem gravam a tabela; a RLS está ligada", async () => {
-    const f = await boot("0011_character_sheets_foundation.sql");
+    const f = await boot("0007_character_sheets_foundation.sql");
     for (const u of [U.ana, U.bia, null]) {
       expect((await as(f, u, "select * from public.character_sheets")).error, String(u)).toMatch(/permission denied/);
       expect((await as(f, u, "insert into public.character_sheets (character_id, campaign_id, owner_id, draft) values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), '{}')")).error).toMatch(/permission denied/);
@@ -269,7 +269,7 @@ describe("usuário anônimo", () => {
 });
 
 describe("reversões", () => {
-  it("a reversão da 0012 não apaga dados, volta ao estado fechado e a 0012 pode ser reaplicada; a da 0011 exige confirmação com dados", async () => {
+  it("a reversão da 0008 não apaga dados, volta ao estado fechado e a 0008 pode ser reaplicada; a da 0007 exige confirmação com dados", async () => {
     const t = await boot();
     const as2 = (uid: string, q: string, p: unknown[] = []) => as(t, uid, q, p);
     const c = (await as2(U.ana, "select public.create_campaign('M','') as r")).rows[0].r as string;
@@ -278,15 +278,15 @@ describe("reversões", () => {
     const criado = await as2(U.bia, "select * from public.create_guided_character($1, 'X', '{}'::jsonb, false, $2::jsonb)", [c, JSON.stringify(draft())]);
     expect(criado.error).toBeUndefined();
     const down = (f: string) => readFileSync(join(__dirname, "rollback", f), "utf8");
-    await t.exec(down("0012_character_sheets_persistencia_down.sql"));
+    await t.exec(down("0008_character_sheets_persistencia_down.sql"));
     expect((await t.query("select count(*)::int as n from public.character_sheets")).rows[0]).toEqual({ n: 1 });               // dados preservados
     expect((await as2(U.bia, "select * from public.character_sheets")).error).toMatch(/permission denied/);                    // fechado de novo
     expect((await t.query("select count(*)::int as n from pg_proc where proname in ('create_guided_character','save_guided_character','character_sheets_guard')")).rows[0]).toEqual({ n: 0 });
-    await t.exec(sql("0012_character_sheets_persistencia.sql"));                                                              // reaplicável
+    await t.exec(sql("0008_character_sheets_persistencia.sql"));                                                              // reaplicável
     expect((await as2(U.bia, "select character_id from public.character_sheets")).rows).toHaveLength(1);
-    await t.exec(down("0012_character_sheets_persistencia_down.sql"));
-    await expect(t.exec(down("0011_character_sheets_foundation_down.sql"))).rejects.toThrow(/rollback_0011_destrutivo/);
-    await t.exec("set compendio.confirmar_rollback_0011 = 'sim'"); await t.exec(down("0011_character_sheets_foundation_down.sql"));
+    await t.exec(down("0008_character_sheets_persistencia_down.sql"));
+    await expect(t.exec(down("0007_character_sheets_foundation_down.sql"))).rejects.toThrow(/rollback_0007_destrutivo/);
+    await t.exec("set compendio.confirmar_rollback_0007 = 'sim'"); await t.exec(down("0007_character_sheets_foundation_down.sql"));
     expect((await t.query("select count(*)::int as n from pg_class where relname = 'character_sheets'")).rows[0]).toEqual({ n: 0 });
   });
 });

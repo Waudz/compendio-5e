@@ -1,10 +1,10 @@
--- 0011 — character_sheets_private_foundation. JÁ APLICADA no Supabase `compendio-5e` (gwcttjlxzelzjhbuitmi) em 21/11/2026. NÃO REAPLICAR.
+-- 0007 — character_sheets_private_foundation. JÁ APLICADA no Supabase `compendio-5e` (gwcttjlxzelzjhbuitmi) em 21/11/2026. NÃO REAPLICAR.
 -- ATENÇÃO: este arquivo RECONSTRÓI a migração remota a partir da descrição da migração aplicada (o SQL original não estava no repositório) e
 -- serve de base para os testes em PGlite. Conferir contra o SQL original (`supabase migration list` / painel) antes de confiar nos detalhes:
--- nomes de políticas e de índices podem divergir. A 0012 não depende desses nomes (recria TODAS as políticas da tabela).
+-- nomes de políticas e de índices podem divergir. A 0008 não depende desses nomes (recria TODAS as políticas da tabela).
 --
 -- Estado que esta migração deixa (verificado no remoto): tabela VAZIA, RLS ligada, FKs restritivas, SEM nenhum privilégio para anon/authenticated
--- ("fail closed"): a API não consegue ler nem gravar a tabela até a revisão de segurança (0012) ser aprovada e aplicada.
+-- ("fail closed"): a API não consegue ler nem gravar a tabela até a revisão de segurança (0008) ser aprovada e aplicada.
 --
 -- Ficha PRIVADA do personagem (atributos, PV, inventário, escolhas), separada da linha pública em `notes` (kind = 'character'), que guarda só a
 -- identidade pública. Uma ficha por personagem (character_id = notes.id).
@@ -24,7 +24,7 @@ create index if not exists character_sheets_owner_idx    on public.character_she
 
 alter table public.character_sheets enable row level security;
 
--- Políticas iniciais (substituídas pela 0012): dono participante e mestre leem; dono participante cria; dono ou mestre atualizam.
+-- Políticas iniciais (substituídas pela 0008): dono participante e mestre leem; dono participante cria; dono ou mestre atualizam.
 create policy character_sheets_select on public.character_sheets for select to authenticated
   using ((owner_id = auth.uid() and public.is_member(campaign_id)) or public.is_master(campaign_id));
 create policy character_sheets_insert on public.character_sheets for insert to authenticated

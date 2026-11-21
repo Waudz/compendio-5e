@@ -1,5 +1,5 @@
--- Reversão da 0012: volta ao estado FECHADO da 0011 (sem privilégio de API, políticas iniciais). NÃO apaga nenhuma linha de character_sheets nem de notes.
--- Seguro para rodar com dados: só remove funções, gatilho, restrições e privilégios adicionados pela 0012.
+-- Reversão da 0008: volta ao estado FECHADO da 0007 (sem privilégio de API, políticas iniciais). NÃO apaga nenhuma linha de character_sheets nem de notes.
+-- Seguro para rodar com dados: só remove funções, gatilho, restrições e privilégios adicionados pela 0008.
 
 drop function if exists public.create_guided_character(uuid, text, jsonb, boolean, jsonb);
 drop function if exists public.save_guided_character(uuid, integer, jsonb, text, jsonb, boolean);

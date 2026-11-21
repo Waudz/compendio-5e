@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Persistência do criador guiado com a API de fichas (modelo em memória que imita as regras da migração 0012; as políticas REAIS são validadas em
+// Persistência do criador guiado com a API de fichas (modelo em memória que imita as regras da migração 0008; as políticas REAIS são validadas em
 // `supabase/character-sheets.test.ts`, em PostgreSQL isolado). Aqui: o caminho do usuário, o isolamento na interface, conflito de revisão, falhas de
 // rede e o envio explícito dos rascunhos do armazenamento local.
 import type { User } from "@supabase/supabase-js";

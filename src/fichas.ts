@@ -1,5 +1,5 @@
 // Fichas PRIVADAS dos personagens guiados no Supabase (tabela `character_sheets`) + identidade pública na linha `notes` do personagem.
-// Exige a migração `supabase/migrations/0012_character_sheets_persistencia.sql` (PROPOSTA, NÃO aplicada): sem ela as funções não existem e a
+// Exige a migração `supabase/migrations/0008_character_sheets_persistencia.sql` (PROPOSTA, NÃO aplicada): sem ela as funções não existem e a
 // interface mostra a mensagem de "atualização do banco necessária" (ERRO_SCHEMA), sem perder o que foi digitado.
 // A autorização real é a RLS + as funções SECURITY INVOKER do banco; nada aqui concede acesso. Só a chave pública (anon) é usada no navegador.
 import type { SupabaseClient } from "@supabase/supabase-js";

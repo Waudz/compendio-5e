@@ -1,5 +1,5 @@
 // Apoio aos testes e ao modo de demonstração (não é persistência real): API de fichas em memória que imita as regras do banco
-// (`supabase/migrations/0012_*`): dono participante ou mestre leem/gravam a ficha; revisão controlada pelo servidor; identidade pública só do dono.
+// (`supabase/migrations/0008_*`): dono participante ou mestre leem/gravam a ficha; revisão controlada pelo servidor; identidade pública só do dono.
 // A validação das políticas REAIS é feita em `supabase/character-sheets.test.ts` (PostgreSQL isolado); isto serve para testar a interface.
 import type { CharacterDraft } from "./rules/character-domain";
 import { ERRO_CONFLITO_REVISAO, ERRO_SEM_FICHA, identidadeDe, projetarIdentidade, type FichasApi, type IdentidadeGravada } from "./fichas";
@@ -20,7 +20,7 @@ export const novoBancoFichas = (registros: { dados: Registro[] } = { dados: [] }
 export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { banco: BancoFichas } {
   const mestre = (cid: string) => banco.campanhas[cid]?.mestre === uid;
   const membro = (cid: string) => mestre(cid) || !!banco.campanhas[cid]?.jogadores.includes(uid);
-  const le = (f: Linha) => (f.ownerId === uid && membro(f.campaignId)) || mestre(f.campaignId);       // política de SELECT/UPDATE da 0012
+  const le = (f: Linha) => (f.ownerId === uid && membro(f.campaignId)) || mestre(f.campaignId);       // política de SELECT/UPDATE da 0008
   const semRede = { ok: false as const, error: "Sem conexão com o servidor." };
   let n = 0;
   const agora = () => new Date(Date.now() + ++n).toISOString();

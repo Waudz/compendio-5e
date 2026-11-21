@@ -1,5 +1,5 @@
 // Cliente de fichas (Supabase) com um cliente SIMULADO: confere as chamadas e o mapeamento de erros. O comportamento real do banco (RLS, revisão,
-// imutabilidade) é validado em `supabase/character-sheets.test.ts`; o funcionamento no Supabase hospedado depende da migração 0012 (não aplicada).
+// imutabilidade) é validado em `supabase/character-sheets.test.ts`; o funcionamento no Supabase hospedado depende da migração 0008 (não aplicada).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 import { ERRO_SCHEMA } from "./campaigns";
@@ -87,7 +87,7 @@ describe("criar e salvar (RPC)", () => {
     expect(await com({ message: "violates check constraint \"notes_guiado_meta_check\"" })).toMatchObject({ error: expect.stringMatching(/não permitidos/) });
     expect(await com({ message: "permission denied for table character_sheets", code: "42501" })).toMatchObject({ error: "Você não tem permissão para esta operação." });
     const faltando = await com({ message: "Could not find the function public.save_guided_character", code: "PGRST202" });
-    expect(faltando).toEqual({ ok: false, error: ERRO_SCHEMA });                                   // migração 0012 ainda não aplicada: mensagem clara, nunca "lista vazia"
+    expect(faltando).toEqual({ ok: false, error: ERRO_SCHEMA });                                   // migração 0008 ainda não aplicada: mensagem clara, nunca "lista vazia"
     expect(ehConflitoDeRevisao(faltando)).toBe(false);
   });
   it("queda de rede (exceção do fetch) vira 'sem conexão', não um erro técnico", async () => {

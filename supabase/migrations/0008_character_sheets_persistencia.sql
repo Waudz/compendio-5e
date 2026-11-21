@@ -1,9 +1,9 @@
--- 0012 — PROPOSTA, NÃO APLICADA ao Supabase hospedado (depende da 0011, já aplicada). Só o responsável autoriza aplicar; apresentar este SQL,
+-- 0008 — PROPOSTA, NÃO APLICADA ao Supabase hospedado (depende da 0007, já aplicada). Só o responsável autoriza aplicar; apresentar este SQL,
 -- os resultados de `supabase/character-sheets.test.ts` e a justificativa antes.
 --
 -- Persistência segura da FICHA PRIVADA do criador guiado. Incremental: NÃO apaga, não recria a tabela e não toca dados existentes (a tabela está
 -- vazia, mas a migração também é segura com linhas). Faz seis coisas:
---   1. substitui TODAS as políticas de character_sheets pelas definitivas (por nome dinâmico: não depende dos nomes usados na 0011 remota);
+--   1. substitui TODAS as políticas de character_sheets pelas definitivas (por nome dinâmico: não depende dos nomes usados na 0007 remota);
 --   2. torna imutáveis character_id, campaign_id, owner_id e created_at e deixa `revision`/`updated_at` SÓ para o servidor (gatilho);
 --   3. liga a ficha à linha pública de `notes` por chave composta (mesma campanha, sem exclusão em cascata) e exige draft.id = character_id;
 --   4. impede que a linha pública (`notes.meta`) de um personagem guiado carregue qualquer dado além da identidade pública;
@@ -15,7 +15,7 @@
 -- participante), usuário de outra campanha e anon: nada (nem contagem). O mestre NÃO lê anotações privadas (notes) e NÃO altera a identidade pública.
 -- Quem sai da campanha deixa de ler a própria ficha; ela permanece no banco (sem DELETE) e o mestre continua com acesso (decisão de produto:
 -- saída da campanha deixa o personagem inativo; ver docs/CRIADOR-FICHA-INVENTARIO.md).
--- Reversão em supabase/rollback/0012_character_sheets_persistencia_down.sql (volta ao estado fechado da 0011; não apaga dados).
+-- Reversão em supabase/rollback/0008_character_sheets_persistencia_down.sql (volta ao estado fechado da 0007; não apaga dados).
 
 -- ------------------------------------------------------------------ 3. vínculo com a linha pública
 alter table public.notes add constraint notes_id_campaign_uniq unique (id, campaign_id);

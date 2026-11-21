@@ -1,6 +1,6 @@
 // Repositório do personagem guiado: a interface do criador fala com este contrato e não sabe onde os dados ficam.
 //   - `servidor`: Supabase (ficha privada em `character_sheets` + identidade pública em `notes`), com revisão otimista. Persistência REAL
-//     (depende da migração 0012, ainda não aplicada).
+//     (depende da migração 0008, ainda não aplicada).
 //   - `local-experimental`: `localStorage` (ver armazenamento.ts). Só para demonstração/offline e para rascunhos antigos; não é segurança.
 import type { FichasApi } from "../fichas";
 import { ehConflitoDeRevisao } from "../fichas";

@@ -229,8 +229,8 @@ describe("migração reversível e auditoria", () => {
     const t = new PGlite(); await t.exec(stub);
     const ms = migrations(); for (const m of ms) await t.exec(m);
     const down = readFileSync(join(__dirname, "rollback", "0004_notas_down.sql"), "utf8");
-    await t.exec(readFileSync(join(__dirname, "rollback", "0012_character_sheets_persistencia_down.sql"), "utf8"));   // 0012 e 0011 (fichas) dependem de notes.meta (0006)
-    await t.exec(readFileSync(join(__dirname, "rollback", "0011_character_sheets_foundation_down.sql"), "utf8"));
+    await t.exec(readFileSync(join(__dirname, "rollback", "0008_character_sheets_persistencia_down.sql"), "utf8"));   // 0008 e 0007 (fichas) dependem de notes.meta (0006)
+    await t.exec(readFileSync(join(__dirname, "rollback", "0007_character_sheets_foundation_down.sql"), "utf8"));
     await t.exec(readFileSync(join(__dirname, "rollback", "0006_registros_capa_personagens_down.sql"), "utf8"));   // a 0006 depende da 0005: reverte-se primeiro
     await t.exec(readFileSync(join(__dirname, "rollback", "0005_notas_conteudo_down.sql"), "utf8"));   // a 0005 depende de notes: reverte-se primeiro
     await t.exec(down);

@@ -16,7 +16,7 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 | Campanhas | 50% | API de campanhas | Painéis e navegação | Auth e regras existentes | Fluxos completos, integração com personagens |
 | Anotações/diário | 55% | Registros, visibilidade, editor | Interface existente | Migrações propostas ainda pendentes | Persistência final e testes |
 | Navegação | 70% | Layout e abas | Implementada | Layout local por escopo | Refinamento e integração |
-| Segurança/persistência | 45% | Auth, RLS, `character_sheets` (0011) e **0012 proposta** com revisão e imutabilidade | Login; criador com repositório servidor/local | Fichas: validado em PGlite, **não aplicado no Supabase** | Aplicar 0012, exclusão/transferência narrativas, Realtime |
+| Segurança/persistência | 45% | Auth, RLS, `character_sheets` (0007) e **0008 proposta** com revisão e imutabilidade | Login; criador com repositório servidor/local | Fichas: validado em PGlite, **não aplicado no Supabase** | Aplicar 0008, exclusão/transferência narrativas, Realtime |
 
 **Visão geral estimada: 30%.** Não é média aritmética; o peso da entrega completa é maior que o de módulos isolados. Os números podem mudar após auditoria.
 
@@ -73,4 +73,4 @@ Criador guiado (Guerreiro) e Compêndio de itens acessíveis pelo menu normal, t
 
 ## Persistência das fichas — 21/11/2026
 
-Código + 24 testes de RLS em PostgreSQL isolado + interface testada; **sem funcionamento real no Supabase** até a migração 0012 ser autorizada e aplicada. Percentuais são estimativas.
+Código + 24 testes de RLS em PostgreSQL isolado + interface testada; **sem funcionamento real no Supabase** até a migração 0008 ser autorizada e aplicada. Percentuais são estimativas.

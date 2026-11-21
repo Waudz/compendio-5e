@@ -316,14 +316,14 @@ O adaptador `src/rules/character-catalogue-adapter.ts` passou a validar, antes d
 
 **Experimental:** raça (Anão) e antecedente (Acólito) ilustrativos; só Guerreiro; opções de armas marciais são amostra; **armazenamento local** (`src/criador/armazenamento.ts`).
 
-### Persistência segura das fichas (migração 0012) — 21/11/2026
+### Persistência segura das fichas (migração 0008) — 21/11/2026
 
 **Estado em três camadas (não confundir):**
 | Camada | Estado |
 |---|---|
 | Implementado no código | `src/fichas.ts` (cliente Supabase por RPC), `src/criador/repositorio.ts` (servidor × local), `src/criador/recuperacao.ts`, criador e lista de Personagens ligados a eles, identidade pública projetada |
-| Validado em isolamento | `supabase/character-sheets.test.ts`: 24 testes em PostgreSQL (PGlite) com papéis `anon`/`authenticated`, `auth.uid()` simulado e as migrações 0001–0012; mutações das políticas são detectadas. Interface testada com um modelo em memória das regras (`src/fichasMemoria.ts`) e cliente Supabase simulado |
-| **Funcionando no Supabase real** | **NÃO.** A 0012 não foi aplicada. Hoje a tabela existe vazia e **fechada** (sem privilégio de API): o app chamaria funções inexistentes e mostraria "o banco ainda não recebeu a atualização" (ERRO_SCHEMA), sem perder o que foi digitado |
+| Validado em isolamento | `supabase/character-sheets.test.ts`: 24 testes em PostgreSQL (PGlite) com papéis `anon`/`authenticated`, `auth.uid()` simulado e as migrações 0001–0008; mutações das políticas são detectadas. Interface testada com um modelo em memória das regras (`src/fichasMemoria.ts`) e cliente Supabase simulado |
+| **Funcionando no Supabase real** | **NÃO.** A 0008 não foi aplicada. Hoje a tabela existe vazia e **fechada** (sem privilégio de API): o app chamaria funções inexistentes e mostraria "o banco ainda não recebeu a atualização" (ERRO_SCHEMA), sem perder o que foi digitado |
 
 **Auditoria: contrato `ArmazenamentoCriador` × `character_sheets`**
 | Ponto | Incompatibilidade encontrada | Solução |
@@ -341,4 +341,4 @@ O adaptador `src/rules/character-catalogue-adapter.ts` passou a validar, antes d
 
 **Achado fora do escopo (a decidir):** a ficha **simples** antiga (`FichaPagina`) grava o inventário em `notes.meta.inventario`; se o personagem estiver **publicado**, a campanha lê esse inventário. Não alterei o comportamento (há dados reais): a tela agora avisa, e o criador guiado é o caminho privado. Recomendação: migrar fichas simples para o criador guiado e então restringir `meta` desses registros.
 
-**Para aplicar (somente com autorização):** (1) conferir a 0011 contra o SQL remoto original; (2) rodar a 0012 em ambiente de teste/branch do Supabase; (3) repetir `supabase/character-sheets.test.ts` e os advisors; (4) conferir os grants: `authenticated` com SELECT, INSERT(4 colunas) e UPDATE(draft); `anon` nada; (5) só então aplicar no projeto `gwcttjlxzelzjhbuitmi`. Há reversão que não apaga dados.
+**Para aplicar (somente com autorização):** (1) conferir a 0007 contra o SQL remoto original; (2) rodar a 0008 em ambiente de teste/branch do Supabase; (3) repetir `supabase/character-sheets.test.ts` e os advisors; (4) conferir os grants: `authenticated` com SELECT, INSERT(4 colunas) e UPDATE(draft); `anon` nada; (5) só então aplicar no projeto `gwcttjlxzelzjhbuitmi`. Há reversão que não apaga dados.
