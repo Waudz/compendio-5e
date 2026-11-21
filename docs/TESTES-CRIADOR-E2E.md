@@ -1,3 +1,16 @@
+# Atualização prioritária — integração com PR #80
+
+Base funcional atual: **PR #80 `43a0cdd15a55d24bfd3e4a64a2ddff1e794110ff`**, reconciliada com os testes do #79 sem reescrever o histórico. As seções abaixo registram a rodada anterior e suas falhas históricas.
+
+- **C-E2E-01:** o próprio HEAD #80 já corrige os nomes de inventário e acrescenta duas regressões unitárias. Seletores Playwright atualizados para os nomes completos; todas as asserções e análises axe preservadas.
+- **C-E2E-02:** patches do #77 reconciliados por trechos: contraste da marca e navegação mobile; nomes naturais do seletor/cartões; sincronização dos títulos FlexLayout em memória (incluindo criador/itens); setas/Home/End e retorno de foco dos menus; foco inicial/Tab/Shift+Tab/Escape no menu mobile. Preservada a apresentação de nível opcional do #80 e sua persistência.
+- Regressões unitárias do #77 preservadas, incluindo nomes/restauração de abas e menus. Nada de retries, exceções axe, falhas esperadas ou supressão de testes.
+- **Migrations e todo `supabase/` idênticos ao HEAD #80**, nenhuma operação no banco. A integração da árvore local não é merge de PR: nenhuma branch de terceiros, main ou deploy alterados.
+- `npm run test:e2e:types` aprovado. Build/Vitest e CI Linux em execução; resultados serão anexados ao PR #79 após conclusão. Não confundir os números históricos abaixo com a validação desta árvore.
+- Limites: E2E continua no modo demo isolado (adaptador local experimental); testes PGlite do #80 exercitam Postgres em memória, nunca produção. Login real, sincronização e revisão do esquema remoto continuam fora desta entrega visual.
+
+---
+
 # Testes E2E do criador — 21/11/2026
 
 ## Base e escopo

@@ -126,3 +126,7 @@ Pelo menu normal: **Personagens → Criar com o criador guiado** (Guerreiro SRD 
 ## E2E do criador, ficha, inventário e Compêndio
 
 Infraestrutura reutilizada dos PRs #76/#77 sobre o código funcional do #78; sem alterações de domínio. Execute `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:e2e:types` e `npm run test:creator`. Testes isolados, sem contas ou serviços externos. Comandos, dependências e resultados: [TESTES-CRIADOR-E2E](docs/TESTES-CRIADOR-E2E.md). As suítes anteriores continuam disponíveis em `npm run test:e2e` e `npm run test:quality`.
+### Persistência das fichas (proposta, não aplicada)
+
+Com conta e a migração `supabase/migrations/0008_character_sheets_persistencia.sql` aplicada, o criador guiado salva a ficha **privada** em `character_sheets` (só o dono e o mestre leem) e publica apenas a identidade que o jogador escolher; há controle de revisão (conflitos), cópia de recuperação local e envio explícito dos rascunhos antigos do navegador. **A 0008 ainda não foi aplicada ao Supabase**: até lá o app informa "banco desatualizado" ao salvar e o modo local experimental continua disponível sem conta. Detalhes, auditoria e procedimento: `docs/CRIADOR-FICHA-INVENTARIO.md`.
+

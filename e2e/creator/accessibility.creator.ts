@@ -13,7 +13,7 @@ test('WCAG: nomes acessíveis e semântica do criador, equipamento, inventário 
   await scan('ficha'); await showSection(page, 'Equipamento inicial'); await scan('equipamento');
   await equip(page); await showSection(page, 'Inventário'); await scan('inventario');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-  await page.getByRole('button', { name: 'Consultar Arco longo no Compêndio', exact: true }).click();
+  await page.getByRole('button', { name: 'Consultar no Compêndio: Arco longo', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Arco longo', exact: true })).toBeVisible(); await scan('item');
   await info.attach('axe-criador', { body: JSON.stringify(scans, null, 2), contentType: 'application/json' });
   expect(scans.flatMap(s => s.violations.map(v => ({ screen: s.screen, violation: v })))).toEqual([]);

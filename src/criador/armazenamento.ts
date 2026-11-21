@@ -3,7 +3,7 @@
  * NÃO é persistência real e NÃO é segurança entre usuários: os dados ficam neste navegador, sem sincronizar entre
  * aparelhos e legíveis por quem usa o mesmo navegador. As chaves são separadas por usuário e campanha e entram na
  * limpeza do logout (`clearUserLocalData`), mas isso é higiene, não controle de acesso. A persistência real depende
- * de uma migração do Supabase ainda NÃO autorizada (ver `docs/CRIADOR-FICHA-INVENTARIO.md`, "Persistência pendente").
+ * de uma migração do Supabase ainda NÃO autorizada (ver `docs/CRIADOR-FICHA-INVENTARIO.md`, "Persistência segura das fichas").
  * A interface `ArmazenamentoCriador` é o ponto de troca: o adaptador do servidor implementará o mesmo contrato.
  */
 import type { CharacterDraft } from '../rules/character-domain';
