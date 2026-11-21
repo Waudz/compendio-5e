@@ -17,6 +17,35 @@
 -- saída da campanha deixa o personagem inativo; ver docs/CRIADOR-FICHA-INVENTARIO.md).
 -- Reversão em supabase/rollback/0008_character_sheets_persistencia_down.sql (volta ao estado fechado da 0007; não apaga dados).
 
+-- ------------------------------------------------------------------ 0. pré-condições (compatibilidade com a 0007 REAL)
+-- O SQL original da 0007 remota não estava versionado; esta migração não presume nada que possa conferir. Se a estrutura real divergir, ela ABORTA
+-- inteira (nada é alterado) com uma mensagem dizendo o quê. Verifica: colunas e tipos, unicidade de character_id, RLS ligada e ausência de gatilhos
+-- desconhecidos (um gatilho próprio de revisão/data duplicaria o efeito do nosso). Políticas desconhecidas não bloqueiam: são substituídas (item 1).
+do $$
+declare
+  esperado constant text[][] := array[['character_id', 'uuid'], ['campaign_id', 'uuid'], ['owner_id', 'uuid'], ['draft', 'jsonb'],
+                                      ['created_at', 'timestamp with time zone'], ['updated_at', 'timestamp with time zone']];
+  i integer; tipo text; trig text;
+begin
+  if to_regclass('public.character_sheets') is null then raise exception 'precondicao_0008: public.character_sheets nao existe (aplique a 0007 antes)'; end if;
+  for i in 1 .. array_length(esperado, 1) loop
+    select format_type(a.atttypid, a.atttypmod) into tipo from pg_attribute a
+     where a.attrelid = 'public.character_sheets'::regclass and a.attname = esperado[i][1] and not a.attisdropped;
+    if tipo is distinct from esperado[i][2] then raise exception 'precondicao_0008: coluna % esperada como %, encontrada: %', esperado[i][1], esperado[i][2], coalesce(tipo, 'ausente'); end if;
+  end loop;
+  select format_type(a.atttypid, a.atttypmod) into tipo from pg_attribute a where a.attrelid = 'public.character_sheets'::regclass and a.attname = 'revision' and not a.attisdropped;
+  if tipo is null or tipo not in ('integer', 'bigint') then raise exception 'precondicao_0008: coluna revision deve ser integer/bigint, encontrada: %', coalesce(tipo, 'ausente'); end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.character_sheets'::regclass) then raise exception 'precondicao_0008: RLS desligada em character_sheets'; end if;
+  -- uma ficha por personagem: character_id precisa ser único (chave primária ou índice único de uma coluna)
+  if not exists (select 1 from pg_index x join pg_attribute a on a.attrelid = x.indrelid and a.attnum = x.indkey[0]
+                  where x.indrelid = 'public.character_sheets'::regclass and x.indisunique and x.indnatts = 1 and x.indpred is null and a.attname = 'character_id') then
+    create unique index character_sheets_character_id_uniq on public.character_sheets (character_id);
+  end if;
+  select string_agg(tgname, ', ') into trig from pg_trigger
+   where tgrelid = 'public.character_sheets'::regclass and not tgisinternal and tgname <> 'character_sheets_guard';
+  if trig is not null then raise exception 'precondicao_0008: gatilhos desconhecidos em character_sheets (%); revise antes de aplicar (revisao/datas devem ter um unico dono)', trig; end if;
+end $$;
+
 -- ------------------------------------------------------------------ 3. vínculo com a linha pública
 alter table public.notes add constraint notes_id_campaign_uniq unique (id, campaign_id);
 alter table public.character_sheets

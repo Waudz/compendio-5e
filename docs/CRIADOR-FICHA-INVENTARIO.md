@@ -342,3 +342,18 @@ O adaptador `src/rules/character-catalogue-adapter.ts` passou a validar, antes d
 **Achado fora do escopo (a decidir):** a ficha **simples** antiga (`FichaPagina`) grava o inventário em `notes.meta.inventario`; se o personagem estiver **publicado**, a campanha lê esse inventário. Não alterei o comportamento (há dados reais): a tela agora avisa, e o criador guiado é o caminho privado. Recomendação: migrar fichas simples para o criador guiado e então restringir `meta` desses registros.
 
 **Para aplicar (somente com autorização):** (1) conferir a 0007 contra o SQL remoto original; (2) rodar a 0008 em ambiente de teste/branch do Supabase; (3) repetir `supabase/character-sheets.test.ts` e os advisors; (4) conferir os grants: `authenticated` com SELECT, INSERT(4 colunas) e UPDATE(draft); `anon` nada; (5) só então aplicar no projeto `gwcttjlxzelzjhbuitmi`. Há reversão que não apaga dados.
+
+### Compatibilidade da 0008 com a 0007 real — 21/11/2026
+
+O SQL original da 0007 remota (`character_sheets_private_foundation`) **não está versionado**; o arquivo `0007_*` é uma reconstrução pela descrição. Por isso a 0008 **não presume**: começa com pré-condições e, se a estrutura real divergir, **aborta inteira sem alterar nada** (`precondicao_0008: ...`).
+
+| Verificação da 0008 | Se divergir |
+|---|---|
+| Colunas `character_id`, `campaign_id`, `owner_id` (uuid), `draft` (jsonb), `created_at`/`updated_at` (timestamptz) e `revision` (integer ou bigint) | aborta informando coluna, tipo esperado e encontrado |
+| RLS ligada | aborta |
+| `character_id` único (PK ou índice único) | cria o índice único (uma ficha por personagem) |
+| Gatilhos desconhecidos na tabela (ex.: um de revisão/data da 0007 original) | aborta, para `revision` ter um único dono |
+| Políticas com **quaisquer nomes** | todas são substituídas (uma permissiva esquecida não sobrevive) |
+| Linhas existentes | preservadas (revisão e dono mantidos); `draft.id` diferente de `character_id` impede a migração, sem corrigir dados em silêncio |
+
+Coberto por 6 testes em `supabase/character-sheets.test.ts` (PGlite). **Limite:** isto prova que a 0008 é segura para *variações plausíveis* da 0007, não que o remoto seja idêntico à reconstrução. **Antes de aplicar:** exportar o DDL real (`pg_get_tableathef`/painel: colunas, constraints, índices, políticas e gatilhos de `public.character_sheets`) e comparar com `0007_character_sheets_foundation.sql`; a mensagem `precondicao_0008` indica o que ajustar. Também mapeado: o nome da restrição de tamanho do `draft` pode diferir (a interface agora reconhece qualquer violação de CHECK em `character_sheets`).

@@ -249,9 +249,9 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
       <ul>{sheet?.inventory.map(item => { const def = srdItem(item.itemId); return <li key={item.id}>
         <span><strong>{nomeDoItem(item.itemId)}</strong> · quantidade {item.quantity}{item.origin === "starting" ? " · inicial" : ""}{def?.peso != null ? ` · ${String(def.peso * item.quantity).replace(".", ",")} kg` : ""}</span>
         <span className="row">
-          <button type="button" className="btn-secondary" aria-label={`Consultar ${nomeDoItem(item.itemId)} no Compêndio`} onClick={() => onOpenContent(itemSpec(item.itemId, nomeDoItem(item.itemId)))}>Consultar no Compêndio</button>
-          <button type="button" className="btn-secondary" aria-label={`Adicionar quantidade de ${nomeDoItem(item.itemId)}`} onClick={() => mudar(changeInventoryInstanceQuantity(draft, item.id, 1))}>+1</button>
-          <button type="button" className="btn-secondary" aria-label={`Remover quantidade de ${nomeDoItem(item.itemId)}`} onClick={() => mudar(changeInventoryInstanceQuantity(draft, item.id, -1))}>−1</button></span></li>; })}</ul>
+          <button type="button" className="btn-secondary" aria-label={`Consultar no Compêndio: ${nomeDoItem(item.itemId)}`} onClick={() => onOpenContent(itemSpec(item.itemId, nomeDoItem(item.itemId)))}>Consultar no Compêndio</button>
+          <button type="button" className="btn-secondary" aria-label={`+1: adicionar quantidade de ${nomeDoItem(item.itemId)}`} onClick={() => mudar(changeInventoryInstanceQuantity(draft, item.id, 1))}>+1</button>
+          <button type="button" className="btn-secondary" aria-label={`−1: remover quantidade de ${nomeDoItem(item.itemId)}`} onClick={() => mudar(changeInventoryInstanceQuantity(draft, item.id, -1))}>−1</button></span></li>; })}</ul>
       <label>Adicionar item do catálogo<input type="search" aria-label="Buscar item para adicionar" value={busca} placeholder="Digite ao menos 2 letras" onChange={e => setBusca(e.target.value)}/></label>
       {busca.trim().length >= 2 && resultadosBusca.length === 0 && <p className="muted">Nenhum item mundano encontrado.</p>}
       <ul>{resultadosBusca.map(l => <li key={l.key}><span>{l.name}</span><button type="button" className="btn-secondary" aria-label={`Adicionar ${l.name}`} onClick={() => { mudar(addInventoryInstance(draft, { id: crypto.randomUUID(), itemId: l.ref.id, quantity: 1, equipped: false, origin: "acquired" })); setBusca(""); }}><Plus size={14} aria-hidden="true"/> Adicionar</button></li>)}</ul>

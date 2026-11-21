@@ -261,7 +261,7 @@ describe("rascunhos do armazenamento local (experimental) → campanha", () => {
     await montar(); await abrirPersonagens();
     const secao = within(await screen.findByTestId("rascunhos-locais"));
     expect(secao.getByText("Velho Rascunho")).toBeTruthy();
-    fireEvent.click(secao.getByRole("button", { name: "Enviar Velho Rascunho para a campanha" }));
+    fireEvent.click(secao.getByRole("button", { name: "Enviar para a campanha: Velho Rascunho" }));
     expect(await screen.findByText(/foi enviado para a campanha e a cópia deste navegador foi removida/)).toBeTruthy();
     expect(banco.fichas).toHaveLength(1); expect(banco.fichas[0].draft).toMatchObject({ name: "Velho Rascunho", id: banco.fichas[0].id });
     expect((registros.dados[0] as { visibility: string }).visibility).toBe("private");        // identidade começa privada
@@ -269,10 +269,18 @@ describe("rascunhos do armazenamento local (experimental) → campanha", () => {
     expect(screen.queryByTestId("rascunhos-locais")).toBeNull();
     expect(await screen.findByRole("button", { name: "Abrir ficha guiada Velho Rascunho" })).toBeTruthy();
   });
+  it("os botões da lista de rascunhos locais têm nome acessível que contém o texto visível (WCAG 2.5.3)", async () => {
+    await rascunhoLocal("Velho Rascunho");
+    await montar(); await abrirPersonagens();
+    const secao = await screen.findByTestId("rascunhos-locais");
+    const ruins = [...secao.querySelectorAll("button[aria-label]")].filter(b => !(b.getAttribute("aria-label") ?? "").toLocaleLowerCase("pt-BR").includes((b.textContent ?? "").trim().toLocaleLowerCase("pt-BR"))).map(b => b.textContent);
+    expect(ruins).toEqual([]);
+    expect(within(secao).getByRole("button", { name: "Enviar para a campanha: Velho Rascunho" })).toBeTruthy();
+  });
   it("se o envio falhar, o rascunho local continua intacto (nada se perde em silêncio)", async () => {
     await rascunhoLocal("Velho Rascunho");
     await montar(); await abrirPersonagens();
-    const botao = await screen.findByRole("button", { name: "Enviar Velho Rascunho para a campanha" });
+    const botao = await screen.findByRole("button", { name: "Enviar para a campanha: Velho Rascunho" });
     banco.rede.caida = true; fireEvent.click(botao);
     expect(await screen.findByText(/Sem conexão com o servidor.*O rascunho continua guardado neste navegador/)).toBeTruthy();
     expect(banco.fichas).toHaveLength(0);
@@ -289,7 +297,7 @@ describe("rascunhos do armazenamento local (experimental) → campanha", () => {
   it("rascunho local sem nome não é enviado", async () => {
     await rascunhoLocal("");
     await montar(); await abrirPersonagens();
-    fireEvent.click(await screen.findByRole("button", { name: /^Enviar .* para a campanha$/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Enviar para a campanha: / }));
     expect(await screen.findByText(/Dê um nome ao personagem/)).toBeTruthy();
     expect(banco.fichas).toHaveLength(0);
   });

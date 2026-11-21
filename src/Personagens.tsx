@@ -111,7 +111,7 @@ function SecaoGuiados({ cid, userId, publicos, versao, onOpenContent }: { cid: s
       <p className="muted">Criados antes do salvamento na campanha. Nada é enviado nem apagado sozinho: envie cada um quando quiser; a cópia local só é removida depois que o servidor confirmar.</p>
       <ul className="criador-locais">{locais.map(g => <li key={g.id}><span><strong>{g.nome}</strong> <small className="muted">nível {g.nivel}</small></span>
         <span className="row"><button className="btn-secondary" onClick={() => onOpenContent({ kind: "criador", ref: g.id, title: g.nome })} aria-label={`Revisar rascunho local ${g.nome}`}>Revisar</button>
-          <button className="btn-primary" onClick={() => void enviar(g)} disabled={enviando !== null} aria-label={`Enviar ${g.nome} para a campanha`}>{enviando === g.id ? "Enviando…" : "Enviar para a campanha"}</button>
+          <button className="btn-primary" onClick={() => void enviar(g)} disabled={enviando !== null} aria-label={`${enviando === g.id ? "Enviando…" : "Enviar para a campanha"}: ${g.nome}`}>{enviando === g.id ? "Enviando…" : "Enviar para a campanha"}</button>
           {descartando === g.id ? <><button className="btn-secondary danger" onClick={() => descartar(g)}>Confirmar descarte</button><button className="btn-secondary" onClick={() => setDescartando(null)}>Cancelar</button></>
             : <button className="btn-secondary danger" onClick={() => setDescartando(g.id)} aria-label={`Descartar rascunho local ${g.nome}`}>Descartar</button>}</span></li>)}</ul></div>}
   </section>;

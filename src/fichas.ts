@@ -60,7 +60,7 @@ const msg = (e: unknown) => {
   if (m.includes("conflito_de_revisao")) return ERRO_CONFLITO_REVISAO;
   if (m.includes("ficha_nao_encontrada") || m.includes("nota_nao_encontrada")) return ERRO_SEM_FICHA;
   if (m.includes("identidade_so_do_dono")) return "Só o dono do personagem altera a identidade pública.";
-  if (m.includes("character_sheets_draft_check")) return "A ficha é grande demais para ser salva.";
+  if (m.includes("character_sheets_draft") || (m.includes("check constraint") && m.includes("character_sheets"))) return "A ficha é grande demais ou inválida para ser salva.";   // nome da restrição pode diferir do remoto
   if (m.includes("notes_guiado_meta_check")) return "A identidade pública contém dados não permitidos.";
   if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed")) return "Sem conexão com o servidor.";
   return erroCampanha(e);

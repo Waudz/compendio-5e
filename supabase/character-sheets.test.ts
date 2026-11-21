@@ -290,3 +290,67 @@ describe("reversões", () => {
     expect((await t.query("select count(*)::int as n from pg_class where relname = 'character_sheets'")).rows[0]).toEqual({ n: 0 });
   });
 });
+
+describe("compatibilidade da 0008 com a estrutura REAL da 0007 (o SQL remoto original não está versionado)", () => {
+  const aplica = (t: PGlite) => t.exec(sql("0008_character_sheets_persistencia.sql"));
+  const intacto = async (t: PGlite) => Number((await t.query("select count(*)::int as n from pg_constraint where conname in ('notes_id_campaign_uniq','notes_guiado_meta_check')")).rows[0].n) === 0;
+  const comBase = () => boot("0007_character_sheets_foundation.sql");
+
+  it("estrutura divergente aborta a migração inteira com mensagem clara e NÃO altera nada (tipo de coluna, coluna ausente, RLS desligada)", async () => {
+    for (const [ddl, esperado] of [
+      ["alter table public.character_sheets drop constraint character_sheets_revision_check; alter table public.character_sheets alter column revision type text using revision::text", /coluna revision deve ser integer\/bigint/],
+      ["alter table public.character_sheets drop constraint character_sheets_draft_check; alter table public.character_sheets alter column draft type text using draft::text", /coluna draft esperada como jsonb/],
+      ["alter table public.character_sheets drop column owner_id cascade", /coluna owner_id esperada como uuid, encontrada: ausente/],
+      ["alter table public.character_sheets disable row level security", /RLS desligada/],
+    ] as const) {
+      const t = await comBase();
+      await t.exec(ddl);
+      await expect(aplica(t), ddl).rejects.toThrow(esperado);
+      expect(await intacto(t), ddl).toBe(true);
+    }
+  });
+  it("gatilho desconhecido (ex.: um de revisão/data da 0007 original) aborta, para não haver dois donos de `revision`", async () => {
+    const t = await comBase();
+    await t.exec("create function public.zz_touch() returns trigger language plpgsql as $$ begin new.updated_at := now(); return new; end $$; create trigger zz_touch before update on public.character_sheets for each row execute function public.zz_touch();");
+    await expect(aplica(t)).rejects.toThrow(/gatilhos desconhecidos.*zz_touch/);
+    expect(await intacto(t)).toBe(true);
+  });
+  it("políticas com nomes diferentes dos esperados são TODAS substituídas (uma política permissiva esquecida não sobrevive)", async () => {
+    const t = await comBase();
+    await t.exec("create policy zz_leitura_total on public.character_sheets for select to authenticated using (true); grant select on public.character_sheets to authenticated;");
+    await aplica(t);
+    expect((await t.query("select policyname from pg_policies where tablename = 'character_sheets' order by 1")).rows.map(r => r.policyname)).toEqual(["character_sheets_insert", "character_sheets_select", "character_sheets_update"]);
+    const c = (await as(t, U.ana, "select public.create_campaign('M','') as r")).rows[0].r as string;
+    const code = (await as(t, U.ana, "select public.create_invite($1, 5, 7) as r", [c])).rows[0].r as string;
+    for (const u of [U.bia, U.caio]) await as(t, u, "select public.join_campaign($1)", [code]);
+    const id = (await as(t, U.bia, "select * from public.create_guided_character($1, 'X', '{}'::jsonb, false, $2::jsonb)", [c, JSON.stringify(draft())])).rows[0].character_id as string;
+    expect((await as(t, U.caio, "select character_id from public.character_sheets where character_id = $1", [id])).rows).toHaveLength(0);
+  });
+  it("sem chave única em character_id (a 0007 real pode não ter PK), a 0008 garante uma ficha por personagem", async () => {
+    const t = await comBase();
+    await t.exec("alter table public.character_sheets drop constraint character_sheets_pkey");
+    await aplica(t);
+    expect((await t.query("select count(*)::int as n from pg_indexes where tablename = 'character_sheets' and indexdef ilike '%unique%(character_id)%'")).rows[0]).toEqual({ n: 1 });
+  });
+  it("linhas já existentes na 0007 são preservadas e passam a funcionar com revisão e RPC", async () => {
+    const t = await comBase();
+    const c = (await as(t, U.ana, "select public.create_campaign('M','') as r")).rows[0].r as string;
+    const code = (await as(t, U.ana, "select public.create_invite($1, 5, 7) as r", [c])).rows[0].r as string;
+    await as(t, U.bia, "select public.join_campaign($1)", [code]);
+    const nota = (await as(t, U.bia, "insert into public.notes (campaign_id, kind, title, meta) values ($1, 'character', 'Antigo', '{\"guiado\":true}') returning id", [c])).rows[0].id as string;
+    await t.query("insert into public.character_sheets (character_id, campaign_id, owner_id, draft, revision) values ($1, $2, $3, $4::jsonb, 4)", [nota, c, U.bia, JSON.stringify(draft({ id: nota }))]);
+    await aplica(t);
+    expect((await as(t, U.bia, "select revision, owner_id from public.character_sheets where character_id = $1", [nota])).rows).toEqual([{ revision: 4, owner_id: U.bia }]);
+    const r = await as(t, U.bia, "select * from public.save_guided_character($1, 4, $2::jsonb)", [nota, JSON.stringify(draft({ id: nota, currentHp: 1 }))]);
+    expect(r.error).toBeUndefined(); expect(r.rows[0].revision).toBe(5);
+  });
+  it("linha existente com draft.id diferente do character_id impede a migração (falha segura, sem corrigir dados em silêncio)", async () => {
+    const t = await comBase();
+    const c = (await as(t, U.ana, "select public.create_campaign('M','') as r")).rows[0].r as string;
+    await as(t, U.bia, "select public.join_campaign($1)", [(await as(t, U.ana, "select public.create_invite($1, 5, 7) as r", [c])).rows[0].r]);
+    const nota = (await as(t, U.bia, "insert into public.notes (campaign_id, kind, title) values ($1, 'character', 'x') returning id", [c])).rows[0].id as string;
+    await t.query("insert into public.character_sheets (character_id, campaign_id, owner_id, draft) values ($1, $2, $3, '{\"id\":\"outro\"}'::jsonb)", [nota, c, U.bia]);
+    await expect(aplica(t)).rejects.toThrow(/character_sheets_draft_id_check/);
+    expect(await intacto(t)).toBe(true);
+  });
+});
