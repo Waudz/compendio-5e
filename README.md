@@ -122,3 +122,7 @@ O criador local do Guerreiro agora permite **compra de 27 pontos** (atributos-ba
 ## Criador guiado e Compêndio (experimental)
 
 Pelo menu normal: **Personagens → Criar com o criador guiado** (Guerreiro SRD 2014, equipamento inicial do catálogo oficial, inventário e identidade pública) e **Compêndio** (busca, filtros, lista/grade e página de cada item). No celular: Menu → Personagens / barra inferior → Compêndio. Os personagens guiados ficam **só neste navegador** (armazenamento experimental; ver `docs/CRIADOR-FICHA-INVENTARIO.md`, "Persistência pendente").
+
+## E2E do criador, ficha, inventário e Compêndio
+
+Infraestrutura reutilizada dos PRs #76/#77 sobre o código funcional do #78; sem alterações de domínio. Execute `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:e2e:types` e `npm run test:creator`. Testes isolados, sem contas ou serviços externos. Comandos, dependências e resultados: [TESTES-CRIADOR-E2E](docs/TESTES-CRIADOR-E2E.md). As suítes anteriores continuam disponíveis em `npm run test:e2e` e `npm run test:quality`.
