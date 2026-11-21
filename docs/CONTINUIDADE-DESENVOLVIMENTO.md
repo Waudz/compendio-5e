@@ -304,3 +304,5 @@ Achado do Codex (PR #79): o nome acessível dos botões do inventário não cont
 ### Revisão do PR #80 — bloqueios de segurança da 0008 (21/11/2026)
 
 Corrigidos (ver `CRIADOR-FICHA-INVENTARIO.md`): `meta` da nota presa à existência da ficha (não ao marcador), INSERT/UPDATE com `notes.deleted_at IS NULL`, `p_meta` estrito e título derivado no servidor, 0007 alinhada ao remoto. 43 testes de RLS em PostgreSQL isolado com 6 mutações detectadas. **0008 continua NÃO aplicada** (aguarda comparação do DDL real e autorização).
+
+**Ação final do PR #80:** `private.nota_guiada_ativa` com dono + meta válido; CHECK global removida para não travar notas legadas; 48 testes de RLS. 0008 continua NÃO aplicada.

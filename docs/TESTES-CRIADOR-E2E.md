@@ -1,6 +1,6 @@
 # Atualização prioritária — integração com PR #80
 
-Base funcional atual: **PR #80 `e62500c86d275250a7ca210e86aa33cc89e6e475`**, reconciliada com os testes do #79 sem reescrever o histórico. As seções abaixo registram a rodada anterior e suas falhas históricas.
+Base funcional atual: **PR #80 `9bbf286eaf40c0d8beec85424f11df95dfc40f7a`**, reconciliada com os testes do #79 sem reescrever o histórico. As seções abaixo registram a rodada anterior e suas falhas históricas.
 
 - **C-E2E-01:** o próprio HEAD #80 já corrige os nomes de inventário e acrescenta duas regressões unitárias. Seletores Playwright atualizados para os nomes completos; todas as asserções e análises axe preservadas.
 - **C-E2E-02:** patches do #77 reconciliados por trechos: contraste da marca e navegação mobile; nomes naturais do seletor/cartões; sincronização dos títulos FlexLayout em memória (incluindo criador/itens); setas/Home/End e retorno de foco dos menus; foco inicial/Tab/Shift+Tab/Escape no menu mobile. Preservada a apresentação de nível opcional do #80 e sua persistência.
@@ -12,6 +12,10 @@ Base funcional atual: **PR #80 `e62500c86d275250a7ca210e86aa33cc89e6e475`**, rec
 O CI da reconciliação visual `f74c4a4` aprovou **815 unitários, 36 + 64 + 80 = 180 E2E**, com 32 condições de layout não aplicáveis herdadas e **48 varreduras axe / zero violações**. Evidência: [workflow padrão](https://github.com/Waudz/compendio-5e/actions/runs/44878045414), [E2E](https://github.com/Waudz/compendio-5e/actions/runs/44878045432), [artefato](https://github.com/Waudz/compendio-5e/actions/runs/44878045432/artifacts/14696727091).
 
 Na conferência final, o #80 avançou de `43a0cdd` para `e62500c` (segurança/persistência). Incorporado sem alterar os arquivos de banco do Claude; o diff de todo `supabase/` contra esse novo HEAD permanece vazio. Revalidação do novo HEAD no CI será registrada no PR #79; não confundir com a aprovação da árvore anterior.
+
+### Sincronização final do #80 — 9bbf286
+Incorporado o HEAD final `9bbf286eaf40c0d8beec85424f11df95dfc40f7a` à branch `test/creator-e2e`, preservando o histórico. Integração local sem conflitos, sem merge de PR/main. Todo `supabase/` e os três documentos alterados pelo Claude são idênticos ao HEAD #80: migração 0008, rollback e `character-sheets.test.ts` preservados byte a byte. Nenhuma invariante, RLS, função de segurança ou teste do Claude editado; nenhum SQL remoto executado. Arquivos visuais e E2E permanecem iguais à árvore anteriormente aprovada.
+TypeScript, build, unitários (incluindo PGlite isolado), Playwright/responsividade/axe serão reexecutados. Resultados finais e SHA constam no PR #79; as aprovações anteriores abaixo são históricas e não certificam por si só esta nova árvore.
 
 ---
 

@@ -368,7 +368,7 @@ describe("schema private e funções SECURITY DEFINER", () => {
   it("as funções definer só respondem verdadeiro/falso e não revelam dados de notas ou fichas alheias", async () => {
     const { character_id: id } = await criar(U.bia, C1);
     for (const u of [U.caio, U.dora]) {
-      const r = await as(db, u, "select private.tem_ficha($1) as a, private.nota_guiada_ativa($1, $2) as b", [id, C1]);
+      const r = await as(db, u, "select private.tem_ficha($1) as a, private.nota_guiada_ativa($1, $2, $3) as b", [id, C1, U.bia]);
       expect(Object.keys(r.rows[0]).sort()).toEqual(["a", "b"]);
       expect(typeof r.rows[0].a).toBe("boolean");
     }
@@ -390,6 +390,84 @@ describe("compatibilidade da 0007 reconstruída com o remoto (CHECK de revision)
     const t = await boot("0007_character_sheets_foundation.sql");
     const def = (await t.query("select polname, pg_get_expr(polwithcheck, polrelid) as chk from pg_policy where polrelid = 'public.character_sheets'::regclass and polname in ('character_sheets_insert','character_sheets_update')")).rows;
     for (const d of def) expect(String(d.chk), String(d.polname)).toMatch(/deleted_at IS NULL/i);
+  });
+});
+
+describe("nota viva da ficha: dono da nota = dono da ficha e meta válido (ação final do PR #80)", () => {
+  /** Cria nota + ficha por caminho privilegiado (simula linha pré-existente/corrompida que a RLS não deixaria nascer). */
+  async function linha(donoNota: string, donoFicha: string, meta: unknown = { guiado: true, identidadePublica: identidade }) {
+    await db.exec(`select set_config('request.jwt.claim.sub', '${donoNota}', false)`);          // o gatilho de tipo (0006) lê auth.uid(): o dono da nota participa da campanha
+    const nid = (await db.query("insert into public.notes (owner_id, campaign_id, kind, title, meta) values ($1, $2, 'character', 'x', $3::jsonb) returning id", [donoNota, C1, JSON.stringify(meta)])).rows[0].id as string;
+    await db.query("insert into public.character_sheets (character_id, campaign_id, owner_id, draft) values ($1, $2, $3, $4::jsonb)", [nid, C1, donoFicha, JSON.stringify(draft({ id: nid }))]);
+    return nid;
+  }
+  const semGatilho = async (f: () => Promise<unknown>) => { await db.exec("alter table public.notes disable trigger notes_zz_ficha_guard"); try { await f(); } finally { await db.exec("alter table public.notes enable trigger notes_zz_ficha_guard"); } };
+  const negado = (r: R) => expect(r.error ?? (r.rows.length === 0 ? "0 linhas row-level security" : "permitido")).toMatch(/row-level security|violates/);
+  const upd = (uid: string, nid: string) => as(db, uid, "update public.character_sheets set draft = $2::jsonb where character_id = $1 returning revision", [nid, JSON.stringify(draft({ id: nid }))]);
+
+  it("ficha cujo dono NÃO é o dono da nota: nem o dono da ficha, nem o mestre, nem a RPC conseguem atualizá-la (a 0007 exigia a igualdade)", async () => {
+    const nid = await linha(U.caio, U.bia);                                                        // nota de caio, ficha de bia
+    negado(await upd(U.bia, nid)); negado(await upd(U.ana, nid));
+    expect((await salvar(U.bia, nid, 1, draft())).error).toBeTruthy();
+    expect((await salvar(U.ana, nid, 1, draft())).error).toBeTruthy();
+    expect((await db.query("select revision from public.character_sheets where character_id = $1", [nid])).rows[0]).toEqual({ revision: 1 });
+    // não há reparo por API: o dono de uma nota é imutável (0004) e o da ficha também; só intervenção manual no banco resolve
+    await expect(db.query("update public.notes set owner_id = $2 where id = $1", [nid, U.bia])).rejects.toThrow(/campo_imutavel/);
+    // controle positivo: com dono igual, o mesmo caminho funciona
+    const ok = await linha(U.bia, U.bia);
+    expect((await salvar(U.bia, ok, 1, draft({ currentHp: 2 }))).error).toBeUndefined();
+    expect((await salvar(U.ana, ok, 2, draft({ currentHp: 3 }))).error).toBeUndefined();          // o mestre também
+  });
+  it("ficha ligada a nota com meta inválido (linha corrompida/pré-existente): atualização recusada até o meta ser corrigido", async () => {
+    const nid = await linha(U.bia, U.bia);
+    for (const meta of [{ guiado: true, inventario: ["x"] }, {}, { guiado: true, identidadePublica: { card: { nivel: 3 }, settings: {} } }]) {
+      await semGatilho(() => db.query("update public.notes set meta = $2::jsonb where id = $1", [nid, JSON.stringify(meta)]));
+      negado(await upd(U.bia, nid)); negado(await upd(U.ana, nid));
+      expect((await salvar(U.bia, nid, 1, draft())).error, JSON.stringify(meta)).toBeTruthy();
+      expect((await salvar(U.ana, nid, 1, draft())).error, JSON.stringify(meta)).toBeTruthy();
+    }
+    // o dono conserta a identidade pela própria nota (o gatilho valida o novo meta) e a ficha volta a ser editável
+    expect((await as(db, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [nid, JSON.stringify({ guiado: true, identidadePublica: identidade })])).error).toBeUndefined();
+    expect((await salvar(U.bia, nid, 1, draft({ currentHp: 4 }))).error).toBeUndefined();
+  });
+  it("o helper confere dono, campanha, tipo, atividade e meta: cada falha isolada devolve falso (e o caminho correto, verdadeiro)", async () => {
+    const nid = await linha(U.bia, U.bia);
+    const q = (p: unknown[]) => db.query<{ r: boolean }>("select private.nota_guiada_ativa($1, $2, $3) as r", p).then(x => x.rows[0].r);
+    expect(await q([nid, C1, U.bia])).toBe(true);
+    expect(await q([nid, C1, U.caio])).toBe(false);                                                // dono diferente
+    expect(await q([nid, C2, U.bia])).toBe(false);                                                 // campanha diferente
+    expect(await q(["11111111-1111-4111-8111-111111111111", C1, U.bia])).toBe(false);              // inexistente
+    await semGatilho(() => db.query("update public.notes set kind = 'note' where id = $1", [nid]));
+    expect(await q([nid, C1, U.bia])).toBe(false);                                                 // não é personagem
+    await semGatilho(() => db.query("update public.notes set kind = 'character', deleted_at = now(), deleted_batch = gen_random_uuid() where id = $1", [nid]));
+    expect(await q([nid, C1, U.bia])).toBe(false);                                                 // excluída
+    await semGatilho(() => db.query("update public.notes set deleted_at = null, deleted_batch = null, meta = '{}'::jsonb where id = $1", [nid]));
+    expect(await q([nid, C1, U.bia])).toBe(false);                                                 // meta inválido
+  });
+  it("sem CHECK global sobre meta: a 0008 não cria `notes_guiado_meta_check` (não trava notas legadas)", async () => {
+    expect((await db.query("select count(*)::int as n from pg_constraint where conname = 'notes_guiado_meta_check'")).rows[0]).toEqual({ n: 0 });
+  });
+});
+
+describe("notas legadas (existentes antes da 0008) continuam funcionando", () => {
+  it("a 0008 aplica com notas legadas marcadas `guiado` em formato diferente; elas seguem editáveis, mas só ganham ficha com meta válido", async () => {
+    const t = await boot("0007_character_sheets_foundation.sql");
+    const c = (await as(t, U.ana, "select public.create_campaign('M','') as r")).rows[0].r as string;
+    await as(t, U.bia, "select public.join_campaign($1)", [(await as(t, U.ana, "select public.create_invite($1, 5, 7) as r", [c])).rows[0].r]);
+    const mk = async (titulo: string, meta: unknown) => (await t.query("insert into public.notes (owner_id, campaign_id, kind, title, meta) values ($1, $2, 'character', $3, $4::jsonb) returning id", [U.bia, c, titulo, JSON.stringify(meta)])).rows[0].id as string;
+    const legadoGuiado = await mk("Legado guiado", { guiado: true, legado: 1, inventario: ["Corda"], nivel: 5 });
+    const legadoSimples = await mk("Legado simples", { classe: "Mago", nivel: 2, inventario: ["Cajado"] });
+    const legadoVazio = await mk("Legado sem meta", {});
+    await t.exec(sql("0008_character_sheets_persistencia.sql"));                                  // não aborta por causa das notas legadas
+    const up = (id: string, titulo: string) => as(t, U.bia, "update public.notes set title = $2 where id = $1 returning id", [id, titulo]);
+    for (const id of [legadoGuiado, legadoSimples, legadoVazio]) expect((await up(id, "Renomeado")).rows).toHaveLength(1);   // continuam editáveis
+    expect((await as(t, U.bia, "update public.notes set meta = $2::jsonb where id = $1 returning id", [legadoSimples, JSON.stringify({ classe: "Clérigo", nivel: 3, inventario: ["Maça"] })])).rows).toHaveLength(1);
+    const ficha = (id: string) => as(t, U.bia, "insert into public.character_sheets (character_id, campaign_id, owner_id, draft) values ($1, $2, $3, $4::jsonb)", [id, c, U.bia, JSON.stringify(draft({ id }))]);
+    for (const id of [legadoGuiado, legadoSimples, legadoVazio]) expect((await ficha(id)).error, id).toMatch(/row-level security/);   // sem meta estrito, não vira ficha guiada
+    // o dono migra o legado para o formato estrito (sem ficha ainda): agora pode criar a ficha
+    expect((await as(t, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [legadoGuiado, JSON.stringify({ guiado: true, identidadePublica: identidade })])).error).toBeUndefined();
+    expect((await ficha(legadoGuiado)).error).toBeUndefined();
+    expect((await as(t, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [legadoGuiado, JSON.stringify({ guiado: true, inventario: [] })])).error).toMatch(/identidade_invalida/);   // e a partir daí a proteção vale
   });
 });
 
@@ -445,7 +523,7 @@ describe("reversões", () => {
 
 describe("compatibilidade da 0008 com a estrutura REAL da 0007 (o SQL remoto original não está versionado)", () => {
   const aplica = (t: PGlite) => t.exec(sql("0008_character_sheets_persistencia.sql"));
-  const intacto = async (t: PGlite) => Number((await t.query("select count(*)::int as n from pg_constraint where conname in ('notes_id_campaign_uniq','notes_guiado_meta_check')")).rows[0].n) === 0;
+  const intacto = async (t: PGlite) => Number((await t.query("select count(*)::int as n from pg_constraint where conname in ('notes_id_campaign_uniq')")).rows[0].n) === 0;
   const comBase = () => boot("0007_character_sheets_foundation.sql");
 
   it("estrutura divergente aborta a migração inteira com mensagem clara e NÃO altera nada (tipo de coluna, coluna ausente, RLS desligada)", async () => {

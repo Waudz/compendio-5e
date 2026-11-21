@@ -4,13 +4,13 @@
 -- Persistência segura da FICHA PRIVADA do criador guiado. Incremental: NÃO apaga, não recria a tabela e não toca dados existentes.
 --   0. pré-condições: confere a estrutura REAL da 0007 e ABORTA inteira (sem alterar nada) se divergir;
 --   1. schema `private` (NÃO exposto pela API) com quatro funções de apoio — duas SECURITY DEFINER mínimas que só respondem "existe?":
---        tem_ficha(id), nota_guiada_ativa(id, campanha); e duas puras: identidade_meta_valida(meta), titulo_publico(meta);
---   2. INVARIANTE PRESA À EXISTÊNCIA DA FICHA (não a um marcador do cliente): enquanto houver `character_sheets` para uma nota, um gatilho em `notes`
+--        tem_ficha(id), nota_guiada_ativa(id, campanha, dono); e duas puras: identidade_meta_valida(meta), titulo_publico(meta);
+--   2. INVARIANTE PRESA À EXISTÊNCIA DA FICHA (sem CHECK global: notas legadas com `guiado` em formato diferente continuam editáveis) (não a um marcador do cliente): enquanto houver `character_sheets` para uma nota, um gatilho em `notes`
 --      impede remover o vínculo/`guiado`, trocar o tipo, excluir (soft-delete) e exige que `meta` seja EXATAMENTE uma identidade pública válida;
 --      o título é sempre derivado dessa identidade (o cliente não escolhe título);
 --   3. gatilho em `character_sheets` (campos imutáveis; `revision`/`updated_at` só do servidor), chave composta com `notes`, `draft.id = character_id`;
 --   4. políticas definitivas — INSERT e UPDATE exigem a nota ativa (`deleted_at IS NULL`), inclusive para o mestre (que não lê a nota privada) por
---      meio de `private.nota_guiada_ativa`;
+--      meio de `private.nota_guiada_ativa`, que confere também dono da nota = dono da ficha (invariante da 0007) e meta válido;
 --   5. privilégios mínimos (SELECT, INSERT em 4 colunas, UPDATE em `draft`); nunca DELETE; anon nada;
 --   6. `create_guided_character` / `save_guided_character` (SECURITY INVOKER; a RLS vale para quem chama): meta validado de forma ESTRITA, título derivado.
 --
@@ -59,11 +59,6 @@ create function private.tem_ficha(p_id uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.character_sheets s where s.character_id = p_id)
 $$;
-create function private.nota_guiada_ativa(p_id uuid, p_campaign uuid) returns boolean
-language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from public.notes n where n.id = p_id and n.campaign_id = p_campaign and n.kind = 'character' and n.deleted_at is null)
-$$;
-
 -- Validação ESTRITA da linha pública de um personagem guiado: `meta` = { guiado: true, identidadePublica?: { settings, card } } e nada mais.
 -- Qualquer chave extra (inventario, draft, nivel...), tipo errado, texto grande demais ou imagem que não seja https é recusada.
 create function private.identidade_meta_valida(m jsonb) returns boolean
@@ -116,15 +111,23 @@ language sql immutable set search_path = '' as $$
                        'Personagem'), 120)
 $$;
 
-revoke all on function private.tem_ficha(uuid), private.nota_guiada_ativa(uuid, uuid), private.identidade_meta_valida(jsonb), private.titulo_publico(jsonb) from public, anon;
-grant execute on function private.tem_ficha(uuid), private.nota_guiada_ativa(uuid, uuid), private.identidade_meta_valida(jsonb), private.titulo_publico(jsonb) to authenticated;
+-- Nota "viva" da ficha: existe, é de personagem, da MESMA campanha, PERTENCE ao dono da ficha (invariante da 0007), está ativa (deleted_at IS NULL) e a
+-- linha pública está no formato estrito. Definida depois de identidade_meta_valida (usada abaixo); as funções são resolvidas na execução.
+create function private.nota_guiada_ativa(p_id uuid, p_campaign uuid, p_owner uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from public.notes n
+                  where n.id = p_id and n.campaign_id = p_campaign and n.owner_id = p_owner and n.kind = 'character'
+                    and n.deleted_at is null and private.identidade_meta_valida(n.meta))
+$$;
+
+revoke all on function private.tem_ficha(uuid), private.nota_guiada_ativa(uuid, uuid, uuid), private.identidade_meta_valida(jsonb), private.titulo_publico(jsonb) from public, anon;
+grant execute on function private.tem_ficha(uuid), private.nota_guiada_ativa(uuid, uuid, uuid), private.identidade_meta_valida(jsonb), private.titulo_publico(jsonb) to authenticated;
 
 -- ------------------------------------------------------------------ 2. invariante da linha pública, presa à existência da ficha
 alter table public.notes add constraint notes_id_campaign_uniq unique (id, campaign_id);
--- Higiene antes do vínculo: se o marcador existir, `meta` só pode ter identidade pública (a proteção real é o gatilho abaixo, que não depende do marcador).
-alter table public.notes add constraint notes_guiado_meta_check
-  check (not (meta ? 'guiado') or (meta - array['guiado', 'identidadePublica']) = '{}'::jsonb);
-
+-- NÃO há CHECK global sobre `meta` (a versão anterior desta proposta tinha `notes_guiado_meta_check`): ela impediria atualizar notas LEGADAS que tenham a chave
+-- `guiado` mas fora do formato estrito, e não era a fronteira de segurança. A proteção vale onde importa: (a) a ficha só nasce para uma nota com meta válido
+-- (política de INSERT); (b) depois, o gatilho abaixo mantém o meta válido enquanto a ficha existir; (c) a RPC de criação valida antes de gravar.
 create function private.notes_ficha_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
@@ -184,11 +187,12 @@ create policy character_sheets_insert on public.character_sheets for insert to a
   with check (owner_id = (select auth.uid()) and public.is_member(campaign_id)
     and exists (select 1 from public.notes n where n.id = character_id and n.owner_id = (select auth.uid()) and n.kind = 'character'
                 and n.campaign_id = character_sheets.campaign_id and n.deleted_at is null and private.identidade_meta_valida(n.meta)));
--- Atualização: dono participante ou mestre, e a nota continua ATIVA. A checagem usa a função DEFINER porque o mestre não lê a nota privada.
+-- Atualização: dono participante ou mestre, e a nota continua VIVA: do mesmo dono da ficha, da mesma campanha, ativa e com meta válido. A checagem usa a
+-- função DEFINER porque o mestre não lê a nota privada.
 create policy character_sheets_update on public.character_sheets for update to authenticated
   using ((owner_id = (select auth.uid()) and public.is_member(campaign_id)) or public.is_master(campaign_id))
   with check (((owner_id = (select auth.uid()) and public.is_member(campaign_id)) or public.is_master(campaign_id))
-              and private.nota_guiada_ativa(character_id, campaign_id));
+              and private.nota_guiada_ativa(character_id, campaign_id, owner_id));
 -- Sem política (e sem privilégio) de DELETE: a exclusão/transferência segue os contratos narrativos, não um atalho de API.
 
 -- ------------------------------------------------------------------ 5. privilégios mínimos
