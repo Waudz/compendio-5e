@@ -46,3 +46,18 @@ Status: **proposta**, não é migração executável. O PR #75 só implementa co
 - Reconciliar o vínculo de NPCs com o modelo de catálogo canônico que Claude entregará no PR #74.
 - Criar migração via CLI do projeto, com nome gerado pela ferramenta e rollback testado; não inventar numeração ou aplicar em produção.
 - Não publicar até testes de segurança e revisão do usuário.
+
+## Revisão de integração após autorização das migrações — 21/11/2026
+
+**Estado confirmado:** a migração remota `character_sheets_private_foundation` existe e a tabela `character_sheets` permanece sem GRANT de API. O Claude é responsável pela integração da ficha; esta frente não deve criar tabela concorrente, armazenar ficha em `encyclopedia_entries` ou duplicar a identidade pública.
+
+**Bloqueios identificados nos três rascunhos SQL desta frente (não executar):**
+
+1. `ENCICLOPEDIA-LEITURA-RPC-RASCUNHO.sql` e `ENCICLOPEDIA-LIXEIRA-RPC-RASCUNHO.sql` criam funções `SECURITY DEFINER` no schema exposto `public`. A concessão explícita a `authenticated` não substitui uma revisão do proprietário, do bypass de RLS e dos testes multiusuário. Preferir operações `SECURITY INVOKER` com tabelas/projeções segregadas; se um definer for indispensável, movê-lo para schema não exposto e revisar um gateway estritamente autorizado.
+2. `ENCICLOPEDIA-SQL-RASCUNHO.sql` concede SELECT da tabela base somente ao mestre. Isso é seguro como bloqueio provisório, mas a RPC de leitura pública não pode ser simplesmente trocada por invoker sem redesenhar a projeção: o jogador não teria SELECT. Nunca liberar SELECT direto da tabela base ao jogador enquanto `summary` puder ocultar `public_description`.
+3. A especificação nomeia `encyclopedia_character_history`, mas o SQL cria `encyclopedia_history`. Padronizar `encyclopedia_history` antes da migração.
+4. O domínio possui níveis `hidden|summary|full`; a experiência de produto prevê compartilhamento seletivo de nome, descrição, imagem e mecânicas. Formalizar a projeção e seu armazenamento antes de criar grants ou endpoints. Não usar `visibility='full'` como autorização para expor ficha privada.
+5. A busca SQL atual não é insensível a acentos como a busca do domínio. Alinhar sem expor resultados ocultos em filtros, contagens, paginação ou Realtime.
+6. Não há implementação segura de exclusão definitiva com preservação/auditoria de histórico. Manter DELETE negado até decisão explícita; lixeira e restauração devem preservar dados.
+
+**Ordem de execução:** (a) concluir contrato de identidade pública com o Claude; (b) definir esquema de projeção segregada, RLS, grants e operações de descoberta/lixeira; (c) criar migrações incrementais e testes PostgreSQL reais com mestre, jogador, ex-membro, outra campanha e anônimo; (d) executar apenas migrações revisadas, verificar advisors e consultar os grants; (e) conectar interface e testes E2E. Nenhuma migração da Enciclopédia está aplicada nesta etapa.
