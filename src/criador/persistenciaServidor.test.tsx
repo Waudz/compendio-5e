@@ -40,7 +40,7 @@ const montar = async (user: User = me, layoutNovo = true) => {
 };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole("button", { name: "Personagens" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Personagens" })); };
 const nomeInput = () => screen.findByLabelText("Nome do personagem") as Promise<HTMLInputElement>;
-const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar com o criador guiado/ })); return nomeInput(); };
+const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar personagem/ })); return nomeInput(); };
 const preencher = async (nome: string) => {
   fireEvent.change(await nomeInput(), { target: { value: nome } });
   fireEvent.click(screen.getByLabelText("Perícia athletics")); fireEvent.click(screen.getByLabelText("Perícia perception"));
