@@ -1,3 +1,6 @@
+-- SUPERSEDED / DO NOT EXECUTE: this exposed-schema SECURITY DEFINER draft
+-- is superseded by ENCICLOPEDIA-PROJECAO-PUBLICA-RASCUNHO.sql.
+-- Keep only as historical review material until the write/sync path is validated.
 -- RASCUNHO DE LEITURA PUBLICA: NAO EXECUTAR. Depende de ENCICLOPEDIA-SQL-RASCUNHO.sql.
 -- Leitura de jogadores por RPC com colunas explicitamente permitidas.
 -- SECURITY DEFINER em schema exposto exige auditoria: EXECUTE explicitamente
