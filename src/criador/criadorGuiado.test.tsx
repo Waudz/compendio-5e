@@ -33,7 +33,7 @@ const menu = () => within(screen.getByRole('navigation', { name: 'Menu principal
 const secoes = () => within(screen.getByRole('navigation', { name: 'Seções do personagem' }));
 const montar = async (user = me) => { localStorage.setItem(activeKey(user.id), 'ca'); return renderApp({ user, api: apiC(jogador), registros: registrosEmMemoria('jogador', user.id, [], { dados: [] }) }); };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Personagens' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Personagens' })); };
-const novoGuiado = async () => { fireEvent.click(await screen.findByRole('button', { name: /Criar com o criador guiado/ })); return screen.findByLabelText('Nome do personagem'); };
+const novoGuiado = async () => { fireEvent.click(await screen.findByRole('button', { name: /Criar personagem/ })); return screen.findByLabelText('Nome do personagem'); };
 const preencherFicha = async (nome: string) => {
   fireEvent.change(await screen.findByLabelText('Nome do personagem'), { target: { value: nome } });
   fireEvent.click(screen.getByLabelText('Perícia athletics')); fireEvent.click(screen.getByLabelText('Perícia perception'));
@@ -225,7 +225,7 @@ describe('criador guiado no celular', () => {
     await waitFor(() => expect(document.querySelector('.mobile-page-title')?.textContent).toBe(camp.name));
     fireEvent.click(naBarra().getByRole('button', { name: 'Menu' }));
     fireEvent.click(within(await screen.findByRole('dialog', { name: 'Menu de navegação' })).getByRole('button', { name: 'Personagens' }));
-    fireEvent.click(await screen.findByRole('button', { name: /Criar com o criador guiado/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Criar personagem/ }));
     fireEvent.change(await screen.findByLabelText('Nome do personagem'), { target: { value: 'Thorin' } });
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.getByTestId('aviso-armazenamento')).toBeTruthy();
