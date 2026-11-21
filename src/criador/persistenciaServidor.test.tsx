@@ -152,7 +152,7 @@ describe("quem vê o quê", () => {
   it("início da campanha mostra o personagem guiado publicado só com a identidade (sem nível)", async () => {
     await criarPersonagem("Thorin", true);
     cleanup(); await montar(other);
-    const card = await screen.findByRole("button", { name: /Abrir ficha de O Escudo/ });
+    const card = await screen.findByRole("button", { name: /^O Escudo/ });
     expect(card.textContent).not.toMatch(/nível/);
   });
 

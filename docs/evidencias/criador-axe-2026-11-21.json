@@ -1,0 +1,1161 @@
+[
+  {
+    "project": "qualidade-320",
+    "screen": "ficha",
+    "violations": []
+  },
+  {
+    "project": "qualidade-320",
+    "screen": "equipamento",
+    "violations": []
+  },
+  {
+    "project": "qualidade-320",
+    "screen": "inventario",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Armadura de couro no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Armadura de couro\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Armadura de couro\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Arco longo no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-320",
+    "screen": "item",
+    "violations": []
+  },
+  {
+    "project": "qualidade-360",
+    "screen": "ficha",
+    "violations": []
+  },
+  {
+    "project": "qualidade-360",
+    "screen": "equipamento",
+    "violations": []
+  },
+  {
+    "project": "qualidade-360",
+    "screen": "inventario",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Armadura de couro no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Armadura de couro\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Armadura de couro\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Arco longo no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Arco longo\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Arco longo\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-360",
+    "screen": "item",
+    "violations": []
+  },
+  {
+    "project": "qualidade-390",
+    "screen": "ficha",
+    "violations": []
+  },
+  {
+    "project": "qualidade-390",
+    "screen": "equipamento",
+    "violations": []
+  },
+  {
+    "project": "qualidade-390",
+    "screen": "inventario",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Armadura de couro no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Armadura de couro\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Armadura de couro\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Arco longo no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Arco longo\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Arco longo\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-390",
+    "screen": "item",
+    "violations": []
+  },
+  {
+    "project": "qualidade-700",
+    "screen": "ficha",
+    "violations": []
+  },
+  {
+    "project": "qualidade-700",
+    "screen": "equipamento",
+    "violations": []
+  },
+  {
+    "project": "qualidade-700",
+    "screen": "inventario",
+    "violations": [
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Armadura de couro no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Armadura de couro\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Armadura de couro\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Arco longo no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Arco longo\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Arco longo\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Consultar Flecha no Compêndio\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Flecha no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Adicionar quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Flecha\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Remover quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Flecha\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Espada longa no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Espada longa\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Espada longa\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-700",
+    "screen": "item",
+    "violations": []
+  },
+  {
+    "project": "qualidade-701",
+    "screen": "ficha",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-701",
+    "screen": "equipamento",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-701",
+    "screen": "inventario",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Armadura de couro no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Armadura de couro\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Armadura de couro\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Arco longo no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Arco longo\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Arco longo\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Consultar Flecha no Compêndio\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Flecha no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Adicionar quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Flecha\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Remover quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Flecha\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-701",
+    "screen": "item",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "#flexlayout-tabbutton-criador\\:f9256fd9-4ebb-42b5-80be-0cdc61d54f02"
+            ],
+            "html": "<div id=\"flexlayout-tabbutton...\" role=\"tab\" aria-selected=\"false\" aria-controls=\"flexlayout-tab-criad...\" aria-label=\"Novo personagem\" aria-keyshortcuts=\"Control+Delete\" tabindex=\"-1\" data-layout-path=\"/ts0/tb1\" class=\"flexlayout__tab_butt...\" draggable=\"true\">",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-768",
+    "screen": "ficha",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-768",
+    "screen": "equipamento",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-768",
+    "screen": "inventario",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Armadura de couro no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Armadura de couro\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Armadura de couro\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Arco longo no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Arco longo\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Arco longo\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Consultar Flecha no Compêndio\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Flecha no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Adicionar quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Flecha\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Remover quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Flecha\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Espada longa no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Espada longa\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Espada longa\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-768",
+    "screen": "item",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "#flexlayout-tabbutton-criador\\:666b8a7b-c93b-4075-8931-28f22edc8a3e"
+            ],
+            "html": "<div id=\"flexlayout-tabbutton...\" role=\"tab\" aria-selected=\"false\" aria-controls=\"flexlayout-tab-criad...\" aria-label=\"Novo personagem\" aria-keyshortcuts=\"Control+Delete\" tabindex=\"-1\" data-layout-path=\"/ts0/tb1\" class=\"flexlayout__tab_butt...\" draggable=\"true\">",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-1024",
+    "screen": "ficha",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-1024",
+    "screen": "equipamento",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-1024",
+    "screen": "inventario",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Armadura de couro no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Armadura de couro\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Armadura de couro\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Arco longo no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Arco longo\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Arco longo\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Consultar Flecha no Compêndio\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Flecha no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Adicionar quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Flecha\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Remover quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Flecha\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Espada longa no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Espada longa\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Espada longa\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-1024",
+    "screen": "item",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "#flexlayout-tabbutton-criador\\:6e263609-6873-4468-937f-cee7a61cf762"
+            ],
+            "html": "<div id=\"flexlayout-tabbutton...\" role=\"tab\" aria-selected=\"false\" aria-controls=\"flexlayout-tab-criad...\" aria-label=\"Novo personagem\" aria-keyshortcuts=\"Control+Delete\" tabindex=\"-1\" data-layout-path=\"/ts0/tb1\" class=\"flexlayout__tab_butt...\" draggable=\"true\">",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-1440",
+    "screen": "ficha",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-1440",
+    "screen": "equipamento",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-1440",
+    "screen": "inventario",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Armadura de couro no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Armadura de couro\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(1) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Armadura de couro\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Arco longo no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Arco longo\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(2) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Arco longo\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Consultar Flecha no Compêndio\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Flecha no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Adicionar quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Flecha\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "button[aria-label=\"Remover quantidade de Flecha\"]"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Flecha\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(1)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Consultar Espada longa no Compêndio\">Consultar no Compêndio</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(2)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Adicionar quantidade de Espada longa\">+1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "li:nth-child(4) > .row > .btn-secondary[type=\"button\"]:nth-child(3)"
+            ],
+            "html": "<button type=\"button\" class=\"btn-secondary\" aria-label=\"Remover quantidade de Espada longa\">−1</button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "project": "qualidade-1440",
+    "screen": "item",
+    "violations": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              "strong > span"
+            ],
+            "html": "<span>5e</span>",
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.85 (foreground color: #3b82f6, background color: #202c39, font size: 12.8pt (17px), font weight: bold). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      },
+      {
+        "id": "label-content-name-mismatch",
+        "impact": "serious",
+        "nodes": [
+          {
+            "target": [
+              ".campaign-main"
+            ],
+            "html": "<button class=\"campaign-main\" title=\"Campanha ativa: Sociedade do Véu Negro (abrir o Início)\" aria-label=\"Campanha ativa: Sociedade do Véu Negro\"><small>CAMPANHA ATIVA</small><strong>Sociedade do Véu Negro</strong></button>",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          },
+          {
+            "target": [
+              "#flexlayout-tabbutton-criador\\:8df99a5c-b087-440e-b6e2-b963874c0a9b"
+            ],
+            "html": "<div id=\"flexlayout-tabbutton...\" role=\"tab\" aria-selected=\"false\" aria-controls=\"flexlayout-tab-criad...\" aria-label=\"Novo personagem\" aria-keyshortcuts=\"Control+Delete\" tabindex=\"-1\" data-layout-path=\"/ts0/tb1\" class=\"flexlayout__tab_butt...\" draggable=\"true\">",
+            "failureSummary": "Fix any of the following:\n  Text inside the element is not included in the accessible name"
+          }
+        ]
+      }
+    ]
+  }
+]
