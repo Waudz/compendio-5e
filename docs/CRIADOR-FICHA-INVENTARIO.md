@@ -316,7 +316,29 @@ O adaptador `src/rules/character-catalogue-adapter.ts` passou a validar, antes d
 
 **Experimental:** raça (Anão) e antecedente (Acólito) ilustrativos; só Guerreiro; opções de armas marciais são amostra; **armazenamento local** (`src/criador/armazenamento.ts`).
 
-### Persistência pendente — proposta mínima (NÃO aplicada; nenhuma migração criada)
-- **Estado hoje:** adaptador `ArmazenamentoCriador` em `localStorage`, chaves `compendio5e:experimental:criador:v1:<usuário>:<campanha>:<personagem>`. É **higiene, não segurança**: separado por usuário/campanha e apagado no logout, mas legível por quem usa o mesmo navegador, sem sincronização entre aparelhos e sem controle de acesso. A interface exibe esse aviso.
-- **Por que não usar só `notes.meta` (0006):** o registro `character` com visibilidade `campaign` é lido **inteiro** pelos participantes, inclusive `meta`; guardar o rascunho ali exporia PV, inventário e escolhas. Além disso `meta` é limitado a 16 KiB e a 0006 ainda não foi aplicada.
-- **Proposta mínima (a ser aprovada):** (1) aplicar a 0005 e a 0006 já propostas; (2) uma tabela `character_sheets(character_id → notes.id on delete cascade, campaign_id, owner_id, revision int, draft jsonb ≤ 64 KiB, updated_at)` com RLS **só para o dono e para o mestre da campanha** (decisão: mestre edita fichas vinculadas), escrita por `update ... where revision = :esperada` (conflito = 0 linhas, como em `character-revisions.ts`); (3) a linha pública em `notes` guarda apenas a **projeção** `publicIdentityCard` (campos explícitos), nunca o rascunho; (4) testes PGlite com dono, outro jogador, mestre e anônimo; (5) o adaptador do servidor implementa `ArmazenamentoCriador` e substitui o local sem mudar a interface. Transferência entre jogadores e de itens, status ativo/inativo e iniciativa exclusiva do mestre ficam para migrações próprias. Risco principal: a política de leitura do mestre em `character_sheets` não pode alcançar anotações privadas (`notes` privadas seguem só do autor).
+### Persistência segura das fichas (migração 0012) — 21/11/2026
+
+**Estado em três camadas (não confundir):**
+| Camada | Estado |
+|---|---|
+| Implementado no código | `src/fichas.ts` (cliente Supabase por RPC), `src/criador/repositorio.ts` (servidor × local), `src/criador/recuperacao.ts`, criador e lista de Personagens ligados a eles, identidade pública projetada |
+| Validado em isolamento | `supabase/character-sheets.test.ts`: 24 testes em PostgreSQL (PGlite) com papéis `anon`/`authenticated`, `auth.uid()` simulado e as migrações 0001–0012; mutações das políticas são detectadas. Interface testada com um modelo em memória das regras (`src/fichasMemoria.ts`) e cliente Supabase simulado |
+| **Funcionando no Supabase real** | **NÃO.** A 0012 não foi aplicada. Hoje a tabela existe vazia e **fechada** (sem privilégio de API): o app chamaria funções inexistentes e mostraria "o banco ainda não recebeu a atualização" (ERRO_SCHEMA), sem perder o que foi digitado |
+
+**Auditoria: contrato `ArmazenamentoCriador` × `character_sheets`**
+| Ponto | Incompatibilidade encontrada | Solução |
+|---|---|---|
+| Vínculo com `notes.kind='character'` | o id do personagem é do servidor (`notes.id`), o do rascunho local era do cliente | `create_guided_character` cria nota + ficha na mesma transação e grava `draft.id = character_id` (CHECK); chave composta `(character_id, campaign_id) → notes(id, campaign_id)` |
+| Identidade pública × ficha privada | o contrato local guardava os dois juntos | ficha só em `character_sheets`; `notes.meta` só aceita `guiado` + `identidadePublica` (CHECK `notes_guiado_meta_check`); título da nota = nome público |
+| Dono/campanha alterados | a política inicial não impedia UPDATE de colunas-chave | grants de coluna (`update (draft)` apenas) **e** gatilho que recusa troca de `character_id`, `campaign_id`, `owner_id` e `created_at` até para papéis privilegiados |
+| Permissões do mestre | contrato local não tinha mestre | mestre lê e edita a **ficha**; não lê `notes` privadas e a função recusa mudança de identidade por quem não é o dono (`identidade_so_do_dono`) |
+| Revisões e conflitos | o local não tinha revisão | `revision` só do servidor (gatilho); `save_guided_character(..., p_expected_revision)` → `conflito_de_revisao` sem sobrescrever; a interface oferece carregar a versão atual e restaurar as próprias alterações |
+| Saída da campanha | local ignorava participação | o dono só lê/edita enquanto participa; a ficha **permanece** (sem DELETE) e o mestre continua com acesso. **Decisão de produto assumida**: a saída deixa o personagem inativo (como já decidido); quem saiu não recupera a ficha sozinho |
+| Exclusão e transferência | local excluía livremente | **sem DELETE** na API e FK `RESTRICT`: a nota não pode ser apagada com a ficha viva; a interface não oferece excluir personagens do servidor. Exclusão/transferência seguem o fluxo narrativo (PR #75), ainda sem implementação |
+| Troca de conta, logout e rede | rascunhos locais ficavam órfãos; falha de rede perdia a edição | chaves locais contêm `:<usuário>:` (apagadas no logout); falha de salvamento grava uma **cópia de recuperação** local e a tela mantém tudo; a aba de personagem novo mantém o vínculo com o id do servidor |
+
+**Transição dos rascunhos do `localStorage`:** com conta e API de fichas, a lista de Personagens mostra "Rascunhos neste navegador (experimental)" com **Revisar**, **Enviar para a campanha** e **Descartar** (confirmação). Nada é enviado nem apagado sozinho; a cópia local só é removida **depois** que o servidor confirma; se o envio falha, o rascunho continua local. A identidade enviada começa **privada**. Sem conta/API (demonstração, dev) o criador continua no armazenamento local experimental.
+
+**Achado fora do escopo (a decidir):** a ficha **simples** antiga (`FichaPagina`) grava o inventário em `notes.meta.inventario`; se o personagem estiver **publicado**, a campanha lê esse inventário. Não alterei o comportamento (há dados reais): a tela agora avisa, e o criador guiado é o caminho privado. Recomendação: migrar fichas simples para o criador guiado e então restringir `meta` desses registros.
+
+**Para aplicar (somente com autorização):** (1) conferir a 0011 contra o SQL remoto original; (2) rodar a 0012 em ambiente de teste/branch do Supabase; (3) repetir `supabase/character-sheets.test.ts` e os advisors; (4) conferir os grants: `authenticated` com SELECT, INSERT(4 colunas) e UPDATE(draft); `anon` nada; (5) só então aplicar no projeto `gwcttjlxzelzjhbuitmi`. Há reversão que não apaga dados.

@@ -16,7 +16,7 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 | Campanhas | 50% | API de campanhas | Painéis e navegação | Auth e regras existentes | Fluxos completos, integração com personagens |
 | Anotações/diário | 55% | Registros, visibilidade, editor | Interface existente | Migrações propostas ainda pendentes | Persistência final e testes |
 | Navegação | 70% | Layout e abas | Implementada | Layout local por escopo | Refinamento e integração |
-| Segurança/persistência | 35% | Auth, RLS parcial, contrato de revisão puro | Login | Revisões de ficha ainda não ligadas ao servidor | Escrita atômica e autorização de personagens |
+| Segurança/persistência | 45% | Auth, RLS, `character_sheets` (0011) e **0012 proposta** com revisão e imutabilidade | Login; criador com repositório servidor/local | Fichas: validado em PGlite, **não aplicado no Supabase** | Aplicar 0012, exclusão/transferência narrativas, Realtime |
 
 **Visão geral estimada: 30%.** Não é média aritmética; o peso da entrega completa é maior que o de módulos isolados. Os números podem mudar após auditoria.
 
@@ -70,3 +70,7 @@ Adicionado motivo opcional de indisponibilidade por chave versionada, limite de 
 ## Fatia vertical na navegação real — 21/11/2026
 
 Criador guiado (Guerreiro) e Compêndio de itens acessíveis pelo menu normal, testados em jsdom (742 testes no total). Ainda sem persistência autenticada e sem teste em navegador real. Percentuais são estimativas.
+
+## Persistência das fichas — 21/11/2026
+
+Código + 24 testes de RLS em PostgreSQL isolado + interface testada; **sem funcionamento real no Supabase** até a migração 0012 ser autorizada e aplicada. Percentuais são estimativas.

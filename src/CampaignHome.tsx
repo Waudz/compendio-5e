@@ -121,7 +121,7 @@ export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId:
   else corpo = <ul className="home-party">{st.data.map((a: Aventureiro) => <li key={a.id}>
     <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} onContextMenu={ev => aoClicarDireito(ev, { kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} aria-label={`Abrir ficha de ${a.nome}`}>
       {a.retratoUrl ? <img src={a.retratoUrl} alt="" loading="lazy"/> : <span className="home-portrait" aria-hidden="true">{a.nome.slice(0, 1).toLocaleUpperCase("pt-BR")}</span>}
-      <span><strong>{a.nome}</strong><small>{a.classe} · nível {a.nivel}</small></span></button></li>)}</ul>;
+      <span><strong>{a.nome}</strong><small>{a.classe}{a.nivel != null ? ` · nível ${a.nivel}` : ""}</small></span></button></li>)}</ul>;
   return <section className="home-sec" aria-label="Aventureiros"><h2><Users size={16} aria-hidden="true"/> Aventureiros</h2>{corpo}</section>;
 }
 

@@ -14,5 +14,9 @@
 | `0008` | vínculos entre páginas (`note_links`, derivada do conteúdo) | reservada (não implementada) | depende da 0005 |
 | `0009` | audiências de notas (compartilhamento granular, D3) | reservada (não implementada) | **antiga "0005"**: reescreve a regra de leitura; manter a assinatura de `can_read_note` |
 | `0010`+ | encontros e combates | reservada (não implementada) | com o módulo Encontros |
+| `0011` | **`character_sheets_private_foundation`**: tabela `public.character_sheets` (ficha privada do personagem guiado), RLS, privilégios de API **revogados** (fail closed) | **aplicada** (21/11/2026, remoto `character_sheets_private_foundation`) | o arquivo do repositório **reconstrói** a migração remota pela descrição (o SQL original não estava versionado): conferir com o original. Reversão guardada em `supabase/rollback/0011_character_sheets_foundation_down.sql` |
+| `0012` | **persistência segura das fichas**: políticas definitivas, revisão e campos imutáveis por gatilho, vínculo composto com `notes`, meta público só com identidade, `create_guided_character`/`save_guided_character` (SECURITY INVOKER), privilégios mínimos | **PROPOSTA — não aplicada** | exige revisão e autorização; testes em `supabase/character-sheets.test.ts` (PGlite); reversão em `supabase/rollback/0012_character_sheets_persistencia_down.sql` (não apaga dados) |
+
+> **Numeração de 21/11/2026:** `0011` e `0012` foram escolhidas para não reaproveitar as reservas `0007`–`0010`. No remoto as migrações de notas foram aplicadas com nomes por data (`notas_conteudo` = 0005 e `registros_capa_personagens` = 0006): **não reaplicar** esses arquivos; o remoto é a fonte do que já foi executado.
 
 > A reserva anterior de "0005" para audiências/vínculos de notas (documentos de 19/11/2026) foi **substituída** pela numeração acima: o Planejamento não depende das audiências e é aplicado antes.

@@ -213,3 +213,13 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Consequências:** personagens guiados não são os registros `character` da campanha (coexistem até a persistência real); a lista de Personagens mostra as duas origens em seções separadas. Sem alteração de banco, RLS ou produção.
 - **Verificação:** tsc, build e 742 testes locais (caminho do usuário em desktop e celular, Compêndio, armazenamento); CI do HEAD a conferir.
 - **Pendências:** persistência autenticada (proposta em `docs/CRIADOR-FICHA-INVENTARIO.md`), demais classes/raças/antecedentes, publicação da identidade na Enciclopédia (PR #75), Playwright (PR #76).
+
+### DEC-017 — Persistência das fichas do criador guiado no Supabase (2026-11-21)
+- **Situação:** implementada no código e validada em PostgreSQL isolado; **migração 0012 proposta, NÃO aplicada**.
+- **Problema e contexto:** o criador usava `localStorage` (sem segurança entre usuários); a tabela `character_sheets` foi criada fechada (0011) mas sem políticas definitivas, revisão controlada, imutabilidade nem integração.
+- **Decisão:** ficha privada em `character_sheets`; identidade pública na linha `notes` (kind `character`, `meta.guiado`), com `meta` restrito a `identidadePublica` por CHECK; gravação por duas funções SECURITY INVOKER atômicas; revisão otimista (`conflito_de_revisao`); dono lê/edita enquanto participa, mestre lê/edita a ficha (não a identidade nem notas privadas); sem DELETE; interface com repositório `servidor`/`local-experimental`, cópia de recuperação, envio explícito dos rascunhos locais.
+- **Alternativas rejeitadas:** ficha em `notes.meta` (vazaria); funções SECURITY DEFINER no schema exposto (contornam a RLS; os advisors já alertam); DELETE direto ou transferência por UPDATE de `owner_id` (contornam a auditoria narrativa); apagar o rascunho local ao enviar sem confirmação do servidor.
+- **Consequências:** sem a 0012 aplicada o app mostra a mensagem de atualização pendente; ex-participantes perdem o acesso (ficha preservada, mestre mantém); personagem do servidor não pode ser excluído pela UI; a identidade publicada vira o título da nota (visível à campanha).
+- **Implementação:** `supabase/migrations/0011_*`, `0012_*`, rollbacks, `src/fichas.ts`, `src/fichasMemoria.ts`, `src/criador/{repositorio,recuperacao,CriadorGuiado}.tsx`, `src/Personagens.tsx`.
+- **Verificação:** `supabase/character-sheets.test.ts` (24), `src/fichas.test.ts`, `src/criador/persistenciaServidor.test.tsx`, `recuperacao.test.ts`; tsc, build e 800 testes locais. Não validado no Supabase hospedado.
+- **Pendências:** aplicar a 0012 (autorização), testar contra o remoto, exclusão/transferência narrativas (PR #75), migração das fichas simples, Realtime (fora de escopo).
