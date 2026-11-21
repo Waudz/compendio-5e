@@ -61,3 +61,11 @@ Status: **proposta**, não é migração executável. O PR #75 só implementa co
 6. Não há implementação segura de exclusão definitiva com preservação/auditoria de histórico. Manter DELETE negado até decisão explícita; lixeira e restauração devem preservar dados.
 
 **Ordem de execução:** (a) concluir contrato de identidade pública com o Claude; (b) definir esquema de projeção segregada, RLS, grants e operações de descoberta/lixeira; (c) criar migrações incrementais e testes PostgreSQL reais com mestre, jogador, ex-membro, outra campanha e anônimo; (d) executar apenas migrações revisadas, verificar advisors e consultar os grants; (e) conectar interface e testes E2E. Nenhuma migração da Enciclopédia está aplicada nesta etapa.
+
+## Projeção pública segregada — proposta em revisão
+
+Arquivo: [`ENCICLOPEDIA-PROJECAO-PUBLICA-RASCUNHO.sql`](./ENCICLOPEDIA-PROJECAO-PUBLICA-RASCUNHO.sql). O rascunho de RPC pública `SECURITY DEFINER` foi explicitamente marcado como **substituído**; **nenhum dos dois deve ser executado ainda**.
+
+A proposta introduz `encyclopedia_publications` com apenas `entry_id, campaign_id, kind, name, summary, public_description, visibility, updated_at`. `visibility` só admite `summary|full`, e a CHECK obriga `public_description=''` em `summary`. A tabela tem RLS e SELECT apenas para membros ativos da campanha, usando `public.is_member`. Não há GRANT de INSERT/UPDATE/DELETE para clientes. Ela não contém notas privadas, mecânicas nem dados da ficha.
+
+**Risco bloqueador:** a publicação precisa ser sincronizada **na mesma transação** que a alteração da entrada original. Ao ocultar, mover à lixeira, excluir ou alterar campanha, remover a projeção imediatamente; ao restaurar, republicar somente se a descoberta anterior permitir. Até existir essa escrita transacional com validação de mestre no servidor, a proposta não é publicável. Também é necessário decidir se a visibilidade de nome, imagem e mecânicas será mais granular que `hidden|summary|full`, testar papéis reais, contagens, busca, cache e Realtime e alinhar a identidade pública do criador com Claude. O histórico e a exclusão permanente continuam fora desta migração.
