@@ -6,12 +6,13 @@ export type MenuState = { x: number; y: number; items: MenuItem[] };
 export function ContextMenu({ menu, onClose }: { menu: MenuState; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    const root = ref.current;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const away = (e: Event) => { if (!ref.current?.contains(e.target as Node)) onClose(); };
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("pointerdown", away, true); window.addEventListener("keydown", esc); window.addEventListener("blur", onClose); window.addEventListener("resize", onClose);
     ref.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
-    return () => { window.removeEventListener("pointerdown", away, true); window.removeEventListener("keydown", esc); window.removeEventListener("blur", onClose); window.removeEventListener("resize", onClose); if (previous?.isConnected) previous.focus({ preventScroll: true }); };
+    return () => { window.removeEventListener("pointerdown", away, true); window.removeEventListener("keydown", esc); window.removeEventListener("blur", onClose); window.removeEventListener("resize", onClose); if (previous?.isConnected && (document.activeElement === document.body || root?.contains(document.activeElement))) previous.focus({ preventScroll: true }); };
   }, [onClose]);
   const keys = (e: ReactKeyboardEvent) => {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;

@@ -28,3 +28,19 @@ describe('acessibilidade do menu contextual',()=>{
   expect(screen.queryByRole('menu')).toBeNull();expect(document.activeElement).toBe(trigger);
  });
 });
+
+function MenuParaDialogo() {
+ const [menu,setMenu]=useState(false), [dialog,setDialog]=useState(false);
+ const close=useCallback(()=>setMenu(false),[]);
+ return <><button onClick={()=>setMenu(true)}>Abrir opções</button>
+  {menu&&<ContextMenu menu={{x:10,y:10,items:[{label:'Fechar ficha',onSelect:()=>setDialog(true)}]}} onClose={close}/>}
+  {dialog&&<div role="alertdialog" aria-label="Alterações não salvas"><button autoFocus>Cancelar</button></div>}
+ </>;
+}
+it('não retira o foco do diálogo aberto pela ação do menu',()=>{
+ render(<MenuParaDialogo/>);const trigger=screen.getByRole('button',{name:'Abrir opções'});
+ trigger.focus();fireEvent.click(trigger);
+ fireEvent.click(screen.getByRole('menuitem',{name:'Fechar ficha'}));
+ expect(screen.queryByRole('menu')).toBeNull();
+ expect(document.activeElement).toBe(screen.getByRole('button',{name:'Cancelar'}));
+});
