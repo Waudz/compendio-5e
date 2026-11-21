@@ -1,3 +1,7 @@
+-- SUPERADO / NAO EXECUTAR: SECURITY DEFINER em public expõe superfície privilegiada.
+-- Preferir o desenho com gatilho de guarda e UPDATE sob RLS em
+-- ENCICLOPEDIA-LIXEIRA-TRANSICOES-RASCUNHO.sql. Preservado só para auditoria.
+
 -- RASCUNHO: NAO EXECUTAR. Depende de ENCICLOPEDIA-SQL-RASCUNHO.sql.
 -- Transicoes de lixeira sao exclusivas do mestre autenticado.
 -- Nunca aceitar user_id, papel, deleted_at ou campaign_id como autoridade do cliente.
