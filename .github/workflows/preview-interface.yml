@@ -1,0 +1,32 @@
+name: Prévia isolada da interface
+on:
+  push:
+    branches: [preview/interface-criador-2026-11]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Validar TypeScript e gerar interface
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://gwcttjlxzelzjhbuitmi.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_Xq4BrPx_YkYGki7Ti2XUzA_ocr-zTWn
+      - name: Disponibilizar pacote de prévia sem publicar em produção
+        uses: actions/upload-artifact@v4
+        with:
+          name: compendio-5e-interface-preview
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
