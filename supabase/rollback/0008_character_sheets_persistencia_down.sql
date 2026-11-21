@@ -22,7 +22,7 @@ begin
 end $$;
 drop function if exists private.notes_ficha_guard();
 drop function if exists private.tem_ficha(uuid);
-drop function if exists private.nota_guiada_ativa(uuid, uuid);
+drop function if exists private.nota_guiada_ativa(uuid, uuid, uuid);
 drop function if exists private.identidade_meta_valida(jsonb);
 drop function if exists private.titulo_publico(jsonb);
 drop schema if exists private;
