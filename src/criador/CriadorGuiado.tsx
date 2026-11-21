@@ -86,7 +86,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     (async () => {
       try {
         const novoNaoSalvo = ehPersonagemNovo(id), alvo = servidor && novoNaoSalvo ? lerMapaAba(userId, campaignId, id) ?? id : id;
-        const p = await repo.carregar(alvo);
+        // Uma aba `novo-*` ainda não corresponde a uma ficha no banco. Consultar a API com esse identificador causa erro de UUID inválido.
+        const p = novoNaoSalvo && alvo === id ? null : await repo.carregar(alvo);
         if (!vivo) return;
         if (!p && (!novoNaoSalvo || alvo !== id)) { setCarga({ erro: "Personagem não encontrado, removido ou sem acesso (por exemplo, você saiu da campanha). Nada foi alterado." }); return; }   // nunca abre um editor vazio no lugar de um personagem existente
         if (p) aplicarCarregado(p); else { setEscolhas(escolhasDoInventario(novoRascunho(id))); registrarTitulo(id, "Novo personagem"); }
