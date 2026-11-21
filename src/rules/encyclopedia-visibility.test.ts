@@ -25,6 +25,12 @@ describe('encyclopedia visibility boundaries',()=>{
   expect(JSON.stringify(result)).toContain('Visitou a taverna');
   expect(JSON.stringify(result)).not.toMatch(/líder|challengeRating|secretHp|masterNotes|mechanics/);
  });
+ it('denies a direct player read of a trashed entry even when it was fully revealed',()=>{
+  const trashed={...base,visibility:'full' as const,deletedAt:'2026-11-21T00:00:00Z'};
+  expect(readEncyclopediaEntry(player,trashed)).toEqual({access:'denied'});
+  expect(listEncyclopediaEntries(player,[trashed])).toEqual([]);
+  expect(readEncyclopediaEntry(master,trashed)).toEqual({access:'master',entry:trashed});
+ });
  it('master sees private fields for their own campaign',()=>{
   expect(readEncyclopediaEntry(master,base)).toEqual({access:'master',entry:base});
  });
