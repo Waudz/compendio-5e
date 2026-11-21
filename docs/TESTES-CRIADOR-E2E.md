@@ -39,4 +39,47 @@ Salvar/reabrir verifica somente armazenamento experimental local atual. Não pro
 As correções de acessibilidade em `src/` do #77 não existem no #78: a suíte antiga preservada pode apontar novamente esses problemas. Não importar correções de outros autores nem afrouxar testes para obter CI verde.
 
 ## Resultados e encaminhamento
-Em execução; números finais e defeitos serão registrados após o CI Linux. Build/Vitest locais usam `--configLoader runner` por restrição de leitura do esbuild no Windows. Não confundir listagem de 64 casos com execução aprovada.
+CI Linux executado no commit `e4c511f`:
+
+| Verificação | Resultado |
+|---|---|
+| TypeScript e build padrão | Aprovados ([workflow](https://github.com/Waudz/compendio-5e/actions/runs/44869752967)) |
+| Vitest | 743 aprovados, 77 arquivos |
+| Tipos E2E | Aprovados |
+| E2E original #76 | 36 aprovados, 0 falhas |
+| Nova suíte criador | 56 aprovados, 8 falhas axe, 0 pulados/retries |
+| Qualidade #77 sobre #78 sem seus patches de app | 52 aprovados, 28 falhas, 32 não aplicáveis |
+
+Total navegador: 212 selecionados, **180 executados: 144 aprovados / 36 reprovados**, 32 não aplicáveis exclusivamente da suíte antiga. Não somar as 32 análises axe do criador como testes extras: são verificações dentro dos oito casos de acessibilidade.
+[E2E Linux](https://github.com/Waudz/compendio-5e/actions/runs/44869752993) permanece **vermelho por defeitos reais**. [Artefato](https://github.com/Waudz/compendio-5e/actions/runs/44869752993/artifacts/14693397582): relatórios, árvore acessível, capturas, vídeos e traces; expira em 28/11. JSON resumido permanente em [evidencias/criador-axe-2026-11-21.json](evidencias/criador-axe-2026-11-21.json). Capturas de Adaga em 320/1440 inspecionadas: conteúdo legível, limites de página respeitados. Os testes de geometria e fluxo passaram nas oito larguras.
+
+### C-E2E-01 — Nomes acessíveis do inventário divergentes (gravidade alta, axe serious)
+- **Responsável:** Claude / #78; não corrigido aqui por restrição de escopo.
+- **Reprodução:** `?demo=jogador` → Personagens → Criar com o criador guiado → preencher nome → Equipamento inicial → escolher couro/arco → Confirmar → Inventário. Executar `npm run test:creator -- --project=qualidade-320 --grep WCAG` (também nas demais larguras).
+- **Atual:** texto `Consultar no Compêndio` versus nome `Consultar Armadura de couro no Compêndio`; texto `+1` versus `Adicionar quantidade de ...`; texto `−1` versus `Remover quantidade de ...`. O texto visível não está incluído integralmente no nome acessível (WCAG 2.5.3, comandos por voz prejudicados).
+- **Esperado:** nome acessível deve conter o texto visível, preservando o contexto do item.
+- **Local:** `src/criador/CriadorGuiado.tsx`, botões das linhas do inventário (199–201 no commit-base).
+- **Evidência:** regra `label-content-name-mismatch` no inventário em todas as oito larguras; os oito casos WCAG falham. A quantidade de nós sinalizados varia com os itens visíveis no viewport; não alegamos varredura de toda a lista rolável.
+- **Recomendação ao responsável:** nomes como `Consultar no Compêndio: Armadura de couro`, `+1: adicionar quantidade de ...`, `−1: remover quantidade de ...`, seguidos de nova execução integral de axe. É proposta, não alteração implementada.
+
+### C-E2E-02 — Correções do #77 ainda ausentes do #78 (gravidade alta para acessibilidade)
+- **Responsável:** coordenação da integração; não é regressão criada por estes testes.
+- **Reprodução:** modo demo, desktop → marca/seletor/abas/cartões; mobile → menu → Tab/Shift+Tab/Escape; desktop → menu contextual → setas/fechar.
+- **Resultados herdados:** oito casos axe falham (contraste/nomes); quatro casos de foco do menu mobile; oito de teclado/retorno de foco do menu contextual; oito do contrato de nomes naturais/privacidade.
+- **Evidência nova:** marca `#3b82f6` sobre `#202c39` tem contraste medido **3,85:1**, exigido **4,5:1**; `.campaign-main` substitui o texto visível no nome; aba do criador renomeada visualmente diverge do nome acessível depois de salvar. Nas quatro larguras mobile, ficha/equipamento/item passaram axe; o inventário continuou falhando por C-E2E-01.
+- **Locais conhecidos:** `src/style.css`, `src/App.tsx`, `src/CampaignHome.tsx`, `src/Mobile.tsx`, `src/ContextMenu.tsx`. Patches e regressões já propostos no PR #77; reconciliar com #78 sob responsabilidade dos autores, sem copiar cegamente arquivos inteiros.
+- **Esperado:** preservar os patches do #77 ao integrar os PRs, depois revalidar a aba do criador e todas as suítes. Os oito testes de nomes naturais foram preservados, não adaptados aos nomes incorretos do #78.
+
+### Correções de nossa frente e pendências
+Nenhum defeito de domínio/persistência corrigido. Testes usam o menu público `Fechar aba`, salvam explicitamente antes de navegar no celular e verificam a seção correta após remontagem. Não alteramos controles para facilitar seletores, não desativamos regras axe nem transformamos achados em skips/falhas esperadas.
+
+**Próxima etapa:** Claude corrigir C-E2E-01; coordenar reconciliação #77/#78 (C-E2E-02); reexecutar as três suítes e avaliar os relatórios antes de integrar. Só após persistência real: nova rodada de autenticação, RLS, revisões/conflitos, recarga e sincronização entre contextos/dispositivos.
+
+### Arquivos e risco de integração
+- Novos testes: `e2e/creator/helpers.ts`, `flows.creator.ts`, `accessibility.creator.ts`; configuração `playwright.creator.config.ts`.
+- Reutilizados sem alterar seu conteúdo: fixtures, specs #76, testes de qualidade #77 e duas configurações originais; `e2e/tsconfig.json` passa a incluir as três configurações.
+- Infraestrutura: `package.json`, lockfile, `vite.config.ts` (somente exclusão de E2E no Vitest), `.gitignore`, workflow `e2e.yml`.
+- Documentação: README, este relatório, JSON de evidências. **Diff de `src/` e `supabase/` contra #78 vazio.**
+- Possíveis conflitos com #76/#77: mesmos arquivos reutilizados de testes/CI/dependências; reconciliar uma única infraestrutura ao integrar, sem instalar um segundo Playwright. #74/#78: somente README/configuração comuns, nenhum módulo exclusivo do Claude alterado. #75 não incorporado nem alterado; revalidar navegação após integração.
+- Sem aparelho físico, leitor de tela real, Firefox/WebKit, avaliação de produção, sincronização ou segurança de servidor. Não certifica conteúdo SRD completo nem todos os níveis/classes.
+ Build/Vitest locais usam `--configLoader runner` por restrição de leitura do esbuild no Windows. Não confundir listagem de 64 casos com execução aprovada.
