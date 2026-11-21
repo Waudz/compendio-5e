@@ -41,6 +41,13 @@ const preencherFicha = async (nome: string) => {
 };
 const confirmarEquipamento = () => { fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' })); fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos iniciais' })); };
 
+
+/** WCAG 2.5.3 (axe `label-content-name-mismatch`): o nome acessível precisa conter o texto visível do botão. Devolve os botões que violam. */
+const nomesDivergentes = (raiz: ParentNode) => [...raiz.querySelectorAll('button[aria-label]')].filter(b => {
+  const visivel = (b.textContent ?? '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('pt-BR');
+  return visivel !== '' && !(b.getAttribute('aria-label') ?? '').toLocaleLowerCase('pt-BR').includes(visivel);
+}).map(b => `"${b.textContent?.trim()}" → "${b.getAttribute('aria-label')}"`);
+
 describe('criador guiado na navegação real (desktop)', () => {
   it('acessível pelo menu: Personagens oferece o criador, mostra o aviso de armazenamento experimental e a lista vazia', async () => {
     await montar(); await abrirPersonagens();
@@ -70,7 +77,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(inv.getByText('Cota de malha')).toBeTruthy(); expect(inv.getByText('Besta leve')).toBeTruthy(); expect(inv.getByText('Mochila')).toBeTruthy();
 
     // detalhes do item com a MESMA definição do Compêndio, em nova aba
-    fireEvent.click(inv.getByRole('button', { name: 'Consultar Cota de malha no Compêndio' }));
+    fireEvent.click(inv.getByRole('button', { name: 'Consultar no Compêndio: Cota de malha' }));
     expect(await screen.findByRole('heading', { name: 'Cota de malha' })).toBeTruthy();
     expect(abas()).toContain('Cota de malha');
     const fatos = within(document.querySelector('.item-fatos') as HTMLElement);
@@ -131,6 +138,34 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(await screen.findByText('Arco longo')).toBeTruthy(); expect(screen.getByText('Armadura de couro')).toBeTruthy();
     expect(screen.queryByText('Cota de malha')).toBeNull();
     expect(screen.getAllByText('Adaga').length).toBeGreaterThan(0);   // item adquirido preservado
+  });
+
+  it('C-E2E-01: no inventário o nome acessível de "Consultar no Compêndio", "+1" e "−1" contém o texto visível e continua identificando o item', async () => {
+    await montar(); await abrirPersonagens(); await novoGuiado(); await preencherFicha('Thorin');
+    confirmarEquipamento();
+    fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
+    const inv = screen.getByRole('region', { name: 'Inventário' });
+    expect(nomesDivergentes(inv)).toEqual([]);                                   // nenhum botão do inventário viola a regra
+    const botoes = [...inv.querySelectorAll('li button')].map(b => ({ texto: b.textContent, nome: b.getAttribute('aria-label') }));
+    expect(botoes).toContainEqual({ texto: 'Consultar no Compêndio', nome: 'Consultar no Compêndio: Cota de malha' });
+    expect(botoes).toContainEqual({ texto: '+1', nome: '+1: adicionar quantidade de Cota de malha' });
+    expect(botoes).toContainEqual({ texto: '−1', nome: '−1: remover quantidade de Cota de malha' });
+    // o contexto do item continua no nome (cada linha distinta) e as ações funcionam pelos novos nomes
+    const linha = within(inv.querySelector('li') as HTMLElement);
+    const nome = linha.getByText(/.+/, { selector: 'strong' }).textContent!;
+    fireEvent.click(within(inv).getByRole('button', { name: `+1: adicionar quantidade de ${nome}` }));
+    expect(inv.textContent).toMatch(new RegExp(`${nome} · quantidade 2`));
+    fireEvent.click(within(inv).getByRole('button', { name: `−1: remover quantidade de ${nome}` }));
+    expect(inv.textContent).toMatch(new RegExp(`${nome} · quantidade 1`));
+  });
+  it('as demais seções do criador também não têm botões com nome acessível divergente do texto visível', async () => {
+    await montar(); await abrirPersonagens();
+    expect(nomesDivergentes(await screen.findByRole('region', { name: 'Criador guiado' }))).toEqual([]);
+    await novoGuiado(); await preencherFicha('Thorin');
+    for (const sec of ['Ficha', 'Equipamento inicial', 'Inventário', 'Identidade pública']) {
+      fireEvent.click(secoes().getByRole('button', { name: sec }));
+      expect(nomesDivergentes(document.querySelector('.criador') as HTMLElement), sec).toEqual([]);
+    }
   });
 
   it('erro de salvamento não perde o que foi digitado', async () => {

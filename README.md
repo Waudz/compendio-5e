@@ -122,3 +122,7 @@ O criador local do Guerreiro agora permite **compra de 27 pontos** (atributos-ba
 ## Criador guiado e Compêndio (experimental)
 
 Pelo menu normal: **Personagens → Criar com o criador guiado** (Guerreiro SRD 2014, equipamento inicial do catálogo oficial, inventário e identidade pública) e **Compêndio** (busca, filtros, lista/grade e página de cada item). No celular: Menu → Personagens / barra inferior → Compêndio. Os personagens guiados ficam **só neste navegador** (armazenamento experimental; ver `docs/CRIADOR-FICHA-INVENTARIO.md`, "Persistência pendente").
+
+### Persistência das fichas (proposta, não aplicada)
+
+Com conta e a migração `supabase/migrations/0008_character_sheets_persistencia.sql` aplicada, o criador guiado salva a ficha **privada** em `character_sheets` (só o dono e o mestre leem) e publica apenas a identidade que o jogador escolher; há controle de revisão (conflitos), cópia de recuperação local e envio explícito dos rascunhos antigos do navegador. **A 0008 ainda não foi aplicada ao Supabase**: até lá o app informa "banco desatualizado" ao salvar e o modo local experimental continua disponível sem conta. Detalhes, auditoria e procedimento: `docs/CRIADOR-FICHA-INVENTARIO.md`.
