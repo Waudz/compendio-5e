@@ -38,7 +38,12 @@ async function boot(ate?: string): Promise<PGlite> {
 
 const draft = (extra: Record<string, unknown> = {}) => ({ id: "provisorio", name: "Thorin Escudo-de-Pedra", level: 3, baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 },
   inventory: [{ id: "i1", itemId: "longsword", quantity: 1, equipped: false, origin: "acquired" }], currentHp: 13, ...extra });
-const identidade = { title: "O Escudo", name: "Thorin" };
+/** Identidade pública VÁLIDA (formato que o cliente envia: configurações + cartão resolvido). */
+const idTitulo = (titulo: string, nome: string | null = null) => ({
+  settings: { imageUrl: null, title: titulo, name: { mode: nome ? "real" : "hidden" }, surname: { mode: "hidden" }, race: { mode: "hidden" }, characterClass: { mode: "hidden" }, description: "" },
+  card: { imageUrl: null, title: titulo, name: nome, surname: null, race: null, characterClass: null, description: "" },
+});
+const identidade = idTitulo("O Escudo", "Thorin");
 
 let db: PGlite, C1: string, C2: string;
 const rpc = (uid: string, fn: string, ...a: unknown[]) => as(db, uid, `select public.${fn}(${a.map((_, i) => `$${i + 1}`).join(",")}) as r`, a);
@@ -155,7 +160,7 @@ describe("mestre da campanha", () => {
     expect(r.error).toBeUndefined(); expect(r.rows[0].revision).toBe(2);
     const dono = (await sheet(U.bia, id)).rows[0];
     expect(dono).toMatchObject({ revision: 2, owner_id: U.bia, draft: expect.objectContaining({ currentHp: 1 }) });   // a bia vê a edição do mestre, dona preservada
-    const hack = await salvar(U.ana, id, 2, draft(), "Novo Nome Público", { identidadePublica: { title: "forjado" } }, true);
+    const hack = await salvar(U.ana, id, 2, draft(), "Novo Nome Público", { identidadePublica: idTitulo("forjado") }, true);
     expect(hack.error).toMatch(/identidade_so_do_dono/);
     const n = (await as(db, U.bia, "select title, visibility, meta from public.notes where id = $1", [id])).rows[0];
     expect(n).toEqual({ title: "O Escudo", visibility: "private", meta: { guiado: true, identidadePublica: identidade } });   // identidade intacta
@@ -221,9 +226,9 @@ describe("identidade pública separada da ficha privada", () => {
   it("o dono publica, despublica e altera a identidade; a ficha privada nunca aparece em notes", async () => {
     const { character_id: id } = await criar(U.bia);
     expect((await as(db, U.caio, "select id from public.notes where id = $1", [id])).rows).toHaveLength(0);
-    const r = await salvar(U.bia, id, 1, draft(), "Cavaleiro Misterioso", { identidadePublica: { title: "Cavaleiro Misterioso" } }, true);
+    const r = await salvar(U.bia, id, 1, draft(), "ignorado", { identidadePublica: idTitulo("Cavaleiro Misterioso") }, true);
     expect(r.error).toBeUndefined();
-    expect((await as(db, U.caio, "select title, meta from public.notes where id = $1", [id])).rows[0]).toEqual({ title: "Cavaleiro Misterioso", meta: { guiado: true, identidadePublica: { title: "Cavaleiro Misterioso" } } });
+    expect((await as(db, U.caio, "select title, meta from public.notes where id = $1", [id])).rows[0]).toEqual({ title: "Cavaleiro Misterioso", meta: { guiado: true, identidadePublica: idTitulo("Cavaleiro Misterioso") } });
     expect((await salvar(U.bia, id, 2, draft(), null, null, false)).error).toBeUndefined();
     expect((await as(db, U.caio, "select id from public.notes where id = $1", [id])).rows).toHaveLength(0);       // despublicada
   });
@@ -232,14 +237,159 @@ describe("identidade pública separada da ficha privada", () => {
     expect((await salvar(U.bia, id, 1, draft({ name: "Outro nome real" }))).error).toBeUndefined();
     expect((await as(db, U.caio, "select title, meta from public.notes where id = $1", [id])).rows[0]).toEqual({ title: "O Escudo", meta: { guiado: true, identidadePublica: identidade } });
   });
-  it("meta de personagem guiado não aceita dados privados: ficha, inventário e atributos são barrados pela CHECK (também em UPDATE direto)", async () => {
+  it("meta de personagem guiado não aceita dados privados: ficha, inventário e atributos são barrados em UPDATE direto e na criação", async () => {
     const { character_id: id } = await criar(U.bia, C1, { publish: true });
     for (const meta of [{ guiado: true, inventario: ["Espada"] }, { guiado: true, baseAbilities: { str: 15 } }, { guiado: true, draft: {} }, { guiado: true, nivel: 3 }]) {
-      expect((await as(db, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [id, JSON.stringify(meta)])).error, JSON.stringify(meta)).toMatch(/notes_guiado_meta_check/);
+      expect((await as(db, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [id, JSON.stringify(meta)])).error, JSON.stringify(meta)).toMatch(/identidade_invalida/);
     }
-    expect((await as(db, U.bia, "select * from public.create_guided_character($1, 'X', $2::jsonb, true, $3::jsonb)", [C1, JSON.stringify({ inventario: ["x"] }), JSON.stringify(draft())])).error).toMatch(/notes_guiado_meta_check/);
-    // personagens simples (sem `guiado`) continuam livres: nada do legado muda
+    expect((await as(db, U.bia, "select * from public.create_guided_character($1, 'X', $2::jsonb, true, $3::jsonb)", [C1, JSON.stringify({ inventario: ["x"] }), JSON.stringify(draft())])).error).toMatch(/identidade_invalida/);
+    // personagens simples (sem ficha) continuam livres: nada do legado muda
     expect((await as(db, U.bia, "insert into public.notes (campaign_id, kind, title, meta) values ($1, 'character', 'simples', '{\"classe\":\"Mago\",\"nivel\":2,\"inventario\":[\"Cajado\"]}') returning id", [C1])).error).toBeUndefined();
+  });
+});
+
+describe("invariantes da linha pública presas à EXISTÊNCIA da ficha (bloqueios do PR #80)", () => {
+  const mut = (f: (i: any) => void) => { const i = structuredClone(identidade) as any; f(i); return { guiado: true, identidadePublica: i }; };
+  const nota = async (uid: string, id: string) => (await as(db, uid, "select title, kind, visibility, deleted_at, meta from public.notes where id = $1", [id])).rows[0];
+
+  it("remover o marcador `guiado` (ou trocá-lo) NÃO desliga a proteção: a nota com ficha continua restrita à identidade pública", async () => {
+    const { character_id: id } = await criar(U.bia, C1, { publish: true });
+    const base = { guiado: true, identidadePublica: identidade };
+    for (const meta of [{ identidadePublica: identidade }, {}, { guiado: false, identidadePublica: identidade }, { guiado: "true", identidadePublica: identidade },
+                        { ...base, inventario: ["Espada"] }, { ...base, draft: {} }, { ...base, nivel: 3 }, { guiado: true, inventario: [] }]) {
+      expect((await as(db, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [id, JSON.stringify(meta)])).error, JSON.stringify(meta)).toMatch(/identidade_invalida/);
+    }
+    expect((await nota(U.bia, id)).meta).toEqual({ guiado: true, identidadePublica: identidade });   // intacta
+  });
+  it("identidade malformada é recusada em UPDATE direto: chave extra, tipo errado, imagem não-https, modo inválido, textos grandes, estrutura incompleta", async () => {
+    const { character_id: id } = await criar(U.bia, C1, { publish: true });
+    const ruins = [
+      mut(i => { i.card.nivel = 3; }), mut(i => { i.settings.vida = 10; }), mut(i => { i.card.name = 5; }), mut(i => { i.card.imageUrl = "http://exemplo.com/a.png"; }),
+      mut(i => { i.card.imageUrl = "javascript:alert(1)"; }), mut(i => { i.settings.imageUrl = "https://x.com/a b.png"; }), mut(i => { i.settings.name.mode = "xyz"; }),
+      mut(i => { i.settings.name.extra = 1; }), mut(i => { i.settings.name.customValue = 7; }), mut(i => { i.card.description = "x".repeat(4001); }),
+      mut(i => { i.card.title = "x".repeat(121); }), mut(i => { delete i.settings.race; }), mut(i => { delete i.card.surname; }), mut(i => { i.extra = {}; }),
+      { guiado: true, identidadePublica: [] }, { guiado: true, identidadePublica: null }, { guiado: true, identidadePublica: { settings: identidade.settings } },
+    ];
+    for (const meta of ruins) expect((await as(db, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [id, JSON.stringify(meta)])).error, JSON.stringify(meta)).toMatch(/identidade_invalida/);
+    expect((await nota(U.bia, id)).meta).toEqual({ guiado: true, identidadePublica: identidade });
+  });
+  it("identidade válida e imagem https são aceitas (a validação não é restritiva demais)", async () => {
+    const { character_id: id } = await criar(U.bia, C1, { publish: true });
+    const ok = mut(i => { i.card.imageUrl = "https://exemplo.com/retrato.png"; i.settings.imageUrl = "https://exemplo.com/retrato.png"; i.card.description = "Um anão de poucas palavras."; i.settings.description = i.card.description; i.settings.name = { mode: "custom", customValue: "Alcunha" }; });
+    expect((await as(db, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [id, JSON.stringify(ok)])).error).toBeUndefined();
+    expect((await nota(U.bia, id)).meta).toEqual(ok);
+  });
+  it("tipo, dono e campanha da nota com ficha são imutáveis; a nota não é excluída (soft-delete) nem apagada", async () => {
+    const { character_id: id } = await criar(U.bia, C1, { publish: true });
+    expect((await as(db, U.bia, "update public.notes set kind = 'note' where id = $1", [id])).error).toMatch(/personagem_guiado_imutavel/);
+    expect((await as(db, U.bia, `update public.notes set owner_id = '${U.caio}' where id = $1`, [id])).error).toMatch(/permission denied/);
+    expect((await as(db, U.bia, `update public.notes set campaign_id = '${C2}' where id = $1`, [id])).error).toMatch(/permission denied|imutavel|campaign/i);
+    expect((await as(db, U.bia, "update public.notes set deleted_at = now(), deleted_batch = gen_random_uuid() where id = $1", [id])).error).toMatch(/personagem_guiado_nao_exclui/);
+    expect((await as(db, U.bia, "delete from public.notes where id = $1", [id])).error).toBeTruthy();
+    const n = await nota(U.bia, id);
+    expect(n).toMatchObject({ kind: "character", deleted_at: null });
+  });
+  it("o título da nota é sempre derivado da identidade: UPDATE direto com o nome real não vaza", async () => {
+    const { character_id: id } = await criar(U.bia, C1, { publish: true });
+    expect((await as(db, U.bia, "update public.notes set title = 'Thorin Escudo-de-Pedra' where id = $1", [id])).error).toBeUndefined();
+    expect((await as(db, U.caio, "select title from public.notes where id = $1", [id])).rows[0]).toEqual({ title: "O Escudo" });
+  });
+  it("nota soft-deletada por caminho privilegiado: salvar (dono, mestre, RPC e UPDATE direto) e vincular nova ficha são recusados", async () => {
+    const { character_id: id } = await criar(U.bia, C1);
+    await db.exec("alter table public.notes disable trigger notes_zz_ficha_guard");
+    await db.query("update public.notes set deleted_at = now(), deleted_batch = gen_random_uuid() where id = $1", [id]);   // simula exclusão que escapou do gatilho
+    await db.exec("alter table public.notes enable trigger notes_zz_ficha_guard");
+    expect((await salvar(U.bia, id, 1, draft())).error).toBeTruthy();                          // dono
+    expect((await salvar(U.ana, id, 1, draft())).error).toBeTruthy();                          // mestre (que nem lê a nota privada: a função DEFINER a enxerga)
+    expect((await as(db, U.bia, "update public.character_sheets set draft = $2::jsonb where character_id = $1", [id, JSON.stringify(draft({ id }))])).error ?? "ok").toMatch(/row-level security|violates|ok/);
+    const direto = await as(db, U.ana, "update public.character_sheets set draft = $2::jsonb where character_id = $1 returning revision", [id, JSON.stringify(draft({ id }))]);
+    expect(direto.rows.length === 0 || !!direto.error).toBe(true);
+    expect((await db.query("select revision from public.character_sheets where character_id = $1", [id])).rows[0]).toEqual({ revision: 1 });   // nada gravado
+    // nova ficha para uma nota já excluída
+    const outra = (await as(db, U.caio, "insert into public.notes (campaign_id, kind, title, meta) values ($1, 'character', 'x', '{\"guiado\":true}') returning id", [C1])).rows[0].id as string;
+    await db.query("update public.notes set deleted_at = now(), deleted_batch = gen_random_uuid() where id = $1", [outra]);
+    expect((await as(db, U.caio, "insert into public.character_sheets (character_id, campaign_id, owner_id, draft) values ($1, $2, $3, $4::jsonb)", [outra, C1, U.caio, JSON.stringify(draft({ id: outra }))])).error).toMatch(/row-level security/);
+  });
+  it("não nasce ficha para nota com meta inválido, mesmo que o marcador exista: a conferência é do conteúdo, não do marcador", async () => {
+    const ins = (meta: unknown) => as(db, U.caio, "insert into public.notes (campaign_id, kind, title, meta) values ($1, 'character', 'x', $2::jsonb) returning id", [C1, JSON.stringify(meta)]);
+    const ficha = (uid: string, nid: string) => as(db, uid, "insert into public.character_sheets (character_id, campaign_id, owner_id, draft) values ($1, $2, $3, $4::jsonb)", [nid, C1, uid, JSON.stringify(draft({ id: nid }))]);
+    for (const meta of [{ inventario: ["x"] }, {}, { guiado: true, identidadePublica: { card: { nivel: 3 }, settings: {} } }]) {
+      const r = await ins(meta); if (r.error) continue;                                          // se a CHECK já barra a nota, ótimo
+      expect((await ficha(U.caio, r.rows[0].id as string)).error, JSON.stringify(meta)).toMatch(/row-level security/);
+    }
+    expect((await ficha(U.caio, (await ins({ guiado: true })).rows[0].id as string)).error).toBeUndefined();   // caminho válido
+  });
+  it("RPCs: p_meta inválido é recusado (criar e salvar), o título vem do servidor, `guiado` é imposto pelo servidor e a ficha não muda se a identidade for inválida", async () => {
+    const criaCom = (meta: unknown, titulo: string | null = "Thorin Escudo-de-Pedra") => as(db, U.bia, "select * from public.create_guided_character($1, $2, $3::jsonb, true, $4::jsonb)", [C1, titulo, meta === null ? null : JSON.stringify(meta), JSON.stringify(draft())]);
+    expect((await criaCom({ identidadePublica: identidade, inventario: [] })).error).toMatch(/identidade_invalida/);
+    expect((await criaCom({ identidadePublica: mut(i => { i.card.imageUrl = "http://x.com/a.png"; }).identidadePublica })).error).toMatch(/identidade_invalida/);
+    expect((await criaCom([])).error).toMatch(/identidade_invalida/);
+    const antes = Number((await db.query("select count(*)::int as n from public.notes where kind = 'character'")).rows[0].n);
+    // título e marcador: p_title é ignorado; guiado:false é sobrescrito por true
+    const r = await criaCom({ guiado: false, identidadePublica: identidade }, "Thorin Escudo-de-Pedra");
+    expect(r.error).toBeUndefined();
+    const id = r.rows[0].character_id as string;
+    expect(await nota(U.bia, id)).toMatchObject({ title: "O Escudo", meta: { guiado: true, identidadePublica: identidade } });
+    expect(Number((await db.query("select count(*)::int as n from public.notes where kind = 'character'")).rows[0].n)).toBe(antes + 1);
+    // sem identidade: título 'Personagem'
+    const s2 = await criaCom(null); expect(s2.error).toBeUndefined();
+    expect((await nota(U.bia, s2.rows[0].character_id as string)).title).toBe("Personagem");
+    // salvar com identidade inválida: nada muda (revisão e identidade)
+    const sv = await salvar(U.bia, id, 1, draft({ currentHp: 3 }), null, { identidadePublica: mut(i => { i.card.nivel = 3; }).identidadePublica }, null);
+    expect(sv.error).toMatch(/identidade_invalida/);
+    expect((await sheet(U.bia, id)).rows[0].revision).toBe(1);
+    expect((await salvar(U.bia, id, 1, draft(), null, [] as never, null)).error).toBeTruthy();
+    // p_title sozinho (sem p_meta) não altera o título
+    expect((await salvar(U.bia, id, 1, draft(), "Nome real vazado", null, null)).error).toBeUndefined();
+    expect((await nota(U.bia, id)).title).toBe("O Escudo");
+  });
+  it("com a ficha publicada, os demais jogadores leem da nota SÓ { guiado, identidadePublica } (e nenhum campo privado)", async () => {
+    const { character_id: id } = await criar(U.bia, C1, { publish: true });
+    const n = (await as(db, U.caio, "select meta from public.notes where id = $1", [id])).rows[0].meta as Record<string, unknown>;
+    expect(Object.keys(n).sort()).toEqual(["guiado", "identidadePublica"]);
+    expect(Object.keys((n.identidadePublica as Record<string, unknown>)).sort()).toEqual(["card", "settings"]);
+  });
+});
+
+describe("schema private e funções SECURITY DEFINER", () => {
+  it("as funções de apoio ficam em `private`, não são executáveis por anon, e as definer têm search_path fixo e são só booleanas", async () => {
+    const r = await db.query<{ nome: string; definer: boolean; anon: boolean; auth: boolean; cfg: string[] | null }>(
+      "select p.proname as nome, p.prosecdef as definer, has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth, p.proconfig as cfg from pg_proc p where p.pronamespace = 'private'::regnamespace order by 1");
+    expect(r.rows.map(x => x.nome)).toEqual(["identidade_meta_valida", "nota_guiada_ativa", "notes_ficha_guard", "tem_ficha", "titulo_publico"]);
+    expect(r.rows.filter(x => x.anon)).toEqual([]);
+    expect(r.rows.filter(x => x.definer).map(x => x.nome).sort()).toEqual(["nota_guiada_ativa", "tem_ficha"]);
+    for (const f of r.rows) expect(f.cfg ?? [], f.nome).toContain('search_path=""');
+    expect(r.rows.find(x => x.nome === "notes_ficha_guard")!.auth).toBe(false);                 // função de gatilho: ninguém a chama
+    // nada SECURITY DEFINER novo no schema exposto `public`
+    expect((await db.query("select proname from pg_proc where pronamespace = 'public'::regnamespace and prosecdef and proname in ('create_guided_character','save_guided_character','character_sheets_guard')")).rows).toEqual([]);
+    // anon não usa o schema nem chama as funções
+    expect((await as(db, null, "select private.tem_ficha(gen_random_uuid())")).error).toMatch(/permission denied/);
+  });
+  it("as funções definer só respondem verdadeiro/falso e não revelam dados de notas ou fichas alheias", async () => {
+    const { character_id: id } = await criar(U.bia, C1);
+    for (const u of [U.caio, U.dora]) {
+      const r = await as(db, u, "select private.tem_ficha($1) as a, private.nota_guiada_ativa($1, $2) as b", [id, C1]);
+      expect(Object.keys(r.rows[0]).sort()).toEqual(["a", "b"]);
+      expect(typeof r.rows[0].a).toBe("boolean");
+    }
+  });
+});
+
+describe("compatibilidade da 0007 reconstruída com o remoto (CHECK de revision)", () => {
+  it("revision fora de 1..2147483647 é recusada pela estrutura da 0007", async () => {
+    const t = await boot("0007_character_sheets_foundation.sql");
+    const c = (await as(t, U.ana, "select public.create_campaign('M','') as r")).rows[0].r as string;
+    const nota = (await t.query("insert into public.notes (owner_id, campaign_id, kind, title) values ($1, $2, 'character', 'x') returning id", [U.ana, c])).rows[0].id as string;
+    const ins = (rev: number) => t.query("insert into public.character_sheets (character_id, campaign_id, owner_id, draft, revision) values ($1, $2, $3, '{}'::jsonb, $4)", [nota, c, U.ana, rev]);
+    await expect(ins(0)).rejects.toThrow(/revision_check|check constraint/);
+    await expect(ins(2147483648)).rejects.toThrow(/out of range|integer/);
+    await expect(ins(2147483647)).resolves.toBeDefined();
+    expect((await t.query("select indexname from pg_indexes where tablename = 'character_sheets' order by 1")).rows.map(x => x.indexname)).toEqual(["character_sheets_campaign_owner_idx", "character_sheets_pkey"]);
+  });
+  it("a 0007 só deixa INSERT/UPDATE com a nota ativa (deleted_at IS NULL) para o dono (mas a API está fechada: sem privilégio)", async () => {
+    const t = await boot("0007_character_sheets_foundation.sql");
+    const def = (await t.query("select polname, pg_get_expr(polwithcheck, polrelid) as chk from pg_policy where polrelid = 'public.character_sheets'::regclass and polname in ('character_sheets_insert','character_sheets_update')")).rows;
+    for (const d of def) expect(String(d.chk), String(d.polname)).toMatch(/deleted_at IS NULL/i);
   });
 });
 
@@ -281,7 +431,9 @@ describe("reversões", () => {
     await t.exec(down("0008_character_sheets_persistencia_down.sql"));
     expect((await t.query("select count(*)::int as n from public.character_sheets")).rows[0]).toEqual({ n: 1 });               // dados preservados
     expect((await as2(U.bia, "select * from public.character_sheets")).error).toMatch(/permission denied/);                    // fechado de novo
-    expect((await t.query("select count(*)::int as n from pg_proc where proname in ('create_guided_character','save_guided_character','character_sheets_guard')")).rows[0]).toEqual({ n: 0 });
+    expect((await t.query("select count(*)::int as n from pg_proc where proname in ('create_guided_character','save_guided_character','character_sheets_guard','tem_ficha','nota_guiada_ativa','identidade_meta_valida','titulo_publico','notes_ficha_guard')")).rows[0]).toEqual({ n: 0 });
+    expect((await t.query("select count(*)::int as n from pg_namespace where nspname = 'private'")).rows[0]).toEqual({ n: 0 });
+    expect((await t.query("select count(*)::int as n from pg_trigger where tgname = 'notes_zz_ficha_guard'")).rows[0]).toEqual({ n: 0 });
     await t.exec(sql("0008_character_sheets_persistencia.sql"));                                                              // reaplicável
     expect((await as2(U.bia, "select character_id from public.character_sheets")).rows).toHaveLength(1);
     await t.exec(down("0008_character_sheets_persistencia_down.sql"));

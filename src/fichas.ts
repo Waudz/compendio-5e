@@ -30,10 +30,21 @@ export const ehConflitoDeRevisao = (r: Res<unknown>) => !r.ok && r.error === ERR
 export const ERRO_SEM_FICHA = "Personagem não encontrado ou sem permissão para alterá-lo.";
 export const MAX_META_IDENTIDADE = 12000;   // a coluna notes.meta aceita 16 KiB; sobra margem
 
+/** Mesmas regras de `private.identidade_meta_valida` (0008): o servidor recusa o que passar daqui, mas o jogador recebe a mensagem certa antes de enviar. */
+export function validarIdentidade(settings: PublicIdentitySettings, card: PublicIdentityCard) {
+  const texto = (v: string | null | undefined, max: number, nome: string) => { if (typeof v === "string" && v.length > max) throw new Error(`${nome} passa de ${max} caracteres.`); };
+  texto(card.title, 120, "O título público"); texto(card.name, 120, "O nome público"); texto(card.surname, 120, "O sobrenome público");
+  texto(card.race, 120, "A raça pública"); texto(card.characterClass, 120, "A classe pública"); texto(card.description, 4000, "A descrição pública");
+  for (const campo of [settings.name, settings.surname, settings.race, settings.characterClass]) texto(campo.customValue, 120, "O valor personalizado");
+  for (const url of [card.imageUrl, settings.imageUrl]) if (typeof url === "string" && url !== "" && (!/^https:\/\/\S+$/.test(url) || url.length > 2000)) throw new Error("A imagem pública deve ser um endereço https:// sem espaços (até 2000 caracteres).");
+}
+
 /** Título e meta da linha PÚBLICA do personagem. Parte SÓ da identidade pública resolvida: nunca recebe a ficha. */
 export function projetarIdentidade(e: EntradaIdentidade): { titulo: string; meta: { identidadePublica: { settings: PublicIdentitySettings; card: PublicIdentityCard } } } {
+  e = { ...e, identity: { ...e.identity, imageUrl: e.identity.imageUrl?.trim() || null } };   // imagem vazia = sem imagem (nunca "")
   const card = publicIdentityCard(e.identity, e.source);
   const titulo = (card.title || [card.name, card.surname].filter(Boolean).join(" ") || "Personagem").slice(0, 120);
+  validarIdentidade(e.identity, card);
   const meta = { identidadePublica: { settings: e.identity, card } };
   if (JSON.stringify(meta).length > MAX_META_IDENTIDADE) throw new Error("A identidade pública está grande demais. Reduza a descrição.");
   return { titulo, meta };
@@ -61,7 +72,9 @@ const msg = (e: unknown) => {
   if (m.includes("ficha_nao_encontrada") || m.includes("nota_nao_encontrada")) return ERRO_SEM_FICHA;
   if (m.includes("identidade_so_do_dono")) return "Só o dono do personagem altera a identidade pública.";
   if (m.includes("character_sheets_draft") || (m.includes("check constraint") && m.includes("character_sheets"))) return "A ficha é grande demais ou inválida para ser salva.";   // nome da restrição pode diferir do remoto
-  if (m.includes("notes_guiado_meta_check")) return "A identidade pública contém dados não permitidos.";
+  if (m.includes("identidade_invalida") || m.includes("notes_guiado_meta_check")) return "A identidade pública contém dados não permitidos (confira a imagem https:// e o tamanho dos textos).";
+  if (m.includes("personagem_guiado_nao_exclui")) return "Personagens salvos na campanha não podem ser excluídos por aqui.";
+  if (m.includes("personagem_guiado_imutavel") || m.includes("campos_imutaveis")) return "Esta alteração não é permitida em um personagem salvo.";
   if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed")) return "Sem conexão com o servidor.";
   return erroCampanha(e);
 };
@@ -88,17 +101,19 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
         return { ok: true, data: { ficha: fromRow(s.data as FichaRow), identidade } };
       } catch (e) { return { ok: false, error: msg(e) }; }
     },
-    criar: (campaignId, draft, identidade) => run<GravacaoFicha>(async () => {
-      const r = await client.rpc("create_guided_character", { p_campaign_id: campaignId, p_draft: draft, ...params(identidade) });
+    criar: async (campaignId, draft, identidade) => { let p: ReturnType<typeof params>; try { p = params(identidade); } catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Identidade pública inválida." }; }
+      return run<GravacaoFicha>(async () => {
+      const r = await client.rpc("create_guided_character", { p_campaign_id: campaignId, p_draft: draft, ...p });
       if (r.error) return { data: null, error: r.error };
       const x = (r.data as { character_id: string; revision: number; updated_at: string }[] | null)?.[0];
       return x ? { data: { id: x.character_id, revision: x.revision, updatedAt: x.updated_at }, error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };
-    }),
-    salvar: (id, esperada, draft, identidade) => run<GravacaoFicha>(async () => {
-      const r = await client.rpc("save_guided_character", { p_id: id, p_expected_revision: esperada, p_draft: draft, ...(identidade ? params(identidade) : {}) });
+    }); },
+    salvar: async (id, esperada, draft, identidade) => { let p: ReturnType<typeof params> | object = {}; try { if (identidade) p = params(identidade); } catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Identidade pública inválida." }; }
+      return run<GravacaoFicha>(async () => {
+      const r = await client.rpc("save_guided_character", { p_id: id, p_expected_revision: esperada, p_draft: draft, ...p });
       if (r.error) return { data: null, error: r.error };
       const x = (r.data as { revision: number; updated_at: string }[] | null)?.[0];
       return x ? { data: { id, revision: x.revision, updatedAt: x.updated_at }, error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };
-    }),
+    }); },
   };
 }

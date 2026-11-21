@@ -176,6 +176,24 @@ describe("quem vê o quê", () => {
   });
 });
 
+describe("identidade pública inválida", () => {
+  it("imagem que não é https: o salvamento é recusado com a mensagem certa, nada vai ao servidor e a tela mantém o que foi digitado", async () => {
+    await montar(); await abrirPersonagens(); await novoGuiado(); await preencher("Thorin");
+    fireEvent.click(secoes().getByRole("button", { name: "Identidade pública" }));
+    fireEvent.change(screen.getByLabelText("Imagem pública"), { target: { value: "http://exemplo.com/retrato.png" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar identidade pública" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    expect(await screen.findByText(/A imagem pública deve ser um endereço https/)).toBeTruthy();
+    expect(banco.fichas).toHaveLength(0); expect(registros.dados).toHaveLength(0);
+    expect(screen.getByText("Alterações não salvas.")).toBeTruthy();
+    // corrigindo a URL, salva
+    fireEvent.change(screen.getByLabelText("Imagem pública"), { target: { value: "https://exemplo.com/retrato.png" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar identidade pública" }));
+    await salvar(1);
+    expect(banco.fichas).toHaveLength(1);
+  });
+});
+
 describe("conflito de revisão", () => {
   it("edição do mestre durante a do dono: o dono recebe aviso, nada é sobrescrito, e pode carregar a versão atual e restaurar as próprias alterações", async () => {
     await criarPersonagem("Thorin", false);

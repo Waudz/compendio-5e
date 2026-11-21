@@ -357,3 +357,23 @@ O SQL original da 0007 remota (`character_sheets_private_foundation`) **não est
 | Linhas existentes | preservadas (revisão e dono mantidos); `draft.id` diferente de `character_id` impede a migração, sem corrigir dados em silêncio |
 
 Coberto por 6 testes em `supabase/character-sheets.test.ts` (PGlite). **Limite:** isto prova que a 0008 é segura para *variações plausíveis* da 0007, não que o remoto seja idêntico à reconstrução. **Antes de aplicar:** exportar o DDL real (`pg_get_tableathef`/painel: colunas, constraints, índices, políticas e gatilhos de `public.character_sheets`) e comparar com `0007_character_sheets_foundation.sql`; a mensagem `precondicao_0008` indica o que ajustar. Também mapeado: o nome da restrição de tamanho do `draft` pode diferir (a interface agora reconhece qualquer violação de CHECK em `character_sheets`).
+
+### Revisão de segurança do PR #80 (21/11/2026): bloqueios corrigidos na 0008
+
+| Bloqueio apontado | Correção (0008) | Teste negativo |
+|---|---|---|
+| `notes_guiado_meta_check` só valia com o marcador `guiado` e o cliente podia removê-lo | A proteção agora está **presa à existência da ficha**: o gatilho `notes_zz_ficha_guard` (em `notes`) usa `private.tem_ficha(id)` e, enquanto houver `character_sheets`, exige que `meta` seja EXATAMENTE `{guiado: true, identidadePublica?}` válido, impede trocar tipo/dono/campanha e excluir. A CHECK antiga ficou só como higiene antes do vínculo | remover/trocar `guiado`, adicionar `inventario`/`draft`/`nivel`, meta `{}`, 17 identidades malformadas |
+| INSERT sem `notes.deleted_at IS NULL`; UPDATE sem vínculo com nota ativa | INSERT exige nota própria, de personagem, mesma campanha, **ativa** e com meta válido; UPDATE exige `private.nota_guiada_ativa(character_id, campaign_id)` (função DEFINER mínima, porque o mestre não lê a nota privada) | nota soft-deletada por caminho privilegiado: dono, mestre, RPC e UPDATE direto recusados; nova ficha para nota excluída recusada; nota com meta inválido não ganha ficha |
+| `p_meta`/`p_title` das RPCs | `p_meta` passa por `private.identidade_meta_valida` (chaves exatas, tipos, https, limites); `guiado=true` é imposto pelo servidor; **`p_title` é ignorado** e o título vem de `private.titulo_publico(meta)` (também forçado no gatilho) | meta inválido em criar e salvar; título real vazado não persiste; `guiado:false` sobrescrito; ficha inalterada se a identidade for inválida |
+| 0007 não espelhava o remoto | 0007 corrigida: `CHECK (revision between 1 and 2147483647)`, índice `(campaign_id, owner_id)`, INSERT/UPDATE com `deleted_at IS NULL` | `revision` 0 e 2147483648 recusadas; índices e políticas conferidos |
+
+**Funções DEFINER:** só duas (`private.tem_ficha`, `private.nota_guiada_ativa`), no schema `private`, `search_path` vazio, devolvem só booleano, sem EXECUTE para `anon`. `create_guided_character`/`save_guided_character` continuam **SECURITY INVOKER** no schema `public`. **Verificar antes de aplicar:** `private` NÃO pode constar em Settings → API → Exposed schemas.
+
+**Interface:** valida a identidade com as mesmas regras (imagem só `https://`, textos ≤ 120 e descrição ≤ 4000) antes de enviar e traduz os novos erros do banco.
+
+**Riscos remanescentes (honestos):**
+1. A 0007 continua **reconstruída**: o texto exato das políticas e outras restrições/índices remotos são desconhecidos. A 0008 aborta se a estrutura divergir, mas é preciso comparar o DDL real (`pg_dump --schema-only -t public.character_sheets`) antes de aplicar.
+2. As funções DEFINER são uma superfície nova (booleanos sobre existência de nota/ficha); revisadas e testadas, mas dependem de `private` não estar exposto.
+3. O gatilho em `notes` roda em todo UPDATE de `notes` (uma consulta por chave primária). Medir se houver volume.
+4. A imagem pública é só uma URL https validada; o app ainda não a exibe. Se for exibida, tratar CSP e privacidade (rastreamento por terceiros).
+5. Nada disto foi executado no Supabase real; a interface foi testada com modelo em memória e cliente simulado.

@@ -46,9 +46,24 @@ describe("projeção da identidade pública (o que vai para a linha pública do 
     expect(Object.keys(p.meta.identidadePublica).sort()).toEqual(["card", "settings"]);
     expect(JSON.stringify(p.meta)).not.toMatch(/level|nivel|inventory|baseAbilities|currentHp|Guerreiro|Anão|Thorin Real/);   // raça e classe só aparecem se o jogador as mostrar (modo real/personalizado)
   });
-  it("recusa identidade grande demais para a coluna meta (16 KiB) em vez de truncar", () => {
-    const e = entrada(); e.identity.description = "x".repeat(MAX_META_IDENTIDADE + 10);
-    expect(() => projetarIdentidade(e)).toThrow(/grande demais/);
+  it("espelha as regras do servidor (0008): imagem só https, textos dentro dos limites, imagem vazia vira nenhuma", () => {
+    const com = (f: (e: ReturnType<typeof entrada>) => void) => { const e = entrada(); f(e); return () => projetarIdentidade(e); };
+    expect(com(e => { e.identity.imageUrl = "http://exemplo.com/a.png"; })).toThrow(/https/);
+    expect(com(e => { e.identity.imageUrl = "javascript:alert(1)"; })).toThrow(/https/);
+    expect(com(e => { e.identity.imageUrl = "https://x.com/a b.png"; })).toThrow(/https/);
+    expect(com(e => { e.identity.title = "x".repeat(121); })).toThrow(/título público passa de 120/);
+    expect(com(e => { e.identity.description = "x".repeat(4001); })).toThrow(/descrição pública passa de 4000/);
+    expect(com(e => { e.identity.name = { mode: "custom", customValue: "x".repeat(121) }; })).toThrow(/nome público passa de 120/);
+    expect(com(e => { e.identity.imageUrl = "https://exemplo.com/retrato.png"; })).not.toThrow();
+    const vazio = entrada(); vazio.identity.imageUrl = "   ";
+    expect(projetarIdentidade(vazio).meta.identidadePublica.card.imageUrl).toBeNull();
+    expect(projetarIdentidade(vazio).meta.identidadePublica.settings.imageUrl).toBeNull();
+  });
+  it("recusa descrição grande demais em vez de truncar (limite de 4000; o meta total cabe com folga nos 16 KiB da coluna)", () => {
+    const e = entrada(); e.identity.description = "x".repeat(4001);
+    expect(() => projetarIdentidade(e)).toThrow(/passa de 4000/);
+    const ok = entrada(); ok.identity.description = "x".repeat(4000);
+    expect(JSON.stringify(projetarIdentidade(ok).meta).length).toBeLessThan(MAX_META_IDENTIDADE);
   });
   it("cartão público de meta malformado é descartado (nunca inventa dados) e `guiado` é reconhecido", () => {
     expect(cartaoPublico({ identidadePublica: { card: { title: 3 } } })).toBeNull();
@@ -89,6 +104,21 @@ describe("criar e salvar (RPC)", () => {
     const faltando = await com({ message: "Could not find the function public.save_guided_character", code: "PGRST202" });
     expect(faltando).toEqual({ ok: false, error: ERRO_SCHEMA });                                   // migração 0008 ainda não aplicada: mensagem clara, nunca "lista vazia"
     expect(ehConflitoDeRevisao(faltando)).toBe(false);
+  });
+  it("identidade inválida é recusada ANTES de qualquer chamada ao servidor, com a mensagem certa (criar e salvar)", async () => {
+    const { client, chamadas } = falso({ rpc: { data: [], error: null } });
+    const ruim = entrada(); ruim.identity.imageUrl = "http://exemplo.com/a.png";
+    const api = createFichasApi(client);
+    expect(await api.criar("ca", draft, ruim)).toEqual({ ok: false, error: expect.stringMatching(/https/) });
+    expect(await api.salvar("i", 1, draft, ruim)).toEqual({ ok: false, error: expect.stringMatching(/https/) });
+    expect(chamadas.rpc).toBeUndefined();
+  });
+  it("erros novos do banco (identidade inválida, exclusão e alteração proibidas) viram mensagens em português", async () => {
+    const com = (error: unknown) => createFichasApi(falso({ rpc: { data: null, error } }).client).salvar("i", 1, draft);
+    expect(await com({ message: "identidade_invalida", code: "23514" })).toMatchObject({ error: expect.stringMatching(/dados não permitidos/) });
+    expect(await com({ message: "personagem_guiado_nao_exclui", code: "42501" })).toMatchObject({ error: expect.stringMatching(/não podem ser excluídos/) });
+    expect(await com({ message: "personagem_guiado_imutavel", code: "42501" })).toMatchObject({ error: expect.stringMatching(/não é permitida/) });
+    expect(await com({ message: "violates check constraint \"character_sheets_revision_check\"" })).toMatchObject({ error: expect.stringMatching(/grande demais ou inválida/) });
   });
   it("queda de rede (exceção do fetch) vira 'sem conexão', não um erro técnico", async () => {
     const { client } = falso({ rpc: () => Promise.reject(new TypeError("Failed to fetch")) });

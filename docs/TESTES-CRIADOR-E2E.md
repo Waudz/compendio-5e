@@ -1,6 +1,6 @@
 # Atualização prioritária — integração com PR #80
 
-Base funcional atual: **PR #80 `43a0cdd15a55d24bfd3e4a64a2ddff1e794110ff`**, reconciliada com os testes do #79 sem reescrever o histórico. As seções abaixo registram a rodada anterior e suas falhas históricas.
+Base funcional atual: **PR #80 `e62500c86d275250a7ca210e86aa33cc89e6e475`**, reconciliada com os testes do #79 sem reescrever o histórico. As seções abaixo registram a rodada anterior e suas falhas históricas.
 
 - **C-E2E-01:** o próprio HEAD #80 já corrige os nomes de inventário e acrescenta duas regressões unitárias. Seletores Playwright atualizados para os nomes completos; todas as asserções e análises axe preservadas.
 - **C-E2E-02:** patches do #77 reconciliados por trechos: contraste da marca e navegação mobile; nomes naturais do seletor/cartões; sincronização dos títulos FlexLayout em memória (incluindo criador/itens); setas/Home/End e retorno de foco dos menus; foco inicial/Tab/Shift+Tab/Escape no menu mobile. Preservada a apresentação de nível opcional do #80 e sua persistência.
@@ -8,6 +8,10 @@ Base funcional atual: **PR #80 `43a0cdd15a55d24bfd3e4a64a2ddff1e794110ff`**, rec
 - **Migrations e todo `supabase/` idênticos ao HEAD #80**, nenhuma operação no banco. A integração da árvore local não é merge de PR: nenhuma branch de terceiros, main ou deploy alterados.
 - `f18e057`: tipos/build e **814 unitários** aprovados no CI Linux; 36 E2E originais e 80 de qualidade aprovados, 32 não aplicáveis herdados. Criador: 60 aprovados/4 falhas de foco desktop, todas as oito análises WCAG passaram (32 varreduras). Detectado conflito entre retorno de foco do menu contextual e autofocus do alerta de alterações: cleanup do menu não deve retirar foco de um novo diálogo. Correção preserva retorno ao acionador quando foco permanece no menu/body; mantém foco já assumido por outro controle. Regressão automatizada e reexecução integral em andamento. Resultados finais serão anexados ao PR #79. Não confundir os números históricos abaixo com a validação desta árvore.
 - Limites: E2E continua no modo demo isolado (adaptador local experimental); testes PGlite do #80 exercitam Postgres em memória, nunca produção. Login real, sincronização e revisão do esquema remoto continuam fora desta entrega visual.
+
+O CI da reconciliação visual `f74c4a4` aprovou **815 unitários, 36 + 64 + 80 = 180 E2E**, com 32 condições de layout não aplicáveis herdadas e **48 varreduras axe / zero violações**. Evidência: [workflow padrão](https://github.com/Waudz/compendio-5e/actions/runs/44878045414), [E2E](https://github.com/Waudz/compendio-5e/actions/runs/44878045432), [artefato](https://github.com/Waudz/compendio-5e/actions/runs/44878045432/artifacts/14696727091).
+
+Na conferência final, o #80 avançou de `43a0cdd` para `e62500c` (segurança/persistência). Incorporado sem alterar os arquivos de banco do Claude; o diff de todo `supabase/` contra esse novo HEAD permanece vazio. Revalidação do novo HEAD no CI será registrada no PR #79; não confundir com a aprovação da árvore anterior.
 
 ---
 
