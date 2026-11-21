@@ -26,7 +26,7 @@ function Retrato({ caminho, nome, tamanho = 44 }: { caminho: string | null; nome
 
 export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
   const api = useRegistros(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros(), { aoClicarDireito } = useAbrirEmAba();
-  const [lista, setLista] = useState<Registro[] | null>(null), [erro, setErro] = useState<string | null>(null), [busy, setBusy] = useState(false), [tentativa, setTentativa] = useState(0);
+  const [lista, setLista] = useState<Registro[] | null>(null), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const cid = active?.campaign.id;
   useEffect(() => {
     if (!api || !cid) return; let vivo = true; setLista(null);
@@ -38,7 +38,7 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
   const novo = () => onOpenContent({ kind: "criador", ref: `novo-${crypto.randomUUID()}`, title: "Novo personagem" });
   return <div className="content personagens">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
-    <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo} disabled={busy}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
+    <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
     <p>Cada participante cria o próprio personagem. Só o dono edita; “visível para a campanha” aparece no Início.</p>
     <SecaoGuiados cid={active.campaign.id} userId={user?.id ?? null} publicos={lista} versao={v} onOpenContent={onOpenContent}/>
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
