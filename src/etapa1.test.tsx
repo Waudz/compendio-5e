@@ -157,7 +157,7 @@ describe("layout guarda só ids (nunca títulos)", () => {
   it("o título da campanha aparece na aba, mas não é gravado no aparelho", async () => {
     medir();
     await renderApp({ api: campApi([m]) });
-    fireEvent.click(screen.getByRole("button", { name: "Nenhuma campanha ativa: escolher ou criar" }));
+    fireEvent.click(screen.getByRole("button", { name: "CAMPANHA ATIVA Nenhuma" }));
     fireEvent.click(within((await screen.findByText("Segredo da Mesa Sombria")).closest("li")!).getByRole("button", { name: "Abrir" }));
     expect(tabNames()).toContain("Segredo da Mesa Sombria");
     const dump = store.key(0) === null ? "" : [...Array(store.length).keys()].map(i => `${store.key(i)}=${store.getItem(store.key(i)!)}`).join("\n");

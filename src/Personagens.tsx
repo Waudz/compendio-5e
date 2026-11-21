@@ -1,7 +1,7 @@
 // Personagens da campanha: lista (retrato, nome, classe, nível) e perfil de cada um. Qualquer participante cria o seu; só o dono edita.
 // Visível para a campanha = publicado; privado = só o dono vê. A ficha completa (atributos, magias, inventário) ainda não existe.
 import { Plus, Trash2, UserRound } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { Aviso } from "./Diario";
 import { useAuth } from "./AuthContext";
@@ -9,9 +9,12 @@ import { useCampaigns } from "./CampaignsContext";
 import { NIVEL_MAX, NIVEL_MIN, lerPerfil, ordenarPersonagens, validarPerfil } from "./perfilPersonagem";
 import { validarCapa } from "./capa";
 import type { Registro } from "./registros";
-import { useCapa, useRegistros } from "./RegistrosContext";
+import { useCapa, useFichas, useRegistros } from "./RegistrosContext";
 import { avisarRegistros, registrarTitulo, useVersaoRegistros } from "./registrosStore";
 import { useUnsavedGuard } from "./unsaved";
+import { armazenamentoLocalExperimental, type ResumoPersonagemGuiado } from "./criador/armazenamento";
+import { CriadorGuiado } from "./criador/CriadorGuiado";
+import { cartaoPublico, ehGuiado, type ResumoFicha } from "./fichas";
 import type { TabSpec } from "./workspace";
 
 /** Retrato com URL temporária; sem retrato (ou se falhar) mostra a inicial. */
@@ -43,18 +46,90 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo} disabled={busy}><Plus size={15} aria-hidden="true"/> Novo personagem</button></div>
     <p>Cada participante cria o próprio personagem. Só o dono edita; “visível para a campanha” aparece no Início.</p>
+    <SecaoGuiados cid={active.campaign.id} userId={user?.id ?? null} publicos={lista} versao={v} onOpenContent={onOpenContent}/>
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
     {!lista && !erro && <p className="muted" role="status">Carregando personagens…</p>}
-    {lista && lista.length === 0 && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}
-    <ul className="home-party">{lista?.map(r => { const p = lerPerfil(r.meta); return <li key={r.id}>
+    {lista && lista.filter(r => !ehGuiado(r.meta)).length === 0 && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}
+    <ul className="home-party">{lista?.filter(r => !ehGuiado(r.meta)).map(r => { const p = lerPerfil(r.meta); return <li key={r.id}>
       <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: r.id, title: r.title })} onContextMenu={e => aoClicarDireito(e, { kind: "ficha", ref: r.id, title: r.title })} aria-label={`Abrir ficha de ${r.title}`}>
         <Retrato caminho={p.retrato} nome={r.title}/>
         <span><strong>{r.title}</strong><small>{p.classe || "Sem classe"} · nível {p.nivel}{r.ownerId === user?.id ? " · seu" : ""}{r.visibility === "private" ? " · privado" : ""}</small></span></button></li>; })}</ul>
   </div>;
 }
 
+/** Personagens do criador guiado. Com conta e API de fichas: as fichas que o usuário pode ler (as próprias; todas, se for o mestre) vêm do SERVIDOR; as identidades públicas
+ * dos outros vêm da lista de registros; os rascunhos do armazenamento local EXPERIMENTAL (versão anterior) ficam numa lista própria, com envio explícito. */
+function SecaoGuiados({ cid, userId, publicos, versao, onOpenContent }: { cid: string; userId: string | null; publicos: Registro[] | null; versao: number; onOpenContent: (s: TabSpec) => void }) {
+  const fichas = useFichas(), { aoClicarDireito } = useAbrirEmAba();
+  const [meus, setMeus] = useState<ResumoFicha[] | null>(null), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
+  const [aviso, setAviso] = useState<{ ok: boolean; t: string } | null>(null), [descartando, setDescartando] = useState<string | null>(null), [enviando, setEnviando] = useState<string | null>(null);
+  useEffect(() => {
+    if (!fichas) { setMeus(null); setErro(null); return; } let vivo = true;
+    fichas.listar(cid).then(r => { if (!vivo) return; if (r.ok) { setMeus(r.data); setErro(null); } else setErro(r.error); });
+    return () => { vivo = false; };
+  }, [fichas, cid, versao, tentativa]);
+  const locais = useMemo<ResumoPersonagemGuiado[]>(() => { try { return userId ? armazenamentoLocalExperimental(userId, cid).listar() : []; } catch { return []; } }, [userId, cid, versao, tentativa]);
+  useEffect(() => { locais.forEach(g => registrarTitulo(g.id, g.nome)); meus?.forEach(m => registrarTitulo(m.id, m.nome)); }, [locais, meus]);   // abas restauradas mostram o nome
+  const idsMeus = new Set((meus ?? []).map(m => m.id));
+  const publicas = (publicos ?? []).filter(r => ehGuiado(r.meta) && !idsMeus.has(r.id));
+  const novo = () => onOpenContent({ kind: "criador", ref: `novo-${crypto.randomUUID()}`, title: "Novo personagem" });
+
+  /** Envio explícito de um rascunho local para a campanha: só apaga a cópia local DEPOIS que o servidor confirma. Falhou = continua só local. */
+  const enviar = async (g: ResumoPersonagemGuiado) => {
+    if (!fichas || !userId || enviando) return; setEnviando(g.id); setAviso(null);
+    try {
+      const loc = armazenamentoLocalExperimental(userId, cid); const p = loc.carregar(g.id);
+      if (!p) { setAviso({ ok: false, t: "O rascunho local não foi encontrado." }); return; }
+      if (!p.draft.name.trim()) { setAviso({ ok: false, t: "Dê um nome ao personagem (abra o rascunho e salve) antes de enviá-lo." }); return; }
+      const r = await fichas.criar(cid, p.draft, { identity: p.identity, source: { name: p.draft.name, surname: "", race: "Anão", characterClass: "Guerreiro" }, publicar: false });
+      if (!r.ok) { setAviso({ ok: false, t: `${r.error} O rascunho continua guardado neste navegador.` }); return; }
+      loc.excluir(g.id); avisarRegistros(); setTentativa(n => n + 1);
+      setAviso({ ok: true, t: `“${p.draft.name}” foi enviado para a campanha e a cópia deste navegador foi removida. A identidade pública começou privada.` });
+    } catch (e) { setAviso({ ok: false, t: `${e instanceof Error ? e.message : "Não foi possível enviar."} O rascunho continua guardado neste navegador.` }); }
+    finally { setEnviando(null); }
+  };
+  const descartar = (g: ResumoPersonagemGuiado) => { if (!userId) return; try { armazenamentoLocalExperimental(userId, cid).excluir(g.id); } catch { /* ignora */ } setDescartando(null); avisarRegistros(); setTentativa(n => n + 1); setAviso({ ok: true, t: `Rascunho “${g.nome}” removido deste navegador.` }); };
+  const item = (spec: TabSpec, rotulo: string, nome: string, detalhe: string) => <button className="home-char" onClick={() => onOpenContent(spec)} onContextMenu={e => aoClicarDireito(e, spec)} aria-label={rotulo}>
+    <Retrato caminho={null} nome={nome}/><span><strong>{nome}</strong><small>{detalhe}</small></span></button>;
+
+  return <section className="personagens-guiados" aria-label="Criador guiado">
+    <div className="row-between"><h2>Criador guiado {fichas ? null : <small className="muted">(experimental)</small>}</h2>
+      <button className="btn-secondary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar com o criador guiado</button></div>
+    <p className="muted">{fichas ? "Guerreiro do SRD 2014 com equipamento do catálogo oficial e inventário. A ficha completa é privada: só você e o mestre a leem; os outros jogadores veem apenas a identidade pública que você publicar."
+      : "Guerreiro do SRD 2014 com equipamento do catálogo oficial e inventário. Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
+    {aviso && <Aviso erro={!aviso.ok} t={aviso.t}/>}
+    {fichas && erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
+    {fichas && !meus && !erro && <p className="muted" role="status">Carregando fichas…</p>}
+    {fichas && meus && meus.length === 0 && publicas.length === 0 && <p className="muted" data-testid="guiados-vazio">Nenhum personagem guiado na campanha ainda.</p>}
+    {fichas && meus && meus.length > 0 && <><h3>Fichas na campanha</h3><ul className="home-party" aria-label="Fichas na campanha">{meus.map(m => <li key={m.id}>
+      {item({ kind: "criador", ref: m.id, title: m.nome }, `Abrir ficha guiada ${m.nome}`, m.nome, `Guerreiro${m.nivel != null ? ` · nível ${m.nivel}` : ""} · ${m.ownerId === userId ? "sua ficha" : "ficha de outro participante"}`)}</li>)}</ul></>}
+    {publicas.length > 0 && <><h3>Identidades públicas</h3><ul className="home-party" aria-label="Identidades públicas">{publicas.map(r => { const c = cartaoPublico(r.meta); return <li key={r.id}>
+      {item({ kind: "ficha", ref: r.id, title: r.title }, `Abrir identidade pública de ${r.title}`, r.title, [c?.race, c?.characterClass].filter(Boolean).join(" · ") || "Identidade pública")}</li>; })}</ul></>}
+    {!fichas && (locais.length === 0 ? <p className="muted" data-testid="guiados-vazio">Nenhum personagem guiado neste navegador.</p>
+      : <ul className="home-party">{locais.map(g => <li key={g.id}>{item({ kind: "criador", ref: g.id, title: g.nome }, `Abrir personagem guiado ${g.nome}`, g.nome, `Guerreiro · nível ${g.nivel} · guiado (neste navegador)`)}</li>)}</ul>)}
+    {fichas && locais.length > 0 && <div data-testid="rascunhos-locais"><h3>Rascunhos neste navegador <small className="muted">(experimental)</small></h3>
+      <p className="muted">Criados antes do salvamento na campanha. Nada é enviado nem apagado sozinho: envie cada um quando quiser; a cópia local só é removida depois que o servidor confirmar.</p>
+      <ul className="criador-locais">{locais.map(g => <li key={g.id}><span><strong>{g.nome}</strong> <small className="muted">nível {g.nivel}</small></span>
+        <span className="row"><button className="btn-secondary" onClick={() => onOpenContent({ kind: "criador", ref: g.id, title: g.nome })} aria-label={`Revisar rascunho local ${g.nome}`}>Revisar</button>
+          <button className="btn-primary" onClick={() => void enviar(g)} disabled={enviando !== null} aria-label={`${enviando === g.id ? "Enviando…" : "Enviar para a campanha"}: ${g.nome}`}>{enviando === g.id ? "Enviando…" : "Enviar para a campanha"}</button>
+          {descartando === g.id ? <><button className="btn-secondary danger" onClick={() => descartar(g)}>Confirmar descarte</button><button className="btn-secondary" onClick={() => setDescartando(null)}>Cancelar</button></>
+            : <button className="btn-secondary danger" onClick={() => setDescartando(g.id)} aria-label={`Descartar rascunho local ${g.nome}`}>Descartar</button>}</span></li>)}</ul></div>}
+  </section>;
+}
+
+/** Identidade pública de um personagem guiado, para quem NÃO é o dono: só o que o jogador publicou (nunca nível, PV, inventário ou escolhas). */
+function CartaoPublicoGuiado({ reg }: { reg: Registro }) {
+  const c = cartaoPublico(reg.meta);
+  if (!c) return <div className="content"><h1>{reg.title}</h1><Aviso t="Identidade pública indisponível."/></div>;
+  const nome = [c.name, c.surname].filter(Boolean).join(" ");
+  return <div className="content ficha" data-testid="cartao-publico"><div className="eyebrow">PERSONAGEM · IDENTIDADE PÚBLICA</div>
+    <div className="ficha-topo"><Retrato caminho={null} nome={reg.title} tamanho={72}/><div><h1>{c.title || nome || reg.title}</h1>{c.title && nome && <p>{nome}</p>}</div></div>
+    {c.race && <p>Raça: {c.race}</p>}{c.characterClass && <p>Classe: {c.characterClass}</p>}{c.description && <p>{c.description}</p>}
+    <p className="muted">Os detalhes da ficha são privados do jogador e do mestre.</p></div>;
+}
+
 /** Aba `ficha:<id>`: perfil do personagem. Dono edita; os demais só leem. */
-export function FichaPagina({ id }: { id: string }) {
+export function FichaPagina({ id, onOpenContent }: { id: string; onOpenContent?: (s: TabSpec) => void }) {
   const api = useRegistros(), capa = useCapa(), { user } = useAuth();
   const [reg, setReg] = useState<Registro | null | undefined>(undefined), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [nome, setNome] = useState(""), [classe, setClasse] = useState(""), [nivel, setNivel] = useState("1"), [publico, setPublico] = useState(false), [retrato, setRetrato] = useState<string | null>(null);
@@ -93,6 +168,7 @@ export function FichaPagina({ id }: { id: string }) {
   if (reg === undefined) return <div className="content"><p className="muted" role="status">Carregando…</p></div>;
   if (reg === null) return <div className="content"><h1>Personagem</h1><Aviso t="Personagem não encontrado, excluído ou sem permissão para vê-lo."/></div>;
 
+  if (ehGuiado(reg.meta)) return dono ? <CriadorGuiado id={reg.id} onOpenContent={onOpenContent ?? (() => {})}/> : <CartaoPublicoGuiado reg={reg}/>;   // ficha guiada: editor do dono; os demais só o cartão público
   if (!dono) {
     const p = lerPerfil(reg.meta);
     return <div className="content ficha" {...gesto}><div className="eyebrow">PERSONAGEM</div>
@@ -126,6 +202,7 @@ export function FichaPagina({ id }: { id: string }) {
       {subsecao === "inventario" && <section className="ficha-inventario">
         <h2>Inventário</h2>
         <p>Itens carregados pelo personagem. Salve para sincronizar entre dispositivos.</p>
+        {publico && <p className="notice" role="note">Atenção: nesta ficha simples o inventário é gravado junto do perfil e fica visível para a campanha enquanto estiver publicada. Para um inventário privado, use o criador guiado.</p>}
         <ul>{inventario.map((item, i) => <li key={i}><span>{item}</span><button type="button" className="btn-secondary" onClick={() => setInventario(items => items.filter((_, j) => j !== i))}>Remover</button></li>)}</ul>
         <div className="row"><input aria-label="Nome do item" placeholder="Novo item" value={novoItem} onChange={e => setNovoItem(e.target.value)}/><button type="button" className="btn-secondary" onClick={() => { if (novoItem.trim()) { setInventario(items => [...items, novoItem.trim()]); setNovoItem(""); } }}>Adicionar</button></div>
       </section>}

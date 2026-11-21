@@ -1,3 +1,5 @@
+> **Retomada:** [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md) é o ponto de entrada para novas conversas e contém a hierarquia dos documentos. As seções históricas abaixo não prevalecem sobre decisões posteriores explícitas. Atualize este planejamento e o registro de decisões em conjunto.
+
 # Planejamento v2 — estado, arquitetura planejada e roteiro
 
 Status em 19/11/2026, `main` após o PR #24: Etapa 1 (login obrigatório e isolamento local) e a navegação por abas com a divisão de painéis estão **implementadas e publicadas**. Todo o restante abaixo é **planejamento**, distinguido por "Planejado". Migrações `0001`–`0004` aplicadas ao projeto `gwcttjlxzelzjhbuitmi` (não reaplicar); **nenhuma migração nova foi escrita**; a `0005` (conteúdo estruturado das notas) está **proposta no PR #32 e NÃO aplicada**; as audiências de notas passam a ser a `0009` (ver `supabase/migrations/LEIA-ME.md`). O projeto legado `rastreador-dnd` nunca é tocado. Regras gerais: `DECISOES-E-ARQUITETURA.md`.

@@ -1,6 +1,10 @@
 # COMPÊNDIO 5e 2.0 — DECISÕES, ARQUITETURA E ESTADO
 
-> Documento de referência para qualquer pessoa ou IA que trabalhe no projeto. Atualizar quando uma decisão mudar. Não confundir **decidido**, **planejado** e **implementado**: cada seção abaixo diz o que já existe no código. Roteiro, estado detalhado e pendências: `docs/PLANEJAMENTO-V2.md`. Última revisão: 19/11/2026.
+> Documento de referência para qualquer pessoa ou IA que trabalhe no projeto. Atualizar quando uma decisão mudar. Não confundir **decidido**, **planejado** e **implementado**: cada seção abaixo diz o que já existe no código. Roteiro, estado detalhado e pendências: `docs/PLANEJAMENTO-V2.md`. Última revisão: 20/11/2026.
+
+> **Retomada e registro de decisões:** [`docs/CONTINUIDADE-DESENVOLVIMENTO.md`](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Cada decisão nova ou substituída deve constar aqui com ID, situação, contexto, alternativas, impactos, implementação, testes e pendências; atualizar o índice no mesmo commit. Decisões antigas devem ser marcadas como substituídas, nunca apagadas silenciosamente.
+
+> **Novo desenvolvimento em PR #74 (não integrado):** criador/ficha/inventário em piloto isolado, decisões de ferramentas e estado detalhados em `docs/CRIADOR-FICHA-INVENTARIO.md`; auditoria em `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`. Não confundir com funcionalidade publicada.
 
 ## 1. Objetivo e princípios
 
@@ -96,3 +100,127 @@ Integrados: base React e workspace (PRs #1–#4); FlexLayout (#8); abas compacta
 6. Comunicar curto, direto e objetivo; **não gerar imagens de mockup** (usar descrição curta, esquema textual ou protótipo funcional).
 
 **Regra de ouro:** quando houver conflito entre este documento e uma decisão explícita mais recente do responsável, prevalece a decisão mais recente; atualizar o documento.
+
+## Decisão adicional (20/11/2026) — catálogo extensível e ficha universal
+
+**Aprovado:** o modelo de regras deve permitir futuramente raças, sub-raças, classes, subclasses, talentos e origens **homebrew** e de **suplementos licenciados**, sem reconstruir criador ou ficha. Cada opção terá fonte, edição, revisão e ID estável; conteúdo de terceiros só entra mediante direitos adequados. Contrato experimental em `src/rules/content-registry.ts`, detalhado em `docs/CRIADOR-FICHA-INVENTARIO.md`. Editor, importação, compartilhamento e persistência **ainda não implementados**.
+
+**Ficha universal:** toda aparição do personagem aponta para **uma identidade por `characterId`**; nenhuma tela mantém cópia independente do personagem. O estado jogável é identificado também por **escopo**: pessoal ou participação específica na campanha. **Não confundir identidade única com estado global único:** a decisão anterior deste documento (§8) preserva progressão, inventário e carteira independentes por campanha. Dentro de cada contexto, ficha, iniciativa, encontro e campanha devem refletir os mesmos PV, recursos e demais alterações, respeitando RLS e controle de versões. O mestre não modifica a ficha pessoal de outro usuário.
+
+**Implementação atual:** somente contratos e testes de domínio, sem integração com UI/Supabase; não declarar sincronização universal concluída.
+
+## Revisão da decisão (20/11/2026) — uma campanha ativa por personagem
+
+**Decisão mais recente do responsável, prevalece sobre o §8 e a seção de ficha universal acima:** um personagem pode estar vinculado a **no máximo uma campanha ativa por vez**. O objetivo é evitar duplicação desnecessária de fichas, progressões e inventários. O personagem mantém uma identidade estável e uma ficha canônica, utilizada por Personagens, Campanha, Encontros e Iniciativa. Vincular não cria cópia da ficha. Um personagem sem campanha continua utilizável.
+
+**Histórico e saída:** participações encerradas podem preservar registros históricos/instantâneos da campanha, sem constituir uma segunda ficha ativa. Excluir ou remover vínculo não exclui o personagem pessoal. Eventual transferência entre campanhas deverá ser explícita, com política de continuidade de inventário, progressão e recursos definida antes da implementação. Não presumir que o mestre pode editar a identidade pessoal do jogador; permissões permanecem sob revisão.
+
+**Implicação para banco:** projetar restrição transacional de unicidade para `character_id` entre participações com estado ativo, além de autorização/RLS e prevenção de corrida entre convites. Histórico arquivado não conta como participação ativa. **Não foi criada/aplicada migração.** A arquitetura antiga de estados jogáveis simultâneos por campanha está superada por esta decisão; atualizar os contratos experimentais de ponteiros antes de integrá-los.
+
+## Decisão posterior — substituição de personagem após morte (20/11/2026)
+
+**Aprovado em princípio:** um jogador pode criar outro personagem e vinculá-lo à campanha na qual seu personagem anterior morreu. A regra anterior **continua válida por personagem**: cada personagem participa de no máximo uma campanha ativa por vez; isso **não** significa limitar o jogador a um único personagem histórico por campanha. Morte não exclui personagem, ficha, inventário ou histórico; a ficha permanece acessível e identificada como **Morto** tanto em Meus Personagens quanto no histórico da campanha. Na visão operacional da campanha, personagens mortos não aparecem na lista principal de ativos, mas são consultáveis em uma seção/filtro de históricos. Anotações e vínculos não são apagados. Novo personagem tem ID, ficha e inventário próprios, sem herança automática. Ressurreição deve reativar a mesma identidade, não criar cópia.
+
+**Regra operacional sugerida, ainda sujeita à confirmação do responsável:** um personagem *em atividade* por jogador em cada campanha; permitir múltiplos históricos mortos/aposentados. Não confundir `morto`, `arquivado`, `retirado` e `excluído logicamente`. A morte é condição narrativa reversível; arquivamento é estado de participação; exclusão lógica é ação administrativa. Se houver ressurreição enquanto substituto está ativo, exigir escolha explícita sobre qual personagem fica ativo, sem apagar nenhum. Combates históricos devem conservar seus participantes e eventos, mas não ressuscitar nem sobrescrever fichas.
+
+**Estado técnico:** decisão de produto/documentação, não implementada; requer estados separados de personagem e participação, regras de autorização, índices de banco e testes de morte/ressurreição/troca. Nenhuma migração aplicada.
+
+## Decisão posterior — exclusão pessoal não apaga personagem da campanha (20/11/2026)
+
+**Aprovado pelo responsável:** quando o jogador exclui um personagem da própria conta/biblioteca, o personagem deve desaparecer de **Meus Personagens**, mas **permanecer no histórico da campanha** até que o mestre decida removê-lo. Isso vale para personagens mortos, para saída do jogador e para casos em que o jogador não queira mais vê-los. O mestre preserva acesso à ficha histórica (identidade, nível, inventário, estado e eventos relevantes) sem adquirir acesso às notas privadas ou à conta do jogador. A exclusão pessoal não quebra referências de encontros, iniciativa histórica, notas compartilhadas e registros de campanha.
+
+**Modelo recomendado:** distinguir (a) identidade e ficha canônica durante uso ativo; (b) visibilidade/propriedade na biblioteca pessoal; (c) participação e registro histórico da campanha; (d) autorização do mestre para manter/arquivar/remover da campanha. Na exclusão pessoal, manter um **snapshot histórico imutável da ficha no contexto da campanha** ou uma projeção preservada com referências estáveis, sem criar segundo personagem ativo. A cópia histórica não deve continuar sincronizando atributos/recursos do jogador. Usar exclusão lógica/tombstone e política de retenção explícita. Não confundir a remoção do histórico pelo mestre com exclusão de dados exigida por lei; obrigações de privacidade e exclusão definitiva devem ser tratadas separadamente, inclusive quando houver pedido de eliminação de dados pessoais.
+
+**Pendente de desenho técnico:** definir quais campos da ficha ficam na campanha, o que acontece com fotos/anexos e direitos de conteúdo, histórico de combate, retenção, permissões e reativação. Operações de exclusão/arquivamento devem ser transacionais, auditáveis, sujeitas a RLS e evitar perda acidental de registros. A regra de no máximo uma campanha ativa por personagem permanece; histórico preservado não é participação ativa. **Nenhuma migração, banco ou produção alterados nesta rodada.**
+
+## Decisão posterior — personagem órfão, histórico de controladores e conversão para NPC
+
+**Aprovado pelo responsável:** se o jogador excluir da biblioteca pessoal um personagem vinculado a uma campanha, o personagem **permanece na campanha**, mas **deixa de estar vinculado ao jogador** como proprietário/controlador atual. O registro preserva histórico de quem já foi seu proprietário/controlador, com datas e eventos de transferência, sem expor dados privados. O mestre pode **atribuir o personagem a outro jogador da campanha** ou **convertê-lo em NPC**, sem recriar a identidade, perder ficha, inventário, estado narrativo ou histórico. Personagem morto continua morto até evento explícito de ressurreição; mudança de controle não altera automaticamente estado de vida.
+
+**Modelo de domínio desejado:** separar `characterId` (identidade estável), `campaignId` (única campanha ativa por personagem), `controllerType` (`player | gm | unassigned`), `controllerUserId` opcional, `characterRole` (`pc | npc`), `lifeStatus` e `participationStatus`, além de eventos append-only de titularidade/controle. Um NPC continua sendo personagem de campanha e não é cópia independente de monstro do bestiário. Atribuição a outro jogador deve exigir aceite do destinatário (recomendação de segurança/produto, pendente de confirmação). Histórico de antigo controlador não equivale a acesso atual; permissões e RLS devem verificar vínculo vigente.
+
+**Cuidados:** exclusão da biblioteca pessoal não apaga dados de campanha nem notas compartilhadas; notas privadas do antigo jogador continuam privadas. A ficha de campanha passa a ser mantida pelo mestre/escopo de campanha após desvinculação. Não transferir automaticamente conta, propriedade intelectual, arquivos privados ou permissões do usuário anterior. Registrar ações auditáveis e concorrência, impedir duas transferências simultâneas e oferecer confirmação para conversão a NPC. Políticas de privacidade e pedidos legais de eliminação de dados continuam exigindo tratamento específico. **Não implementado no banco/UI; nenhuma migração ou publicação autorizada.**
+
+## Decisão posterior — personagens na Enciclopédia da campanha
+
+**Direção aprovada pelo responsável:** usar a **Enciclopédia da campanha**, com uma seção **Personagens**, para dar destino narrativo e administrativo aos personagens vinculados, inclusive personagens mortos, antigos personagens de jogadores, personagens sem controlador e NPCs. A Enciclopédia deve servir como registro histórico duradouro da campanha, independentemente de o antigo jogador manter a ficha na biblioteca pessoal.
+
+**Fronteira importante:** a entrada enciclopédica é uma **projeção/página narrativa vinculada ao `characterId`**, não uma segunda ficha jogável nem uma duplicação de inventário, PV ou progressão. Biografia, acontecimentos, relacionamentos, controladores anteriores e visibilidade editorial podem existir na página; regras e estado do personagem continuam na ficha canônica ou no snapshot histórico de campanha quando o vínculo pessoal foi encerrado. O mestre pode administrar personagens órfãos e converter em NPC/atribuir novo controlador sem perder identidade. Morte, papel PC/NPC, controle e publicação na Enciclopédia são dimensões independentes.
+
+**Visibilidade:** página pública aos jogadores apenas se publicada pelo mestre; notas secretas e informações de bastidores permanecem restritas, e notas privadas do antigo jogador nunca passam a ser visíveis por transferência. Preservar vínculos por IDs e histórico de alterações. A seção deve coexistir com NPCs criados diretamente pelo mestre e não exigir ficha completa de jogador para cada NPC secundário; NPCs simples podem usar registro narrativo e, se necessário, ganhar ficha depois.
+
+**Estado:** decisão de arquitetura/documentação; ainda não há seção de personagens implementada na UI nem migração no banco. Detalhes de layout, permissões e fluxo de transferência serão refinados antes de implementar.
+
+## Decisão aprovada — Compêndio como catálogo canônico de regras (20/11/2026)
+
+**Aprovado explicitamente pelo responsável:** o Compêndio será a **fonte única de definições de conteúdo e regras estruturadas** para criação, progressão, ficha e inventário, em D&D 5e 2014. Não manter cópias independentes de raça, sub-raça, classe, subclasse, antecedente, talento, magia ou item em cada tela. A interface do Compêndio e o criador devem consultar o mesmo catálogo versionado e as mesmas referências estáveis; um motor de regras separado interpreta as definições e calcula a ficha.
+
+**Separação de responsabilidades:**
+- Catálogo: identificador estável, fonte/licença, versão, texto de apresentação, opções, pré-requisitos, progressão e efeitos estruturados.
+- Motor: validação de escolhas, pré-requisitos e compatibilidade, cálculos e exceções de regras; não duplica a base de dados do Compêndio.
+- Personagem: IDs/revisões das escolhas, valores próprios (atributos base, PV atuais, recursos gastos, inventário e anotações privadas); não duplica definições de classe/raça.
+- Enciclopédia da campanha > Personagens: projeção narrativa de personagens, **distinta** do catálogo de regras e da ficha canônica.
+- Conteúdo adicional: suplementos licenciados e homebrew com proveniência e versão; não misturar regras de 2014 e 2024.
+
+**Integridade:** não alterar silenciosamente personagens quando um registro de regra for corrigido. Usar revisão fixada por personagem e migração explícita/validada. Conteúdo incompleto não pode produzir ficha aparentemente completa: apresentar escolhas pendentes e impedir finalização inválida. Testar concordância entre Compêndio, criador e ficha, níveis 1–20, reabertura, edição e progressão. Não copiar automaticamente textos protegidos de fontes externas.
+
+**Status:** decisão registrada; há protótipos de catálogo, motor e ASI no PR #74, mas **a integração real de telas e banco ainda não foi concluída**. Não autoriza merge, deploy ou migração em produção.
+
+## Decisão aprovada — IDs estáveis para todas as entidades (20/11/2026)
+
+**Aprovado pelo responsável:** nenhuma ligação, regra, inventário, progressão, referência ou autorização deve depender de nomes exibidos, traduções ou títulos editáveis. Toda entidade persistida recebe identidade estável: raças/sub-raças, classes/subclasses, antecedentes, talentos, magias, itens, características, efeitos, recursos, personagens, campanhas, notas, páginas da Enciclopédia e instâncias individuais de itens. Nomes são metadados editáveis/localizáveis, não chaves de relacionamento.
+
+**Identidade de conteúdo:** `sourceId + kind + id` identifica a entidade lógica no catálogo, e `revision` fixa uma definição imutável específica; `contentKey` representa a referência versionada. IDs devem ser únicos no escopo correspondente, nunca reciclados e nunca alterados em uma renomeação. Conteúdos criados pelo usuário devem receber IDs opacos gerados na criação (UUID/ULID, conforme a persistência adotada), não IDs derivados de nomes; slugs são somente URLs/apresentação e podem mudar. Uma instância de item no inventário tem `instanceId` próprio e referência à definição `itemRef`, permitindo múltiplas cópias, estados e personalizações sem clonar a regra.
+
+**Integridade:** usar chaves estrangeiras/índices únicos no banco e resolver relações por IDs; preservar aliases/redirecionamentos quando slugs de URLs mudarem; proibir exclusão/reutilização de IDs referenciados sem política explícita; validar referências inexistentes, duplicações e mudanças de revisão. A API/UI não deve interpretar texto como identificador. Testar renomeações de cada tipo de conteúdo sem alterar relações existentes.
+
+**Implementação parcial no PR #74:** `ContentKind` agora inclui magias, itens, características, traços, efeitos e recursos; testes verificam estabilidade das referências sob renomeação. Ainda não foram implementados os IDs persistentes, constraints, aliases e instâncias de inventário na UI/banco. Sem merge/deploy/migração autorizados.
+
+
+## Decisão DEC-014 — continuidade documental obrigatória (20/11/2026)
+
+- **Situação:** aprovada como processo de desenvolvimento; documentação atualizada na branch do PR #74.
+- **Contexto:** conversas longas podem ser perdidas, enquanto arquivos históricos incluem decisões substituídas e protótipos não publicados.
+- **Decisão:** usar `docs/CONTINUIDADE-DESENVOLVIMENTO.md` como entrada e índice, mantendo este documento como registro normativo de decisões e os guias especializados como detalhes. Registrar cada nova decisão relevante com ID, motivação, alternativas, consequências, implementação, verificação e pendências no mesmo conjunto de commits do trabalho. Atualizar README e status correspondente.
+- **Alternativas:** concentrar todos os detalhes em um arquivo único foi descartado por duplicação e manutenção difícil; depender do chat foi descartado por fragilidade de continuidade.
+- **Consequências:** exige disciplina de documentação; evita perder contexto e declarar funcionalidades incompletas como prontas. Não altera regras, dados, permissões ou produção.
+- **Implementação:** guia central e links no README/documentos; PR #74.
+- **Verificação:** conferência dos arquivos enviados ao GitHub; não se aplica teste de lógica. CI do HEAD deve ser consultado.
+- **Pendências:** manter o registro vivo, reconciliar decisões históricas conforme cada módulo for desenvolvido e conferir periodicamente links e status.
+
+## Decisão posterior validada com jogadores — 20/11/2026
+
+**Iniciativa é exclusiva do mestre.** Nenhum jogador pode ver a ordem de iniciativa, turnos, rodadas, resultados ou metadados de participantes, nem mesmo do próprio personagem. Ocultar apenas a aba não basta: leituras e operações de iniciativa devem ser autorizadas no servidor, por campanha e papel de mestre, inclusive RPC, consultas e canais Realtime. O jogador mantém acesso aos dados permitidos de sua ficha (como PV, condições e recursos), sem receber dados do rastreador de iniciativa. Esta decisão prevalece sobre qualquer planejamento antigo que exponha iniciativa aos jogadores.
+
+Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio, Menu; jogador — Início, Anotações, Ficha, Compêndio, Menu. Inventário dentro de Ficha. **Estado:** decisão aprovada e contrato de domínio em PR #74; ainda pendente de integração com interface e RLS. Não aplicar migração sem aprovação.
+
+### DEC-015 — Catálogo canônico de itens SRD 2014 (2026-11-20)
+- **Situação:** implementada parcialmente (itens; demais categorias pendentes).
+- **Problema e contexto:** o piloto usava itens provisórios com IDs "candidatos" (três estavam errados: `rations`, `hempen-rope-50-feet`, `light-crossbow`) e nomes em formato de slug, sem dados mecânicos.
+- **Decisão:** um arquivo de dados versionado (`src/catalogue/data/srd-2014-items.json`, 578 itens: 237 mundanos e 341 mágicos, nomes pt-BR e originais) é validado com **Zod** (`src/catalogue/item-schema.ts`) e exposto como `RulesCatalogue` (`src/catalogue/srd-2014-items.ts`), a mesma fonte para Compêndio, criador, ficha e inventário. IDs estáveis sem prefixo de fonte; aliases legados (`potion-of-healing`) resolvem para o ID canônico; revisão `1`. Peso em kg = libras × 0,5 e alcance em m = pés × 0,3 (convenção do projeto legado). Descrição é um resumo em pt-BR **derivado dos campos estruturados**; o texto integral do SRD não foi importado.
+- **Origem e licença:** dados do Compêndio 1.0 (`dados/itens-srd2014.json`), baseados no SRD 5.1 (CC BY 4.0, Wizards of the Coast LLC) e no HeroQuill (MIT); atribuição gravada no próprio arquivo e exibível na interface. Regenerar com `scripts/build-srd-item-catalogue.mjs <arquivo-legado>`.
+- **Validação:** os 237 itens mundanos foram conferidos contra a D&D 5e SRD API com `scripts/verificar-itens-api.mjs` (nome, custo, peso, dano, CA, propriedades): 0 divergências não explicadas; 1 conhecida (`caltrops`: livro SRD = 1 po, API = 5 pc; o catálogo segue o livro). Os 341 itens mágicos **não** foram conferidos contra a API (só pelo esquema).
+- **Alternativas rejeitadas:** importar direto da API em tempo de execução (rede, sem curadoria, sem nomes pt-BR); manter itens provisórios por classe.
+- **Implementação:** PR #74; busca do Compêndio passou a indexar o nome original (`en`).
+- **Verificação:** tsc, build e 718 testes locais; conferir o CI do HEAD.
+- **Pendências:** descrições integrais, itens mágicos auditados, demais categorias (classes, subclasses, raças, antecedentes, magias, criaturas) e virtualização da lista (578 itens renderizados de uma vez no piloto).
+
+### DEC-016 — Criador guiado e Compêndio na navegação real (2026-11-21)
+- **Situação:** implementada parcialmente (Guerreiro; armazenamento experimental).
+- **Problema e contexto:** o criador e o Compêndio só existiam em `?demo=` (dev); o Compêndio real era placeholder.
+- **Decisão:** novos tipos de aba `criador:<id>` e `item:<id>` (`src/workspace.ts`), seção Compêndio real (`src/Compendio.tsx`), criador em `src/criador/`, acesso por Personagens. O catálogo do criador e o editor de identidade pública saíram de `src/dev/` para `src/criador/`. Persistência por interface `ArmazenamentoCriador` com adaptador **local experimental** (por usuário e campanha, apagado no logout), sem Supabase.
+- **Alternativas rejeitadas:** gravar o rascunho em `notes.meta` (vazaria a ficha privada para a campanha); criar tabela/migração sem autorização; manter só o piloto dev.
+- **Consequências:** personagens guiados não são os registros `character` da campanha (coexistem até a persistência real); a lista de Personagens mostra as duas origens em seções separadas. Sem alteração de banco, RLS ou produção.
+- **Verificação:** tsc, build e 742 testes locais (caminho do usuário em desktop e celular, Compêndio, armazenamento); CI do HEAD a conferir.
+- **Pendências:** persistência autenticada (proposta em `docs/CRIADOR-FICHA-INVENTARIO.md`), demais classes/raças/antecedentes, publicação da identidade na Enciclopédia (PR #75), Playwright (PR #76).
+
+### DEC-017 — Persistência das fichas do criador guiado no Supabase (2026-11-21)
+- **Situação:** implementada no código e validada em PostgreSQL isolado; **migração 0008 proposta, NÃO aplicada**.
+- **Problema e contexto:** o criador usava `localStorage` (sem segurança entre usuários); a tabela `character_sheets` foi criada fechada (0007) mas sem políticas definitivas, revisão controlada, imutabilidade nem integração.
+- **Decisão:** ficha privada em `character_sheets`; identidade pública na linha `notes` (kind `character`, `meta.guiado`), com `meta` restrito a `identidadePublica` por CHECK; gravação por duas funções SECURITY INVOKER atômicas; revisão otimista (`conflito_de_revisao`); dono lê/edita enquanto participa, mestre lê/edita a ficha (não a identidade nem notas privadas); sem DELETE; interface com repositório `servidor`/`local-experimental`, cópia de recuperação, envio explícito dos rascunhos locais.
+- **Alternativas rejeitadas:** ficha em `notes.meta` (vazaria); funções SECURITY DEFINER no schema exposto (contornam a RLS; os advisors já alertam); DELETE direto ou transferência por UPDATE de `owner_id` (contornam a auditoria narrativa); apagar o rascunho local ao enviar sem confirmação do servidor.
+- **Consequências:** sem a 0008 aplicada o app mostra a mensagem de atualização pendente; ex-participantes perdem o acesso (ficha preservada, mestre mantém); personagem do servidor não pode ser excluído pela UI; a identidade publicada vira o título da nota (visível à campanha).
+- **Implementação:** `supabase/migrations/0007_*`, `0008_*`, rollbacks, `src/fichas.ts`, `src/fichasMemoria.ts`, `src/criador/{repositorio,recuperacao,CriadorGuiado}.tsx`, `src/Personagens.tsx`.
+- **Revisão do PR #80 (21/11):** invariantes presas à existência da ficha (gatilho em `notes`), INSERT/UPDATE com nota ativa, meta estrito e título derivado pelo servidor, 0007 corrigida; duas funções SECURITY DEFINER booleanas em schema `private` (ver `CRIADOR-FICHA-INVENTARIO.md`).
+- **Verificação:** `supabase/character-sheets.test.ts` (48, incluindo compatibilidade com a 0007, notas legadas e testes negativos de RLS/ownership), `src/fichas.test.ts`, `src/criador/persistenciaServidor.test.tsx`, `recuperacao.test.ts`; tsc, build e 800 testes locais. Não validado no Supabase hospedado.
+- **Pendências:** aplicar a 0008 (autorização), testar contra o remoto, exclusão/transferência narrativas (PR #75), migração das fichas simples, Realtime (fora de escopo).

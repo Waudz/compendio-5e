@@ -3,6 +3,7 @@
 import type { Res } from "./campaigns";
 import type { CapaApi } from "./capa";
 import type { Aventureiro, FonteAventureiros } from "./inicio";
+import { cartaoPublico, ehGuiado } from "./fichas";
 import type { Registro, RegistrosApi } from "./registros";
 
 export const NIVEL_MIN = 1, NIVEL_MAX = 20, MAX_CLASSE = 40;
@@ -30,6 +31,7 @@ export function fontePersonagens(api: RegistrosApi, capa: CapaApi | null): Fonte
       const r = await api.list(campanhaId, "character"); if (!r.ok) return r;
       const lista = ordenarPersonagens(r.data.filter(x => x.visibility === "campaign"));
       const out = await Promise.all(lista.map(async x => {
+        if (ehGuiado(x.meta)) { const c = cartaoPublico(x.meta); return { id: x.id, nome: x.title, classe: [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: null, retratoUrl: null }; }   // guiado: só a identidade pública, sem nível
         const p = lerPerfil(x.meta); let retratoUrl: string | null = null;
         if (p.retrato && capa) { const u = await capa.urlDe(p.retrato); if (u.ok) retratoUrl = u.data; }   // retrato indisponível: cai na inicial, sem erro
         return { id: x.id, nome: x.title, classe: p.classe || "Sem classe", nivel: p.nivel, retratoUrl };
