@@ -35,16 +35,10 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
   }, [api, cid, v, tentativa]);
   if (!active) return <div className="content"><h1>Personagens</h1><Aviso t="Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral."/></div>;
   if (!api) return <div className="content"><h1>Personagens</h1><Aviso t="Conta necessária para usar os personagens."/></div>;
-  const novo = async () => {
-    if (busy || !cid) return; setBusy(true);
-    const r = await api.create({ kind: "character", campaignId: cid, title: "Novo personagem", visibility: "private", meta: { classe: "", nivel: 1 } });
-    setBusy(false);
-    if (!r.ok) { setErro(r.error); return; }
-    avisarRegistros(); onOpenContent({ kind: "ficha", ref: r.data.id, title: r.data.title });
-  };
+  const novo = () => onOpenContent({ kind: "criador", ref: `novo-${crypto.randomUUID()}`, title: "Novo personagem" });
   return <div className="content personagens">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
-    <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo} disabled={busy}><Plus size={15} aria-hidden="true"/> Novo personagem</button></div>
+    <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo} disabled={busy}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
     <p>Cada participante cria o próprio personagem. Só o dono edita; “visível para a campanha” aparece no Início.</p>
     <SecaoGuiados cid={active.campaign.id} userId={user?.id ?? null} publicos={lista} versao={v} onOpenContent={onOpenContent}/>
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
@@ -72,8 +66,6 @@ function SecaoGuiados({ cid, userId, publicos, versao, onOpenContent }: { cid: s
   useEffect(() => { locais.forEach(g => registrarTitulo(g.id, g.nome)); meus?.forEach(m => registrarTitulo(m.id, m.nome)); }, [locais, meus]);   // abas restauradas mostram o nome
   const idsMeus = new Set((meus ?? []).map(m => m.id));
   const publicas = (publicos ?? []).filter(r => ehGuiado(r.meta) && !idsMeus.has(r.id));
-  const novo = () => onOpenContent({ kind: "criador", ref: `novo-${crypto.randomUUID()}`, title: "Novo personagem" });
-
   /** Envio explícito de um rascunho local para a campanha: só apaga a cópia local DEPOIS que o servidor confirma. Falhou = continua só local. */
   const enviar = async (g: ResumoPersonagemGuiado) => {
     if (!fichas || !userId || enviando) return; setEnviando(g.id); setAviso(null);
@@ -93,8 +85,7 @@ function SecaoGuiados({ cid, userId, publicos, versao, onOpenContent }: { cid: s
     <Retrato caminho={null} nome={nome}/><span><strong>{nome}</strong><small>{detalhe}</small></span></button>;
 
   return <section className="personagens-guiados" aria-label="Criador guiado">
-    <div className="row-between"><h2>Criador guiado {fichas ? null : <small className="muted">(experimental)</small>}</h2>
-      <button className="btn-secondary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar com o criador guiado</button></div>
+    <h2>Criador guiado {fichas ? null : <small className="muted">(experimental)</small>}</h2>
     <p className="muted">{fichas ? "Guerreiro do SRD 2014 com equipamento do catálogo oficial e inventário. A ficha completa é privada: só você e o mestre a leem; os outros jogadores veem apenas a identidade pública que você publicar."
       : "Guerreiro do SRD 2014 com equipamento do catálogo oficial e inventário. Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
     {aviso && <Aviso erro={!aviso.ok} t={aviso.t}/>}
