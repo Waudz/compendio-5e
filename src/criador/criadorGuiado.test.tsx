@@ -106,7 +106,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     // reabrir (novo carregamento do app): lista, ficha, inventário e identidade restaurados
     cleanup(); await montar(); await abrirPersonagens();
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir personagem guiado Thorin' }));
-    expect(((await screen.findByLabelText('Nome do personagem')) as HTMLInputElement).value).toBe('Thorin');
+    await waitFor(() => expect((screen.getByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('Thorin'));
     expect(screen.getByText(/Atletismo, Percepção/)).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     expect(within(screen.getByRole('region', { name: 'Inventário' })).getByText('Cota de malha')).toBeTruthy();
