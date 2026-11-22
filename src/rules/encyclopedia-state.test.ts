@@ -28,3 +28,10 @@ describe('encyclopedia state machine',()=>{
   expect(created[0].visibility).toBe('hidden');
  });
 });
+
+it('rejects an unknown action instead of restoring a trashed entry',()=>{
+ const created=reduceEncyclopedia([],master,{type:'create',entry});
+ const trashed=reduceEncyclopedia(created,master,{type:'trash',entryId:'npc-a',actorUserId:'dm',at:'2026-11-20T00:00:00Z'});
+ expect(()=>reduceEncyclopedia(trashed,master,{type:'unknown',entryId:'npc-a'} as unknown as {type:'restore';entryId:string})).toThrow();
+ expect(trashed[0].deletedAt).not.toBeNull();
+});

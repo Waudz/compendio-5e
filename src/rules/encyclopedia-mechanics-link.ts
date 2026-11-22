@@ -17,11 +17,11 @@ export function linkEncyclopediaMechanics(
  if(link){
   if(link.kind==='character'){
    if(record.kind!=='character'||!link.characterId.trim())throw Error('Invalid character reference');
-  }else{
+  }else if(link.kind==='creature'){
    if(!link.sourceId.trim()||!link.creatureId.trim()||!link.revision.trim())throw Error('Invalid creature reference');
-  }
+  }else throw Error('Invalid mechanics reference kind');
  }
- return {...record,mechanicsLink:link?{...link}:null};
+ return {...record,mechanicsLink:link?(link.kind==='character'?{kind:'character',characterId:link.characterId}:{kind:'creature',sourceId:link.sourceId,creatureId:link.creatureId,revision:link.revision}):null};
 }
 /** Remove a link without deleting the narrative entry or the canonical target. */
 export function unlinkEncyclopediaMechanics(record:EncyclopediaNarrativeRecord):EncyclopediaNarrativeRecord{

@@ -12,6 +12,7 @@ export function reduceEncyclopedia(
  records:readonly EncyclopediaIndexedEntry[],actor:EncyclopediaActor,action:EncyclopediaAction
 ):readonly EncyclopediaIndexedEntry[]{
  if(!actor.isActiveMember||actor.role!=='master')throw Error('Only campaign master may mutate encyclopedia');
+ if(!['create','discover','trash','restore'].includes(action.type))throw Error('Invalid encyclopedia action');
  if(action.type==='create'){
   if(action.entry.campaignId!==actor.campaignId||records.some(x=>x.id===action.entry.id))
    throw Error('Invalid encyclopedia entry creation');

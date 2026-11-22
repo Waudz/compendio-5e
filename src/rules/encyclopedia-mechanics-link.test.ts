@@ -22,3 +22,9 @@ describe('encyclopedia mechanical references',()=>{
   expect(unlinkEncyclopediaMechanics(linked)).toEqual(npc);
  });
 });
+
+it('rejects unknown link kinds and strips unexpected private payloads',()=>{
+ const valid={kind:'creature' as const,sourceId:'srd-2014',creatureId:'guard',revision:'1',hp:99};
+ expect(linkEncyclopediaMechanics(npc,valid).mechanicsLink).toEqual({kind:'creature',sourceId:'srd-2014',creatureId:'guard',revision:'1'});
+ expect(()=>linkEncyclopediaMechanics(npc,{...valid,kind:'unknown'} as unknown as typeof valid)).toThrow();
+});
