@@ -148,7 +148,7 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"compendio"})}><BookOpen size={19} aria-hidden="true"/> Compêndio</button>
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"personagens"})}><Users size={19} aria-hidden="true"/> Personagens</button>
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"diario"})}><Library size={19} aria-hidden="true"/> Diário</button>
-    </nav>
+    </nav>}
     <DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>
     <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/>
     <details className="home-manage" onToggle={e => setGerir((e.currentTarget as HTMLDetailsElement).open)}><summary>{isMaster ? "Gerenciar campanha" : "Participantes"}</summary>
