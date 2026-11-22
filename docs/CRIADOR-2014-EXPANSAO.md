@@ -52,3 +52,7 @@ Primeira execução E2E: 24 falhas no criador (16 na ativação sem nome, oito n
 
 ### Complementos de progressão e preservação
 PV podem usar média fixa ou resultados físicos informados por nível, com confirmação explícita (médias provisórias não contam como rolagens concluídas). Reduzir/subir o nível e alternar o método recuperam resultados confirmados. Magias mostram descrição antes da seleção. A ativação de uma ficha antiga mantém uma cópia privada exata do rascunho anterior em `previousRulesDraft`, além de preservar inventário, nome e atributos ativos; não há migração em massa nem alteração de identidade pública. A cópia não é recursiva e continua sujeita ao limite existente de tamanho do draft. Troca explícita de classe reinicia sua progressão de PV com aviso. Sentido Divino respeita 1 + modificador de Carisma (mínimo efetivo zero), sem o mínimo de um não previsto na descrição.
+
+
+### Responsividade do painel interno
+A inspeção das capturas de 320 px encontrou corte lateral no inventário: a largura do documento continuava correta, mas a subnavegação do criador podia alargar o scroll container mobile. Corrigido exclusivamente no CSS do criador com quebra de suas seções/controles e mínimo inline de fieldsets. Acrescentada asserção dos retângulos reais de todos os controles, fieldsets, navegação e itens do criador, incluindo margens negativas; a asserção anterior apenas do documento é mantida.

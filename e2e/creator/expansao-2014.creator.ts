@@ -23,6 +23,15 @@ async function checks(group: Locator, n: number, used = new Set<string>()) {
   }
   expect(added).toBe(n);
 }
+async function expectCreatorInsideViewport(page: Parameters<typeof startCreator>[0]) {
+  await expect.poll(() => page.locator('.criador').evaluate(root => {
+    const width = window.innerWidth;
+    return [root, ...root.querySelectorAll('input, select, button, fieldset, nav, li')].filter(el => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && (r.left < -1 || r.right > width + 1);
+    }).map(el => ({tag:el.tagName, text:el.textContent?.slice(0,50)}));
+  }), {message:'Controles do criador não devem ficar cortados nas laterais do painel'}).toEqual([]);
+}
 async function activate(page: Parameters<typeof startCreator>[0]) {
   await startCreator(page);
   await page
@@ -183,6 +192,7 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   });
   expect(axe.violations).toEqual([]);
   await expectNoHorizontalOverflow(page);
+  await expectCreatorInsideViewport(page);
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Salvar', exact: true }),
@@ -220,6 +230,7 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
     }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
+  await expectCreatorInsideViewport(page);
   await info.attach('maga-inventario', {
     body: await page.screenshot(),
     contentType: 'image/png',
@@ -251,6 +262,7 @@ test('SRD 2014: progressão até 20 preserva dados e as 12 classes aparecem sem 
     page.getByRole('region', { name: 'Opções SRD 2014' }),
   ).toContainText('Sem espaços de magia');
   await expectNoHorizontalOverflow(page);
+  await expectCreatorInsideViewport(page);
   const axe = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
@@ -317,6 +329,7 @@ test('atributos rolados/antigos reabrem intactos e não passam por compra de pon
     await page.evaluate((key) => localStorage.getItem(key), legacy.key),
   ).toBe(legacy.value);
   await expectNoHorizontalOverflow(page);
+  await expectCreatorInsideViewport(page);
   const axe = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

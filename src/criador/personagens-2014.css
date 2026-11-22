@@ -62,3 +62,11 @@
   font-size: 12px;
   padding: 5px 8px;
 }
+
+/* Também limita o formulário legado: o painel mobile é um scroll container. */
+.criador { min-width: 0; overflow-wrap: anywhere; }
+.criador fieldset { min-inline-size: 0; }
+.criador .ficha-subnav { flex-wrap: wrap; }
+.criador .ficha-subnav button { min-width: 0; max-width: 100%; }
+.criador .ficha-inventario li > span { min-width: 0; max-width: 100%; }
+.criador .ficha-inventario button { max-width: 100%; white-space: normal; }
