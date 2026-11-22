@@ -39,7 +39,18 @@ const montar = async (user: User = me, layoutNovo = true) => {
   return renderApp({ user, api: apiC(papelDe(user)), registros: registrosEmMemoria(papelDe(user), user.id, [], registros as never), fichas: fichasEmMemoria(user.id, banco) });
 };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole("button", { name: "Personagens" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Personagens" })); };
-const nomeInput = () => screen.findByLabelText("Nome do personagem") as Promise<HTMLInputElement>;
+/** Ao reabrir, a ficha é exibida em leitura; edição exige ação explícita. */
+const abrirEdicaoSeNecessario = async () => {
+  const botao = screen.queryByRole("button", { name: "Editar personagem" });
+  if (botao) fireEvent.click(botao);
+};
+const nomeInput = async () => {
+  const campo = screen.queryByLabelText("Nome do personagem") as HTMLInputElement | null;
+  if (campo) return campo;
+  const editar = await screen.findByRole("button", { name: "Editar personagem" });
+  fireEvent.click(editar);
+  return screen.findByLabelText("Nome do personagem") as Promise<HTMLInputElement>;
+};
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar personagem/ })); return nomeInput(); };
 const preencher = async (nome: string) => {
   fireEvent.change(await nomeInput(), { target: { value: nome } });
@@ -254,7 +265,7 @@ describe("falhas de rede e recuperação", () => {
     cleanup(); await montar(); await abrirPersonagens();
     const botao = await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" });
     banco.rede.caida = true; fireEvent.click(botao);
-    expect(await screen.findByText(/Não foi possível abrir este personagem: Sem conexão/)).toBeTruthy();
+    expect(await screen.findByText(/Não foi possível verificar a ficha/)).toBeTruthy();
     banco.rede.caida = false; fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
     expect((await nomeInput()).value).toBe("Thorin");
   });
