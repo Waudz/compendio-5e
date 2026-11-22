@@ -1,6 +1,6 @@
 // Contratos de dados do catálogo para o criador de personagens (docs/CATALOGO-DND-2014.md).
 import { describe, expect, it } from 'vitest';
-import { DND5E_2014, itemPorId, magiaPorId, magiasDaClasse, magiasInexistentes, monstroPorId, refItem, refMagia, refMonstro, REVISAO_CATALOGO_2014, todasAsMagias, todosOsMonstros } from './contratos';
+import { DND5E_2014, itemPorId, magiaPorId, magiasDaClasse, magiasInexistentes, monstroPorId, resolverIdMonstro, refItem, refMagia, refMonstro, REVISAO_CATALOGO_2014, todasAsMagias, todosOsMonstros } from './contratos';
 import { validateContentRegistry, type ContentRef } from '../rules/content-registry';
 
 describe('contratos para o criador', () => {
@@ -33,5 +33,12 @@ describe('contratos para o criador', () => {
   it('valida ids de magias salvos numa ficha: devolve os que não existem nesta revisão', async () => {
     expect(await magiasInexistentes(['fireball', 'shield', 'magia-inventada', 'outra'])).toEqual(['magia-inventada', 'outra']);
     expect(await magiasInexistentes([])).toEqual([]);
+  });
+  it('ids antigos continuam resolvendo (duplicatas removidas e ids renomeados), sem quebrar referências salvas', async () => {
+    expect((await monstroPorId('succubusincubus'))?.id).toBe('succubus-incubus'); expect(await resolverIdMonstro('succubusincubus')).toBe('succubus-incubus');
+    expect(await resolverIdMonstro('elf-drow')).toBe('drow'); expect(await resolverIdMonstro('gnome-deep-svirfneblin')).toBe('deep-gnome-svirfneblin');
+    expect(await resolverIdMonstro('goblin')).toBe('goblin'); expect(await resolverIdMonstro('nao-existe')).toBeUndefined();
+    const todos = await todosOsMonstros(); const atuais = new Set(todos.map(m => m.id));
+    for (const m of todos) for (const antigo of m.idsAnteriores ?? []) expect(atuais.has(antigo), `${antigo} não pode ser id de outra ficha`).toBe(false);
   });
 });

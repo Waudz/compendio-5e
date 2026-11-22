@@ -49,13 +49,21 @@ export function CompendioCatalogo({ onOpenContent }: { onOpenContent: (s: TabSpe
   const [texto, setTexto] = useState(""), [filtros, setFiltros] = useState<Record<string, string | boolean>>({}), [ordenar, setOrdenar] = useState("");
   const [visao, setVisao] = useState<Visao>("lista"), [limite, setLimite] = useState(PAGINA), [aberto, setAberto] = useState<string | null>(null);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  // Navegação entre categorias (monstro -> magia citada): guarda de onde veio para oferecer "Voltar para <monstro>".
+  const [retorno, setRetorno] = useState<{ catId: string; id: string; nome: string } | null>(null);
 
-  const trocarCategoria = (id: string) => { setCatId(id); setTexto(""); setFiltros({}); setOrdenar(""); setLimite(PAGINA); setAberto(null); };
+  const trocarCategoria = (id: string) => { setRetorno(null); setCatId(id); setTexto(""); setFiltros({}); setOrdenar(""); setLimite(PAGINA); setAberto(null); };
   const ativos = Object.values(filtros).filter(v => v !== "" && v !== false && v !== undefined).length;
   const resultado = useMemo(() => estado.status === "pronto" ? consultar(estado.indice, { texto, filtros, ordenar: ordenar || undefined } as Consulta) : [], [estado, texto, filtros, ordenar]);
   const mostrados = resultado.slice(0, limite);
   const itemAberto = useMemo(() => (estado.status === "pronto" && aberto !== null ? estado.indice.itens.find(i => cat.idDe(i) === aberto) : undefined), [estado, aberto, cat]);
   const reiniciar = useCallback(() => setLimite(PAGINA), []);
+  const abrirMagia = (id: string, deNome: string) => {
+    if (aberto === null) return;
+    setRetorno({ catId: cat.id, id: aberto, nome: deNome });
+    setCatId("magias"); setTexto(""); setFiltros({}); setOrdenar(""); setLimite(PAGINA); setAberto(id);
+  };
+  const voltarAoOrigem = () => { if (!retorno) return; setCatId(retorno.catId); setTexto(""); setFiltros({}); setOrdenar(""); setLimite(PAGINA); setAberto(retorno.id); setRetorno(null); };
   const mudarFiltro = (id: string, v: string | boolean) => { setFiltros(f => ({ ...f, [id]: v })); reiniciar(); };
 
   return <div className={`content compendio cat${itemAberto ? " com-detalhe" : ""}`}>
@@ -100,7 +108,7 @@ export function CompendioCatalogo({ onOpenContent }: { onOpenContent: (s: TabSpe
 
       {aberto !== null && <aside className="cat-detalhe" aria-label="Detalhes">
         {estado.status === "carregando" && <EsqueletoDetalhe/>}
-        {itemAberto !== undefined && <Detalhe cat={cat} item={itemAberto} onFechar={() => setAberto(null)} onOpenContent={onOpenContent}/>}
+        {itemAberto !== undefined && <Detalhe cat={cat} item={itemAberto} onFechar={() => { setAberto(null); setRetorno(null); }} onOpenContent={onOpenContent} onAbrirMagia={abrirMagia} retorno={cat.id === "magias" ? retorno : null} onRetornar={voltarAoOrigem}/>}
         {estado.status === "pronto" && itemAberto === undefined && <><button type="button" className="btn-secondary cat-voltar" onClick={() => setAberto(null)}><ArrowLeft size={15} aria-hidden="true"/> Voltar à lista</button><Aviso t="Entrada não encontrada nesta revisão do catálogo."/></>}
       </aside>}
     </div>
@@ -116,17 +124,19 @@ function Cartao({ cat, item, visao, ativo, onAbrir }: { cat: Qualquer; item: unk
     <strong>{nome}</strong>{" "}<small>{cat.subtituloDe(item)}</small>{visao === "grade" && cat.resumoDe && <>{" "}<span className="muted">{cat.resumoDe(item)}</span></>}</button></li>;
 }
 
-function Detalhe({ cat, item, onFechar, onOpenContent }: { cat: Qualquer; item: unknown; onFechar: () => void; onOpenContent: (s: TabSpec) => void }) {
+function Detalhe({ cat, item, onFechar, onOpenContent, onAbrirMagia, retorno, onRetornar }: { cat: Qualquer; item: unknown; onFechar: () => void; onOpenContent: (s: TabSpec) => void;
+  onAbrirMagia: (id: string, deNome: string) => void; retorno: { nome: string } | null; onRetornar: () => void }) {
   const nome = cat.nomeDe(item);
   return <article className="cat-detalhe-conteudo" aria-label={`Detalhes de ${nome}`}>
     <div className="cat-detalhe-topo">
-      <button type="button" className="btn-secondary cat-voltar" onClick={onFechar}><ArrowLeft size={15} aria-hidden="true"/> Voltar à lista</button>
+      {retorno ? <button type="button" className="btn-secondary cat-retorno" onClick={onRetornar}><ArrowLeft size={15} aria-hidden="true"/> Voltar para {retorno.nome}</button>
+        : <button type="button" className="btn-secondary cat-voltar" onClick={onFechar}><ArrowLeft size={15} aria-hidden="true"/> Voltar à lista</button>}
       <button type="button" className="cat-fechar" onClick={onFechar} aria-label="Fechar detalhes"><X size={18} aria-hidden="true"/></button>
     </div>
     <div className="eyebrow">{cat.rotuloItem.toLocaleUpperCase("pt-BR")}</div>
     <h2 className="cat-titulo">{nome}</h2>
     {cat.id === "magias" && <DetalheMagia magia={item as Magia}/>}
-    {cat.id === "monstros" && <DetalheMonstro monstro={item as Monstro}/>}
+    {cat.id === "monstros" && <DetalheMonstro monstro={item as Monstro} onAbrirMagia={id => onAbrirMagia(id, nome)}/>}
     {cat.id === "itens" && <>
       <DetalheItem item={item as SrdItem} onOpenContent={onOpenContent}/>
       <p><button type="button" className="btn-secondary" onClick={() => onOpenContent(itemSpec(cat.idDe(item), nome))}><ExternalLink size={14} aria-hidden="true"/> Abrir em nova aba</button></p>

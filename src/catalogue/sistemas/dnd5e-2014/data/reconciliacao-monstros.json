@@ -1,0 +1,55 @@
+{
+  "descricao": "Reconciliação do bestiário (catálogo, 323) com a SRD API (334). Cada id que existe só de um lado está explicado aqui; o verificador e dados.test.ts falham se surgir um id sem explicação.",
+  "idsRenomeados": {
+    "succubusincubus": "succubus-incubus"
+  },
+  "formasAgrupadas": {
+    "vampire": [
+      "vampire-vampire",
+      "vampire-bat",
+      "vampire-mist"
+    ],
+    "werebear": [
+      "werebear-human",
+      "werebear-hybrid",
+      "werebear-bear"
+    ],
+    "wereboar": [
+      "wereboar-human",
+      "wereboar-hybrid",
+      "wereboar-boar"
+    ],
+    "wererat": [
+      "wererat-human",
+      "wererat-hybrid",
+      "wererat-rat"
+    ],
+    "weretiger": [
+      "weretiger-human",
+      "weretiger-hybrid",
+      "weretiger-tiger"
+    ],
+    "werewolf": [
+      "werewolf-human",
+      "werewolf-hybrid",
+      "werewolf-wolf"
+    ]
+  },
+  "somenteNoCatalogo": {
+    "donkey": "Rotulado como SRD pelo Open5e (legado), mas ausente do PDF do SRD 5.1 e da SRD API (o SRD traz o Mule). Mantido por preservação de dados com origem 'legado' (não é conteúdo SRD) até a origem e a licença serem esclarecidas."
+  },
+  "duplicatasRemovidas": [
+    "ver EXCLUIDOS em scripts/catalogo/construir-monstros.mjs"
+  ],
+  "aliases": {
+    "succubus-incubus": [
+      "succubusincubus"
+    ],
+    "drow": [
+      "elf-drow"
+    ],
+    "deep-gnome-svirfneblin": [
+      "gnome-deep-svirfneblin"
+    ]
+  }
+}

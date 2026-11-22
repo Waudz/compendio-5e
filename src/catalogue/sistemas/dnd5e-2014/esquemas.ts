@@ -40,6 +40,8 @@ export type Magia = z.infer<typeof magiaSchema>;
 // ---------------------------------------------------------------- monstros
 const textoMonstro = z.object({
   n: z.string().min(1), en: z.string().min(1), t: z.string().min(1), tr: z.boolean(), orig: z.string().min(1).optional(),
+  /** Magias citadas no texto (conjuração): `id` do catálogo de magias e o nome como aparece no texto, para a ficha ligar cada uma ao seu detalhe. */
+  magias: z.array(z.object({ id: z.string().min(1), nome: z.string().min(1) }).strict()).min(1).optional(),
   grupo: z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'LEGENDARY_ACTION', 'LAIR_ACTION']).optional(),
   custo: z.number().int().min(2).optional(),
   uso: z.object({ tipo: z.string().min(1), valor: z.number().optional() }).strict().optional(),
@@ -47,6 +49,12 @@ const textoMonstro = z.object({
 export const tiposDeCriatura = ['aberration', 'beast', 'celestial', 'construct', 'dragon', 'elemental', 'fey', 'fiend', 'giant', 'humanoid', 'monstrosity', 'ooze', 'plant', 'undead'] as const;
 export const tamanhos = ['tiny', 'small', 'medium', 'large', 'huge', 'gargantuan'] as const;
 const pesPositivos = z.number().int().positive();
+const formaMonstro = z.object({
+  id, en: z.string().min(1), rotulo: z.string().min(1), tamanho: z.enum(tamanhos), ca: z.number().int().min(1), caTipo: z.string().min(1), pv: z.number().int().min(1), dadosVida: z.string().min(1),
+  deslocamento: z.object({ walk: pesPositivos.optional(), fly: pesPositivos.optional(), swim: pesPositivos.optional(), climb: pesPositivos.optional(), burrow: pesPositivos.optional() }).strict(),
+  atributos: z.object({ str: z.number().int(), dex: z.number().int(), con: z.number().int(), int: z.number().int(), wis: z.number().int(), cha: z.number().int() }).strict(),
+  percepcaoPassiva: z.number().int().min(1), tracos: z.array(z.string().min(1)), acoes: z.array(z.string()),
+}).strict();
 export const monstroSchema = z.object({
   id, en: z.string().min(1), nome: z.string().min(1), traduzido: z.boolean(),
   tipo: z.enum(tiposDeCriatura), tamanho: z.enum(tamanhos),
@@ -67,6 +75,12 @@ export const monstroSchema = z.object({
   }).strict(),
   ambientes: z.array(z.string().min(1)),
   tracos: z.array(textoMonstro), acoes: z.array(textoMonstro),
+  /** `srd-2014` = confirmado no PDF do SRD 5.1 e na SRD API; `legado` = veio do Compêndio 1.0 sem confirmação no SRD (não é conteúdo SRD). */
+  origem: z.enum(['srd-2014', 'legado']),
+  /** Identificadores antigos que continuam resolvendo para esta ficha (duplicatas removidas, ids renomeados). Nunca reutilizados por outra ficha. */
+  idsAnteriores: z.array(id).min(1).optional(),
+  /** Vampiro e licantropos: dados mecânicos de cada forma (a ficha única descreve as formas em texto). Nomes de ações/características = `en` dos textos da ficha. */
+  formas: z.array(formaMonstro).min(2).optional(),
 }).strict();
 export type Monstro = z.infer<typeof monstroSchema>;
 

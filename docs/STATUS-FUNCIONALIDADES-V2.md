@@ -10,8 +10,8 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 | Ficha | 20% | Cálculo experimental | Perfil simples da campanha | Registros de perfil, não ficha D&D completa | Atributos, magias, recursos e ficha única |
 | Inventário | 35% | Instâncias com catálogo oficial de itens | Dentro do criador, com "Consultar no Compêndio" | Local experimental | Peso total, equipar, transferência, servidor |
 | Compêndio | 60% | Catálogo de itens, magias e monstros com núcleo genérico, busca e filtros | **Seção real**: categorias, filtros, lista/grade, detalhe em painel, esqueletos | Dados embutidos (pedaços sob demanda), sem persistência | Classes, raças, antecedentes, seletor de sistema, rolagens |
-| Magias | 65% | 319 magias SRD validadas contra a API; contratos por classe para o criador | Catálogo, filtros e detalhe | Dados embutidos | Conjuração (espaços, preparadas) é do criador; 5 listas de classes a confirmar |
-| Bestiário | 55% | 323 monstros SRD (pt-BR, 78% dos textos traduzidos) | Catálogo, filtros e ficha | Dados embutidos | Rolagens, links para magias, textos restantes |
+| Magias | 65% | 319 magias SRD validadas contra a API; contratos por classe para o criador | Catálogo, filtros e detalhe | Dados embutidos | Conjuração (espaços, preparadas) é do criador; listas de classes confirmadas no SRD |
+| Bestiário | 55% | 322 monstros SRD + 1 legado (pt-BR, 100% traduzidos por IA, auditoria numérica OK; sem revisão humana) | Catálogo, filtros e ficha | Dados embutidos | Rolagens de dados; troca de forma em combate (dados por forma já estruturados); revisão humana das traduções |
 | Iniciativa | 10% | Planejamento e navegação | Placeholder | Não implementada | Combate completo |
 | Campanhas | 50% | API de campanhas | Painéis e navegação | Auth e regras existentes | Fluxos completos, integração com personagens |
 | Anotações/diário | 55% | Registros, visibilidade, editor | Interface existente | Migrações propostas ainda pendentes | Persistência final e testes |

@@ -36,11 +36,12 @@ test('responsividade: controles úteis cabem no painel e Compêndio alterna list
   await navigate(page, 'Compêndio');
   const search = page.getByRole('searchbox', { name: 'Pesquisar no Compêndio', exact: true });
   await expect(search).toBeVisible(); await search.fill('dagger');
-  await expect(page.getByRole('button', { name: 'Abrir Adaga', exact: true })).toBeVisible();
+  const cartaoAdaga = page.getByRole('button', { name: /^Adaga/ }).first();
+  await expect(cartaoAdaga).toBeVisible();
   await page.getByRole('button', { name: 'Grade', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Grade', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('list', { name: 'Resultados do Compêndio' })).toHaveAttribute('data-view', 'grade');
-  await page.getByRole('button', { name: 'Abrir Adaga', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Adaga', exact: true })).toBeVisible();
+  await cartaoAdaga.click();
+  await expect(page.getByRole('article', { name: 'Detalhes de Adaga' })).toBeVisible();
   await expectNoHorizontalOverflow(page); await evidence(page, info, 'compendio-grade');
 });

@@ -10,6 +10,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
+import { criarTradutorConjuracao } from './conjuracao-monstros.mjs';
+import { criarCompletador, criarSubstituidor } from './completar-traducao.mjs';
 
 const arg = (n, padrao) => { const i = process.argv.indexOf('--' + n); return i > 0 ? process.argv[i + 1] : padrao; };
 const legado = resolve(arg('legado', '../rastreador-dnd'));
@@ -36,7 +38,23 @@ const positivos = (o) => Object.fromEntries(Object.entries(o ?? {}).filter(([, v
  *  - `giant-elk`: CA 15 no legado, 14 (armadura natural) no SRD e na API;
  *  - `donkey`: dados de vida ausentes (PV 11 = 2d8 + 2). */
 const EXCLUIDOS = { 'elf-drow': 'duplicata de drow (ND ausente no legado)', 'gnome-deep-svirfneblin': 'duplicata de deep-gnome-svirfneblin (ND ausente no legado)' };
-const CORRECOES = { 'chain-devil': { nd: 8 }, 'giant-elk': { ca: 14 }, donkey: { dadosVida: '2d8 + 2' } };   // donkey: dados de vida ausentes no legado (PV 11 = 2d8 + 2)
+/** Correções de dados do legado, TODAS confirmadas no PDF do SRD 5.1 (e na SRD API quando ela concorda). Valor função = recebe o valor atual do campo.
+ *  - chain-devil/bone-devil: percepção passiva 8/9 no legado, 11/12 no SRD; grimlock: sentido às cegas "3010" (erro de leitura), 30 no SRD;
+ *  - young-blue-dragon: escavação 40 no legado, 20 no SRD; priest: Religião +5 no legado, +4 no SRD;
+ *  - wight: o legado trocou resistência por imunidade a dano e perdeu imunidade a veneno e a exaustão; zombie: imunidade a veneno perdida;
+ *  - mummy-lord: vulnerabilidade a fogo (no legado, contundente). */
+const CORRECOES = {
+  'chain-devil': { nd: 8, percepcaoPassiva: 11 }, 'bone-devil': { percepcaoPassiva: 12 }, 'giant-elk': { ca: 14 }, donkey: { dadosVida: '2d8 + 2' },   // donkey: dados de vida ausentes no legado (PV 11 = 2d8 + 2)
+  grimlock: { sentidos: (v) => ({ ...v, percepcaoAsCegas: 30 }) },
+  'young-blue-dragon': { deslocamento: (v) => ({ ...v, burrow: 20 }) },
+  priest: { pericias: (v) => ({ ...v, religion: 4 }) },
+  wight: { defesas: (v) => ({ ...v, resistencias: ['bludgeoning', 'necrotic', 'piercing', 'slashing'], imunidades: ['poison'], condicoes: ['exhaustion', 'poisoned'],
+    resistenciasTexto: 'necrótico; contundente, perfurante e cortante de ataques não mágicos que não sejam de prata', imunidadesTexto: 'venenoso', condicoesTexto: 'exaustão, envenenado' }) },
+  zombie: { defesas: (v) => ({ ...v, imunidades: ['poison'], imunidadesTexto: 'venenoso' }) },
+  'mummy-lord': { defesas: (v) => ({ ...v, vulnerabilidades: ['fire'], vulnerabilidadesTexto: 'fogo' }) },
+};
+/** Origem por ficha. `donkey` vem do legado (Open5e o rotula como SRD), mas NÃO consta no PDF do SRD 5.1 nem na SRD API: não é tratado como conteúdo SRD. */
+const ORIGEM_LEGADO = { donkey: 'Rotulado como SRD pelo Open5e; ausente do PDF do SRD 5.1 e da SRD API (o SRD traz o Mule). Origem e licença a esclarecer.' };
 /** XP por ND (tabela do SRD 5.1). ND 0 vale 10 XP, exceto Rã e Cavalo-marinho (0 XP), como no SRD e na API. */
 const XP_POR_ND = { 0: 10, 0.125: 25, 0.25: 50, 0.5: 100, 1: 200, 2: 450, 3: 700, 4: 1100, 5: 1800, 6: 2300, 7: 2900, 8: 3900, 9: 5000, 10: 5900, 11: 7200, 12: 8400, 13: 10000, 14: 11500, 15: 13000, 16: 15000, 17: 18000, 18: 20000, 19: 22000, 20: 25000, 21: 33000, 22: 41000, 23: 50000, 24: 62000, 25: 75000, 26: 90000, 27: 105000, 28: 120000, 29: 135000, 30: 155000 };
 const XP_ZERO = new Set(['frog', 'sea-horse']);
@@ -93,15 +111,52 @@ function idiomas(en) {
   return s;
 }
 
+const ID_DA_API = { succubusincubus: 'succubus-incubus' };   // legado sem hífen; a API usa succubus-incubus
+const traduzirConjuracao = criarTradutorConjuracao(JSON.parse(await readFile(new URL('../../src/catalogue/sistemas/dnd5e-2014/data/magias.json', import.meta.url), 'utf8')).itens);
+const TRADUCOES = JSON.parse(await readFile(new URL('./traducoes-monstros.json', import.meta.url), 'utf8'));
+/** Assinatura numérica de um texto (dados, CD/DC, pontos de vida, porcentagens): tem de ser igual no original e na tradução. */
+const assinatura = (s) => (String(s).match(/\d+d\d+(?:\s*[+-]\s*\d+)?|(?:DC|CD)\s*\d+|\d+(?=\s*(?:hit points?|pontos? de vida))|\d+(?=\s*(?:percent|por cento))/gi) || []).map((x) => x.replace(/\s+/g, '').replace(/^(dc|cd)/i, 'dc').toLowerCase()).sort().join('|');
+const FRASES = JSON.parse(await readFile(new URL('./traducoes-frases.json', import.meta.url), 'utf8'));
+const faltantes = process.argv.includes('--frases-faltantes') ? new Set() : undefined;
+const completarFrases = criarCompletador(FRASES, faltantes);
+const substituir = criarSubstituidor(JSON.parse(await readFile(new URL('./traducoes-substituicoes.json', import.meta.url), 'utf8')));
+/** Só dados e CD (a auditoria numérica completa é scripts/catalogo/auditar-traducoes.mjs). */
+const assinaturaBasica = (s) => (String(s).match(/\d+d\d+|(?:DC|CD)\s*\d+/gi) || []).map((x) => x.replace(/\s+/g, '').replace(/^(dc|cd)/i, 'dc').toLowerCase()).sort().join('|');
+const RECONC = JSON.parse(await readFile(new URL('../../src/catalogue/sistemas/dnd5e-2014/data/reconciliacao-monstros.json', import.meta.url), 'utf8'));
+const ALIASES = RECONC.aliases;   // ids antigos/duplicatas que continuam resolvendo para a ficha canônica
+const FORMAS = JSON.parse(await readFile(new URL('./formas-monstros.json', import.meta.url), 'utf8'));   // dados por forma (construir-formas.mjs)
 const avisos = [];
 const monstros = bruto.filter((m) => !(m.key.replace(/^srd_/, '') in EXCLUIDOS)).map((m) => {
-  const id = m.key.replace(/^srd_/, '');
+  const idLegado = m.key.replace(/^srd_/, '');
+  const id = ID_DA_API[idLegado] ?? idLegado;   // alinha o id ao da SRD API (reconciliacao-monstros.json)
   const defesas = m.resistances_and_immunities ?? {};
   const chaves = (campo) => (defesas[campo] ?? []).map((x) => x.key).filter(Boolean);
   const texto = (t, ehAcao) => {
     const info = T.descInfo(t.name, t.desc, m);
     const nome = ehAcao ? T.nmA(t) : T.nm(t.name);
-    return { n: nome, en: t.name, t: info.plain, tr: !!info.tr, ...(info.tr && info.orig !== info.plain ? { orig: info.orig } : {}),
+    // Conjuração: tradutor próprio (substitui o do legado, que deixava a frase de abertura em inglês) + magias citadas para ligar ao catálogo de magias.
+    if (/spellcasting/i.test(t.name) && !/hag eye/i.test(t.name)) {
+      const original = String(t.desc || '').replace(/\*+/g, '').trim(), c = traduzirConjuracao(original);
+      return { n: nome === t.name && TRADUCOES.nomes[t.name] ? TRADUCOES.nomes[t.name] : nome, en: t.name, t: c.t, tr: true, orig: original, magias: c.magias,
+        ...(ehAcao ? { grupo: t.action_type || 'ACTION' } : {}), ...(t.usage_limits?.type ? { uso: { tipo: t.usage_limits.type, ...(t.usage_limits.param != null ? { valor: Number(t.usage_limits.param) } : {}) } } : {}) };
+    }
+    // Substituição por auditoria: o legado aplicava modelos de outra criatura (números, distâncias ou efeitos diferentes do original); aqui vale o original em inglês.
+    const original = info.tr ? info.orig : info.plain;
+    const substituta = original ? substituir(original) : undefined;
+    if (substituta) {
+      if (assinaturaBasica(original) !== assinaturaBasica(substituta)) throw new Error(`Substituição com dados/CD diferentes (${t.name}): "${assinaturaBasica(original)}" ≠ "${assinaturaBasica(substituta)}"`);
+      info.orig = original; info.plain = substituta; info.tr = true;
+    }
+    // Texto que o tradutor do legado não converte: tradução revisada (traducoes-monstros.json), validada pela assinatura numérica.
+    const revisada = !info.tr && !substituta ? TRADUCOES.textos[createHash('sha1').update(info.plain).digest('hex').slice(0, 10)] : undefined;
+    if (revisada) {
+      if (assinatura(info.plain) !== assinatura(revisada.t)) throw new Error(`Tradução revisada com números diferentes (${t.name}): "${assinatura(info.plain)}" ≠ "${assinatura(revisada.t)}"`);
+      info.orig = info.plain; info.plain = revisada.t; info.tr = true;
+    }
+    if (info.tr && !revisada && !substituta) info.plain = completarFrases(info.plain);   // tradução parcial do legado: traduz as frases em inglês que sobraram
+    info.plain = info.plain.replace(/Minúscul([oa])/g, 'Miúd$1');   // padroniza com o rótulo de tamanho do Compêndio (Tiny = Miúdo; o legado usava "Minúsculo")
+    const nomeFinal = nome === t.name && TRADUCOES.nomes[t.name] ? TRADUCOES.nomes[t.name] : nome;
+    return { n: nomeFinal, en: t.name, t: info.plain, tr: !!info.tr, ...(info.tr && info.orig !== info.plain ? { orig: info.orig } : {}),
       ...(ehAcao ? { grupo: t.action_type || 'ACTION' } : {}),
       ...(ehAcao && t.action_type === 'LEGENDARY_ACTION' && t.legendary_action_cost > 1 ? { custo: t.legendary_action_cost } : {}),
       ...(t.usage_limits?.type ? { uso: { tipo: t.usage_limits.type, ...(t.usage_limits.param != null ? { valor: Number(t.usage_limits.param) } : {}) } } : {}) };
@@ -132,7 +187,10 @@ const monstros = bruto.filter((m) => !(m.key.replace(/^srd_/, '') in EXCLUIDOS))
   };
   if (m.environments?.some((e) => AMBIENTE_NAO_SRD.test(e.key))) avisos.push(`${id}: ambiente de livro não-SRD removido`);
   for (const k of ABRS) if (!Number.isInteger(rec.atributos[k])) throw new Error(`Atributo ${k} inválido em ${id}`);
-  if (CORRECOES[id]) { for (const [campo, valor] of Object.entries(CORRECOES[id])) { avisos.push(`${id}: ${campo} ${rec[campo]} → ${valor} (curadoria)`); rec[campo] = valor; } }
+  if (CORRECOES[id]) { for (const [campo, valor] of Object.entries(CORRECOES[id])) { const novo = typeof valor === 'function' ? valor(rec[campo]) : valor; avisos.push(`${id}: ${campo} ${JSON.stringify(rec[campo])} → ${JSON.stringify(novo)} (curadoria, SRD 5.1)`); rec[campo] = novo; } }
+  if (ALIASES[id]) rec.idsAnteriores = ALIASES[id];
+  rec.origem = id in ORIGEM_LEGADO ? 'legado' : 'srd-2014';
+  if (FORMAS[id]) rec.formas = FORMAS[id];
   const xp = XP_ZERO.has(id) ? 0 : XP_POR_ND[rec.nd];
   if (xp === undefined) throw new Error(`ND sem XP na tabela: ${id} (${rec.nd})`);
   if (rec.xp !== xp) avisos.push(`${id}: xp ${rec.xp} → ${xp} (tabela do SRD)`);
@@ -153,5 +211,9 @@ const doc = {
   proveniencia: 'Dados: bestiário do Compêndio 1.0 (Open5e v2, SRD 5.1). Tradução: tradutor do Compêndio 1.0 executado em build; o original em inglês é preservado. Sem ilustrações (licença não confirmada).',
   count: monstros.length, sha256: createHash('sha256').update(conteudo).digest('hex'), itens: monstros,
 };
+if (faltantes) {   // modo de apoio à tradução: lista as frases em inglês sem tradução cadastrada e não grava os dados
+  await writeFile(resolve(arg('frases-faltantes', 'frases-faltantes.json')), JSON.stringify([...faltantes].sort(), null, 1));
+  console.log(`${faltantes.size} frases sem tradução (lista gravada)`); process.exit(0);
+}
 await writeFile(saida, JSON.stringify(doc) + '\n');
 console.log(JSON.stringify({ saida, count: monstros.length, sha256: doc.sha256, textos: textos.length, traduzidos: textos.filter((t) => t.tr).length, excluidos: EXCLUIDOS, nomesEmIngles: monstros.filter((m) => !m.traduzido).map((m) => m.id), ajustes: avisos.length, avisos: avisos.filter((a) => !a.includes('xp ')).concat([`${avisos.filter((a) => a.includes('xp ')).length} ajustes de XP pela tabela`]) }, null, 1));

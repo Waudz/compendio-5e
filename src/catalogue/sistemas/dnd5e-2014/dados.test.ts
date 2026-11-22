@@ -1,8 +1,10 @@
 // Integridade dos arquivos de dados de magias e monstros (D&D 5e 2014) e conferência com fatos do SRD 5.1 escritos de forma independente.
 // A conferência completa contra a SRD API é feita por `scripts/catalogo/verificar-catalogo-api.mjs` (rede).
+import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import magiasJson from './data/magias.json';
 import monstrosJson from './data/monstros.json';
+import reconciliacao from './data/reconciliacao-monstros.json';
 import { arquivoMagiasSchema, arquivoMonstrosSchema, classesConjuradoras, type Magia, type Monstro } from './esquemas';
 
 const sha = async (itens: unknown) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(itens))))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -107,8 +109,90 @@ describe('monstros — fatos do SRD 5.1 (2014) e curadoria', () => {
     expect(monstros.itens.every(m => m.traduzido)).toBe(true);
     const textos = monstros.itens.flatMap(m => [...m.tracos, ...m.acoes]);
     const traduzidos = textos.filter(t => t.tr);
-    expect(traduzidos.length / textos.length).toBeGreaterThan(0.75);
+    expect(traduzidos.length, 'todas as características e ações estão traduzidas').toBe(textos.length); expect(textos).toHaveLength(1472);
+    // nenhum resto de inglês nos textos: palavras que só existem em inglês e marcadores de modelo não resolvidos
+    const ingles = /(?<![\p{L}])(the|and|its|with|can|has|must|damage|saving throws?|hit points?|target|takes?|until|each|within|creature|attack|spell)(?![\p{L}])/iu;
+    for (const m of monstros.itens) for (const t of [...m.tracos, ...m.acoes]) { expect(t.t, `${m.id}: ${t.en}`).not.toMatch(ingles); expect(t.t).not.toMatch(/[{}#]|undefined|NaN/); expect(t.n, m.id).not.toBe(''); }
     for (const t of textos) { expect(t.t.trim(), t.en).not.toBe(''); if (t.tr && t.orig) expect(t.orig).not.toBe(t.t); }
     expect(textos.filter(t => !t.tr).every(t => t.orig === undefined)).toBe(true);
   });
+
+  it('Identificar: grafia corrigida do legado ("Indentificar")', () => { expect(magia('identify').nome).toBe('Identificar'); expect(JSON.stringify(magias)).not.toContain('Indentificar'); });
 });
+
+describe('fidelidade das traduções dos monstros (auditoria numérica e de termos de regra)', () => {
+  it('números, dados, CD, distâncias (pés × 0,3) e termos de regra (atributos, tipos de dano, condições, tamanhos) coincidem com o original em inglês', () => {
+    // scripts/catalogo/auditar-traducoes.mjs sai com código 1 e lista a divergência; as exceções aceitas têm motivo no próprio script
+    expect(() => execFileSync(process.execPath, ['scripts/catalogo/auditar-traducoes.mjs'], { encoding: 'utf8', stdio: 'pipe' })).not.toThrow();
+  });
+  it('texto que o legado traduziu com mecânica errada foi substituído pelo fiel ao original (exemplos auditados)', () => {
+    const t = (id: string, n: string) => [...monstro(id).tracos, ...monstro(id).acoes].find(x => x.en === n)!.t;
+    expect(t('erinyes', 'Parry')).toContain('adiciona 4 à sua CA'); expect(t('gladiator', 'Parry')).toContain('adiciona 3'); expect(t('marilith', 'Parry')).toContain('adiciona 5');
+    expect(t('killer-whale', 'Hold Breath')).toContain('30 minutos'); expect(t('hydra', 'Hold Breath')).toContain('1 hora');
+    expect(t('vrock', 'Stunning Screech')).toContain('atordoada'); expect(t('wereboar', 'Shapechanger')).toContain('híbrido de javali e humanoide');
+    expect(t('adult-gold-dragon', 'Breath Weapons')).toContain('Sopro Enfraquecedor');
+  });
+});
+
+describe('conjuração dos monstros: tradução e ligação com o catálogo de magias', () => {
+  const comMagias = monstros.itens.flatMap(m => [...m.tracos, ...m.acoes].filter(t => t.magias).map(t => ({ m, t })));
+  const idsMagias = new Set(magias.itens.map(x => x.id));
+  it('toda característica de conjuração (exceto o Olho de Bruxa) está traduzida por completo e cita magias', () => {
+    const conj = monstros.itens.flatMap(m => [...m.tracos, ...m.acoes].filter(t => /spellcasting/i.test(t.en)).map(t => ({ m, t })));
+    expect(conj).toHaveLength(39); for (const { m, t } of conj) { expect(t.tr, m.id).toBe(true); expect(t.magias, m.id).toBeTruthy(); }
+  });
+  it('cada magia ligada existe no catálogo e o nome citado aparece no texto', () => {
+    expect(comMagias.length).toBeGreaterThan(30);
+    for (const { m, t } of comMagias) for (const l of t.magias!) { expect(idsMagias.has(l.id), `${m.id}: ${l.id}`).toBe(true); expect(t.t, `${m.id}: ${l.nome}`).toContain(l.nome); }
+  });
+  it('Arquimago: magias ligadas (inclusive as citadas em frase) e texto em português', () => {
+    const t = monstro('archmage').tracos.find(x => x.en === 'Spellcasting')!;
+    expect(t.t).toMatch(/^A criatura é um conjurador de 18º nível\./);
+    expect(t.t).toContain('Truques (à vontade): raio de fogo, luz, mãos mágicas');
+    expect(t.magias!.map(x => x.id)).toEqual(expect.arrayContaining(['disguise-self', 'invisibility', 'time-stop', 'mind-blank', 'fire-bolt']));
+    expect(t.t).not.toMatch(/(the|slots?|at will|spells prepared)/i);
+  });
+  it('Mefite de Gelo: conjuração de uma magia só, sem componentes materiais', () => {
+    const t = monstro('ice-mephit').tracos.find(x => /Innate Spellcasting/.test(x.en))!;
+    expect(t.magias).toEqual([{ id: 'fog-cloud', nome: expect.any(String) }]); expect(t.t).toContain('sem precisar de componentes materiais');
+  });
+  it('"Ray of Sickness" (citada nos clãs de bruxas) não existe no catálogo do SRD: aparece em português, sem ligação', () => {
+    const t = monstro('night-hag').tracos.find(x => x.en.startsWith('Shared Spellcasting'))!;
+    expect(t.t).toContain('raio nauseante'); expect(t.magias!.some(x => x.nome === 'raio nauseante')).toBe(false);
+  });
+});
+
+describe('conciliação do bestiário com a SRD API (334 fichas na API × 323 no catálogo)', () => {
+  const ids = new Set(monstros.itens.map(m => m.id));
+  it('Súcubo/Íncubo usa o id da API', () => { expect(ids.has('succubus-incubus')).toBe(true); expect(ids.has('succubusincubus')).toBe(false); });
+  it('fichas compostas do legado (vampiro e licantropos) correspondem às formas separadas da API, e cada forma é de um só composto', () => {
+    const formas = Object.values(reconciliacao.formasAgrupadas).flat();
+    expect(new Set(formas).size).toBe(formas.length); expect(formas).toHaveLength(18);
+    for (const composto of Object.keys(reconciliacao.formasAgrupadas)) expect(ids.has(composto), composto).toBe(true);
+    for (const f of formas) expect(ids.has(f), `${f} não deve existir como ficha própria`).toBe(false);
+  });
+  it('fichas compostas guardam os dados estruturados de TODAS as formas (CA, PV, deslocamento, atributos, ações e características de cada forma)', () => {
+    for (const [composto, formas] of Object.entries(reconciliacao.formasAgrupadas)) {
+      const m = monstro(composto); expect(m.formas?.map(f => f.id), composto).toEqual(formas);
+      const base = (n: string) => n.replace(/s*(.*)$/, ''); const nomes = new Set([...m.tracos, ...m.acoes].map(t => base(t.en)));
+      for (const f of m.formas!) for (const n of [...f.acoes, ...f.tracos]) expect(nomes.has(base(n)), `${f.id}: "${n}" precisa existir na ficha`).toBe(true);
+    }
+    const lobo = monstro('werewolf').formas!; expect(lobo.find(f => f.id === 'werewolf-wolf')).toMatchObject({ ca: 12, deslocamento: { walk: 40 }, acoes: ['Bite'] });
+    expect(lobo.find(f => f.id === 'werewolf-human')).toMatchObject({ ca: 11, deslocamento: { walk: 30 } });
+    expect(monstro('vampire').formas!.find(f => f.id === 'vampire-bat')).toMatchObject({ deslocamento: { walk: 5, fly: 30 } });
+  });
+  it('origem: só o Burro é do legado (não SRD); os outros 322 são SRD 5.1 confirmados no PDF/API; ids antigos listados em idsAnteriores', () => {
+    expect(monstros.itens.filter(m => m.origem === 'legado').map(m => m.id)).toEqual(['donkey']); expect(monstros.itens.filter(m => m.origem === 'srd-2014')).toHaveLength(322);
+    expect(monstro('succubus-incubus').idsAnteriores).toEqual(['succubusincubus']); expect(monstro('drow').idsAnteriores).toEqual(['elf-drow']);
+  });
+  it('correções confirmadas no PDF do SRD 5.1 (percepção passiva, escavação, defesas)', () => {
+    expect(monstro('chain-devil').percepcaoPassiva).toBe(11); expect(monstro('bone-devil').percepcaoPassiva).toBe(12); expect(monstro('grimlock').sentidos.percepcaoAsCegas).toBe(30);
+    expect(monstro('young-blue-dragon').deslocamento.burrow).toBe(20); expect(monstro('priest').pericias?.religion).toBe(4);
+    expect(monstro('wight').defesas).toMatchObject({ imunidades: ['poison'], condicoes: ['exhaustion', 'poisoned'] }); expect(monstro('zombie').defesas.imunidades).toEqual(['poison']);
+    expect(monstro('mummy-lord').defesas.vulnerabilidades).toEqual(['fire']);
+  });
+  it('conta fecha: 323 no catálogo = 334 da API − 18 formas + 6 fichas compostas + fichas só do catálogo (Burro)', () => {
+    expect(334 - 18 + 6 + Object.keys(reconciliacao.somenteNoCatalogo).length).toBe(monstros.count); expect(monstros.count).toBe(323);
+  });
+});
+

@@ -2,7 +2,8 @@
 // Catálogo do Compêndio na navegação real: categorias, esqueleto de carregamento, erro com nova tentativa, pesquisa, filtros por categoria, lista/grade,
 // painel de detalhe (magias e monstros) e celular. Os dados são os reais; só o carregamento é controlado nos testes de esqueleto e de erro.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { DetalheMonstro } from './DetalheMonstro';
 import type { CampaignApi, Membership } from '../campaigns';
 import { activeKey } from '../CampaignsContext';
 import { categoriaMagias, categoriaMonstros } from '../catalogue/sistemas/dnd5e-2014';
@@ -141,13 +142,15 @@ describe('monstros', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Limpar filtros' })); expect(contagem()).toBe('323');
   });
 
-  it('texto sem tradução segura aparece no original com aviso', async () => {
+  it('todos os textos estão traduzidos e trazem o original em inglês; texto marcado como não traduzido (dados futuros) aparece com aviso', () => {
     const itens = (monstrosJson as { itens: Monstro[] }).itens;
-    const alvo = itens.find(m => [...m.tracos, ...m.acoes].some(t => !t.tr))!;
-    await montar(); await abrirCompendio(); categoria('Monstros'); await waitFor(() => expect(contagem()).toBe('323'));
-    pesquisar(alvo.en); fireEvent.click(screen.getAllByRole('button', { name: n => n.startsWith(alvo.nome + ' ') })[0]);
-    const det = await screen.findByRole('article', { name: `Detalhes de ${alvo.nome}` });
-    expect(within(det).getAllByText(/Ainda sem tradução/).length).toBeGreaterThan(0);
+    const goblin = itens.find(m => m.id === 'goblin')!;
+    const { unmount } = render(<DetalheMonstro monstro={goblin}/>);
+    expect(screen.queryByText(/Ainda sem tradução/)).toBeNull(); expect(screen.getAllByText('Texto original (inglês)').length).toBeGreaterThan(0);
+    unmount();
+    const semTraducao: Monstro = { ...goblin, tracos: goblin.tracos.map(t => ({ ...t, tr: false, orig: undefined })), acoes: [] };
+    render(<DetalheMonstro monstro={semTraducao}/>);
+    expect(screen.getAllByText(/Ainda sem tradução/).length).toBeGreaterThan(0);
   });
 });
 
@@ -213,5 +216,28 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Voltar à lista' }));
     expect(screen.queryByRole('article')).toBeNull(); expect(screen.getByLabelText('Pesquisar no Compêndio')).toBeTruthy();
+  });
+
+  it('monstro -> magia: o nome da magia na conjuração é um botão que abre a magia; "Voltar para <monstro>" retorna à ficha', async () => {
+    await montar(); await abrirCompendio(); categoria('Monstros'); await waitFor(() => expect(contagem()).toBe('323'));
+    pesquisar('arquimago'); fireEvent.click(cartao('Arquimago'));
+    const ficha = await screen.findByRole('article', { name: 'Detalhes de Arquimago' });
+    fireEvent.click(within(ficha).getByRole('button', { name: 'Abrir a magia parar o tempo' }));
+    const magia = await screen.findByRole('article', { name: 'Detalhes de Parar o Tempo' });
+    expect(screen.getByRole('button', { name: 'Magias', pressed: true })).toBeTruthy();
+    expect(within(magia).queryByRole('button', { name: 'Voltar à lista' })).toBeNull();
+    fireEvent.click(within(magia).getByRole('button', { name: 'Voltar para Arquimago' }));
+    await screen.findByRole('article', { name: 'Detalhes de Arquimago' });
+    expect(screen.getByRole('button', { name: 'Monstros', pressed: true })).toBeTruthy();
+  });
+
+  it('ficha composta mostra as formas com CA, PV, deslocamento e ações; o Burro é marcado como legado (não SRD); toda ficha avisa que a tradução é de IA sem revisão humana', () => {
+    const itens = (monstrosJson as { itens: Monstro[] }).itens;
+    const { unmount } = render(<DetalheMonstro monstro={itens.find(m => m.id === 'werewolf')!}/>);
+    const formas = screen.getByRole('region', { name: 'Formas' }); const tabela = within(formas).getByRole('table');
+    expect(within(tabela).getByRole('row', { name: /Forma de lobo 12 58 12 m/ })).toBeTruthy(); expect(within(tabela).getAllByRole('row')).toHaveLength(4);
+    expect(screen.getByText(/ainda sem revisão humana/)).toBeTruthy(); unmount();
+    render(<DetalheMonstro monstro={itens.find(m => m.id === 'donkey')!}/>);
+    expect(screen.getByText(/Não confirmado no SRD 5.1/)).toBeTruthy(); expect(screen.queryByText(/licença CC BY 4.0/)).toBeNull(); expect(screen.getByText(/legado:monster:donkey:1/)).toBeTruthy();
   });
 });

@@ -41,7 +41,10 @@ export async function magiasInexistentes(ids: readonly string[]): Promise<string
 }
 
 export async function todosOsMonstros(): Promise<readonly Monstro[]> { return (await carregarIndice(categoriaMonstros)).itens; }
-export async function monstroPorId(id: string): Promise<Monstro | undefined> { return (await todosOsMonstros()).find(m => m.id === id); }
+/** Resolve um id de monstro, inclusive ids ANTIGOS (duplicatas removidas e ids renomeados, em `idsAnteriores`): `monstroPorId('succubusincubus')` devolve `succubus-incubus`. */
+export async function monstroPorId(id: string): Promise<Monstro | undefined> { const todos = await todosOsMonstros(); return todos.find(m => m.id === id) ?? todos.find(m => m.idsAnteriores?.includes(id)); }
+/** Id canônico atual para um id (atual ou antigo); `undefined` se não existe. Use para migrar referências salvas em fichas, encontros, anotações e iniciativa. */
+export async function resolverIdMonstro(id: string): Promise<string | undefined> { return (await monstroPorId(id))?.id; }
 
 /** Itens: já em memória (catálogo de 578 itens, `src/catalogue/srd-2014-items.ts`). Reexportado aqui para o criador ter um único ponto de entrada. */
 export { srdItem as itemPorId, srdItemRef as refItem } from './srd-2014-items';

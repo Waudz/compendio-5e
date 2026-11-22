@@ -24,7 +24,9 @@ async function magiasDaApi() {
   return out;
 }
 
-/** Listas de classes em que o legado (Open5e) e a API divergem. Decisão por magia, a confirmar contra o PDF do SRD 5.1 (ver docs/CATALOGO-DND-2014.md). */
+/** Erros de grafia do nome em português do legado. */
+const NOMES_CORRIGIDOS = { identify: 'Identificar' };
+/** Listas de classes em que o legado (Open5e) e a API divergem. Decisão por magia, CONFIRMADA nas listas de classes do PDF oficial do SRD 5.1 (capítulo Spells, "Spell Lists"); ver docs/CATALOGO-DND-2014.md. */
 const CLASSES_AUDITADAS = {
   'faerie-fire': ['bard', 'druid'],
   'create-food-and-water': ['cleric', 'paladin'],
@@ -80,7 +82,7 @@ const magias = leg.map((l) => {
   const area = a.area_of_effect ? { tipo: a.area_of_effect.type, pes: a.area_of_effect.size } : undefined;
   const danos = [...new Set((Array.isArray(a.damage) ? a.damage : a.damage ? [a.damage] : []).map((d) => d.damage_type?.index).filter(Boolean))];
   const m = {
-    id: a.index, en: a.name, nome: l.n, nivel: a.level, escola: a.school.index, classes,
+    id: a.index, en: a.name, nome: NOMES_CORRIGIDOS[a.index] ?? l.n, nivel: a.level, escola: a.school.index, classes,
     ritual: !!a.ritual, concentracao: !!a.concentration,
     tempo: tempo(a.casting_time), alcance: alcance(a.range), duracao: duracao(a.duration, a.concentration),
     componentes: { v: a.components.includes('V'), s: a.components.includes('S'), m: a.components.includes('M') },

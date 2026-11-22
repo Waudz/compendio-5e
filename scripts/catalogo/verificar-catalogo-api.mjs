@@ -57,6 +57,13 @@ for (const x of monstros) {
   for (const [k, v] of Object.entries({ str: a.strength, dex: a.dexterity, con: a.constitution, int: a.intelligence, wis: a.wisdom, cha: a.charisma })) c(`atributo-${k}`, x.atributos[k], v);
 }
 
+// ---- reconciliação de contagem (catálogo × API): todo id de um lado só precisa estar explicado em data/reconciliacao-monstros.json
+const rec = JSON.parse(await readFile(new URL('../../src/catalogue/sistemas/dnd5e-2014/data/reconciliacao-monstros.json', import.meta.url), 'utf8'));
+const ids = new Set(monstros.map((x) => x.id)), idsApi = new Set(apiMo.map((x) => x.index));
+const formas = new Set(Object.values(rec.formasAgrupadas).flat());
+for (const x of monstros) if (!idsApi.has(x.id) && !(x.id in rec.formasAgrupadas) && !(x.id in rec.somenteNoCatalogo)) nota(`reconciliacao:${x.id}`, 'só no catálogo e sem explicação');
+for (const a of apiMo) if (!ids.has(a.index) && !formas.has(a.index)) nota(`reconciliacao:${a.index}`, 'só na API e sem explicação (conteúdo ausente?)');
+for (const [composto, partes] of Object.entries(rec.formasAgrupadas)) for (const p of partes) if (!idsApi.has(p)) nota(`reconciliacao:${p}`, 'forma citada na tabela e inexistente na API');
 console.log(JSON.stringify({ magias: magias.length, magiasNaApi: apiM.length, monstros: monstros.length, monstrosComparados: comparados, divergencias: divergencias.length, conhecidasAceitas: aceitas.length }, null, 1));
 for (const a of aceitas) console.log(' ~ ' + a);
 for (const d of divergencias) console.log(' ! ' + d);
