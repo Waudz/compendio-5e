@@ -123,7 +123,7 @@ describe("Início: Aventureiros", () => {
   it("com dados: nome, classe, nível, retrato e abre a ficha", async () => {
     const listar = vi.fn(async () => ({ ok: true as const, data: [heroi, { id: "p2", nome: "Toran", classe: "Guerreiro", nivel: 4, retratoUrl: "https://x/t.png" }] }));
     const { onOpenContent } = await montarHome(jogador(), { aventureiros: { listar } });
-    const b = await screen.findByRole("button", { name: "Abrir ficha de Lydia" });
+    const b = await screen.findByRole("button", { name: "Lydia Clériga · nível 5" });
     expect(within(b).getByText("Clériga · nível 5")).toBeTruthy();
     expect(document.querySelector("img")?.getAttribute("src")).toBe("https://x/t.png");
     fireEvent.click(b); expect(onOpenContent).toHaveBeenCalledWith({ kind: "ficha", ref: "p1", title: "Ficha: Lydia" });
@@ -169,7 +169,7 @@ describe("Início no aplicativo", () => {
   const abrir = async (m: Membership[], ativa = m[0].campaign.id) => {
     localStorage.setItem(activeKey(me.id), ativa);
     const r = await renderApp({ api: apiCom(m) });
-    await waitFor(() => expect(screen.getByRole("button", { name: /Campanha ativa:/ })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: /campanha ativa/i })).toBeTruthy());
     return r;
   };
   const menu = () => within(screen.getByRole("navigation", { name: "Menu principal" }));
@@ -193,7 +193,7 @@ describe("Início no aplicativo", () => {
     fireEvent.click(menu().getByRole("button", { name: "Documentos" }));
     fireEvent.click(menu().getByRole("button", { name: "Início" }));
     await screen.findByTestId("campanha-inicio");
-    fireEvent.click(screen.getByRole("button", { name: /Campanha ativa:/ }));
+    fireEvent.click(screen.getByRole("button", { name: /campanha ativa/i }));
     expect(document.querySelectorAll("[data-testid=campanha-inicio]")).toHaveLength(1);
     const salvo = localStorage.getItem(storageKey({ user: me.id, campaign: "ca", device: "navegador" }))!;
     expect(salvo.match(/campanha:ca/g)?.length ?? 0).toBeLessThanOrEqual(1);
@@ -237,9 +237,10 @@ describe("restauração (F5) e abas do Início", () => {
     const api = { ...apiCom([mestre()]), list: async () => { await gate; return { ok: true, data: [mestre()] }; } } as unknown as CampaignApi;
     const vistas: string[] = [];
     const obs = new MutationObserver(() => vistas.push(...abas().map(String))); obs.observe(document.body, { childList: true, subtree: true, characterData: true });
-    await renderApp({ api });
-    await waitFor(() => expect(abas()).toEqual(["Documentos"]));
-    solta(); await waitFor(() => expect(screen.getByRole("button", { name: /Campanha ativa:/ })).toBeTruthy());
+    await renderApp({ api, waitForMenu: false });
+    await screen.findByText("Carregando suas campanhas…");
+    expect(abas()).toEqual([]);
+    solta(); await waitFor(() => expect(screen.getByRole("button", { name: /campanha ativa/i })).toBeTruthy());
     obs.disconnect();
     expect(abas()).toEqual(["Documentos"]); expect(vistas).not.toContain("Campanhas");
   });
@@ -251,7 +252,7 @@ describe("restauração (F5) e abas do Início", () => {
     await waitFor(() => expect(abas()).toEqual([]));
     a.unmount(); cleanup();
     await renderApp({ api: apiCom([mestre()]) });                 // "F5"
-    await waitFor(() => expect(screen.getByRole("button", { name: /Campanha ativa:/ })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: /campanha ativa/i })).toBeTruthy());
     expect(abas()).toEqual([]);                                   // continua fechado, tela vazia
     fireEvent.click(menu().getByRole("button", { name: "Início" })); fireEvent.click(menu().getByRole("button", { name: "Início" }));
     await waitFor(() => expect(abas()).toEqual(["Mesa dos Dragões"]));
@@ -264,4 +265,37 @@ describe("restauração (F5) e abas do Início", () => {
     fireEvent.click(within(screen.getByRole("menu")).getByRole("menuitem", { name: "Mesa da Lua" }));
     await waitFor(() => expect(abas()).toEqual(["Personagens"]));
   });
+
+it("aba restaurada usa o nome visível como nome acessível sem persistir títulos", async () => {
+  localStorage.setItem(activeKey(me.id), "ca");
+  const key = storageKey({ user: me.id, campaign: "ca", device: "navegador" });
+  localStorage.setItem(key, JSON.stringify({version:2,layout:{type:"row",children:[{type:"tabset",id:"g1",active:true,children:[{type:"tab",id:"campanha:ca"}]}]}}));
+  await renderApp({ api: apiCom([mestre()]) });
+  const tab = await screen.findByRole("tab", { name: "Mesa dos Dragões" });
+  expect(tab.textContent).toContain("Mesa dos Dragões");
+  expect(screen.getByRole("button", { name: "CAMPANHA ATIVA Mesa dos Dragões" })).toBeTruthy();
+  fireEvent.click(menu().getByRole("button", { name: "Diário" }));
+  expect(localStorage.getItem(key)).not.toContain("Mesa dos Dragões");
+  expect(JSON.parse(localStorage.getItem(key)!).layout.children[0].children[0].id).toBe("secao:diario");
+});
+
+it("renomear campanha atualiza também o nome acessível da aba", async () => {
+  let membership = mestre();
+  const api = apiCom([membership]);
+  api.list = async () => ({ok:true,data:[membership]});
+  api.update = vi.fn(async (_id: string, name: string, description: string) => {
+    membership = {...membership,campaign:{...membership.campaign,name,description}};
+    return {ok:true as const,data:membership.campaign};
+  });
+  localStorage.setItem(activeKey(me.id), "ca");
+  await renderApp({api});
+  await screen.findByRole("tab", {name:"Mesa dos Dragões"});
+  fireEvent.click(screen.getByRole("button", {name:"Editar informações"}));
+  fireEvent.change(screen.getByRole("textbox", {name:"Nome"}), {target:{value:"Mesa com novo nome"}});
+  fireEvent.click(screen.getByRole("button", {name:"Salvar informações"}));
+  const tab = await screen.findByRole("tab", {name:"Mesa com novo nome"});
+  expect(tab.textContent).toContain("Mesa com novo nome");
+  expect(screen.queryByRole("tab", {name:"Mesa dos Dragões"})).toBeNull();
+});
+
 });

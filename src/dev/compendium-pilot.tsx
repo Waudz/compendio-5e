@@ -2,13 +2,13 @@
 import {useMemo,useState} from 'react';
 import {searchCompendium,type CompendiumView} from '../rules/compendium-query';
 import type {ContentKind} from '../rules/content-registry';
-import {pilotRules} from './pilot-rules';
+import {criadorRules} from '../criador/catalogo-criador';
 const types:{value:ContentKind;label:string}[]=[
  {value:'race',label:'Raças'},{value:'background',label:'Antecedentes'},{value:'class',label:'Classes'},{value:'item',label:'Itens'}];
 export default function CompendiumPilot(){
  const [text,setText]=useState(''),[kind,setKind]=useState<ContentKind|''>(''),[view,setView]=useState<CompendiumView>('list');
  const [selected,setSelected]=useState<string|null>(null);
- const rows=useMemo(()=>searchCompendium(pilotRules,{text,kind:kind||undefined}),[text,kind]);
+ const rows=useMemo(()=>searchCompendium(criadorRules,{text,kind:kind||undefined}),[text,kind]);
  const active=rows.find(row=>row.key===selected);
  return <main style={{maxWidth:960,margin:'2rem auto',padding:20,fontFamily:'system-ui'}}>
   <h1>Compêndio — piloto de consulta</h1>

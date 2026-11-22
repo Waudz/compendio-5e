@@ -1,5 +1,10 @@
 # Compêndio 5e 2.0
 
+## Atualização normativa — 22/11/2026
+
+Consultar [DEC-20261122-A a F](DECISOES-E-ARQUITETURA.md#decisões-vigentes--22112026-dec-20261122-a-a-f). As decisões novas substituem as propostas históricas incompatíveis neste arquivo: campanha obrigatória, beta fechado, sem biblioteca pessoal ou loot distribuído, inventário com pesquisa e criação rápida, preservação do Assimilação e PWA posterior. Não tratar como implementado.
+
+
 Ferramenta gratuita de apoio à mesa de D&D 5e (regras de 2014), para mestre e jogadores. React + TypeScript + Vite, Supabase (Auth, Postgres, RLS) e GitHub Pages. Projeto de fãs, sem afiliação oficial. O aplicativo anterior (`rastreador-dnd`) permanece independente e não é tocado.
 
 Site publicado: https://waudz.github.io/compendio-5e/ (exige login).
@@ -114,3 +119,22 @@ O criador local do Guerreiro agora permite **compra de 27 pontos** (atributos-ba
 - A falha de CI anterior era causada por expectativas de tamanho da fixture após a inclusão dos equipamentos. Confirmar o CI do novo HEAD antes de afirmar que os testes passaram.
 
 - **Interface experimental atualizada:** o criador do Guerreiro detecta alterações nas escolhas de equipamento inicial, solicita confirmação antes da troca e usa `replaceStartingEquipmentSelection` para preservar aquisições e bloquear substituições de itens iniciais editados. A confirmação é única para os grupos alterados; o estado do rascunho só é atualizado depois que todos os grupos são validados. Ainda falta testar o fluxo completo no navegador real.
+
+## Catálogo de itens SRD 2014
+
+`src/catalogue/` contém o catálogo canônico de itens (578 itens, nomes em português, dados validados com Zod), usado pelos pilotos do criador e do Compêndio (`?demo=criador-piloto`, `?demo=compendio-piloto`). Regenerar: `node scripts/build-srd-item-catalogue.mjs <caminho/itens-srd2014.json>`; conferir contra a API (rede, manual): `node scripts/verificar-itens-api.mjs`. Dados baseados no SRD 5.1 (CC BY 4.0, Wizards of the Coast LLC); atribuição completa em `src/catalogue/data/srd-2014-items.json`. Ainda experimental: ver `docs/CONTINUIDADE-DESENVOLVIMENTO.md`.
+
+## Criador guiado e Compêndio (experimental)
+
+Pelo menu normal: **Personagens → Criar com o criador guiado** (Guerreiro SRD 2014, equipamento inicial do catálogo oficial, inventário e identidade pública) e **Compêndio** (busca, filtros, lista/grade e página de cada item). No celular: Menu → Personagens / barra inferior → Compêndio. Os personagens guiados ficam **só neste navegador** (armazenamento experimental; ver `docs/CRIADOR-FICHA-INVENTARIO.md`, "Persistência pendente").
+
+## E2E do criador, ficha, inventário e Compêndio
+
+Infraestrutura reutilizada dos PRs #76/#77 sobre o código funcional do #78; sem alterações de domínio. Execute `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:e2e:types` e `npm run test:creator`. Testes isolados, sem contas ou serviços externos. Comandos, dependências e resultados: [TESTES-CRIADOR-E2E](docs/TESTES-CRIADOR-E2E.md). As suítes anteriores continuam disponíveis em `npm run test:e2e` e `npm run test:quality`.
+### Persistência das fichas (proposta, não aplicada)
+
+Com conta e a migração `supabase/migrations/0008_character_sheets_persistencia.sql` aplicada, o criador guiado salva a ficha **privada** em `character_sheets` (só o dono e o mestre leem) e publica apenas a identidade que o jogador escolher; há controle de revisão (conflitos), cópia de recuperação local e envio explícito dos rascunhos antigos do navegador. **A 0008 ainda não foi aplicada ao Supabase**: até lá o app informa "banco desatualizado" ao salvar e o modo local experimental continua disponível sem conta. Detalhes, auditoria e procedimento: `docs/CRIADOR-FICHA-INVENTARIO.md`.
+
+## Catálogo de D&D 5e (2014): itens, magias e monstros
+
+O **Compêndio** (menu → Compêndio) reúne 578 itens, 319 magias e 323 monstros (322 do SRD 5.1 e 1 do legado sem origem confirmada) em português, com pesquisa sem acento, filtros próprios de cada categoria, lista ou grade e detalhe completo (em painel dividido no desktop e em tela cheia no celular). Magias e monstros são baixados sob demanda. As traduções dos monstros foram produzidas com apoio de IA e **ainda não receberam revisão humana** (a ficha avisa e guarda o original em inglês). Dados, auditoria contra o Compêndio 1.0, a SRD API e o PDF do SRD, contratos para o criador, identificadores e como adicionar outro sistema: `docs/CATALOGO-DND-2014.md`. Regenerar/conferir dados: `scripts/catalogo/`.

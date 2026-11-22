@@ -1,5 +1,10 @@
 # Criador, ficha e inventário — decisões e estado (20/11/2026)
 
+## Atualização normativa — 22/11/2026
+
+Consultar [DEC-20261122-A a F](../DECISOES-E-ARQUITETURA.md#decisões-vigentes--22112026-dec-20261122-a-a-f). As decisões novas substituem as propostas históricas incompatíveis neste arquivo: campanha obrigatória, beta fechado, sem biblioteca pessoal ou loot distribuído, inventário com pesquisa e criação rápida, preservação do Assimilação e PWA posterior. Não tratar como implementado.
+
+
 > **Ponto de entrada para retomar:** [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md). Registrar cada decisão de regras, fonte, fluxo ou segurança em `DECISOES-E-ARQUITETURA.md`, atualizar o índice central e manter aqui os detalhes de implementação e testes.
 
 > **Memória de implementação**. Ler junto de `DECISOES-E-ARQUITETURA.md`, `docs/PLANEJAMENTO-V2.md` e `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`. Não confundir pesquisa, protótipo, implementação, testes executados e produção.
@@ -309,3 +314,77 @@ O adaptador `src/rules/character-catalogue-adapter.ts` passou a validar, antes d
 **Limites declarados:** o piloto permite níveis 1–6; a tabela de classe contém marcos 1–20 para o núcleo, mas **não implementa automaticamente as características posteriores do arquétipo Campeão** (7, 10, 15 e 18), bônus condicionais de estilo de luta, equipamento inicial completo, proficiências, conjuração, outros arquétipos nem efeitos do combate. O Compêndio mostra os dados da mesma definição, mas ainda não oferece a experiência final de detalhes. Raça e antecedente seguem ilustrativos. Nenhuma autorização de publicação ou de importação em produção foi concedida.
 
 **Alternativa rejeitada:** liberar 20 níveis como totalmente jogáveis com efeitos presumidos ou duplicar a tabela no criador e no Compêndio. **Verificação:** `src/rules/fighter-2014.test.ts` e `src/dev/character-pilot.test.tsx`; conferir o CI do HEAD, sem declarar aprovação antecipadamente. **Próximo passo:** completar os efeitos do Campeão e as escolhas de equipamento, validar compilação/testes e ampliar a interface de forma progressiva.
+
+## Primeira fatia vertical na navegação real — 21/11/2026 (branch `feat/criador-ficha-navegacao`, dependente do PR #74)
+
+**Funcional (no aplicativo, não só no piloto dev):** em **Personagens**, "Criar com o criador guiado" abre a aba `criador:<id>` (também no celular, por Menu → Personagens, sem abas). Guerreiro SRD 2014 com ficha calculada (atributos por compra de pontos ou matriz padrão, nível 1–6, perícias, estilo de luta, arquétipo e melhorias), **equipamento inicial com prévia e confirmação** usando os 578 itens do catálogo oficial, **inventário dentro da ficha** (+1/−1, busca e adição de item mundano do catálogo, "Consultar no Compêndio") e **identidade pública** separada da ficha privada. O **Compêndio** deixou de ser placeholder: busca (pt-BR sem acento e nome original), filtros por categoria e raridade, lista/grade e página de item (aba `item:<id>`, também aberta pelo inventário e pelos pacotes). Reaproveita `character-domain`, `fighter-2014`, `starting-equipment-*`, `public-identity` e o catálogo; nenhuma regra foi duplicada. Proteção de alterações não salvas (aba, Voltar e troca de tela no celular).
+
+**Experimental:** raça (Anão) e antecedente (Acólito) ilustrativos; só Guerreiro; opções de armas marciais são amostra; **armazenamento local** (`src/criador/armazenamento.ts`).
+
+### Persistência segura das fichas (migração 0008) — 21/11/2026
+
+**Estado em três camadas (não confundir):**
+| Camada | Estado |
+|---|---|
+| Implementado no código | `src/fichas.ts` (cliente Supabase por RPC), `src/criador/repositorio.ts` (servidor × local), `src/criador/recuperacao.ts`, criador e lista de Personagens ligados a eles, identidade pública projetada |
+| Validado em isolamento | `supabase/character-sheets.test.ts`: 24 testes em PostgreSQL (PGlite) com papéis `anon`/`authenticated`, `auth.uid()` simulado e as migrações 0001–0008; mutações das políticas são detectadas. Interface testada com um modelo em memória das regras (`src/fichasMemoria.ts`) e cliente Supabase simulado |
+| **Funcionando no Supabase real** | **NÃO.** A 0008 não foi aplicada. Hoje a tabela existe vazia e **fechada** (sem privilégio de API): o app chamaria funções inexistentes e mostraria "o banco ainda não recebeu a atualização" (ERRO_SCHEMA), sem perder o que foi digitado |
+
+**Auditoria: contrato `ArmazenamentoCriador` × `character_sheets`**
+| Ponto | Incompatibilidade encontrada | Solução |
+|---|---|---|
+| Vínculo com `notes.kind='character'` | o id do personagem é do servidor (`notes.id`), o do rascunho local era do cliente | `create_guided_character` cria nota + ficha na mesma transação e grava `draft.id = character_id` (CHECK); chave composta `(character_id, campaign_id) → notes(id, campaign_id)` |
+| Identidade pública × ficha privada | o contrato local guardava os dois juntos | ficha só em `character_sheets`; `notes.meta` só aceita `guiado` + `identidadePublica` (CHECK `notes_guiado_meta_check`); título da nota = nome público |
+| Dono/campanha alterados | a política inicial não impedia UPDATE de colunas-chave | grants de coluna (`update (draft)` apenas) **e** gatilho que recusa troca de `character_id`, `campaign_id`, `owner_id` e `created_at` até para papéis privilegiados |
+| Permissões do mestre | contrato local não tinha mestre | mestre lê e edita a **ficha**; não lê `notes` privadas e a função recusa mudança de identidade por quem não é o dono (`identidade_so_do_dono`) |
+| Revisões e conflitos | o local não tinha revisão | `revision` só do servidor (gatilho); `save_guided_character(..., p_expected_revision)` → `conflito_de_revisao` sem sobrescrever; a interface oferece carregar a versão atual e restaurar as próprias alterações |
+| Saída da campanha | local ignorava participação | o dono só lê/edita enquanto participa; a ficha **permanece** (sem DELETE) e o mestre continua com acesso. **Decisão de produto assumida**: a saída deixa o personagem inativo (como já decidido); quem saiu não recupera a ficha sozinho |
+| Exclusão e transferência | local excluía livremente | **sem DELETE** na API e FK `RESTRICT`: a nota não pode ser apagada com a ficha viva; a interface não oferece excluir personagens do servidor. Exclusão/transferência seguem o fluxo narrativo (PR #75), ainda sem implementação |
+| Troca de conta, logout e rede | rascunhos locais ficavam órfãos; falha de rede perdia a edição | chaves locais contêm `:<usuário>:` (apagadas no logout); falha de salvamento grava uma **cópia de recuperação** local e a tela mantém tudo; a aba de personagem novo mantém o vínculo com o id do servidor |
+
+**Transição dos rascunhos do `localStorage`:** com conta e API de fichas, a lista de Personagens mostra "Rascunhos neste navegador (experimental)" com **Revisar**, **Enviar para a campanha** e **Descartar** (confirmação). Nada é enviado nem apagado sozinho; a cópia local só é removida **depois** que o servidor confirma; se o envio falha, o rascunho continua local. A identidade enviada começa **privada**. Sem conta/API (demonstração, dev) o criador continua no armazenamento local experimental.
+
+**Achado fora do escopo (a decidir):** a ficha **simples** antiga (`FichaPagina`) grava o inventário em `notes.meta.inventario`; se o personagem estiver **publicado**, a campanha lê esse inventário. Não alterei o comportamento (há dados reais): a tela agora avisa, e o criador guiado é o caminho privado. Recomendação: migrar fichas simples para o criador guiado e então restringir `meta` desses registros.
+
+**Para aplicar (somente com autorização):** (1) conferir a 0007 contra o SQL remoto original; (2) rodar a 0008 em ambiente de teste/branch do Supabase; (3) repetir `supabase/character-sheets.test.ts` e os advisors; (4) conferir os grants: `authenticated` com SELECT, INSERT(4 colunas) e UPDATE(draft); `anon` nada; (5) só então aplicar no projeto `gwcttjlxzelzjhbuitmi`. Há reversão que não apaga dados.
+
+### Compatibilidade da 0008 com a 0007 real — 21/11/2026
+
+O SQL original da 0007 remota (`character_sheets_private_foundation`) **não está versionado**; o arquivo `0007_*` é uma reconstrução pela descrição. Por isso a 0008 **não presume**: começa com pré-condições e, se a estrutura real divergir, **aborta inteira sem alterar nada** (`precondicao_0008: ...`).
+
+| Verificação da 0008 | Se divergir |
+|---|---|
+| Colunas `character_id`, `campaign_id`, `owner_id` (uuid), `draft` (jsonb), `created_at`/`updated_at` (timestamptz) e `revision` (integer ou bigint) | aborta informando coluna, tipo esperado e encontrado |
+| RLS ligada | aborta |
+| `character_id` único (PK ou índice único) | cria o índice único (uma ficha por personagem) |
+| Gatilhos desconhecidos na tabela (ex.: um de revisão/data da 0007 original) | aborta, para `revision` ter um único dono |
+| Políticas com **quaisquer nomes** | todas são substituídas (uma permissiva esquecida não sobrevive) |
+| Linhas existentes | preservadas (revisão e dono mantidos); `draft.id` diferente de `character_id` impede a migração, sem corrigir dados em silêncio |
+
+Coberto por 6 testes em `supabase/character-sheets.test.ts` (PGlite). **Limite:** isto prova que a 0008 é segura para *variações plausíveis* da 0007, não que o remoto seja idêntico à reconstrução. **Antes de aplicar:** exportar o DDL real (`pg_get_tableathef`/painel: colunas, constraints, índices, políticas e gatilhos de `public.character_sheets`) e comparar com `0007_character_sheets_foundation.sql`; a mensagem `precondicao_0008` indica o que ajustar. Também mapeado: o nome da restrição de tamanho do `draft` pode diferir (a interface agora reconhece qualquer violação de CHECK em `character_sheets`).
+
+### Revisão de segurança do PR #80 (21/11/2026): bloqueios corrigidos na 0008
+
+| Bloqueio apontado | Correção (0008) | Teste negativo |
+|---|---|---|
+| `notes_guiado_meta_check` só valia com o marcador `guiado` e o cliente podia removê-lo | A proteção agora está **presa à existência da ficha**: o gatilho `notes_zz_ficha_guard` (em `notes`) usa `private.tem_ficha(id)` e, enquanto houver `character_sheets`, exige que `meta` seja EXATAMENTE `{guiado: true, identidadePublica?}` válido, impede trocar tipo/dono/campanha e excluir. A CHECK global `notes_guiado_meta_check` **foi removida** (travaria notas legadas com `guiado` em formato diferente e não era a fronteira de segurança) | remover/trocar `guiado`, adicionar `inventario`/`draft`/`nivel`, meta `{}`, 17 identidades malformadas |
+| INSERT sem `notes.deleted_at IS NULL`; UPDATE sem vínculo com nota ativa | INSERT exige nota própria, de personagem, mesma campanha, **ativa** e com meta válido; UPDATE exige `private.nota_guiada_ativa(character_id, campaign_id, owner_id)`: nota **do mesmo dono da ficha** (invariante da 0007), da mesma campanha, de personagem, ativa e com **meta válido** (função DEFINER mínima, porque o mestre não lê a nota privada) | nota soft-deletada por caminho privilegiado: dono, mestre, RPC e UPDATE direto recusados; nova ficha para nota excluída recusada; nota com meta inválido não ganha ficha |
+| `p_meta`/`p_title` das RPCs | `p_meta` passa por `private.identidade_meta_valida` (chaves exatas, tipos, https, limites); `guiado=true` é imposto pelo servidor; **`p_title` é ignorado** e o título vem de `private.titulo_publico(meta)` (também forçado no gatilho) | meta inválido em criar e salvar; título real vazado não persiste; `guiado:false` sobrescrito; ficha inalterada se a identidade for inválida |
+| 0007 não espelhava o remoto | 0007 corrigida: `CHECK (revision between 1 and 2147483647)`, índice `(campaign_id, owner_id)`, INSERT/UPDATE com `deleted_at IS NULL` | `revision` 0 e 2147483648 recusadas; índices e políticas conferidos |
+
+**Funções DEFINER:** só duas (`private.tem_ficha`, `private.nota_guiada_ativa`), no schema `private`, `search_path` vazio, devolvem só booleano, sem EXECUTE para `anon`. `create_guided_character`/`save_guided_character` continuam **SECURITY INVOKER** no schema `public`. **Verificar antes de aplicar:** `private` NÃO pode constar em Settings → API → Exposed schemas.
+
+**Interface:** valida a identidade com as mesmas regras (imagem só `https://`, textos ≤ 120 e descrição ≤ 4000) antes de enviar e traduz os novos erros do banco.
+
+**Riscos remanescentes (honestos):**
+1. A 0007 continua **reconstruída**: o texto exato das políticas e outras restrições/índices remotos são desconhecidos. A 0008 aborta se a estrutura divergir, mas é preciso comparar o DDL real (`pg_dump --schema-only -t public.character_sheets`) antes de aplicar.
+2. As funções DEFINER são uma superfície nova (booleanos sobre existência de nota/ficha); revisadas e testadas, mas dependem de `private` não estar exposto.
+3. O gatilho em `notes` roda em todo UPDATE de `notes` (uma consulta por chave primária). Medir se houver volume.
+4. A imagem pública é só uma URL https validada; o app ainda não a exibe. Se for exibida, tratar CSP e privacidade (rastreamento por terceiros).
+5. Nada disto foi executado no Supabase real; a interface foi testada com modelo em memória e cliente simulado.
+
+### Ação final do PR #80 (21/11/2026): helper com dono e identidade; notas legadas
+
+- `private.nota_guiada_ativa(p_id, p_campaign, p_owner)` agora confere **dono da nota = dono da ficha**, campanha, tipo, `deleted_at IS NULL` e `private.identidade_meta_valida(meta)`; a política de UPDATE o chama com `character_id, campaign_id, owner_id`. Ficha cuja nota é de outro dono, ou cujo meta está corrompido, **não pode ser atualizada** (dono, mestre, RPC ou UPDATE direto) e não há reparo por API: dono de nota e de ficha são imutáveis, então a correção exige intervenção manual no banco.
+- **Notas legadas:** sem CHECK global, a 0008 aplica mesmo com notas legadas marcadas `guiado` em formato diferente (e com personagens simples antigos). Elas continuam editáveis, mas só ganham ficha guiada quando o dono as migra para o formato estrito; depois disso a proteção vale. Testado aplicando a 0008 sobre um banco 0007 com esses dados.
+- Testes negativos novos: ownership divergente (dono da ficha, mestre, RPC), meta inválido em linha pré-existente (3 variações), cada condição do helper isolada, ausência de CHECK global e notas legadas. Mutações no helper (sem dono, sem meta válido, política com dono errado) são detectadas.

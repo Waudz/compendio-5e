@@ -23,7 +23,8 @@ function indexedRows(catalogue:RulesCatalogue):readonly IndexedRow[]{
   if(!source||!definition) throw new Error('Unresolved catalogue entry: '+key);
   const row:CompendiumRow={key,ref:entry.ref,name:entry.name,kind:entry.ref.kind,
    source,description:definition.description};
-  return {row,searchText:normalize([row.name,row.description,row.kind,row.source].join(' '))};
+  const english=typeof definition.data.en==='string'?definition.data.en:'';   // nome original: pesquisável em inglês sem duplicar a definição
+  return {row,searchText:normalize([row.name,english,row.description,row.kind,row.source].join(' '))};
  }).sort((a,b)=>a.row.name.localeCompare(b.row.name,'pt-BR')||a.row.key.localeCompare(b.row.key));
  cache.set(catalogue,indexed);
  return indexed;

@@ -6,6 +6,8 @@ import { CampaignHome } from "./CampaignHome";
 import { PlanningPanel } from "./Planning";
 import { DiarioPanel, RegistroPagina } from "./Diario";
 import { FichaPagina, PersonagensPanel } from "./Personagens";
+import { CompendioPanel, ItemPagina } from "./Compendio";
+import { CriadorGuiado } from "./criador/CriadorGuiado";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
@@ -20,7 +22,10 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "secao" && (id === "planejamento" || id.startsWith("planejamento:"))) return <PlanningPanel initialBoardId={id.startsWith("planejamento:") ? id.slice("planejamento:".length) : undefined} onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "diario") return <DiarioPanel onOpenContent={onOpenContent}/>;
   if (kind === "documento") return <RegistroPagina id={id}/>;
-  if (kind === "ficha") return <FichaPagina id={id}/>;
+  if (kind === "ficha") return <FichaPagina id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "item") return <ItemPagina id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "criador") return <CriadorGuiado id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "secao" && id === "compendio") return <CompendioPanel onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "personagens") return <PersonagensPanel onOpenContent={onOpenContent}/>;
   const title = defaultTitle({ kind, ref: id });
   return <div className="content">

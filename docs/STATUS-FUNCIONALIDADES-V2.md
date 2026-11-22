@@ -6,17 +6,17 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 
 | Funcionalidade | Estimativa | Código de domínio | Interface real | Persistência/segurança | Principal lacuna |
 |---|---:|---|---|---|---|
-| Criador | 25% | Protótipo de regras, ASI, escolhas, catálogo | Piloto **somente dev** | Somente localStorage no piloto | Fluxo completo de classes/raças/origens, persistência autenticada |
+| Criador | 40% | Guerreiro SRD 2014 com escolhas, equipamento e identidade pública | **Na navegação real** (Personagens → criador guiado), desktop e celular | Armazenamento local **experimental** | Demais classes/raças/antecedentes, persistência autenticada |
 | Ficha | 20% | Cálculo experimental | Perfil simples da campanha | Registros de perfil, não ficha D&D completa | Atributos, magias, recursos e ficha única |
-| Inventário | 20% | Instâncias identificadas e operações | Lista simples + piloto dev | Sem instâncias reais persistidas | Itens versionados, peso, equipamento, sincronização |
-| Compêndio | 15% | Registro e resolutor de definições | Seção placeholder | Sem catálogo completo persistido | Dados 2014 auditados, busca, lista/grade |
-| Magias | 5% | Tipo de referência | Placeholder | Não implementada | Catálogo, escolas, regras e conjuração |
-| Bestiário | 5% | Referências planejadas | Placeholder | Não implementada | Catálogo e busca |
+| Inventário | 35% | Instâncias com catálogo oficial de itens | Dentro do criador, com "Consultar no Compêndio" | Local experimental | Peso total, equipar, transferência, servidor |
+| Compêndio | 60% | Catálogo de itens, magias e monstros com núcleo genérico, busca e filtros | **Seção real**: categorias, filtros, lista/grade, detalhe em painel, esqueletos | Dados embutidos (pedaços sob demanda), sem persistência | Classes, raças, antecedentes, seletor de sistema, rolagens |
+| Magias | 65% | 319 magias SRD validadas contra a API; contratos por classe para o criador | Catálogo, filtros e detalhe | Dados embutidos | Conjuração (espaços, preparadas) é do criador; listas de classes confirmadas no SRD |
+| Bestiário | 55% | 322 monstros SRD + 1 legado (pt-BR, 100% traduzidos por IA, auditoria numérica OK; sem revisão humana) | Catálogo, filtros e ficha | Dados embutidos | Rolagens de dados; troca de forma em combate (dados por forma já estruturados); revisão humana das traduções |
 | Iniciativa | 10% | Planejamento e navegação | Placeholder | Não implementada | Combate completo |
 | Campanhas | 50% | API de campanhas | Painéis e navegação | Auth e regras existentes | Fluxos completos, integração com personagens |
 | Anotações/diário | 55% | Registros, visibilidade, editor | Interface existente | Migrações propostas ainda pendentes | Persistência final e testes |
 | Navegação | 70% | Layout e abas | Implementada | Layout local por escopo | Refinamento e integração |
-| Segurança/persistência | 35% | Auth, RLS parcial, contrato de revisão puro | Login | Revisões de ficha ainda não ligadas ao servidor | Escrita atômica e autorização de personagens |
+| Segurança/persistência | 45% | Auth, RLS, `character_sheets` (0007) e **0008 proposta** com revisão e imutabilidade | Login; criador com repositório servidor/local | Fichas: validado em PGlite, **não aplicado no Supabase** | Aplicar 0008, exclusão/transferência narrativas, Realtime |
 
 **Visão geral estimada: 30%.** Não é média aritmética; o peso da entrega completa é maior que o de módulos isolados. Os números podem mudar após auditoria.
 
@@ -62,3 +62,19 @@ Adicionado motivo opcional de indisponibilidade por chave versionada, limite de 
 ## Pesquisa indexada do Compêndio — 20/11/2026
 
 `searchCompendium` agora valida e monta um índice de descrições, nomes normalizados e fontes **uma vez por objeto de catálogo**, via `WeakMap`; consultas posteriores fazem apenas filtro linear e retornam cópias rasas das linhas. Evita validação repetida e buscas quadráticas ao digitar. O catálogo deve ser tratado como **imutável**: qualquer alteração deve criar novo objeto de catálogo (e, preferencialmente, novas coleções internas). Testes incluem filtros, acentos, renomeação e isolamento do resultado. Não significa importação de conteúdo SRD real nem interface de produção concluída.
+
+## Catálogo de itens — 20/11/2026
+
+`src/catalogue/` carrega 578 itens SRD 2014 validados por Zod; 237 mundanos conferidos contra a D&D 5e SRD API (`scripts/verificar-itens-api.mjs`), 341 mágicos apenas pelo esquema. Usado pelos pilotos do criador e do Compêndio. Não está na interface autenticada. Percentual do Compêndio sobe para 20% (estimativa).
+
+## Fatia vertical na navegação real — 21/11/2026
+
+Criador guiado (Guerreiro) e Compêndio de itens acessíveis pelo menu normal, testados em jsdom (742 testes no total). Ainda sem persistência autenticada e sem teste em navegador real. Percentuais são estimativas.
+
+## Persistência das fichas — 21/11/2026
+
+Código + 24 testes de RLS em PostgreSQL isolado + interface testada; **sem funcionamento real no Supabase** até a migração 0008 ser autorizada e aplicada. Percentuais são estimativas.
+
+## Catálogo de magias, monstros e itens — 22/11/2026
+
+Compêndio com três categorias, validado em jsdom e contra a SRD API; percentuais são estimativas. Ver `docs/CATALOGO-DND-2014.md`.

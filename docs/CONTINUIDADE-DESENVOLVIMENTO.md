@@ -1,5 +1,10 @@
 # Continuidade do desenvolvimento — Compêndio 5e 2.0
 
+## Atualização normativa — 22/11/2026
+
+Consultar [DEC-20261122-A a F](../DECISOES-E-ARQUITETURA.md#decisões-vigentes--22112026-dec-20261122-a-a-f). As decisões novas substituem as propostas históricas incompatíveis neste arquivo: campanha obrigatória, beta fechado, sem biblioteca pessoal ou loot distribuído, inventário com pesquisa e criação rápida, preservação do Assimilação e PWA posterior. Não tratar como implementado.
+
+
 > **PONTO DE ENTRADA OBRIGATÓRIO para novas conversas, agentes e colaboradores.** Revisado em 20/11/2026 na branch do [PR #74](https://github.com/Waudz/compendio-5e/pull/74). Este arquivo é um **índice operacional e registro de decisões**, não substitui os detalhes normativos dos documentos vinculados. Verifique branch, commits, CI e código novamente antes de declarar qualquer funcionalidade pronta.
 
 ## Como retomar sem o histórico do ChatGPT
@@ -42,6 +47,10 @@
 | DEC-012 | PR #74 é trabalho experimental; sem merge, deploy ou migração automática | Restrição operacional vigente | Conferir status atual do PR antes de agir |
 | DEC-013 | Ferramentas adicionais somente quando agregarem valor e com lockfile/testes consistentes | Aprovada | Zod, React Hook Form, fast-check e Playwright planejados, não instalados na revisão; Dexie/TanStack Virtual/XState condicionais |
 | DEC-014 | Documentar **cada decisão nova ou alteração** no mesmo conjunto de commits que o código, com motivo, alternativa, impacto, testes e pendências | Aprovada nesta rodada | Modelo abaixo |
+
+| DEC-015 | Catálogo canônico de itens SRD 2014 (578 itens, validado com Zod, mesma fonte do Compêndio, criador e inventário) | Implementada parcialmente | Só itens; 237 mundanos conferidos na API, 341 mágicos não; ver `DECISOES-E-ARQUITETURA.md` |
+| DEC-016 | Criador guiado e Compêndio na navegação real (abas `criador:`/`item:`), armazenamento local **experimental** atrás de interface | Implementada parcialmente | Guerreiro; sem Supabase; proposta de persistência em `CRIADOR-FICHA-INVENTARIO.md` |
+| DEC-017 | Persistência das fichas guiadas no Supabase (`character_sheets` + identidade pública em `notes`), revisão otimista | Implementada e validada em isolamento; **0008 não aplicada** | Ver `CRIADOR-FICHA-INVENTARIO.md` |
 
 ### Registro de decisão: modelo obrigatório
 
@@ -272,3 +281,40 @@ Esses quatro itens são **decisões de experiência de jogo**, distintas de tare
 - No `src/dev/character-pilot.tsx`, cada item do inventário pode abrir os detalhes da definição canônica do catálogo; teste de interface confirma a chave estável. É apenas o piloto local, não a ficha autenticada.
 - Limitação: inventário ainda armazena somente `itemId`; produção deve persistir referência versionada completa por instância para suportar fontes/revisões simultâneas, sem depender da resolução por ID. Dados mecânicos do catálogo ainda não auditados.
 - CI do commit `5df177c` estava em execução na última consulta; verificar resultado e HEAD atual. Sem merge, deploy ou migração.
+
+### Entrega — catálogo real de itens SRD 2014 (20/11/2026)
+
+- **Implementado:** `src/catalogue/` (esquema Zod, carregador e `describeItem`), dados em `src/catalogue/data/srd-2014-items.json`, `scripts/build-srd-item-catalogue.mjs` (regenera do legado) e `scripts/verificar-itens-api.mjs` (conferência manual contra a API). Os pilotos do criador e do Compêndio agora usam os **itens reais** em vez de definições provisórias; a busca aceita nome em português (sem acento) e original em inglês.
+- **Defeito real encontrado e corrigido:** três IDs de equipamento inicial do Guerreiro não existiam no catálogo (`rations`, `hempen-rope-50-feet`, `light-crossbow`; corretos: `rations-1-day`, `rope-hempen-50-feet`, `crossbow-light`). Teste novo (`equipamento-inicial-catalogo.test.ts`) impede a regressão e compara as receitas de pacote com os pacotes oficiais.
+- **Dependência nova:** `zod` 4.6.7 (lockfile atualizado), usada na validação de dados importados. React Hook Form, fast-check e Playwright continuam não instalados: ainda não há formulário complexo, propriedade a testar nem fluxo autenticado que justifiquem.
+- **Experimental/pendente:** lista do piloto sem virtualização (578 itens); descrições são resumos derivados; mágicos sem conferência externa; classes, subclasses, raças, antecedentes, magias e criaturas ainda não têm catálogo real. Nenhuma migração, merge ou deploy.
+
+### Entrega — primeira fatia vertical na navegação real (21/11/2026)
+
+- **Branch dependente:** `feat/criador-ficha-navegacao` (sai de `3f5c41c`, PR #74). Não altera as branches dos PRs #75 (Enciclopédia) e #76 (Playwright).
+- **Implementado:** `src/criador/` (criador guiado, armazenamento experimental, catálogo e rótulos pt-BR), `src/Compendio.tsx` (seção e página de item), abas `criador:`/`item:`, entrada em Personagens, títulos de aba, estilos. Testes: `src/criador/criadorGuiado.test.tsx`, `src/criador/armazenamento.test.ts`, `src/compendio.test.tsx`.
+- **Honestidade:** caminho do usuário testado em jsdom (desktop e celular), **não** em navegador real (Playwright é do PR #76). Armazenamento local não é segurança entre usuários. Só o Guerreiro; raça e antecedente ilustrativos.
+
+### Entrega — persistência segura das fichas (21/11/2026)
+
+- **Branch:** `feat/criador-persistencia-supabase`, a partir de `feat/criador-ficha-navegacao` (PR #78 → #74). Sem merge, deploy ou migração aplicada; nenhum arquivo dos PRs #75/#76/#77 foi tocado.
+- **Banco (proposto):** `0007` (reconstrução da base já aplicada) e `0008` (políticas, gatilho, funções, grants) com rollbacks; 24 testes PGlite (dono, outro jogador, mestre, outra campanha, ex-participante, anônimo, conflito, imutabilidade, identidade pública, isolamento, reversões).
+- **Cliente:** `FichasApi`, repositório servidor/local, recuperação local, envio dos rascunhos antigos, ficha pública para quem não é dono.
+- **Funcional de verdade?** No código e em PostgreSQL isolado, sim. **No Supabase hospedado, não** até a 0008 ser aplicada.
+
+### C-E2E-01 — nomes acessíveis do inventário (corrigido, 21/11/2026)
+
+Achado do Codex (PR #79): o nome acessível dos botões do inventário não continha o texto visível (WCAG 2.5.3 / axe `label-content-name-mismatch`). **Corrigido em `src/criador/CriadorGuiado.tsx`** com os nomes recomendados: `Consultar no Compêndio: <item>`, `+1: adicionar quantidade de <item>`, `−1: remover quantidade de <item>`; também `Enviar para a campanha: <nome>` na lista de rascunhos locais. Testes: `criadorGuiado.test.tsx` (inventário e todas as seções) e `persistenciaServidor.test.tsx` verificam que **todo botão com `aria-label` contém o texto visível** e que as ações seguem funcionando; o teste falha com os rótulos antigos (verificado). **Não validado com axe real nesta branch**: a suíte `test:creator` do PR #79 precisa ser reexecutada sobre este HEAD (seus seletores/nomes antigos de inventário também precisam acompanhar). Fora do escopo e ainda abertos: C-E2E-02 (patches do #77) e o piloto de desenvolvimento `src/dev/character-pilot.tsx` (rótulos `Adicionar quantidade ...` com texto visível `+1`).
+
+### Revisão do PR #80 — bloqueios de segurança da 0008 (21/11/2026)
+
+Corrigidos (ver `CRIADOR-FICHA-INVENTARIO.md`): `meta` da nota presa à existência da ficha (não ao marcador), INSERT/UPDATE com `notes.deleted_at IS NULL`, `p_meta` estrito e título derivado no servidor, 0007 alinhada ao remoto. 43 testes de RLS em PostgreSQL isolado com 6 mutações detectadas. **0008 continua NÃO aplicada** (aguarda comparação do DDL real e autorização).
+
+**Ação final do PR #80:** `private.nota_guiada_ativa` com dono + meta válido; CHECK global removida para não travar notas legadas; 48 testes de RLS. 0008 continua NÃO aplicada.
+
+### Entrega — catálogo de magias, monstros e itens (22/11/2026)
+
+- **Branch:** `feat/catalogo-dnd-2014` (a partir da `main` com o PR #82). Frente exclusiva do catálogo: **não altera** autenticação, campanhas, navegação global nem o criador. O contrato para o criador está em `src/catalogue/contratos.ts` e `docs/CATALOGO-DND-2014.md` (seção 4).
+- **Impacto em outras branches:** o clique em um item do Compêndio agora abre o detalhe no painel (antes abria uma aba `item:`); a aba continua disponível por "Abrir em nova aba" e é o destino de "Consultar no Compêndio" do inventário. Testes E2E que clicavam em `Abrir <item>` precisam usar o nome acessível novo (texto visível do cartão); o E2E do criador deste repositório já foi ajustado (não executado ainda).
+- **Auditoria (PR #84, 2ª etapa):** traduções auditadas contra o original (57 textos do legado substituídos), campos mecânicos comparados com a SRD API/PDF (10 fichas corrigidas), Burro marcado como legado, aliases de ids, `formas` nas fichas compostas, E2E de monstro→magia. Ver seções 7 a 10 de `docs/CATALOGO-DND-2014.md`.
+- **Atualização (PR #84):** 5 listas de classes confirmadas no PDF do SRD; monstros 100% traduzidos; links monstro→magia; conciliação 334×323 documentada; sem seletor de sistema (decisão do PR #83).

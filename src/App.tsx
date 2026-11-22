@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
 import { BookOpen, Castle, House as HomeIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
@@ -15,6 +15,7 @@ import { tituloDe, useVersaoRegistros } from "./registrosStore";
 import { Panel } from "./Panel";
 import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
+import { srdItem } from "./catalogue/srd-2014-items";
 import { closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type Kind, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
@@ -33,8 +34,21 @@ function useMobile() {
 /** Só existe com sessão. `key` por usuário: trocar de conta descarta TODO o estado do espaço de trabalho (nada vaza entre contas). */
 export default function App() {
   const { status, user } = useAuth();
-  if (status !== "authenticated" || !user) return null;
+  const { loading, active, error } = useCampaigns();
+  const readyFor = useRef<string | null>(null);
+  if (status !== "authenticated" || !user) { readyFor.current = null; return null; }
+  // Não monte o workspace provisório antes de resolver a primeira campanha.
+  if (!loading && !error) readyFor.current = user.id;
+  if (readyFor.current !== user.id && !active) {
+    if (error) return <CampaignLoadError/>;
+    return <div role="status">Carregando suas campanhas…</div>;
+  }
   return <Workspace key={user.id} userId={user.id}/>;
+}
+
+function CampaignLoadError() {
+  const { refresh } = useCampaigns();
+  return <div role="alert">Não foi possível carregar suas campanhas. <button onClick={() => void refresh()}>Tentar novamente</button></div>;
 }
 
 function Workspace({ userId }: { userId: string }) {
@@ -49,6 +63,7 @@ function Workspace({ userId }: { userId: string }) {
     if (!hasSavedLayout(scope) && scope.campaign !== "nenhuma") return firstVisitModel(scope.campaign, memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name);
     return createModel(loadLayout(scope));
   });
+  const modelRef = useRef(model); modelRef.current = model;
   const [modelKey, setModelKey] = useState(scopeKey);
   const [, redraw] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
@@ -64,13 +79,15 @@ function Workspace({ userId }: { userId: string }) {
   if (modelKey !== scopeKey) {
     // Primeira vez nesta campanha: abre o Início (ex.: logo após entrar por convite).
     const m = !hasSavedLayout(scope) && scope.campaign !== "nenhuma" ? firstVisitModel(scope.campaign, memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name) : createModel(loadLayout(scope));
-    good.current = m.toJson(); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
+    modelRef.current = m; good.current = m.toJson(); setMenu(null); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
 
   // Toda mudança passa por aqui: valida a restrição de colunas (reverte se violada) e persiste.
   const onModelChange = useCallback((m: Model) => {
+    // Um callback atrasado do layout anterior não pode gravar no escopo atual.
+    if (m !== modelRef.current) return;
     if (normalizeEmptyPanels(m)) return;   // painel que recebeu aba deixa de ser "vazio intencional"; a ação de correção volta aqui
     const json = m.toJson();
-    if (!isColumnsOnly(json)) { setModel(createModel(good.current)); return; }
+    if (!isColumnsOnly(json)) { const restored = createModel(good.current); modelRef.current = restored; setModel(restored); return; }
     good.current = json; saveLayout(json, scopeRef.current); refresh();
   }, [refresh]);
   // Fechar aba/coluna pelos botões do FlexLayout também respeita alterações não salvas.
@@ -160,8 +177,21 @@ function Workspace({ userId }: { userId: string }) {
   const titleOf = useCallback((n: TabNode) => {
     const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
     if ((c?.kind === "documento" || c?.kind === "ficha") && c.ref) return tituloDe(c.ref) ?? n.getName();
+    if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
+    if (c?.kind === "item" && c.ref) return srdItem(c.ref)?.nome ?? n.getName();
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
   }, [memberships, registrosV]);
+  // FlexLayout usa o nome do modelo para ARIA e o conteúdo renderizado para a tela.
+  // Manter ambos iguais em memória; minimalLayout continua removendo nomes ao persistir.
+  useLayoutEffect(() => {
+    let changed = false;
+    model.visitNodes(node => {
+      if (!(node instanceof TabNode)) return;
+      const title = titleOf(node);
+      if (node.getName() !== title) { model.doAction(Actions.renameTab(node.getId(), title)); changed = true; }
+    });
+    if (changed) refresh();
+  });
   labelRef.current = id => { const t = findTab(model, id); return t ? titleOf(t) : id; };
   const renderTab = useCallback((n: TabNode, v: { content: ReactNode; leading?: ReactNode }) => {
     v.content = <>{titleOf(n)}{isPinned(n) && <span className="sr-only"> (fixada)</span>}</>;   // marca visual + texto acessível
@@ -189,8 +219,8 @@ function Workspace({ userId }: { userId: string }) {
         <NavItem spec={homeSpec}
           className={activeId === (active ? `campanha:${active.campaign.id}` : `secao:${campaignsHub.page}`) ? "campaign-main selected" : "campaign-main"}
           title={active ? `Campanha ativa: ${active.campaign.name} (abrir o Início)` : "Nenhuma campanha ativa: escolher ou criar"}
-          ariaLabel={active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar"} onNavigate={openMenu} onMenu={showNavMenu}>
-          {collapsed ? <Castle size={19} aria-hidden="true"/> : <><small>CAMPANHA ATIVA</small><strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}
+          ariaLabel={collapsed ? (active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar") : undefined} onNavigate={openMenu} onMenu={showNavMenu}>
+          {collapsed ? <Castle size={19} aria-hidden="true"/> : <><small>CAMPANHA ATIVA</small>{" "}<strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}
         </NavItem>
         {!collapsed && <button className="campaign-switch" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
           onClick={e => { const r = e.currentTarget.getBoundingClientRect(); showCampaignMenu(r.left, r.bottom); }}><ChevronsUpDown size={16} aria-hidden="true"/></button>}

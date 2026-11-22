@@ -6,3 +6,7 @@ dist/
 
 # Locally collected unreviewed API data; never commit automatically
 .srd-2014-staging/
+# Artefatos locais do Playwright (não contêm dados de produção)
+/playwright-report/
+/test-results/
+/blob-report/
