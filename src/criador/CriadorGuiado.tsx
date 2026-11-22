@@ -1,5 +1,5 @@
 import { metodoPreservado, manualValido, type MetodoAtributos } from './atributos-2014';
-// Criador guiado de personagem (aba `criador:<id>`), hoje só o Guerreiro. Reaproveita as regras de `src/rules` e o catálogo
+// Criador guiado de personagem SRD 2014 (aba `criador:<id>`). Reaproveita as regras de `src/rules` e o catálogo
 // canônico; não duplica lógica. Ficha, equipamento inicial, inventário (dentro da ficha) e identidade pública em seções.
 // Persistência por `RepositorioPersonagem`: SERVIDOR (Supabase, ficha privada + identidade pública, revisão otimista) quando há conta e a API de fichas;
 // senão o armazenamento local EXPERIMENTAL (`armazenamento.ts`: sem segurança entre usuários e sem sincronização).
@@ -184,7 +184,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const sec = (s: Secao, rotulo: string) => <button type="button" className={secao === s ? "active" : ""} aria-current={secao === s ? "true" : undefined} onClick={() => setSecao(s)}>{rotulo}</button>;
 
   return <div className="content ficha auth wide criador">
-    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · CRIADOR GUIADO · {modern2014(draft) ? label2014(draft.classId).toLocaleUpperCase("pt-BR") : "GUERREIRO"} (SRD 2014)</div>
+    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · CRIADOR GUIADO · {label2014(draft.classId).toLocaleUpperCase("pt-BR")} (SRD 2014)</div>
     <div className="row-between"><h1>{draft.name.trim() || "Novo personagem"}</h1>
       <button type="button" className="btn-primary" onClick={() => void salvar()} disabled={salvando || (!sujo && salvo !== null)}>{salvando ? "Salvando…" : "Salvar"}</button></div>
     {servidor
