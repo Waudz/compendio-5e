@@ -137,6 +137,13 @@ function Detalhe({ cat, item, onFechar, onOpenContent, onAbrirMagia, retorno, on
     <h2 className="cat-titulo">{nome}</h2>
     {cat.id === "magias" && <DetalheMagia magia={item as Magia}/>}
     {cat.id === "monstros" && <DetalheMonstro monstro={item as Monstro} onAbrirMagia={id => onAbrirMagia(id, nome)}/>}
+    {["racas","classes","subclasses"].includes(cat.id) && <div className="cat-regras-detalhe">
+      <p className="muted">{cat.subtituloDe(item)}</p>
+      {cat.id === "racas" && <><h3>Características</h3><ul>{(item as {traits:{name:string}[]}).traits.map((t,i)=><li key={i}>{t.name}</li>)}</ul></>}
+      {cat.id === "classes" && <><h3>Progressão de classe</h3><p>Dado de Vida: d{(item as {data:{hitDie:number}}).data.hitDie}</p><ol>{(item as {data:{levels:{level:number;features:string[]}[]}}).data.levels.map(l=><li key={l.level}>Nível {l.level}: {l.features.map(x=>x.split("/").pop()).join(", ")||"—"}</li>)}</ol></>}
+      {cat.id === "subclasses" && <p>{(item as {descricao:string}).descricao}</p>}
+      <p className="muted">Dados do SRD 5.1 (2014). Alguns nomes técnicos ainda estão no idioma original.</p>
+    </div>}
     {cat.id === "itens" && <>
       <DetalheItem item={item as SrdItem} onOpenContent={onOpenContent}/>
       <p><button type="button" className="btn-secondary" onClick={() => onOpenContent(itemSpec(cat.idDe(item), nome))}><ExternalLink size={14} aria-hidden="true"/> Abrir em nova aba</button></p>
