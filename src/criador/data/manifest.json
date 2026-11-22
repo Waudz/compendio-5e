@@ -1,6 +1,6 @@
 {
   "version": "character-srd-2014-v2",
-  "sha256": "ab54adc73408e0ae8174f0c864627b4b9121568570a6ede7ce020ce20c359c1b",
+  "sha256": "453cbc3837b798dfd24dc1dea4295ceb4be36d120f3c77039a4b190d8e6c21cf",
   "legacySource": "Waudz/rastreador-dnd (Compêndio 1.0), dados/criacao-srd2014.json",
   "legacySha256": "fe2bdc1183c1e65c2341b46383463572b092574365ebdb11f09f214c056e0b60",
   "sourceUrls": [
@@ -11,7 +11,8 @@
   ],
   "corrections": [
     "dark-ones-own-luck: one use per short/long rest, not Charisma modifier",
-    "sorcerous-restoration: restores four sorcery points per short rest; no once per long rest cap"
+    "sorcerous-restoration: restores four sorcery points per short rest; no once per long rest cap",
+    "spell class lists reconciled with reviewed catalogue PR 84 / main e97199f (faerie-fire, create-food-and-water, meld-into-stone, arcane-eye, divination)"
   ],
   "legacyCommit": "6086b360a7522d54a3cce3c40fcff7a7e20d4507"
 }

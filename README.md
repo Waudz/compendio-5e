@@ -135,6 +135,10 @@ Infraestrutura reutilizada dos PRs #76/#77 sobre o código funcional do #78; sem
 
 Com conta e a migração `supabase/migrations/0008_character_sheets_persistencia.sql` aplicada, o criador guiado salva a ficha **privada** em `character_sheets` (só o dono e o mestre leem) e publica apenas a identidade que o jogador escolher; há controle de revisão (conflitos), cópia de recuperação local e envio explícito dos rascunhos antigos do navegador. **A 0008 ainda não foi aplicada ao Supabase**: até lá o app informa "banco desatualizado" ao salvar e o modo local experimental continua disponível sem conta. Detalhes, auditoria e procedimento: `docs/CRIADOR-FICHA-INVENTARIO.md`.
 
+## Catálogo de D&D 5e (2014): itens, magias e monstros
+
+O **Compêndio** (menu → Compêndio) reúne 578 itens, 319 magias e 323 monstros (322 do SRD 5.1 e 1 do legado sem origem confirmada) em português, com pesquisa sem acento, filtros próprios de cada categoria, lista ou grade e detalhe completo (em painel dividido no desktop e em tela cheia no celular). Magias e monstros são baixados sob demanda. As traduções dos monstros foram produzidas com apoio de IA e **ainda não receberam revisão humana** (a ficha avisa e guarda o original em inglês). Dados, auditoria contra o Compêndio 1.0, a SRD API e o PDF do SRD, contratos para o criador, identificadores e como adicionar outro sistema: `docs/CATALOGO-DND-2014.md`. Regenerar/conferir dados: `scripts/catalogo/`.
+
 ## Criador e fichas 2014 — expansão em revisão
 
 As fichas preservam suas regras antigas. Dentro do criador, a atualização explícita oferece opções SRD 2014 de classe, raça, origem, magias e equipamento, reutilizando a persistência existente por campanha. Não equivale ao PHB completo. [Cobertura, fontes, auditoria, testes e limites](docs/CRIADOR-2014-EXPANSAO.md).

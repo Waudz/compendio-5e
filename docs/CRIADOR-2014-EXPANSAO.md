@@ -73,3 +73,7 @@ O commit seguinte registra apenas documentação, evidências e correção da re
 
 ### Regressão adicional da auditoria de recursos
 Forma Selvagem passa a ser ilimitada no Druida 20 (Arquidruida); níveis 2–19 mantêm dois usos. Teste explícito compara 19 e 20 e os estados `maximum/remaining=null`. A validação 8009394 acima precede esta correção; o CI final do PR registra o novo SHA e total de 1.125 unitários se aprovados.
+
+
+### Integração do catálogo publicado durante esta rodada
+Incorporado integralmente o PR #84, main `e97199f`, sem editar os seus módulos/dados. Resolvidos somente conflitos de acréscimos no README e decisões, mantendo ambos os textos; decisão do criador renumerada DEC-019. Os IDs dos itens seguem os mesmos contratos. Novo teste usa `todasAsMagias/itemPorId` públicos para conferir todos os 319 IDs/círculos/listas de classe do snapshot versionado. Cinco divergências de listas herdadas de 5e-bits foram reconciliadas com a auditoria SRD do catálogo: Fogo das Fadas também Bardo; Criar Alimentos não Druida; Mesclar-se às Rochas também Druida; Olho Arcano só Mago; Adivinhação Clérigo. O snapshot privado permanece versionado para preservar fichas, sem publicar catálogo concorrente. Hash e correção registrados no manifest. CI anterior acima corresponde à base antes do PR #84; os resultados integrados finais ficam no PR #86.

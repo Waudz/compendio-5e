@@ -27,6 +27,8 @@ const abas = () => [...document.querySelectorAll(strip)].map(e => e.textContent?
 const menu = () => within(screen.getByRole('navigation', { name: 'Menu principal' }));
 const montar = () => renderApp({ api: apiC(mestre) });
 const abrirCompendio = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Compêndio' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Compêndio' })); await screen.findByRole('heading', { name: 'Compêndio' }); };
+/** Cartão do Compêndio: o nome acessível é o texto visível (nome + subtítulo), sem aria-label (WCAG 2.5.3). */
+const cartao = (nome: string, subtitulo?: string) => screen.getByRole('button', { name: n => (subtitulo ? n === `${nome} ${subtitulo}` : n === nome || n.startsWith(nome + ' ')) });
 const pesquisar = (t: string) => fireEvent.change(screen.getByLabelText('Pesquisar no Compêndio'), { target: { value: t } });
 const resultados = () => within(screen.getByRole('list', { name: 'Resultados do Compêndio' })).queryAllByRole('listitem');
 
@@ -43,9 +45,9 @@ describe('Compêndio na navegação real', () => {
 
   it('pesquisa por nome em português (sem acento), em inglês e sem resultado', async () => {
     await montar(); await abrirCompendio();
-    pesquisar('rapieira'); expect(resultados()).toHaveLength(1); expect(screen.getByRole('button', { name: 'Abrir Rapieira' })).toBeTruthy();
-    pesquisar('longsword'); expect(screen.getByRole('button', { name: 'Abrir Espada longa' })).toBeTruthy();
-    pesquisar('RAÇÕES'); expect(screen.getByRole('button', { name: /Abrir Rações/ })).toBeTruthy();
+    pesquisar('rapieira'); expect(resultados()).toHaveLength(1); expect(cartao('Rapieira')).toBeTruthy();
+    pesquisar('longsword'); expect(cartao('Espada longa')).toBeTruthy();
+    pesquisar('RAÇÕES'); expect(cartao('Rações')).toBeTruthy();
     pesquisar('zzzz-inexistente'); expect(resultados()).toHaveLength(0); expect(screen.getByTestId('compendio-vazio')).toBeTruthy();
     expect(screen.getByRole('status').textContent).toBe('0 resultados');
   });
@@ -72,21 +74,24 @@ describe('Compêndio na navegação real', () => {
     expect(resultados()).toHaveLength(60);
   });
 
-  it('abrir um item cria a aba com o nome do item e mostra os dados da definição compartilhada', async () => {
+  it('abrir um item mostra os dados da definição compartilhada no painel de detalhe; "Abrir em nova aba" cria a aba com o nome do item', async () => {
     await montar(); await abrirCompendio();
-    pesquisar('espada longa'); fireEvent.click(screen.getByRole('button', { name: 'Abrir Espada longa' }));
-    expect(await screen.findByRole('heading', { name: 'Espada longa' })).toBeTruthy();
-    expect(abas()).toEqual(['Compêndio', 'Espada longa']);
-    const fatos = within(document.querySelector('.item-fatos') as HTMLElement);
+    pesquisar('espada longa'); fireEvent.click(cartao('Espada longa'));
+    const detalhe = await screen.findByRole('article', { name: 'Detalhes de Espada longa' });
+    expect(abas()).toEqual(['Compêndio']);                                                       // detalhe em painel, sem abrir aba por padrão
+    const fatos = within(detalhe.querySelector('.item-fatos') as HTMLElement);
     expect(fatos.getByText('Dano').nextSibling?.textContent).toBe('1d8 cortante (1d10 com duas mãos)');
     expect(fatos.getByText('Custo').nextSibling?.textContent).toBe('15 po');
     expect(fatos.getByText('Peso').nextSibling?.textContent).toBe('1,5 kg');
-    expect(screen.getByText(/Atribuição/)).toBeTruthy();
+    expect(within(detalhe).getByText(/Atribuição/)).toBeTruthy();
+    fireEvent.click(within(detalhe).getByRole('button', { name: /Abrir em nova aba/ }));
+    expect(await screen.findByRole('heading', { name: 'Espada longa', level: 1 })).toBeTruthy();
+    expect(abas()).toEqual(['Compêndio', 'Espada longa']);
   });
 
   it('pacote lista os componentes como links para os itens; clicar abre o item', async () => {
     await montar(); await abrirCompendio();
-    pesquisar('pacote de explorador'); fireEvent.click(screen.getByRole('button', { name: 'Abrir Pacote de Explorador' }));
+    pesquisar('pacote de explorador'); fireEvent.click(cartao('Pacote de Explorador'));
     const pacote = within(await screen.findByRole('region', { name: 'Conteúdo do pacote' }));
     expect(pacote.getAllByRole('listitem')).toHaveLength(8);
     expect(pacote.getAllByRole('listitem').filter(l => l.textContent?.startsWith('10 ×'))).toHaveLength(2);   // 10 tochas e 10 rações
@@ -113,16 +118,17 @@ describe('Compêndio na navegação real', () => {
 
 describe('Compêndio no celular', () => {
   beforeEach(() => { mobile = true; });
-  it('barra inferior abre o Compêndio, abrir item troca a tela e Voltar retorna à busca', async () => {
+  it('barra inferior abre o Compêndio, abrir item mostra o detalhe e "Voltar à lista" retorna à busca', async () => {
     await montar();
     const barra = () => within(screen.getByRole('navigation', { name: 'Navegação mobile' }));
     await waitFor(() => expect(document.querySelector('.mobile-page-title')?.textContent).toBe(camp.name));
     fireEvent.click(barra().getByRole('button', { name: 'Compêndio' }));
     await screen.findByLabelText('Pesquisar no Compêndio');
-    pesquisar('escudo'); fireEvent.click(screen.getByRole('button', { name: 'Abrir Escudo' }));
-    expect(await screen.findByRole('heading', { name: 'Escudo' })).toBeTruthy();
+    pesquisar('escudo'); fireEvent.click(cartao('Escudo', 'Escudo'));
+    expect(await screen.findByRole('article', { name: 'Detalhes de Escudo' })).toBeTruthy();
     expect(screen.queryByRole('tablist')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Voltar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar à lista' }));
+    expect(screen.queryByRole('article', { name: 'Detalhes de Escudo' })).toBeNull();
     expect(await screen.findByLabelText('Pesquisar no Compêndio')).toBeTruthy();
   });
 });
