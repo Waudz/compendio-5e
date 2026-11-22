@@ -1,6 +1,6 @@
 {
   "version": "character-srd-2014-v2",
-  "sha256": "57ed359d43d5d98e41f79f17acb66cea363574b2b38fd91cc158e42aabba4942",
+  "sha256": "ab54adc73408e0ae8174f0c864627b4b9121568570a6ede7ce020ce20c359c1b",
   "legacySource": "Waudz/compendio-5e (Comp\u00eandio 1.0), dados/criacao-srd2014.json",
   "legacySha256": "fe2bdc1183c1e65c2341b46383463572b092574365ebdb11f09f214c056e0b60",
   "sourceUrls": [
@@ -8,5 +8,9 @@
     "https://raw.githubusercontent.com/5e-bits/5e-database/main/src/2014/en/5e-SRD-Subraces.json",
     "https://raw.githubusercontent.com/5e-bits/5e-database/main/src/2014/en/5e-SRD-Traits.json",
     "https://raw.githubusercontent.com/5e-bits/5e-database/main/src/2014/en/5e-SRD-Spells.json"
+  ],
+  "corrections": [
+    "dark-ones-own-luck: one use per short/long rest, not Charisma modifier",
+    "sorcerous-restoration: restores four sorcery points per short rest; no once per long rest cap"
   ]
 }

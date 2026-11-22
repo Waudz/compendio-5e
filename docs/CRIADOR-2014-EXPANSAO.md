@@ -13,6 +13,13 @@ Branch `feat/character-2014`, main `f258172` (PR #82). Não altera autenticaçã
 ## Dados e fontes
 Snapshot isolado de personagens em `src/criador/data/character-2014.json`, com hash em `manifest.json` e atribuições/MIT em `LICENCAS.md`. Mecânicas/descrições de classe, subclasse e receitas reaproveitadas de `dados/criacao-srd2014.json` do legado. Nomes/traduções de magias reaproveitados de `dados/magias.json`, limitados por interseção com os 319 IDs da coleção **2014** de 5e-bits. Raças, subraças e traços vêm da mesma coleção 2014. Fonte normativa: [SRD 5.1 CC BY 4.0](https://media.wizards.com/2023/downloads/dnd/SRD_CC_v5.1.pdf). Não é importação de conteúdo 2024, nem do PHB completo. Não publica dados no catálogo geral.
 
+### Correções verificadas do legado
+- `rageCount=9999` no Bárbaro 20 é tratado como ilimitado (`maximum=null`), não 9999 usos.
+- Sorte do Próprio Obscuro: o legado usava modificador de Carisma como quantidade; corrigido para um uso por descanso curto/longo, conforme SRD.
+- Restauração Feiticeira: removido do snapshot o teto incorreto de um uso por descanso longo; o SRD restaura quatro pontos a cada descanso curto.
+- ASIs são aplicadas antes de Campeão Primitivo elevar Força/Constituição e seus tetos no nível 20.
+- Pré-requisitos estruturados de invocações, magia preparada por atributo final e perícias de origem passam a ser validados; magias raciais não retiram a possibilidade de aprender a magia pela classe.
+
 ## Funcionalidades
 - Ativação explícita de regras versionadas: mantém nome, atributos, inventário e moedas; reinício de escolhas confirmado pelo usuário. Fichas antigas continuam sendo lidas pelo catálogo original, sem migração automática ou regravação.
 - Doze classes, uma subclasse SRD por classe, seleção nos níveis próprios e tabelas 1–20; escolhas, perícias, ferramentas, expertise, estilos, melhorias de atributos e pré-requisitos estruturados de invocações.

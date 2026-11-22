@@ -129,3 +129,7 @@ Infraestrutura reutilizada dos PRs #76/#77 sobre o código funcional do #78; sem
 ### Persistência das fichas (proposta, não aplicada)
 
 Com conta e a migração `supabase/migrations/0008_character_sheets_persistencia.sql` aplicada, o criador guiado salva a ficha **privada** em `character_sheets` (só o dono e o mestre leem) e publica apenas a identidade que o jogador escolher; há controle de revisão (conflitos), cópia de recuperação local e envio explícito dos rascunhos antigos do navegador. **A 0008 ainda não foi aplicada ao Supabase**: até lá o app informa "banco desatualizado" ao salvar e o modo local experimental continua disponível sem conta. Detalhes, auditoria e procedimento: `docs/CRIADOR-FICHA-INVENTARIO.md`.
+
+## Criador e fichas 2014 — expansão em revisão
+
+As fichas preservam suas regras antigas. Dentro do criador, a atualização explícita oferece opções SRD 2014 de classe, raça, origem, magias e equipamento, reutilizando a persistência existente por campanha. Não equivale ao PHB completo. [Cobertura, fontes, auditoria, testes e limites](docs/CRIADOR-2014-EXPANSAO.md).

@@ -25,7 +25,7 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
   let n = 0;
   const agora = () => new Date(Date.now() + ++n).toISOString();
   const api: FichasApi = {
-    listar: async cid => banco.rede.caida ? semRede : { ok: true, data: banco.fichas.filter(f => f.campaignId === cid && le(f)).map(f => ({ id: f.id, ownerId: f.ownerId, nome: f.draft.name.trim() || "Sem nome", nivel: f.draft.level, revision: f.revision, updatedAt: f.updatedAt })) },
+    listar: async cid => banco.rede.caida ? semRede : { ok: true, data: banco.fichas.filter(f => f.campaignId === cid && le(f)).map(f => ({ id: f.id, ownerId: f.ownerId, nome: f.draft.name.trim() || "Sem nome", classId: f.draft.classId, nivel: f.draft.level, revision: f.revision, updatedAt: f.updatedAt })) },
     carregar: async id => {
       if (banco.rede.caida) return semRede;
       const f = banco.fichas.find(x => x.id === id); if (!f || !le(f)) return { ok: true, data: null };

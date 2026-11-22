@@ -1,5 +1,5 @@
 // Fichas PRIVADAS dos personagens guiados no Supabase (tabela `character_sheets`) + identidade pública na linha `notes` do personagem.
-// Exige a migração `supabase/migrations/0008_character_sheets_persistencia.sql` (PROPOSTA, NÃO aplicada): sem ela as funções não existem e a
+// Exige a migração `supabase/migrations/0008_character_sheets_persistencia.sql` (registrada no remoto em 21/11/2026; consulta de metadados em 22/11): sem ela as funções não existem e a
 // interface mostra a mensagem de "atualização do banco necessária" (ERRO_SCHEMA), sem perder o que foi digitado.
 // A autorização real é a RLS + as funções SECURITY INVOKER do banco; nada aqui concede acesso. Só a chave pública (anon) é usada no navegador.
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -10,7 +10,7 @@ import { publicIdentityCard, type PrivateIdentitySource, type PublicIdentityCard
 /** O que o servidor confirma ao gravar: o id definitivo (do servidor), a nova revisão e a data. */
 export type GravacaoFicha = { id: string; revision: number; updatedAt: string };
 export type FichaServidor = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string };
-export type ResumoFicha = { id: string; ownerId: string; nome: string; nivel: number | null; revision: number; updatedAt: string };
+export type ResumoFicha = { id: string; ownerId: string; nome: string; nivel: number | null; classId?: string; revision: number; updatedAt: string };
 /** Identidade pública como gravada em `notes.meta.identidadePublica`: as configurações (sem nenhum valor privado) e o cartão já resolvido. */
 export type IdentidadeGravada = { settings: PublicIdentitySettings; card: PublicIdentityCard; publicada: boolean };
 export type EntradaIdentidade = { identity: PublicIdentitySettings; source: PrivateIdentitySource; publicar: boolean };
@@ -86,10 +86,10 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
   const params = (e: EntradaIdentidade) => { const p = projetarIdentidade(e); return { p_title: p.titulo, p_meta: p.meta, p_publish: e.publicar }; };
   return {
     listar: campaignId => run<ResumoFicha[]>(async () => {
-      const r = await client.from("character_sheets").select("character_id, owner_id, revision, updated_at, nome:draft->>name, nivel:draft->>level").eq("campaign_id", campaignId).order("updated_at", { ascending: false });
+      const r = await client.from("character_sheets").select("character_id, owner_id, revision, updated_at, nome:draft->>name, nivel:draft->>level, classe:draft->>classId").eq("campaign_id", campaignId).order("updated_at", { ascending: false });
       if (r.error) return { data: null, error: r.error };
-      return { data: (r.data as unknown as { character_id: string; owner_id: string; revision: number; updated_at: string; nome: string | null; nivel: string | null }[])
-        .map(x => ({ id: x.character_id, ownerId: x.owner_id, nome: (x.nome ?? "").trim() || "Sem nome", nivel: x.nivel !== null && Number.isInteger(Number(x.nivel)) ? Number(x.nivel) : null, revision: x.revision, updatedAt: x.updated_at })), error: null };
+      return { data: (r.data as unknown as { character_id: string; owner_id: string; revision: number; updated_at: string; nome: string | null; nivel: string | null; classe?: string | null }[])
+        .map(x => ({ id: x.character_id, ownerId: x.owner_id, nome: (x.nome ?? "").trim() || "Sem nome", nivel: x.nivel !== null && Number.isInteger(Number(x.nivel)) ? Number(x.nivel) : null, ...(x.classe ? { classId: x.classe } : {}), revision: x.revision, updatedAt: x.updated_at })), error: null };
     }),
     carregar: async id => {
       try {

@@ -27,4 +27,7 @@ describe('personagens SRD 2014 versionados',()=>{
  it('Fúria ilimitada no nível 20 não vira o sentinela 9999 do legado',()=>{expect(sheet2014(draft2014({classId:'barbarian',level:20})).resources.rageCount.maximum).toBeNull();});
  it('traços raciais exibem nome e efeito em vez de repetir somente o identificador',()=>{const trait=raceTraits2014(draft2014({raceId:'hill-dwarf'})).find(t=>t.index==='dwarven-resilience');expect(trait?.name).toBe('Resiliência Anã');expect(trait?.desc.join(' ')).toContain('veneno');});
 
+ it('conjuração racial não impede aprender a mesma magia na classe',()=>{const d=draft2014({raceId:'tiefling',classId:'warlock',level:3});expect(automaticSpells2014(d).some(s=>s.id==='hellish-rebuke')).toBe(true);expect(choices2014(d).find(c=>c.id==='spells-known')?.options.some(s=>s.id==='hellish-rebuke')).toBe(true);});
+ it('estilos de luta não podem ser escolhidos novamente no Campeão',()=>{let d=draft2014({level:10});d=decide2014(d,'subclass',['champion']);const list=choices2014(d).filter(c=>c.options.some(o=>o.id==='srd51:feature/fighter-fighting-style-archery'));expect(list.length).toBe(2);for(const choice of list)d=decide2014(d,choice.id,['srd51:feature/fighter-fighting-style-archery']);expect(sheet2014(d).pending.some(s=>s.startsWith('duplicate-feature:'))).toBe(true);});
+
 });

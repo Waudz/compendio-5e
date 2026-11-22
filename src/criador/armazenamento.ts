@@ -3,7 +3,7 @@
  * NÃO é persistência real e NÃO é segurança entre usuários: os dados ficam neste navegador, sem sincronizar entre
  * aparelhos e legíveis por quem usa o mesmo navegador. As chaves são separadas por usuário e campanha e entram na
  * limpeza do logout (`clearUserLocalData`), mas isso é higiene, não controle de acesso. A persistência real depende
- * de uma migração do Supabase ainda NÃO autorizada (ver `docs/CRIADOR-FICHA-INVENTARIO.md`, "Persistência segura das fichas").
+ * da API de fichas e da migração 0008 existente (status remoto em `docs/CRIADOR-2014-EXPANSAO.md`).
  * A interface `ArmazenamentoCriador` é o ponto de troca: o adaptador do servidor implementará o mesmo contrato.
  */
 import type { CharacterDraft } from '../rules/character-domain';
@@ -11,7 +11,7 @@ import { defaultPublicIdentity, type PublicIdentitySettings } from '../rules/pub
 
 export const SCHEMA_PERSONAGEM_GUIADO = 1;
 export type PersonagemGuiado = { schemaVersion: typeof SCHEMA_PERSONAGEM_GUIADO; draft: CharacterDraft; identity: PublicIdentitySettings; savedAt: string };
-export type ResumoPersonagemGuiado = { id: string; nome: string; nivel: number; atualizadoEm: string };
+export type ResumoPersonagemGuiado = { id: string; nome: string; nivel: number; classId?: string; atualizadoEm: string };
 
 export interface ArmazenamentoCriador {
   /** Sempre `true` neste adaptador: a interface mostra o aviso de armazenamento experimental. */
@@ -60,7 +60,7 @@ export function armazenamentoLocalExperimental(userId: string, campaignId: strin
     experimental: true,
     listar() {
       const out: ResumoPersonagemGuiado[] = [];
-      for (const k of chaves()) { try { const p = lerPersonagemGuiado(store!.getItem(k) ?? ''); out.push({ id: p.draft.id, nome: p.draft.name.trim() || 'Sem nome', nivel: p.draft.level, atualizadoEm: p.savedAt }); } catch { /* corrompido: não aparece na lista */ } }
+      for (const k of chaves()) { try { const p = lerPersonagemGuiado(store!.getItem(k) ?? ''); out.push({ id: p.draft.id, nome: p.draft.name.trim() || 'Sem nome', nivel: p.draft.level, ...(p.draft.catalogueVersion === 'character-srd-2014-v2' ? { classId: p.draft.classId } : {}), atualizadoEm: p.savedAt }); } catch { /* corrompido: não aparece na lista */ } }
       return out.sort((a, b) => b.atualizadoEm.localeCompare(a.atualizadoEm) || a.nome.localeCompare(b.nome, 'pt-BR'));
     },
     carregar(id) { const raw = store?.getItem(chave(id)); return raw == null ? null : lerPersonagemGuiado(raw); },
