@@ -26,3 +26,6 @@ export function rotuloOpcao(id: string): string {
   if (dividido) return `${rotuloAtributo(dividido[1])} +1 e ${rotuloAtributo(dividido[2])} +1`;
   return PERICIA[id] ?? humanizar(id);
 }
+
+export function rotuloClasse(id?:string){const classes:Record<string,string>={barbarian:'Bárbaro',bard:'Bardo',cleric:'Clérigo',druid:'Druida',fighter:'Guerreiro',monk:'Monge',paladin:'Paladino',ranger:'Patrulheiro',rogue:'Ladino',sorcerer:'Feiticeiro',warlock:'Bruxo',wizard:'Mago'};const key=id?.includes(':')?id.split(':').at(-2):id;return classes[key??'fighter']??'Personagem';}
+export function rotuloRaca(id:string){const races:Record<string,string>={'hill-dwarf':'Anão da Colina','high-elf':'Elfo Alto','lightfoot-halfling':'Halfling Pés Leves','rock-gnome':'Gnomo da Rocha',human:'Humano',dragonborn:'Draconato','half-elf':'Meio-elfo','half-orc':'Meio-orc',tiefling:'Tiefling'};return races[id]??'Anão';}

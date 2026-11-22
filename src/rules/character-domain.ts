@@ -5,13 +5,16 @@ import { evaluateAdvancements, type Advancement } from './character-advancement'
 export type StableChoice = { id: string; optionIds: string[] };
 export type ChoiceDefinition = { id: string; count: number; options: { id: string; grants: Grant[] }[] };
 export type CatalogOption = Omit<Option, 'choices'> & { choices?: ChoiceDefinition[] };
-export type InventoryEntry = { id: string; itemId: string; quantity: number; equipped: boolean; origin: 'starting' | 'acquired' };
+export type InventoryEntry = { id: string; itemId: string; quantity: number; equipped: boolean; origin: 'starting' | 'acquired'; customName?: string };
 export type CharacterDraft = {
   id: string; name: string; ruleset: '5e-2014'; catalogueVersion: string;
   baseAbilities: Abilities; raceId: string; backgroundId: string; classId: string;
   level: number; decisions: StableChoice[]; hpRolls?: number[];
   inventory: InventoryEntry[]; currentHp: number; temporaryHp: number;
   spentResources: Record<string, number>;
+  currency?: { cp: number; sp: number; gp: number };
+  abilityMethod?: 'point-buy' | 'standard-array' | 'manual';
+  previousRulesDraft?: Omit<CharacterDraft, 'previousRulesDraft'>;
 };
 export type CharacterCatalog = {
   version: string; races: Record<string, CatalogOption>;
@@ -45,6 +48,7 @@ export function createCharacterSheet(draft: CharacterDraft, catalog: CharacterCa
     !Number.isSafeInteger(draft.baseAbilities[key]) || draft.baseAbilities[key] < 1 || draft.baseAbilities[key] > 30))
     throw new Error('Invalid base ability scores');
   validateInventory(draft.inventory);
+  if (draft.catalogueVersion === 'character-srd-2014-v2' && draft.currency && Object.values(draft.currency).some(n => !Number.isSafeInteger(n) || n < 0)) throw new Error("Invalid character currency");
   if (!Number.isSafeInteger(draft.currentHp) || draft.currentHp < 0 || !Number.isSafeInteger(draft.temporaryHp) || draft.temporaryHp < 0)
     throw new Error('Invalid hit points');
   const pending: string[] = [];

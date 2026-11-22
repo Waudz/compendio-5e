@@ -1,3 +1,4 @@
+import { rotuloClasse, rotuloRaca } from './criador/rotulos';
 // Personagens da campanha: lista (retrato, nome, classe, nível) e perfil de cada um. Qualquer participante cria o seu; só o dono edita.
 // Visível para a campanha = publicado; privado = só o dono vê. A ficha completa (atributos, magias, inventário) ainda não existe.
 import { Plus, Trash2, UserRound } from "lucide-react";
@@ -73,7 +74,7 @@ function SecaoGuiados({ cid, userId, publicos, versao, onOpenContent }: { cid: s
       const loc = armazenamentoLocalExperimental(userId, cid); const p = loc.carregar(g.id);
       if (!p) { setAviso({ ok: false, t: "O rascunho local não foi encontrado." }); return; }
       if (!p.draft.name.trim()) { setAviso({ ok: false, t: "Dê um nome ao personagem (abra o rascunho e salve) antes de enviá-lo." }); return; }
-      const r = await fichas.criar(cid, p.draft, { identity: p.identity, source: { name: p.draft.name, surname: "", race: "Anão", characterClass: "Guerreiro" }, publicar: false });
+      const r = await fichas.criar(cid, p.draft, { identity: p.identity, source: { name: p.draft.name, surname: "", race: p.draft.catalogueVersion === 'character-srd-2014-v2' ? rotuloRaca(p.draft.raceId) : 'Anão', characterClass: rotuloClasse(p.draft.classId) }, publicar: false });
       if (!r.ok) { setAviso({ ok: false, t: `${r.error} O rascunho continua guardado neste navegador.` }); return; }
       loc.excluir(g.id); avisarRegistros(); setTentativa(n => n + 1);
       setAviso({ ok: true, t: `“${p.draft.name}” foi enviado para a campanha e a cópia deste navegador foi removida. A identidade pública começou privada.` });
@@ -86,18 +87,18 @@ function SecaoGuiados({ cid, userId, publicos, versao, onOpenContent }: { cid: s
 
   return <section className="personagens-guiados" aria-label="Criador guiado">
     <h2>Criador guiado {fichas ? null : <small className="muted">(experimental)</small>}</h2>
-    <p className="muted">{fichas ? "Guerreiro do SRD 2014 com equipamento do catálogo oficial e inventário. A ficha completa é privada: só você e o mestre a leem; os outros jogadores veem apenas a identidade pública que você publicar."
-      : "Guerreiro do SRD 2014 com equipamento do catálogo oficial e inventário. Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
+    <p className="muted">{fichas ? "Personagens 2014 com equipamento do catálogo oficial e inventário; opções SRD adicionais são ativadas dentro da ficha. A ficha completa é privada: só você e o mestre a leem; os outros jogadores veem apenas a identidade pública que você publicar."
+      : "Personagens 2014 com equipamento do catálogo oficial e inventário; opções SRD adicionais são ativadas dentro da ficha. Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
     {aviso && <Aviso erro={!aviso.ok} t={aviso.t}/>}
     {fichas && erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
     {fichas && !meus && !erro && <p className="muted" role="status">Carregando fichas…</p>}
     {fichas && meus && meus.length === 0 && publicas.length === 0 && <p className="muted" data-testid="guiados-vazio">Nenhum personagem guiado na campanha ainda.</p>}
     {fichas && meus && meus.length > 0 && <><h3>Fichas na campanha</h3><ul className="home-party" aria-label="Fichas na campanha">{meus.map(m => <li key={m.id}>
-      {item({ kind: "criador", ref: m.id, title: m.nome }, `Abrir ficha guiada ${m.nome}`, m.nome, `Guerreiro${m.nivel != null ? ` · nível ${m.nivel}` : ""} · ${m.ownerId === userId ? "sua ficha" : "ficha de outro participante"}`)}</li>)}</ul></>}
+      {item({ kind: "criador", ref: m.id, title: m.nome }, `Abrir ficha guiada ${m.nome}`, m.nome, `${rotuloClasse(m.classId)}${m.nivel != null ? ` · nível ${m.nivel}` : ""} · ${m.ownerId === userId ? "sua ficha" : "ficha de outro participante"}`)}</li>)}</ul></>}
     {publicas.length > 0 && <><h3>Identidades públicas</h3><ul className="home-party" aria-label="Identidades públicas">{publicas.map(r => { const c = cartaoPublico(r.meta); return <li key={r.id}>
       {item({ kind: "ficha", ref: r.id, title: r.title }, `Abrir identidade pública de ${r.title}`, r.title, [c?.race, c?.characterClass].filter(Boolean).join(" · ") || "Identidade pública")}</li>; })}</ul></>}
     {!fichas && (locais.length === 0 ? <p className="muted" data-testid="guiados-vazio">Nenhum personagem guiado neste navegador.</p>
-      : <ul className="home-party">{locais.map(g => <li key={g.id}>{item({ kind: "criador", ref: g.id, title: g.nome }, `Abrir personagem guiado ${g.nome}`, g.nome, `Guerreiro · nível ${g.nivel} · guiado (neste navegador)`)}</li>)}</ul>)}
+      : <ul className="home-party">{locais.map(g => <li key={g.id}>{item({ kind: "criador", ref: g.id, title: g.nome }, `Abrir personagem guiado ${g.nome}`, g.nome, `${rotuloClasse(g.classId)} · nível ${g.nivel} · guiado (neste navegador)`)}</li>)}</ul>)}
     {fichas && locais.length > 0 && <div data-testid="rascunhos-locais"><h3>Rascunhos neste navegador <small className="muted">(experimental)</small></h3>
       <p className="muted">Criados antes do salvamento na campanha. Nada é enviado nem apagado sozinho: envie cada um quando quiser; a cópia local só é removida depois que o servidor confirmar.</p>
       <ul className="criador-locais">{locais.map(g => <li key={g.id}><span><strong>{g.nome}</strong> <small className="muted">nível {g.nivel}</small></span>
