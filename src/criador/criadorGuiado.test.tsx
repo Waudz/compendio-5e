@@ -36,8 +36,10 @@ const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRo
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole('button', { name: /Criar personagem/ })); return screen.findByLabelText('Nome do personagem'); };
 const preencherFicha = async (nome: string) => {
   fireEvent.change(await screen.findByLabelText('Nome do personagem'), { target: { value: nome } });
-  fireEvent.click(screen.getByLabelText('Perícia athletics')); fireEvent.click(screen.getByLabelText('Perícia perception'));
-  fireEvent.change(screen.getByLabelText('fighter-style-1'), { target: { value: 'defense' } });
+  const opcoes = within(await screen.findByRole("region", { name: "Opções SRD 2014" }));
+  const proficiencias = opcoes.getByText(/Proficiências de Guerreiro — escolha/).closest("fieldset")!;
+  fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
+  fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
 };
 const confirmarEquipamento = () => { fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' })); fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos iniciais' })); };
 
