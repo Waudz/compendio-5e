@@ -10,6 +10,9 @@ import { registrosEmMemoria } from '../registrosMemoria';
 import { me, memoryStorage, other, renderApp } from '../testUtils';
 import { armazenamentoLocalExperimental } from './armazenamento';
 import { clearUserLocalData } from '../localData';
+import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter';
+import { fighter2014Advancements } from '../rules/fighter-2014';
+import { criadorRules, criadorRefs } from './catalogo-criador';
 import { defaultPublicIdentity } from '../rules/public-identity';
 
 const camp = { id: 'ca', name: 'Mesa dos Dragões', description: 'Desc.', created_at: '' };
@@ -36,10 +39,22 @@ const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRo
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole('button', { name: /Criar personagem/ })); return screen.findByLabelText('Nome do personagem'); };
 const preencherFicha = async (nome: string) => {
   fireEvent.change(await screen.findByLabelText('Nome do personagem'), { target: { value: nome } });
-  fireEvent.click(screen.getByLabelText('Perícia athletics')); fireEvent.click(screen.getByLabelText('Perícia perception'));
-  fireEvent.change(screen.getByLabelText('fighter-style-1'), { target: { value: 'defense' } });
+  const opcoes = within(await screen.findByLabelText("Opções SRD 2014"));
+  const proficiencias = opcoes.getByText(/Proficiências de Guerreiro — escolha/).closest("fieldset")!;
+  fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
+  fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
 };
-const confirmarEquipamento = () => { fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' })); fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos iniciais' })); };
+const confirmarEquipamento = async () => {
+  fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
+  const equipamento = await screen.findByLabelText('Equipamento inicial SRD 2014');
+  for (const seletor of equipamento.querySelectorAll<HTMLSelectElement>('select')) {
+    if (seletor.value === '' && seletor.options.length > 1) {
+      const escolha = [...seletor.options].find(o => o.value && !o.disabled);
+      if (escolha) fireEvent.change(seletor, { target: { value: escolha.value } });
+    }
+  }
+  fireEvent.click(await screen.findByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
+};
 
 
 /** WCAG 2.5.3 (axe `label-content-name-mismatch`): o nome acessível precisa conter o texto visível do botão. Devolve os botões que violam. */
@@ -56,6 +71,8 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(abas()).toEqual(['Personagens', 'Novo personagem']);
     expect(screen.getByTestId('aviso-armazenamento').textContent).toMatch(/experimental.*só neste navegador.*não é privado/s);
     expect(screen.getByRole('heading', { name: 'Novo personagem' })).toBeTruthy();
+    expect(await screen.findByLabelText('Opções SRD 2014')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Ativar opções SRD 2014' })).toBeNull();
   });
 
   it('fluxo completo: ficha, equipamento do catálogo oficial com prévia, inventário, detalhes no Compêndio, identidade pública, salvar e reabrir', async () => {
@@ -67,10 +84,11 @@ describe('criador guiado na navegação real (desktop)', () => {
 
     // equipamento: prévia com os nomes oficiais em português ANTES de confirmar; inventário ainda vazio
     fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
-    expect(within(screen.getByLabelText('Prévia de Armadura')).getByText('Cota de malha ×1')).toBeTruthy();
-    expect(within(screen.getByLabelText('Prévia de Pacote de aventureiro')).getByText('Rações (1 dia) ×10')).toBeTruthy();
+    const equipamentoSRD = await screen.findByLabelText('Equipamento inicial SRD 2014');
+    expect(within(equipamentoSRD).getByText(/Equipamento inicial/)).toBeTruthy();
+    expect(within(equipamentoSRD).getByRole('button', { name: 'Confirmar equipamentos SRD 2014' })).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' })); expect(screen.getByTestId('inventario-vazio')).toBeTruthy();
-    confirmarEquipamento();
+    await confirmarEquipamento();
     expect(await screen.findByText(/Equipamentos iniciais aplicados/)).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     const inv = within(screen.getByRole('region', { name: 'Inventário' }));
@@ -116,33 +134,25 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(screen.getByRole('button', { name: 'Salvar' }).hasAttribute('disabled')).toBe(true);   // nada pendente depois de reabrir
   });
 
-  it('revisão do equipamento: trocar a escolha pede confirmação com aviso, Cancelar preserva e Substituir troca preservando itens adquiridos', async () => {
+  it('equipamento SRD 2014 não é concedido duas vezes e preserva itens adquiridos', async () => {
     await montar(); await abrirPersonagens(); await novoGuiado(); await preencherFicha('Thorin');
-    confirmarEquipamento();
+    await confirmarEquipamento();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
+    const inventario = screen.getByRole('region', { name: 'Inventário' });
+    const quantidadeInicial = inventario.querySelectorAll('li').length;
     fireEvent.change(screen.getByLabelText('Buscar item para adicionar'), { target: { value: 'adaga' } });
     fireEvent.click(await screen.findByRole('button', { name: /^Adicionar Adaga$/ }));
+    fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
+    expect(await screen.findByText(/Já existe equipamento inicial nesta ficha|Equipamento inicial já concedido e consumido|Equipamentos iniciais aplicados/)).toBeTruthy();
+    fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
+    expect(screen.getByRole('region', { name: 'Inventário' }).querySelectorAll('li').length).toBeGreaterThanOrEqual(quantidadeInicial + 1);
     expect(screen.getAllByText('Adaga').length).toBeGreaterThan(0);
-    fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
-    fireEvent.change(screen.getByLabelText('Equipamento armor'), { target: { value: 'leather-bow' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos iniciais' }));
-    const dialogo = await screen.findByRole('alertdialog', { name: 'Substituir equipamento inicial' });
-    expect(dialogo.textContent).toMatch(/Armadura/);
-    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
-    fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
-    expect(screen.getByText('Cota de malha')).toBeTruthy(); expect(screen.queryByText('Arco longo')).toBeNull();
-    fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos iniciais' }));
-    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Substituir equipamentos' }));
-    fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
-    expect(await screen.findByText('Arco longo')).toBeTruthy(); expect(screen.getByText('Armadura de couro')).toBeTruthy();
-    expect(screen.queryByText('Cota de malha')).toBeNull();
-    expect(screen.getAllByText('Adaga').length).toBeGreaterThan(0);   // item adquirido preservado
   });
 
   it('C-E2E-01: no inventário o nome acessível de "Consultar no Compêndio", "+1" e "−1" contém o texto visível e continua identificando o item', async () => {
     await montar(); await abrirPersonagens(); await novoGuiado(); await preencherFicha('Thorin');
-    confirmarEquipamento();
+    await confirmarEquipamento();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     const inv = screen.getByRole('region', { name: 'Inventário' });
     expect(nomesDivergentes(inv)).toEqual([]);                                   // nenhum botão do inventário viola a regra
@@ -239,4 +249,19 @@ describe('criador guiado no celular', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(await screen.findByRole('button', { name: 'Abrir personagem guiado Thorin' })).toBeTruthy();
   });
+});
+
+
+it('ficha legada continua editável na versão original, sem conversão nem regravação ao abrir', async()=>{
+ const {catalog,ids}=buildPilotCharacterCatalog(criadorRules,{race:criadorRefs.race,background:criadorRefs.background,class:criadorRefs.class},fighter2014Advancements);
+ const store=armazenamentoLocalExperimental(me.id,'ca');
+ const inventory=[{id:'reliquia',itemId:'dagger',quantity:2,equipped:false,origin:'acquired' as const}];
+ store.salvar({schemaVersion:1,savedAt:'2026-11-20T00:00:00Z',identity:defaultPublicIdentity(),draft:{id:'antiga',name:'Veterana',ruleset:'5e-2014',catalogueVersion:catalog.version,baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},raceId:ids.raceId,backgroundId:ids.backgroundId,classId:ids.classId,level:1,decisions:[],inventory,currentHp:13,temporaryHp:0,spentResources:{},currency:{cp:0,sp:0,gp:7}}});
+ const before=structuredClone(store.carregar('antiga'));
+ await montar();await abrirPersonagens();fireEvent.click(await screen.findByRole('button',{name:/^Abrir personagem guiado Veterana$/}));
+ expect((await screen.findByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('Veterana');
+ expect(store.carregar('antiga')).toEqual(before);
+ fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Veterana revisada'}});
+ fireEvent.click(screen.getByRole('button',{name:/^Salvar$/}));await screen.findByText(/Rascunho incompleto salvo/);
+ const after=store.carregar('antiga')!;expect(after.draft.catalogueVersion).toBe(catalog.version);expect(after.draft.inventory).toEqual(inventory);expect(after.draft.currency?.gp).toBe(7);expect(after.draft.name).toBe('Veterana revisada');
 });

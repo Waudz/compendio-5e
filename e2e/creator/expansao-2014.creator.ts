@@ -34,15 +34,8 @@ async function expectCreatorInsideViewport(page: Parameters<typeof startCreator>
 }
 async function activate(page: Parameters<typeof startCreator>[0]) {
   await startCreator(page);
-  await page
-    .getByRole('button', { name: 'Ativar opções SRD 2014', exact: true })
-    .click();
-  await page
-    .getByRole('button', {
-      name: 'Confirmar nova versão de regras',
-      exact: true,
-    })
-    .click();
+  await expect(page.getByRole('button',{name:'Ativar opções SRD 2014',exact:true})).toHaveCount(0);
+  await nameField(page).focus();
   await expect(
     page.getByRole('combobox', { name: 'Classe', exact: true }),
   ).toHaveValue('fighter');
