@@ -41,7 +41,7 @@ const preencherFicha = async (nome: string) => {
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
 };
-const confirmarEquipamento = () => { fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' })); fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos SRD 2014' })); };
+const confirmarEquipamento = async () => { fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' })); fireEvent.click(await screen.findByRole('button', { name: 'Confirmar equipamentos SRD 2014' })); };
 
 
 /** WCAG 2.5.3 (axe `label-content-name-mismatch`): o nome acessível precisa conter o texto visível do botão. Devolve os botões que violam. */
@@ -74,7 +74,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(within(screen.getByLabelText('Prévia de Armadura')).getByText('Cota de malha ×1')).toBeTruthy();
     expect(within(screen.getByLabelText('Prévia de Pacote de aventureiro')).getByText('Rações (1 dia) ×10')).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' })); expect(screen.getByTestId('inventario-vazio')).toBeTruthy();
-    confirmarEquipamento();
+    await confirmarEquipamento();
     expect(await screen.findByText(/Equipamentos iniciais aplicados/)).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     const inv = within(screen.getByRole('region', { name: 'Inventário' }));
@@ -122,7 +122,7 @@ describe('criador guiado na navegação real (desktop)', () => {
 
   it('revisão do equipamento: trocar a escolha pede confirmação com aviso, Cancelar preserva e Substituir troca preservando itens adquiridos', async () => {
     await montar(); await abrirPersonagens(); await novoGuiado(); await preencherFicha('Thorin');
-    confirmarEquipamento();
+    await confirmarEquipamento();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     fireEvent.change(screen.getByLabelText('Buscar item para adicionar'), { target: { value: 'adaga' } });
     fireEvent.click(await screen.findByRole('button', { name: /^Adicionar Adaga$/ }));
@@ -146,7 +146,7 @@ describe('criador guiado na navegação real (desktop)', () => {
 
   it('C-E2E-01: no inventário o nome acessível de "Consultar no Compêndio", "+1" e "−1" contém o texto visível e continua identificando o item', async () => {
     await montar(); await abrirPersonagens(); await novoGuiado(); await preencherFicha('Thorin');
-    confirmarEquipamento();
+    await confirmarEquipamento();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     const inv = screen.getByRole('region', { name: 'Inventário' });
     expect(nomesDivergentes(inv)).toEqual([]);                                   // nenhum botão do inventário viola a regra
