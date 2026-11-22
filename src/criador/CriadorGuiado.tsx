@@ -150,7 +150,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     try { const p = await repo.carregar(idReal); if (!p) { setMsg({ ok: false, t: "Personagem não encontrado ou sem permissão." }); return; } aplicarCarregado(p); setConflito(false); setRecuperacao(lerRecuperacao(userId, campaignId, id)); setMsg({ ok: true, t: "Versão atual carregada do servidor. Suas alterações anteriores continuam guardadas para restaurar." }); }
     catch (e) { setMsg({ ok: false, t: e instanceof Error ? e.message : "Não foi possível recarregar." }); }
   };
-  const restaurar = () => { if (!recuperacao) return; try { createCharacterSheet(recuperacao.estado.draft, catalog); } catch { setMsg({ ok: false, t: "A cópia guardada é inválida e não pôde ser restaurada." }); return; }
+  const restaurar = () => { if (!recuperacao) return; try { calcularFicha(recuperacao.estado.draft); } catch { setMsg({ ok: false, t: "A cópia guardada é inválida e não pôde ser restaurada." }); return; }
     setDraft({ ...recuperacao.estado.draft, id: idReal }); setIdentity(recuperacao.estado.identity); setPublicar(recuperacao.estado.publicar); limparRecuperacao(userId, campaignId, id); setRecuperacao(null); setMsg({ ok: true, t: "Alterações restauradas. Revise e clique em Salvar." }); };
   const descartarRecuperacao = () => { limparRecuperacao(userId, campaignId, id); setRecuperacao(null); };
 
