@@ -145,7 +145,9 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     try {
       const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: { name: draft.name, surname: "", race: modern2014(draft) ? label2014(draft.raceId) : "Anão", characterClass: modern2014(draft) ? label2014(draft.classId) : "Guerreiro" } });
       const gravado = { ...draft, id: r.id };
-      setDraft(gravado); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
+      // A resposta confirma o snapshot enviado, não alterações feitas enquanto
+      // a requisição estava em andamento. Preservar o estado mais recente da UI.
+      setDraft(atual => ({ ...atual, id: r.id })); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
       setSalvo(JSON.stringify({ draft: gravado, identity, publicar }));
       limparRecuperacao(userId, campaignId, id);
       if (servidor && ehPersonagemNovo(id)) gravarMapaAba(userId, campaignId, id, r.id);
