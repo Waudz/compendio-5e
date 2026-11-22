@@ -137,6 +137,9 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 
 /* Campanhas */
 .auth.wide{max-width:720px}
+/* O criador é uma área de trabalho, não um formulário de autenticação estreito. */
+.content.criador.auth.wide{max-width:none;min-width:0;width:100%;box-sizing:border-box}
+
 .auth textarea{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 11px;font:inherit;font-size:14px;resize:vertical}
 .auth textarea:focus-visible{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
 .camp-list{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:8px}
