@@ -29,6 +29,12 @@ begin
       using errcode='42501';
   end if;
 
+  -- Defense in depth: derive authority from the authenticated session even
+  -- if a future grant/policy accidentally widens writes on the source.
+  if auth.uid() is null or not public.is_master(new.campaign_id) then
+    raise exception 'only campaign master may publish' using errcode='42501';
+  end if;
+
   -- Source row's master-only INSERT/UPDATE RLS must already have succeeded.
   -- A hidden or trashed entry has NO player-visible publication.
   if new.deleted_at is not null or new.visibility = 'hidden' then

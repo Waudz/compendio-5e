@@ -11,6 +11,7 @@ import type { CategoriaDef } from "../catalogue/nucleo/tipos";
 import { garantirSistemaDnd5e2014, sistemaDnd5e2014 } from "../catalogue/sistemas/dnd5e-2014";
 import type { Magia, Monstro } from "../catalogue/sistemas/dnd5e-2014/esquemas";
 import type { SrdItem } from "../catalogue/item-schema";
+import dadosPersonagem from "../criador/data/character-2014.json";
 import { raridadeRotulo } from "../catalogue/srd-2014-items";
 import type { TabSpec } from "../workspace";
 import { DetalheItem, itemSpec } from "./DetalheItem";
@@ -137,6 +138,13 @@ function Detalhe({ cat, item, onFechar, onOpenContent, onAbrirMagia, retorno, on
     <h2 className="cat-titulo">{nome}</h2>
     {cat.id === "magias" && <DetalheMagia magia={item as Magia}/>}
     {cat.id === "monstros" && <DetalheMonstro monstro={item as Monstro} onAbrirMagia={id => onAbrirMagia(id, nome)}/>}
+    {["racas","classes","subclasses"].includes(cat.id) && <div className="cat-regras-detalhe">
+      <p className="muted">{cat.subtituloDe(item)}</p>
+      {cat.id === "racas" && <><h3>Características</h3><ul>{(item as {traits:{name:string}[]}).traits.map((t,i)=><li key={i}>{dadosPersonagem.traits.find(r=>r.index===t.name.toLowerCase().replaceAll(" ","-"))?.name ?? t.name}</li>)}</ul></>}
+      {cat.id === "classes" && <><h3>Progressão de classe</h3><p>Dado de Vida: d{(item as {data:{hitDie:number}}).data.hitDie}</p><ol>{(item as {data:{levels:{level:number;features:string[]}[]}}).data.levels.map(l=><li key={l.level}>Nível {l.level}: {l.features.map(x=>dadosPersonagem.features.find(f=>f.id===x)?.nome ?? x.split("/").pop()).join(", ")||"—"}</li>)}</ol></>}
+      {cat.id === "subclasses" && <p>{(item as {descricao:string}).descricao}</p>}
+      <p className="muted">Dados do SRD 5.1 (2014). Alguns nomes técnicos ainda estão no idioma original.</p>
+    </div>}
     {cat.id === "itens" && <>
       <DetalheItem item={item as SrdItem} onOpenContent={onOpenContent}/>
       <p><button type="button" className="btn-secondary" onClick={() => onOpenContent(itemSpec(cat.idDe(item), nome))}><ExternalLink size={14} aria-hidden="true"/> Abrir em nova aba</button></p>

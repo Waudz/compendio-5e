@@ -1,6 +1,6 @@
 # Matriz de validação PostgreSQL — publicações da Enciclopédia
 
-Status: **plano de testes, não executado**. Não confundir testes de domínio TypeScript com RLS real.
+Status histórico: plano inicial. **Parte executada em PGlite descartável** em `supabase/encyclopedia-rls.test.ts`; ver `REVISAO-INTEGRACAO-ENCICLOPEDIA-PR75.md`. Casos de concorrência/duas conexões e implantação remota continuam pendentes. Não confundir testes de domínio TypeScript com RLS real.
 
 ## Preparação isolada
 

@@ -1,6 +1,6 @@
 // Repositório do personagem guiado: a interface do criador fala com este contrato e não sabe onde os dados ficam.
 //   - `servidor`: Supabase (ficha privada em `character_sheets` + identidade pública em `notes`), com revisão otimista. Persistência REAL
-//     (depende da migração 0008, ainda não aplicada).
+//     (usa a migração 0008 existente; status remoto documentado em CRIADOR-2014-EXPANSAO.md).
 //   - `local-experimental`: `localStorage` (ver armazenamento.ts). Só para demonstração/offline e para rascunhos antigos; não é segurança.
 import type { FichasApi } from "../fichas";
 import { ehConflitoDeRevisao } from "../fichas";
@@ -36,6 +36,7 @@ export function repositorioServidor(api: FichasApi, campaignId: string, userId: 
       if (!r.ok) throw new Error(r.error);
       if (!r.data) return null;
       const { ficha, identidade } = r.data;
+      if (ficha.campaignId !== campaignId) return null; // nunca abrir uma ficha na campanha errada, mesmo com acesso às duas
       return { id: ficha.id, draft: ficha.draft, identity: identidade?.settings ?? defaultPublicIdentity(), publicar: identidade?.publicada ?? false, revision: ficha.revision, somenteFicha: ficha.ownerId !== userId };
     },
     async salvar(a) {

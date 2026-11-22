@@ -62,6 +62,14 @@ describe("celular: estrutura independente do FlexLayout", () => {
     fireEvent.click(voltar()); await waitFor(() => expect(titulo()).toBe("Anotações"));
     fireEvent.click(voltar()); await waitFor(() => expect(voltar().disabled).toBe(true));
   });
+  it("gesto Voltar do Android retorna do atalho à campanha sem sair do aplicativo", async () => {
+    await montar(mestre);
+    fireEvent.click(barra().getByRole("button", { name: "Anotações" }));
+    await waitFor(() => expect(titulo()).toBe("Anotações"));
+    fireEvent.popState(window);
+    await waitFor(() => expect(titulo()).toBe(camp.name));
+    expect(document.querySelector(".mobile-simple")).toBeTruthy();
+  });
   it("restaura a posição de rolagem ao voltar para uma tela", async () => {
     await montar(mestre);
     const area = () => document.querySelector<HTMLElement>(".mobile-screen")!;
@@ -75,6 +83,21 @@ describe("celular: estrutura independente do FlexLayout", () => {
       fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
       await waitFor(() => expect(topo).toBe(420));
     } finally { delete (HTMLElement.prototype as unknown as { scrollTop?: number }).scrollTop; }
+  });
+});
+
+describe("celular: menu e barra inferior", () => {
+  it("abre e fecha o menu mantendo a barra de navegação independente", async () => {
+    await montar(mestre);
+    const botao = barra().getByRole("button", { name: "Menu" });
+    fireEvent.click(botao);
+    const dialogo = screen.getByRole("dialog", { name: "Menu de navegação" });
+    expect(dialogo.closest(".mobile-menu-overlay")).toBeTruthy();
+    expect(botao.getAttribute("aria-expanded")).toBe("true");
+    expect(barra().getByRole("button", { name: "Início" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Fechar menu" }));
+    expect(screen.queryByRole("dialog", { name: "Menu de navegação" })).toBeNull();
+    expect(botao.getAttribute("aria-expanded")).toBe("false");
   });
 });
 

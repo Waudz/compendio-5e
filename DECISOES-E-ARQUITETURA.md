@@ -1,5 +1,9 @@
 # COMPÊNDIO 5e 2.0 — DECISÕES, ARQUITETURA E ESTADO
 
+## Atualização de itens e loot — 22/11/2026
+
+**Decisão posterior à DEC-20261122-D:** [Itens, variantes e loot](docs/ITENS-VARIANTES-LOOT.md). Mantém adição livre de equipamentos mundanos, mas **substitui a proibição de distribuição de loot**: mestre pode preparar recompensas de encontros, liberá-las para coleta pelos jogadores ou entregá-las diretamente. Itens mágicos (inclusive de raridade comum) são privados até revelação, variantes simples +1/+2/+3 são exclusivas do mestre, sem evolução automática. **Planejado, não implementado.**
+
 ## Decisões vigentes — 22/11/2026 (DEC-20261122-A a F)
 
 **Aprovadas pelo responsável; planejamento, não declaração de implementação.** Esta seção substitui trechos históricos incompatíveis sobre ficha pessoal, catálogo sem campanha, cadastro aberto e distribuição de loot.
@@ -248,3 +252,10 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Atualização (PR #84, 22/11/2026):** o legado tinha textos de monstro com mecânica errada (modelos de outra criatura) e defeitos de dados; a auditoria numérica/de termos (`auditar-traducoes.mjs`) e a comparação de campos mecânicos com a SRD API e o PDF do SRD (`comparar-mecanica-api.mjs`) corrigiram 57 textos e 10 fichas. Traduções são de IA sem revisão humana (aviso na ficha). Burro = `origem: 'legado'` (não SRD). Ids antigos continuam resolvendo (`idsAnteriores`, `resolverIdMonstro`). Fichas compostas ganharam `formas`. 5 listas de classes de magias confirmadas no PDF.
 - **Verificação:** testes de núcleo, dados (Zod, hash, fatos do SRD), categorias, contratos e interface; conferência com a SRD API por `scripts/catalogo/verificar-catalogo-api.mjs` (0 divergências não explicadas). Ver `docs/CATALOGO-DND-2014.md`.
 - **Pendências:** (5 listas de classes de magias já confirmadas no PDF do SRD); rolagens de dados das ações; tradução dos monstros concluída (100%, revisão humana pendente) e links monstro→magia implementados (seção 7 do doc do catálogo).
+
+### DEC-019 — Regras de personagens 2014 versionadas e isoladas (22/11/2026)
+- **Situação:** implementada parcialmente, em revisão na branch feat/character-2014.
+- **Contexto:** criador da main #82 fixa opções de demonstração; preservar fichas existentes e não interferir no catálogo geral.
+- **Decisão:** snapshot SRD 5.1 próprio do módulo de personagens, IDs/versão novos, ativação explícita; motor existente e persistência/RPCs reaproveitados. Alternativa rejeitada: substituir silenciosamente o catálogo das fichas antigas ou copiar o aplicativo legado inteiro.
+- **Impacto:** sem migração de dados ou schema, sem publicações globais. Dados carregados sob demanda. Fonte/licenças, cobertura e pendências em docs/CRIADOR-2014-EXPANSAO.md.
+- **Verificação:** testes unitários e E2E dedicados; aprovação final vinculada ao SHA/CI do PR, não presumida por este documento.

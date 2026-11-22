@@ -87,6 +87,34 @@ describe("Enciclopédia: projeção e RLS em Postgres descartável",()=>{
       expect(await publications(player)).toEqual([expect.objectContaining({name:"Ferreiro"})]);
     } finally { await db.exec("alter table public.encyclopedia_publications drop constraint test_reject_name"); }
   });
+  it("ocultas não revelam nem ID, título, busca ou contagem, mesmo conhecendo o ID",async()=>{
+    await as(master,"update public.encyclopedia_entries set visibility='hidden' where id=$1",[entry]);
+    for(const table of ['encyclopedia_entries','encyclopedia_publications']) {
+      expect(await as(player,`select count(*)::int as n from public.${table} where ${table==='encyclopedia_entries'?'id':'entry_id'}=$1 or name ilike '%Ferreiro%'`,[entry])).toEqual([{n:0}]);
+    }
+  });
+  it("busca summary ignora descrição e full nunca carrega notas ou vínculo mecânico",async()=>{
+    await as(master,"update public.encyclopedia_master_details set mechanics_link=$2 where entry_id=$1",[entry,{kind:'character',characterId:'private-sheet-id'}]);
+    await as(master,"update public.encyclopedia_entries set visibility='summary' where id=$1",[entry]);
+    expect(await as(player,"select count(*)::int as n from public.encyclopedia_publications where public_description ilike '%Senha secreta%'")).toEqual([{n:0}]);
+    await as(master,"update public.encyclopedia_entries set visibility='full' where id=$1",[entry]);
+    const rows=await publications(player);
+    expect(JSON.stringify(rows)).not.toMatch(/Cultista|private-sheet-id|mechanics_link|master_notes/);
+    expect(Object.keys(rows[0]).sort()).toEqual(['entry_id','campaign_id','kind','name','summary','public_description','visibility','updated_at'].sort());
+  });
+  it("mestre de outra campanha não lê, altera ou descobre entrada da primeira",async()=>{
+    await as(stranger,"select public.create_campaign('Outra mesa','')");
+    expect(await publications(stranger)).toEqual([]);
+    expect(await as(stranger,"update public.encyclopedia_entries set visibility='full' where id=$1 returning id",[entry])).toEqual([]);
+    expect(await as(stranger,"select count(*)::int as n from public.encyclopedia_master_details where entry_id=$1",[entry])).toEqual([{n:0}]);
+  });
+  it("identidade e histórico são imutáveis; publicação não aceita escrita nem exclui dados",async()=>{
+    for(const q of ["update public.encyclopedia_entries set kind='place' where id=$1","update public.encyclopedia_entries set created_at=now() where id=$1","update public.encyclopedia_entries set id=gen_random_uuid() where id=$1"])
+      await expect(as(master,q,[entry])).rejects.toThrow(/permission denied/);
+    for(const uid of [master,player]) await expect(as(uid,"delete from public.encyclopedia_publications where entry_id=$1",[entry])).rejects.toThrow(/permission denied/);
+    expect((await as(master,"select id from public.encyclopedia_entries where id=$1",[entry]))).toHaveLength(1);
+    expect((await db.query("select count(*)::int as n from pg_publication_tables where tablename like 'encyclopedia_%'")).rows).toEqual([{n:0}]);
+  });
   it("ocultar e remover membro revoga novas consultas",async()=>{
     await as(master,"update public.encyclopedia_entries set visibility='hidden' where id=$1",[entry]);
     expect(await publications(player)).toEqual([]);

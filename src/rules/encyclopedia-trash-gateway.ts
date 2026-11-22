@@ -1,4 +1,6 @@
-/** Narrow transport boundary for master-only narrative trash RPCs.
+/** @deprecated Contrato experimental da RPC substituída; não conectado ao app.
+ * Não constitui autorização nem endpoint implementado.
+ * Narrow transport boundary for master-only narrative trash RPCs.
  * Authentication/authorization are enforced by Supabase functions, not this client.
  * Never use a service-role key in browser code.
  */
