@@ -154,9 +154,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
       registrarTitulo(id, draft.name.trim()); registrarTitulo(r.id, draft.name.trim()); avisarRegistros();
       const incompleto = sheet.pending.length || !gruposCompletos(draft);
       setMsg({ ok: true, t: servidor ? `${incompleto ? "Rascunho incompleto" : "Personagem"} salvo na campanha (revisão ${r.revision}).` : `${incompleto ? "Rascunho incompleto salvo" : "Personagem salvo"} neste navegador (armazenamento experimental).` });
-      // Uma ficha concluída deve abrir no destino de leitura, não permanecer
-      // no formulário de criação. Rascunhos incompletos continuam no editor.
-      if (!incompleto) onOpenContent({ kind: "ficha", ref: r.id, title: draft.name.trim() });
+
       return true;
     } catch (e) {
       const texto = e instanceof Error ? e.message : "Não foi possível salvar.";
