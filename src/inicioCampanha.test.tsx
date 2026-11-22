@@ -37,6 +37,15 @@ beforeEach(() => { vi.stubGlobal("localStorage", memoryStorage()); window.histor
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("Início: mestre", () => {
+  it("oferece atalhos funcionais para as cinco seções", async () => {
+    const { onOpen } = await montarHome(mestre());
+    const nav = screen.getByRole("navigation", { name: "Atalhos da campanha" });
+    for (const [rotulo, ref] of [["Anotações","planejamento"],["Enciclopédia","enciclopedia"],["Compêndio","compendio"],["Personagens","personagens"],["Diário","diario"]]) {
+      fireEvent.click(within(nav).getByRole("button", { name: rotulo }));
+      expect(onOpen).toHaveBeenCalledWith({ kind: "secao", ref });
+    }
+  });
+
   it("mostra capa vazia, nome em destaque e descrição; edita nome e descrição pela infraestrutura existente", async () => {
     const { api, onOpen } = await montarHome(mestre());
     await waitFor(() => expect(screen.getByTestId("inicio-capa").textContent).toMatch(/Sem capa/));
@@ -67,6 +76,11 @@ describe("Início: mestre", () => {
 });
 
 describe("Início: jogador", () => {
+  it("não exibe os atalhos exclusivos do mestre", async () => {
+    await montarHome(jogador());
+    expect(screen.queryByRole("navigation", { name: "Atalhos da campanha" })).toBeNull();
+  });
+
   it("lê nome e descrição sem editar, sem gestão do mestre e sem consultar convites", async () => {
     const { api } = await montarHome(jogador());
     expect(screen.getByText("Para jogadores.")).toBeTruthy();
