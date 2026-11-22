@@ -25,7 +25,7 @@ Aplicar, em banco isolado e na ordem, os rascunhos revisados de `ENCICLOPEDIA-SQ
 | P11 | A0 perde participação na campanha A | Não pode mais consultar publicações A |
 | P12 | anon consulta publicação A | Operação negada |
 | P13 | Falha forçada na sincronização | Escrita na origem inteira é revertida, sem estado intermediário |
-| P14 | Mudança de campanha da entrada | Publicação antiga desaparece e só campanha nova autorizada enxerga |
+| P14 | Mestre tenta mudar campaign_id, inclusive sendo mestre nas duas campanhas | Operação negada; origem, histórico e publicação permanecem intactos |
 | P15 | Mestre A tenta editar entrada da campanha B | Negado pelo RLS da origem |
 | P16 | Mestre A muda summary/full rapidamente | Última transação confirmada e projeção consistente |
 | P17 | Busca por texto secreto em master_notes | Não retorna publicação nem altera count |
@@ -36,8 +36,25 @@ Aplicar, em banco isolado e na ordem, os rascunhos revisados de `ENCICLOPEDIA-SQ
 ## Bloqueios antes de deploy
 
 1. A lixeira ainda depende de um endpoint mestre-autorizado: os rascunhos RPC `SECURITY DEFINER` em `public` **não estão aprovados**. A atualização direta de `deleted_at` não é concedida ao cliente.
-2. Uma alteração de `campaign_id` da origem deve ser proibida ou validada explicitamente; P14 é teste de defesa, não autorização para transferir registros.
+2. A alteração de `campaign_id` da origem deve ser proibida; eventual transferência terá contrato separado, conforme DEC-20261122. P14 exige rejeição mesmo quando o usuário é mestre nas duas campanhas.
 3. Imagens, nomes seletivos e mecânicas compartilháveis exigem contrato adicional; não ampliar a projeção por inferência.
 4. A tabela `encyclopedia_publications` não deve ser publicada em Realtime sem revisão separada.
 5. Hard delete continua desabilitado; FKs `RESTRICT` impedem remoção acidental do histórico.
 6. Não aplicar migrações no Supabase remoto antes da execução e aprovação desta matriz em ambiente isolado.
+
+## Complemento de reconciliação — 22/11/2026
+
+A fundação remota fechada foi registrada em ENCICLOPEDIA-FUNDACAO-REMOTA-2026-11-21.md. Não reaplicar CREATE TABLE dos rascunhos no banco hospedado. O ensaio descartável deve reproduzir a fundação e testar uma migração incremental antes de qualquer liberação. O estado remoto atual ainda precisa ser reconfirmado. A migração 0008 das fichas é independente; não modificar suas tabelas, RPCs ou grants neste PR.
+
+| Caso | Operação | Resultado esperado |
+| --- | --- | --- |
+| P21 | INSERT com deleted_at/deleted_by fornecidos pelo cliente | Negado; entrada nova só pode nascer ativa e oculta |
+| P22 | UPDATE tentando alterar id, kind ou created_at | Negado; projeção inalterada |
+| P23 | Mestre tenta falsificar autor ou data da lixeira | Servidor deriva auth.uid() e timestamp; nenhum valor forjado persistido |
+| P24 | Jogador tenta ler detalhes, histórico ou origem via join e contagens | Nenhuma informação privada acessível |
+| P25 | Usuário não membro invoca função interna de sincronização | EXECUTE negado; esquema interno sem USAGE para API |
+| P26 | Operação concorrente de lixeira com filtro de estado esperado | Somente uma transição efetiva; nenhuma republicação indevida |
+| P27 | Entrada summary com palavra secreta somente na descrição | Busca e contagem públicas não encontram a palavra |
+| P28 | Mestre perde participação ou papel antes da nova consulta | Permissões reavaliadas no servidor; nenhuma escrita privilegiada |
+
+**Gate de liberação:** testes do domínio não substituem testes de autorização SQL. Nenhuma concessão ao cliente, migração remota, interface de escrita ou publicação Realtime é autorizada por este documento. Manter a fundação fechada até revisão do esquema efetivo, testes descartáveis e integração após PR #86.
