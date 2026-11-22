@@ -1,0 +1,233 @@
+{
+ "descricao": "Traduções fiéis que SUBSTITUEM o texto do tradutor do Compêndio 1.0 quando a auditoria (auditar-traducoes.mjs) achou número, distância ou termo de regra diferente do original em inglês (o legado aplicava modelos de outra criatura). Chave: sha1 (10 hex) do original em inglês com os números trocados por #. Marcadores: {n} = n-ésimo número do original; {nm} = esse número lido como pés e convertido em metros.",
+ "textos": {
+  "f62c661210": {
+   "en": "The aboleth targets one creature it can see within 30 ft. of",
+   "t": "O aboleth escolhe como alvo uma criatura que possa ver a até {1m} m dele. O alvo deve ser bem-sucedido em uma salvaguarda de Sabedoria CD {2} ou ficará enfeitiçado magicamente pelo aboleth até que ele morra ou até que esteja em um plano de existência diferente do alvo. O alvo enfeitiçado fica sob o controle do aboleth e não pode realizar reações, e o aboleth e o alvo podem se comunicar telepaticamente a qualquer distância.\nSempre que o alvo enfeitiçado sofrer dano, ele pode repetir a salvaguarda. Em caso de sucesso, o efeito termina. No máximo uma vez a cada 24 horas, o alvo também pode repetir a salvaguarda quando estiver a pelo menos 1,6 km do aboleth."
+  },
+  "8b43a8432f": {
+   "en": "The whale can hold its breath for 30 minutes",
+   "t": "A criatura pode prender a respiração por {1} minutos."
+  },
+  "5c6ea6679c": {
+   "en": "While on the Ethereal Plane, the hag magically touches a sle",
+   "t": "Enquanto estiver no Plano Etéreo, a bruxa toca magicamente um humanoide adormecido no Plano Material. Uma magia proteção contra o bem e o mal conjurada no alvo impede esse contato, assim como um círculo mágico. Enquanto o contato persistir, o alvo tem visões terríveis. Se essas visões durarem pelo menos {1} hora, o alvo não recebe nenhum benefício de seu descanso, e seu máximo de pontos de vida é reduzido em {2} ({3}). Se esse efeito reduzir o máximo de pontos de vida do alvo a {4}, o alvo morre e, se o alvo era mau, sua alma fica presa na bolsa de almas da bruxa. A redução do máximo de pontos de vida do alvo dura até ser removida pela magia restauração maior ou magia similar."
+  },
+  "d7d39ced4f": {
+   "en": "The crocodile can hold its breath for 30 minutes.",
+   "t": "A criatura pode prender a respiração por {1} minutos."
+  },
+  "b85f456463": {
+   "en": "The dragon uses one of the following breath weapons. Acid Br",
+   "t": "O dragão usa um dos sopros a seguir.\nSopro Ácido. O dragão exala ácido em uma linha de {1m} m de comprimento e {2m} m de largura. Cada criatura nessa linha deve fazer uma salvaguarda de Destreza CD {3}, sofrendo {4} ({5}) de dano ácido em caso de falha, ou metade desse dano em caso de sucesso.\nSopro de Lentidão. O dragão exala gás em um cone de 4,5 m. Cada criatura nessa área deve ser bem-sucedida em uma salvaguarda de Constituição CD {8}. Em caso de falha, a criatura não pode usar reações, seu deslocamento é reduzido à metade e ela não pode fazer mais de um ataque em seu turno. Além disso, a criatura pode realizar uma ação ou uma ação bônus em seu turno, mas não ambas. Esses efeitos duram {9} minuto. A criatura pode repetir a salvaguarda ao final de cada um de seus turnos, encerrando o efeito sobre si em caso de sucesso."
+  },
+  "a72792715c": {
+   "en": "The dragon uses one of the following breath weapons. Fire Br",
+   "t": "O dragão usa um dos sopros a seguir.\nSopro de Fogo. O dragão exala fogo em um cone de {1m} m. Cada criatura nessa área deve fazer uma salvaguarda de Destreza CD {2}, sofrendo {3} ({4}) de dano de fogo em caso de falha, ou metade desse dano em caso de sucesso.\nSopro Enfraquecedor. O dragão exala gás em um cone de {5m} m. Cada criatura nessa área deve ser bem-sucedida em uma salvaguarda de Força CD {6} ou terá desvantagem em jogadas de ataque baseadas em Força, testes de Força e salvaguardas de Força por {7} minuto. Uma criatura pode repetir a salvaguarda ao final de cada um de seus turnos, encerrando o efeito sobre si em caso de sucesso."
+  },
+  "e6a08523c8": {
+   "en": "The dragon uses one of the following breath weapons. Cold Br",
+   "t": "O dragão usa um dos sopros a seguir.\nSopro Gélido. O dragão exala uma rajada gélida em um cone de {1m} m. Cada criatura nessa área deve fazer uma salvaguarda de Constituição CD {2}, sofrendo {3} ({4}) de dano de frio em caso de falha, ou metade desse dano em caso de sucesso.\nSopro Paralisante. O dragão exala gás paralisante em um cone de {5m} m. Cada criatura nessa área deve ser bem-sucedida em uma salvaguarda de Constituição CD {6} ou ficará paralisada por {7} minuto. Uma criatura pode repetir a salvaguarda ao final de cada um de seus turnos, encerrando o efeito sobre si em caso de sucesso."
+  },
+  "188c4e4545": {
+   "en": "The dragon uses one of the following breath weapons.  Cold B",
+   "t": "O dragão usa um dos sopros a seguir.\nSopro Gélido. O dragão exala uma rajada gélida em um cone de {1m} m. Cada criatura nessa área deve fazer uma salvaguarda de Constituição CD {2}, sofrendo {3} ({4}) de dano de frio em caso de falha, ou metade desse dano em caso de sucesso.\nSopro Paralisante. O dragão exala gás paralisante em um cone de {5m} m. Cada criatura nessa área deve ser bem-sucedida em uma salvaguarda de Constituição CD {6} ou ficará paralisada por {7} minuto. Uma criatura pode repetir a salvaguarda ao final de cada um de seus turnos, encerrando o efeito sobre si em caso de sucesso."
+  },
+  "522cf4870b": {
+   "en": "A 10-foot radius of disgusting green gas extends out from th",
+   "t": "Um raio de {1m} m de gás verde repugnante se estende a partir do dretch. O gás se espalha pelos cantos, e sua área fica levemente obscurecida. Dura {2} minuto ou até que um vento forte o disperse. Qualquer criatura que comece seu turno nessa área deve ser bem-sucedida em uma salvaguarda de Constituição CD {3} ou ficará envenenada até o início de seu próximo turno. Enquanto estiver envenenado dessa forma, o alvo pode realizar uma ação ou uma ação bônus em seu turno, não ambas, e não pode realizar reações."
+  },
+  "88058831b5": {
+   "en": "The elemental can enter a hostile creature's space and stop ",
+   "t": "O elemental pode entrar no espaço de uma criatura hostil e parar ali. Pode se mover por um espaço de apenas 2,5 cm de largura sem precisar se espremer."
+  },
+  "f1224f4db0": {
+   "en": "The elemental can move through a space as narrow as 1 inch w",
+   "t": "O elemental pode se mover por um espaço de apenas 2,5 cm de largura sem precisar se espremer. Uma criatura que tocar o elemental ou o atingir com um ataque corpo a corpo estando a até {2m} m dele sofre {3} ({4}) de dano de fogo. Além disso, o elemental pode entrar no espaço de uma criatura hostil e parar ali. Na primeira vez que entrar no espaço de uma criatura em um turno, essa criatura sofre {5} ({6}) de dano de fogo e pega fogo; até que alguém use uma ação para apagar o fogo, a criatura sofre {7} ({8}) de dano de fogo no início de cada um de seus turnos."
+  },
+  "8e3e35cc27": {
+   "en": "The treant magically animates one or two trees it can see wi",
+   "t": "A criatura anima magicamente uma ou duas árvores que possa ver a até {1m} m dela. Essas árvores têm as mesmas estatísticas de um treant, exceto que têm valores de Inteligência e Carisma iguais a {2}, não podem falar e têm apenas a opção de ação Pancada. Uma árvore animada age como aliada do treant. A árvore permanece animada por {3} dia ou até morrer; até que o treant morra ou fique a mais de {4m} m da árvore; ou até que o treant use uma ação bônus para transformá-la de volta em uma árvore inanimada. A árvore então se enraíza, se possível."
+  },
+  "1293060a75": {
+   "en": "The erinyes adds 4 to its AC against one melee attack that w",
+   "t": "A Erínia adiciona {1} à sua CA contra um ataque corpo a corpo que a atingiria. Para isso, a Erínia deve ver o atacante e estar empunhando uma arma corpo a corpo."
+  },
+  "44b7fc71c0": {
+   "en": "The will-o'-wisp sheds bright light in a 5- to 20-foot radiu",
+   "t": "O Fogo-Fátuo emite luz plena em um raio de {1m} a {2m} m e penumbra por uma distância adicional igual ao raio escolhido. O Fogo-Fátuo pode alterar o raio com uma ação bônus."
+  },
+  "4c1699a201": {
+   "en": "The jelly can move through a space as narrow as 1 inch wide ",
+   "t": "A geleia pode se mover por um espaço de apenas 2,5 cm de largura sem precisar se espremer."
+  },
+  "11f3437b00": {
+   "en": "The gladiator adds 3 to its AC against one melee attack that",
+   "t": "O Gladiador adiciona {1} à sua CA contra um ataque corpo a corpo que o atingiria. Para isso, o Gladiador deve ver o atacante e estar empunhando uma arma corpo a corpo."
+  },
+  "ef63125a4f": {
+   "en": "The shield guardian regains 10 hit points at the start of it",
+   "t": "O Guardião do Escudo recupera {1} pontos de vida no início de seu turno se tiver pelo menos {2} ponto de vida."
+  },
+  "4de5ade050": {
+   "en": "The hydra can hold its breath for 1 hour.",
+   "t": "A Hidra pode prender a respiração por {1} hora."
+  },
+  "f3fde46406": {
+   "en": "If the wereboar takes 14 damage or less that would reduce it",
+   "t": "Se o Homem-Javali sofrer {1} de dano ou menos que o reduziria a {2} pontos de vida, ele é reduzido a {3} ponto de vida em vez disso."
+  },
+  "f1415c72af": {
+   "en": "If the boar takes 10 damage or less that would reduce it to ",
+   "t": "Se o javali sofrer {1} de dano ou menos que o reduziria a {2} pontos de vida, ele é reduzido a {3} ponto de vida em vez disso."
+  },
+  "3d733f4589": {
+   "en": "The ooze can move through a space as narrow as 1 inch wide w",
+   "t": "A gosma pode se mover por um espaço de apenas 2,5 cm de largura sem precisar se espremer."
+  },
+  "e0760cacfd": {
+   "en": "Any nonmagical weapon made of metal that hits the ooze corro",
+   "t": "Qualquer arma não mágica de metal que atinja a gosma corrói. Após causar dano, a arma sofre uma penalidade permanente e cumulativa de -{1} nas jogadas de dano. Se a penalidade chegar a -{2}, a arma é destruída. Munição não mágica de metal que atinja a gosma é destruída após causar dano.\nA gosma pode consumir, em {4} rodada, metal não mágico de 5 cm de espessura."
+  },
+  "67e6503312": {
+   "en": "The manticore has twenty-four tail spikes. Used spikes regro",
+   "t": "A Mantícora tem vinte e quatro espinhos na cauda. Espinhos usados crescem novamente quando a Mantícora termina um descanso longo."
+  },
+  "7317dae041": {
+   "en": "The marilith adds 5 to its AC against one melee attack that ",
+   "t": "A Marilith adiciona {1} à sua CA contra um ataque corpo a corpo que a atingiria. Para isso, a Marilith deve ver o atacante e estar empunhando uma arma corpo a corpo."
+  },
+  "85d0b5aacb": {
+   "en": "When a creature that can see the medusa's eyes starts its tu",
+   "t": "Quando uma criatura que possa ver os olhos da Medusa começa seu turno a até {1m} m dela, a Medusa pode forçá-la a fazer uma salvaguarda de Constituição CD {2}, se a Medusa não estiver incapacitada e puder ver a criatura. Se a salvaguarda falhar por {3} ou mais, a criatura é instantaneamente petrificada. Caso contrário, uma criatura que falhar na salvaguarda começa a se transformar em pedra e fica contida. A criatura contida deve repetir a salvaguarda ao final de seu próximo turno, ficando petrificada em caso de falha ou encerrando o efeito em caso de sucesso. A petrificação dura até que a criatura seja libertada pela magia restauração maior ou outra magia.\nA menos que esteja surpresa, uma criatura pode desviar os olhos para evitar a salvaguarda no início de seu turno. Se o fizer, não pode ver a Medusa até o início de seu próximo turno, quando pode desviar os olhos novamente. Se a criatura olhar para a Medusa nesse meio-tempo, deve fazer a salvaguarda imediatamente.\nSe a Medusa se vir refletida em uma superfície polida a até {4m} m dela e em uma área de luz plena, a Medusa é, por causa de sua maldição, afetada pelo próprio olhar."
+  },
+  "d92ff589b7": {
+   "en": "The plesiosaurus can hold its breath for 1 hour.",
+   "t": "O plesiossauro pode prender a respiração por {1} hora."
+  },
+  "071126b217": {
+   "en": "While out of water, the octopus can hold its breath for 1 ho",
+   "t": "Fora da água, o polvo pode prender a respiração por {1} hora."
+  },
+  "0cf8578d9c": {
+   "en": "The pudding can move through a space as narrow as 1 inch wid",
+   "t": "O pudim pode se mover por um espaço de apenas 2,5 cm de largura sem precisar se espremer."
+  },
+  "e39e0e7732": {
+   "en": "A creature that touches the pudding or hits it with a melee ",
+   "t": "Uma criatura que tocar o pudim ou o atingir com um ataque corpo a corpo estando a até {1m} m dele sofre {2} ({3}) de dano ácido. Qualquer arma não mágica de metal ou madeira que atinja o pudim corrói. Após causar dano, a arma sofre uma penalidade permanente e cumulativa de -{4} nas jogadas de dano. Se a penalidade chegar a -{5}, a arma é destruída. Munição não mágica de metal ou madeira que atinja o pudim é destruída após causar dano. O pudim pode consumir, em {7} rodada, madeira ou metal não mágicos de 5 cm de espessura."
+  },
+  "8a675e225f": {
+   "en": "The quasit magically turns invisible until it attacks or use",
+   "t": "O Quasit fica invisível magicamente até atacar ou usar Assustar, ou até que sua concentração termine (como se estivesse se concentrando em uma magia). Qualquer equipamento que o Quasit vista ou carregue fica invisível com ele."
+  },
+  "f0ee0011ab": {
+   "en": "The solar emits magical, divine energy. Each creature of its",
+   "t": "O Solar emite energia divina e mágica. Cada criatura à escolha do Solar em um raio de {1m} m deve fazer uma salvaguarda de Destreza CD {2}, sofrendo {3} ({4}) de dano de fogo mais {5} ({6}) de dano radiante em caso de falha, ou metade desse dano em caso de sucesso."
+  },
+  "163c8fc23b": {
+   "en": "The shadow can move through a space as narrow as 1 inch wide",
+   "t": "A sombra pode se mover por um espaço de apenas 2,5 cm de largura sem precisar se espremer."
+  },
+  "1c8508b811": {
+   "en": "The sprite magically turns invisible until it attacks or cas",
+   "t": "O Sprite fica invisível magicamente até atacar ou conjurar uma magia, ou até que sua concentração termine (como se estivesse se concentrando em uma magia). Qualquer equipamento que o Sprite vista ou carregue fica invisível com ele."
+  },
+  "193e35f56e": {
+   "en": "The tarrasque makes one bite attack against a Large or small",
+   "t": "O Tarrasque faz um ataque de mordida contra uma criatura Grande ou menor que esteja agarrando. Se o ataque acertar, o alvo sofre o dano da mordida, é engolido, e a agarrada termina. Enquanto estiver engolida, a criatura fica cega e contida, tem cobertura total contra ataques e outros efeitos vindos de fora do Tarrasque e sofre {1} ({2}) de dano ácido no início de cada turno do Tarrasque.\nSe o Tarrasque sofrer {3} de dano ou mais em um único turno de uma criatura dentro dele, o Tarrasque deve ser bem-sucedido em uma salvaguarda de Constituição CD {4} ao final desse turno ou regurgitará todas as criaturas engolidas, que caem no chão em um espaço a até {5m} m do Tarrasque. Se o Tarrasque morrer, uma criatura engolida deixa de estar contida por ele e pode escapar do cadáver gastando {6m} m de movimento, saindo caída."
+  },
+  "13f6a929b8": {
+   "en": "The vampire targets one humanoid it can see within 30 ft. of",
+   "t": "O Vampiro escolhe como alvo um humanoide que possa ver a até {1m} m dele. Se o alvo puder ver o Vampiro, o alvo deve ser bem-sucedido em uma salvaguarda de Sabedoria CD {2} contra esta magia ou ficará enfeitiçado pelo Vampiro. O alvo enfeitiçado considera o Vampiro um amigo de confiança, a quem deve atender e proteger. Embora o alvo não esteja sob o controle do Vampiro, ele interpreta os pedidos ou ações do Vampiro da forma mais favorável possível e é um alvo voluntário para o ataque de mordida do Vampiro.\nSempre que o Vampiro ou os companheiros do Vampiro fizerem qualquer coisa prejudicial ao alvo, ele pode repetir a salvaguarda, encerrando o efeito sobre si em caso de sucesso. Caso contrário, o efeito dura {3} horas ou até que o Vampiro seja destruído, esteja em um plano de existência diferente do alvo ou use uma ação bônus para encerrar o efeito."
+  },
+  "fff937f4b1": {
+   "en": "giant-elk/Charge: If the elk moves at least 20 ft. straight toward a",
+   "t": "Se o alce se mover pelo menos {1m} m em linha reta em direção a um alvo e então o atingir com um ataque de cabeçada no mesmo turno, o alvo sofre {2} ({3}) de dano extra. Se o alvo for uma criatura, deve ser bem-sucedido em uma salvaguarda de Força CD {4} ou será derrubado."
+  },
+  "a83833b984": {
+   "en": "giant-goat/Charge: If the goat moves at least 20 ft. straight toward ",
+   "t": "Se a cabra se mover pelo menos {1m} m em linha reta em direção a um alvo e então o atingir com um ataque de cabeçada no mesmo turno, o alvo sofre {2} ({3}) de dano contundente extra. Se o alvo for uma criatura, deve ser bem-sucedido em uma salvaguarda de Força CD {4} ou será derrubado."
+  },
+  "b7059957b9": {
+   "en": "giant-sea-horse/Charge: If the sea horse moves at least 20 ft. straight to",
+   "t": "Se o cavalo-marinho se mover pelo menos {1m} m em linha reta em direção a um alvo e então o atingir com um ataque de cabeçada no mesmo turno, o alvo sofre {2} ({3}) de dano contundente extra. Se o alvo for uma criatura, deve ser bem-sucedido em uma salvaguarda de Força CD {4} ou será derrubado."
+  },
+  "c58854e670": {
+   "en": "rhinoceros/Charge: If the rhinoceros moves at least 20 ft. straight t",
+   "t": "Se o rinoceronte se mover pelo menos {1m} m em linha reta em direção a um alvo e então o atingir com um ataque de chifrada no mesmo turno, o alvo sofre {2} ({3}) de dano contundente extra. Se o alvo for uma criatura, deve ser bem-sucedido em uma salvaguarda de Força CD {4} ou será derrubado."
+  },
+  "d117205119": {
+   "en": "unicorn/Charge: If the unicorn moves at least 20 ft. straight towa",
+   "t": "Se o unicórnio se mover pelo menos {1m} m em linha reta em direção a um alvo e então o atingir com um ataque de chifre no mesmo turno, o alvo sofre {2} ({3}) de dano perfurante extra. Se o alvo for uma criatura, deve ser bem-sucedido em uma salvaguarda de Força CD {4} ou será derrubado."
+  },
+  "ad342ac8c0": {
+   "en": "sea-hag/Death Glare: The hag targets one frightened creature she can se",
+   "t": "A bruxa escolhe como alvo uma criatura amedrontada que possa ver a até {1m} m dela. Se o alvo puder ver a bruxa, deve ser bem-sucedido em uma salvaguarda de Sabedoria CD {2} contra esta magia ou cairá a {3} pontos de vida."
+  },
+  "f77c718632": {
+   "en": "couatl/Change Shape: The couatl magically polymorphs into a humanoid or",
+   "t": "O couatl se transforma magicamente em um humanoide ou fera com nível de desafio igual ou menor que o seu, ou retorna à sua forma verdadeira. Volta à forma verdadeira se morrer. Qualquer equipamento que esteja vestindo ou carregando é absorvido ou carregado pela nova forma (à escolha do couatl).\nNa nova forma, o couatl mantém suas estatísticas de jogo e a capacidade de falar, mas sua CA, modos de movimento, Força, Destreza e outras ações são substituídos pelos da nova forma, e ganha quaisquer estatísticas e capacidades (exceto características de classe, ações lendárias e ações de covil) que a nova forma tenha e que ele não tenha. Se a nova forma tiver um ataque de mordida, o couatl pode usar sua mordida nessa forma."
+  },
+  "e5a3129767": {
+   "en": "deva/Change Shape: The deva magically polymorphs into a humanoid or b",
+   "t": "O deva se transforma magicamente em um humanoide ou fera com nível de desafio igual ou menor que o seu, ou retorna à sua forma verdadeira. Volta à forma verdadeira se morrer. Qualquer equipamento que esteja vestindo ou carregando é absorvido ou carregado pela nova forma (à escolha do deva).\nNa nova forma, o deva mantém suas estatísticas de jogo e a capacidade de falar, mas sua CA, modos de movimento, Força, Destreza e sentidos especiais são substituídos pelos da nova forma, e ganha quaisquer estatísticas e capacidades (exceto características de classe, ações lendárias e ações de covil) que a nova forma tenha e que ele não tenha."
+  },
+  "d8d0036320": {
+   "en": "vampire-spawn/Vampire Weaknesses: The vampire has the following flaws: Forbiddance. ",
+   "t": "A criatura tem as seguintes fraquezas:\nProibição. O vampiro não pode entrar em uma residência sem um convite de um dos ocupantes.\nFerido por Água Corrente. O vampiro sofre {1} de dano ácido quando termina seu turno em água corrente.\nEstaca no Coração. O vampiro é destruído se uma arma perfurante de madeira for cravada em seu coração enquanto ele estiver incapacitado em seu lugar de descanso.\nHipersensibilidade à Luz Solar. O vampiro sofre {2} de dano radiante quando começa seu turno sob a luz do sol. Sob a luz do sol, tem desvantagem em jogadas de ataque e testes de atributo."
+  },
+  "cb0a2688bf": {
+   "en": "werewolf/Shapechanger: The werewolf can use its action to polymorph into ",
+   "t": "O lobisomem pode usar sua ação para se transformar em um híbrido de lobo e humanoide ou em um lobo, ou retornar à sua forma verdadeira, que é humanoide. Suas estatísticas, exceto a CA, são as mesmas em cada forma. Qualquer equipamento que esteja vestindo ou carregando não é transformado. Ele volta à sua forma verdadeira se morrer."
+  },
+  "8e6ff666c5": {
+   "en": "wereboar/Shapechanger: The wereboar can use its action to polymorph into ",
+   "t": "O homem-javali pode usar sua ação para se transformar em um híbrido de javali e humanoide ou em um javali, ou retornar à sua forma verdadeira, que é humanoide. Suas estatísticas, exceto a CA, são as mesmas em cada forma. Qualquer equipamento que esteja vestindo ou carregando não é transformado. Ele volta à sua forma verdadeira se morrer."
+  },
+  "28c3d065f5": {
+   "en": "wererat/Shapechanger: The wererat can use its action to polymorph into a",
+   "t": "O homem-rato pode usar sua ação para se transformar em um híbrido de rato e humanoide ou em um rato gigante, ou retornar à sua forma verdadeira, que é humanoide. Suas estatísticas, exceto o tamanho, são as mesmas em cada forma. Qualquer equipamento que esteja vestindo ou carregando não é transformado. Ele volta à sua forma verdadeira se morrer."
+  },
+  "cd5884a693": {
+   "en": "weretiger/Shapechanger: The weretiger can use its action to polymorph into",
+   "t": "O homem-tigre pode usar sua ação para se transformar em um híbrido de tigre e humanoide ou em um tigre, ou retornar à sua forma verdadeira, que é humanoide. Suas estatísticas, exceto o tamanho, são as mesmas em cada forma. Qualquer equipamento que esteja vestindo ou carregando não é transformado. Ele volta à sua forma verdadeira se morrer."
+  },
+  "fe8f6156cc": {
+   "en": "werebear/Shapechanger: The werebear can use its action to polymorph into ",
+   "t": "O homem-urso pode usar sua ação para se transformar em um híbrido de urso e humanoide Grande ou em um urso Grande, ou retornar à sua forma verdadeira, que é humanoide. Suas estatísticas, exceto o tamanho e a CA, são as mesmas em cada forma. Qualquer equipamento que esteja vestindo ou carregando não é transformado. Ele volta à sua forma verdadeira se morrer."
+  },
+  "7bd39347b4": {
+   "en": "mimic/Shapechanger: The mimic can use its action to polymorph into an ",
+   "t": "O mímico pode usar sua ação para se transformar em um objeto ou retornar à sua forma verdadeira, amorfa. Suas estatísticas são as mesmas em cada forma. Qualquer equipamento que esteja vestindo ou carregando não é transformado. Ele volta à sua forma verdadeira se morrer."
+  },
+  "51fd846e8c": {
+   "en": "winter-wolf/Cold Breath: The wolf exhales a blast of freezing wind in a 15-",
+   "t": "O lobo exala uma rajada de vento congelante em um cone de {1m} m. Cada criatura nessa área deve fazer uma salvaguarda de Destreza CD {2}, sofrendo {3} ({4}) de dano de frio em caso de falha, ou metade desse dano em caso de sucesso."
+  },
+  "c962c9e500": {
+   "en": "ice-mephit/Frost Breath: The mephit exhales a 15-foot cone of cold air. Eac",
+   "t": "O mefite exala um cone de ar frio de {1m} m. Cada criatura nessa área deve ser bem-sucedida em uma salvaguarda de Destreza CD {2}, sofrendo {3} ({4}) de dano de frio em caso de falha, ou metade desse dano em caso de sucesso."
+  },
+  "b24e9bd81b": {
+   "en": "steam-mephit/Steam Breath: The mephit exhales a 15-foot cone of scalding stea",
+   "t": "O mefite exala um cone de vapor escaldante de {1m} m. Cada criatura nessa área deve ser bem-sucedida em uma salvaguarda de Destreza CD {2}, sofrendo {3} ({4}) de dano de fogo em caso de falha, ou metade desse dano em caso de sucesso."
+  },
+  "846806a634": {
+   "en": "cloaker/Damage Transfer: While attached to a creature, the cloaker takes on",
+   "t": "Enquanto estiver preso a uma criatura, o cloaker sofre apenas metade do dano que lhe é causado (arredondado para baixo), e essa criatura sofre a outra metade."
+  },
+  "24ff2b2607": {
+   "en": "succubus-incubus/Telepathic Bond: The fiend ignores the range restriction on its tel",
+   "t": "O ínfero ignora a restrição de alcance de sua telepatia ao se comunicar com uma criatura que tenha enfeitiçado. Os dois nem precisam estar no mesmo plano de existência."
+  },
+  "1c10ac8d3a": {
+   "en": "vrock/Stunning Screech: The vrock emits a horrific screech. Each creature ",
+   "t": "O vrock emite um guincho horrível. Cada criatura a até {1m} m dele que possa ouvi-lo e que não seja um demônio deve ser bem-sucedida em uma salvaguarda de Constituição CD {2} ou ficará atordoada até o final do próximo turno do vrock."
+  },
+  "77411e2a40": {
+   "en": "unicorn/Healing Touch: The unicorn touches another creature with its horn",
+   "t": "O unicórnio toca outra criatura com seu chifre. O alvo recupera magicamente {1} ({2}) pontos de vida. Além disso, o toque remove todas as doenças e neutraliza todos os venenos que afligem o alvo."
+  }
+ }
+}

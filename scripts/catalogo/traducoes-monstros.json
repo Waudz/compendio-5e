@@ -1,0 +1,879 @@
+{
+ "descricao": "Traduções revisadas dos textos de monstros que o tradutor do Compêndio 1.0 não converte. Chave = sha1 (10 hex) do texto em inglês. O build exige que a assinatura numérica (dados, CD, pontos de vida) coincida.",
+ "textos": {
+  "ef29bfaea2": {
+   "en": "The mouther babbles incoherently while it can see any creature and isn",
+   "t": "A criatura balbucia de modo incoerente enquanto puder ver qualquer criatura e não estiver incapacitada. Cada criatura que começar seu turno a até 6 metros da criatura e puder ouvir o balbucio deve ser bem-sucedida em uma salvaguarda de Sabedoria CD 10. Em caso de falha, a criatura não pode realizar reações até o início do seu próximo turno e rola um d8 para determinar o que faz em seu turno. Com 1 a 4, a criatura não faz nada. Com 5 ou 6, a criatura não realiza ação nem ação bônus e usa todo o seu movimento para se mover em uma direção determinada aleatoriamente. Com 7 ou 8, a criatura faz um ataque corpo a corpo contra uma criatura determinada aleatoriamente dentro de seu alcance ou não faz nada se não puder fazer tal ataque."
+  },
+  "0f5d4d94c8": {
+   "en": "The gibbering mouther makes one bite attack and, if it can, uses its B",
+   "t": "A criatura faz um ataque de mordida e, se puder, usa Cusparada Cegante."
+  },
+  "ea8e770fa9": {
+   "en": "While underwater, the aboleth is surrounded by transformative mucus. A",
+   "t": "Enquanto estiver debaixo d'água, a criatura é envolta por um muco transformador. Uma criatura que tocar a criatura ou que a atingir com um ataque corpo a corpo estando a até 1,5 metro dela deve fazer uma salvaguarda de Constituição CD 14. Em caso de falha, a criatura fica doente por 1d4 horas. A criatura doente só consegue respirar debaixo d'água."
+  },
+  "0438fb47db": {
+   "en": "The aboleth makes a Wisdom (Perception) check.",
+   "t": "A criatura faz um teste de Sabedoria (Percepção)."
+  },
+  "5ac244a050": {
+   "en": "The aboleth makes three tentacle attacks.",
+   "t": "A criatura faz três ataques de tentáculo."
+  },
+  "dac95f2a35": {
+   "en": "The aboleth makes one tail attack.",
+   "t": "A criatura faz um ataque de cauda."
+  },
+  "69b74ef97d": {
+   "en": "The vulture has advantage on Wisdom (Perception) checks that rely on s",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de visão ou olfato."
+  },
+  "0d825348e3": {
+   "en": "The vulture makes two attacks: one with its beak and one with its talo",
+   "t": "A criatura faz dois ataques: um com o bico e um com as garras."
+  },
+  "e3c1379d35": {
+   "en": "The eagle has advantage on Wisdom (Perception) checks that rely on sig",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de visão."
+  },
+  "726c245c28": {
+   "en": "The eagle makes two attacks: one with its beak and one with its talons",
+   "t": "A criatura faz dois ataques: um com o bico e um com as garras."
+  },
+  "668971df8b": {
+   "en": "The sphinx makes two claw attacks.",
+   "t": "A criatura faz dois ataques de garra."
+  },
+  "1b4c744264": {
+   "en": "The armor makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "5a7aa639e3": {
+   "en": "The assassin makes two shortsword attacks.",
+   "t": "A criatura faz dois ataques de espada curta."
+  },
+  "3c2b4b5fa6": {
+   "en": "The whale can't use its blindsight while deafened.",
+   "t": "A criatura não pode usar sua percepção às cegas enquanto estiver surda."
+  },
+  "ce8b9d1556": {
+   "en": "The whale has advantage on Wisdom (Perception) checks that rely on hea",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição."
+  },
+  "783127baf7": {
+   "en": "The balor makes two attacks: one with its longsword and one with its w",
+   "t": "A criatura faz dois ataques: um com a espada longa e um com o chicote."
+  },
+  "dae748a08a": {
+   "en": "The demon chooses what to summon and attempts a magical summoning. A b",
+   "t": "O demônio escolhe o que invocar e tenta uma invocação mágica.\nUm balor tem 50 por cento de chance de invocar 1d8 vrocks, 1d6 hezrous, 1d4 glabrezus, 1d3 nalfeshnees, 1d2 mariliths ou um goristro.\nUm demônio invocado aparece em um espaço desocupado a até 18 metros de seu invocador, age como aliado dele e não pode invocar outros demônios. Permanece por 1 minuto, até que ele ou seu invocador morra, ou até que o invocador o dispense com uma ação."
+  },
+  "51c325589a": {
+   "en": "The captain makes three melee attacks: two with its scimitar and one w",
+   "t": "A criatura faz três ataques corpo a corpo: dois com a cimitarra e um com a adaga. Ou faz dois ataques à distância com as adagas."
+  },
+  "6f77a6642b": {
+   "en": "The scout has advantage on Wisdom (Perception) checks that rely on hea",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou visão."
+  },
+  "1d51b12a29": {
+   "en": "The scout makes two melee attacks or two ranged attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo ou dois ataques à distância."
+  },
+  "16e076a912": {
+   "en": "The behir makes two attacks: one with its bite and one to constrict.",
+   "t": "A criatura faz dois ataques: um com a mordida e um para constringir."
+  },
+  "1e1fd0d262": {
+   "en": "When hags must work together, they form covens, in spite of their self",
+   "t": "Quando bruxas precisam trabalhar juntas, formam clãs, apesar de sua natureza egoísta. Um clã é formado por bruxas de qualquer tipo, todas iguais dentro do grupo. No entanto, cada uma das bruxas continua desejando mais poder pessoal.\nUm clã é formado por três bruxas, de modo que qualquer discussão entre duas delas possa ser resolvida pela terceira. Se mais de três bruxas se reunirem, como pode acontecer se dois clãs entrarem em conflito, o resultado costuma ser o caos."
+  },
+  "0b7d37ec2b": {
+   "en": "A hag coven can craft a magic item called a hag eye, which is made fro",
+   "t": "Um clã de bruxas pode fabricar um item mágico chamado olho de bruxa, feito de um olho verdadeiro coberto de verniz e frequentemente preso a um pingente ou outro item vestível. O olho de bruxa costuma ser confiado a um lacaio para guarda e transporte. Uma bruxa do clã pode usar uma ação para ver o que o olho de bruxa vê, se ele estiver no mesmo plano de existência. Um olho de bruxa tem CA 10, 1 ponto de vida e visão no escuro com alcance de 18 metros. Se for destruído, cada membro do clã sofre 3d10 de dano psíquico e fica cego por 24 horas.\nUm clã de bruxas só pode ter um olho de bruxa por vez, e criar um novo exige que as três integrantes do clã realizem um ritual. O ritual leva 1 hora, e as bruxas não podem realizá-lo estando cegas. Durante o ritual, se as bruxas realizarem qualquer ação que não seja o ritual, devem recomeçar."
+  },
+  "e2e0cbfa65": {
+   "en": "A night hag carries two very rare magic items that she must craft for ",
+   "t": "Uma bruxa da noite carrega dois itens mágicos muito raros que ela mesma precisa fabricar. Se qualquer um dos objetos se perder, a bruxa da noite fará de tudo para recuperá-lo, pois criar uma nova ferramenta exige tempo e esforço.\nPedra do Coração: Esta gema negra e lustrosa permite que a bruxa da noite se torne etérea enquanto a possuir. O toque de uma pedra do coração também cura qualquer doença. Fabricar uma pedra do coração leva 30 dias.\nBolsa de Almas: Quando um humanoide mau morre em decorrência do Pesadelo Assombrado da bruxa da noite, ela captura a alma nesta bolsa negra feita de carne costurada. Uma bolsa de almas só pode conter uma alma má por vez, e somente a bruxa da noite que fabricou a bolsa pode capturar uma alma com ela. Fabricar uma bolsa de almas leva 7 dias e um sacrifício humanoide (cuja carne é usada para fazer a bolsa)."
+  },
+  "56d11a2db1": {
+   "en": "The hag magically polymorphs into a Small or Medium female humanoid, o",
+   "t": "A bruxa se transforma magicamente em uma humanoide feminina Pequena ou Média, ou retorna à sua forma verdadeira. Suas estatísticas são as mesmas em cada forma. Qualquer equipamento que esteja vestindo ou carregando não se transforma. Ela volta à sua forma verdadeira se morrer."
+  },
+  "7178b8278d": {
+   "en": "The stalker is given a quarry by its summoner. The stalker knows the d",
+   "t": "O perseguidor recebe uma presa de seu invocador. Ele conhece a direção e a distância até a presa enquanto ambos estiverem no mesmo plano de existência. O perseguidor também conhece a localização de seu invocador."
+  },
+  "b4c8e973cd": {
+   "en": "The stalker is invisible.",
+   "t": "O perseguidor está invisível."
+  },
+  "8c68dd8965": {
+   "en": "The stalker makes two slam attacks.",
+   "t": "A criatura faz dois ataques de pancada."
+  },
+  "fe2aedee27": {
+   "en": "The dog makes two bite attacks.",
+   "t": "A criatura faz dois ataques de mordida."
+  },
+  "9fc548e411": {
+   "en": "The hound has advantage on Wisdom (Perception) checks that rely on hea",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "ab20e54506": {
+   "en": "The dog has advantage on Wisdom (Perception) checks that rely on heari",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "add4ec64e3": {
+   "en": "For 1 minute, the knight can utter a special command or warning whenev",
+   "t": "Por 1 minuto, o cavaleiro pode proferir uma ordem ou advertência especial sempre que uma criatura não hostil que ele possa ver a até 9 metros fizer uma jogada de ataque ou uma salvaguarda. A criatura pode somar um d4 à jogada, desde que possa ouvir e entender o cavaleiro. Uma criatura só pode se beneficiar de um dado de Liderança por vez. Este efeito termina se o cavaleiro ficar incapacitado."
+  },
+  "614cd5d13e": {
+   "en": "The knight makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "a3f5b468e7": {
+   "en": "The centaur makes two attacks: one with its pike and one with its hoov",
+   "t": "A criatura faz dois ataques: um com o pique e um com os cascos, ou dois com o arco longo."
+  },
+  "b84c2c3348": {
+   "en": "The jackal has advantage on Wisdom (Perception) checks that rely on he",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "6331aacc3e": {
+   "en": "The chuul makes two pincer attacks. If the chuul is grappling a creatu",
+   "t": "A criatura faz dois ataques de pinça. Se estiver agarrando uma criatura, também pode usar os tentáculos uma vez."
+  },
+  "5842e15826": {
+   "en": "The owl has advantage on Wisdom (Perception) checks that rely on heari",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou visão."
+  },
+  "466955dcd9": {
+   "en": "The vampire regains 10 hit points at the start of its turn if it has a",
+   "t": "A criatura recupera 10 pontos de vida no início de seu turno se tiver pelo menos 1 ponto de vida e não estiver sob luz solar ou em água corrente. Se sofrer dano radiante ou dano de água benta, esta característica não funciona no início do próximo turno da criatura."
+  },
+  "cc40b87e37": {
+   "en": "The vampire makes two attacks, only one of which can be a bite attack.",
+   "t": "A criatura faz dois ataques, dos quais apenas um pode ser de mordida."
+  },
+  "804e6ca4ef": {
+   "en": "The crocodile makes two attacks: one with its bite and one with its ta",
+   "t": "A criatura faz dois ataques: um com a mordida e um com a cauda."
+  },
+  "6cf377b392": {
+   "en": "The fanatic makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "d9334f8a31": {
+   "en": "The pit fiend makes four attacks: one with its bite, one with its claw",
+   "t": "A criatura faz quatro ataques: um com a mordida, um com a garra, um com a maça e um com a cauda."
+  },
+  "acaa3b795f": {
+   "en": "The deva makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "fa289e1a20": {
+   "en": "Magical darkness doesn't impede the devil's darkvision.",
+   "t": "A escuridão mágica não impede a visão no escuro da criatura."
+  },
+  "6d923a9a4f": {
+   "en": "The devil makes two attacks: one with its beard and one with its glaiv",
+   "t": "A criatura faz dois ataques: um com a barba e um com a glaive."
+  },
+  "f8c02e1232": {
+   "en": "The devil makes three melee attacks: two with its fork and one with it",
+   "t": "A criatura faz três ataques corpo a corpo: dois com o forcado e um com a cauda. Pode usar Lançar Chama no lugar de qualquer ataque corpo a corpo."
+  },
+  "4b0fce55de": {
+   "en": "The devil makes two attacks with its chains.",
+   "t": "A criatura faz dois ataques com as correntes."
+  },
+  "46ac878ee2": {
+   "en": "The devil makes three attacks: one with its bite, one with its claws, ",
+   "t": "A criatura faz três ataques: um com a mordida, um com as garras e um com a cauda."
+  },
+  "3eca523a26": {
+   "en": "The devil makes three attacks: two with its claws and one with its sti",
+   "t": "A criatura faz três ataques: dois com as garras e um com o ferrão."
+  },
+  "a78b59442f": {
+   "en": "The devil makes three melee attacks: one with its tail and two with it",
+   "t": "A criatura faz três ataques corpo a corpo: um com a cauda e dois com as garras. Alternativamente, pode usar Lançar Chama duas vezes."
+  },
+  "d4b4be8e70": {
+   "en": "Magical darkness doesn't impede the imp's darkvision.",
+   "t": "A escuridão mágica não impede a visão no escuro da criatura."
+  },
+  "dfe5db9fe5": {
+   "en": "The imp can use its action to polymorph into a beast form that resembl",
+   "t": "A criatura pode usar sua ação para se transformar em uma forma de fera que lembre um rato (deslocamento 6 m), um corvo (6 m, voo 18 m) ou uma aranha (6 m, escalada 6 m), ou retornar à sua forma verdadeira. Suas estatísticas são as mesmas em cada forma, exceto pelas mudanças de deslocamento indicadas. Qualquer equipamento que esteja vestindo ou carregando não se transforma. Ela volta à sua forma verdadeira se morrer."
+  },
+  "2fd548ce1a": {
+   "en": "The imp can serve another creature as a familiar, forming a telepathic",
+   "t": "A criatura pode servir a outra criatura como familiar, formando um vínculo telepático com seu mestre voluntário. Enquanto estiverem vinculados, o mestre pode sentir o que a criatura sente, desde que estejam a até 1,6 km um do outro. Enquanto a criatura estiver a até 3 metros de seu mestre, o mestre compartilha a característica Resistência à Magia da criatura. A qualquer momento e por qualquer motivo, a criatura pode encerrar seu serviço como familiar, desfazendo o vínculo telepático."
+  },
+  "3262d8e798": {
+   "en": "Genies have a variety of magical capabilities, including spells. A few",
+   "t": "Gênios têm uma variedade de capacidades mágicas, incluindo magias. Alguns têm poderes ainda maiores, que lhes permitem alterar sua aparência ou a natureza da realidade.\nDisfarces. Alguns gênios podem se envolver em ilusão para se passar por outras criaturas de forma semelhante. Esses gênios podem conjurar inatamente a magia disfarçar-se à vontade, muitas vezes com duração maior que a normal. Gênios mais poderosos podem conjurar a magia polimorfia verdadeira de uma a três vezes por dia, possivelmente com duração maior que a normal. Esses gênios só podem mudar a própria forma, mas uns poucos raros podem usar a magia também em outras criaturas e objetos.\nDesejos. O poder dos gênios de conceder desejos é lendário entre os mortais. Somente os gênios mais poderosos, como os da nobreza, conseguem fazê-lo. Um gênio específico que tenha esse poder pode conceder de um a três desejos a uma criatura que não seja um gênio. Depois que um gênio concede seu limite de desejos, não pode conceder desejos novamente por certo tempo (geralmente 1 ano), e a lei cósmica determina que o mesmo gênio só pode gastar seu limite de desejos com uma criatura específica uma única vez na existência dela.\nPara receber um desejo, uma criatura a até 18 metros do gênio declara a ele o efeito desejado. O gênio pode então conjurar a magia desejo em nome da criatura para realizar o efeito. Dependendo da natureza do gênio, ele pode tentar distorcer a intenção do desejo explorando sua redação ruim. A distorção da redação costuma ser feita em benefício do gênio."
+  },
+  "628fc7913a": {
+   "en": "The djinni makes three scimitar attacks.",
+   "t": "A criatura faz três ataques de cimitarra."
+  },
+  "cc4cd9af7e": {
+   "en": "The weasel has advantage on Wisdom (Perception) checks that rely on he",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "634400138c": {
+   "en": "The dragon makes a Wisdom (Perception) check.",
+   "t": "A criatura faz um teste de Sabedoria (Percepção)."
+  },
+  "1d9e8b2c66": {
+   "en": "The dragon can use its Frightful Presence. It then makes three attacks",
+   "t": "A criatura pode usar sua Presença Aterradora. Em seguida, faz três ataques: um com a mordida e dois com as garras."
+  },
+  "1a0243b763": {
+   "en": "The dragon makes a tail attack.",
+   "t": "A criatura faz um ataque de cauda."
+  },
+  "9810803ef1": {
+   "en": "The dragon makes three attacks: one with its bite and two with its cla",
+   "t": "A criatura faz três ataques: um com a mordida e dois com as garras."
+  },
+  "2e16d0b2ab": {
+   "en": "The dragon turtle makes three attacks: one with its bite and two with ",
+   "t": "A criatura faz três ataques: um com a mordida e dois com as garras. Pode fazer um ataque de cauda no lugar dos dois ataques de garra."
+  },
+  "5cf9153f50": {
+   "en": "The drider makes three attacks, either with its longsword or its longb",
+   "t": "A criatura faz três ataques, com a espada longa ou com o arco longo. Pode substituir um desses ataques por um ataque de mordida."
+  },
+  "e8b28a6f54": {
+   "en": "The dretch makes two attacks: one with its bite and one with its claws",
+   "t": "A criatura faz dois ataques: um com a mordida e um com as garras."
+  },
+  "83a0f026e1": {
+   "en": "The doppelganger makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "5e67f6dbbb": {
+   "en": "The doppelganger magically reads the surface thoughts of one creature ",
+   "t": "A criatura lê magicamente os pensamentos superficiais de uma criatura a até 18 metros. O efeito pode atravessar barreiras, mas é bloqueado por 90 cm de madeira ou terra, 60 cm de pedra, 5 cm de metal ou uma folha fina de chumbo. Enquanto o alvo estiver ao alcance, a criatura pode continuar lendo seus pensamentos, desde que sua concentração não seja interrompida (como se estivesse se concentrando em uma magia). Enquanto lê a mente do alvo, a criatura tem vantagem em testes de Sabedoria (Intuição) e de Carisma (Enganação, Intimidação e Persuasão) contra o alvo."
+  },
+  "965d1041e9": {
+   "en": "The elemental makes two slam attacks.",
+   "t": "A criatura faz dois ataques de pancada."
+  },
+  "f985c0da5d": {
+   "en": "The elemental makes two touch attacks.",
+   "t": "A criatura faz dois ataques de toque."
+  },
+  "b984025439": {
+   "en": "The treant makes two slam attacks.",
+   "t": "A criatura faz dois ataques de pancada."
+  },
+  "336398050b": {
+   "en": "The swarm can't use its blindsight while deafened.",
+   "t": "A criatura não pode usar sua percepção às cegas enquanto estiver surda."
+  },
+  "132e7ebfce": {
+   "en": "The swarm has advantage on Wisdom (Perception) checks that rely on hea",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição."
+  },
+  "bf41a7161f": {
+   "en": "The swarm has advantage on Wisdom (Perception) checks that rely on sme",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "0b875d596f": {
+   "en": "The erinyes makes three attacks",
+   "t": "A criatura faz três ataques."
+  },
+  "071c62f18e": {
+   "en": "Some erinyes carry a rope of entanglement (detailed in the Dungeon Mas",
+   "t": "Algumas erínias carregam uma corda de enredamento (detalhada no Guia do Mestre). Quando essa erínia usa seu Ataque Múltiplo, pode usar a corda no lugar de dois dos ataques."
+  },
+  "15d907e401": {
+   "en": "The scorpion makes three attacks: two with its claws and one with its ",
+   "t": "A criatura faz três ataques: dois com as garras e um com o ferrão."
+  },
+  "3fb0b85cd2": {
+   "en": "The spy makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "d6d3305dca": {
+   "en": "The roper makes four attacks with its tendrils, uses Reel, and makes o",
+   "t": "A criatura faz quatro ataques com os filamentos, usa Enrolar e faz um ataque com a mordida."
+  },
+  "b29e187ee1": {
+   "en": "The roper pulls each creature grappled by it up to 25 ft. straight tow",
+   "t": "A criatura puxa cada criatura agarrada por ela até 7,5 metros em linha reta em sua direção."
+  },
+  "1f3556394b": {
+   "en": "The ettercap makes two attacks: one with its bite and one with its cla",
+   "t": "A criatura faz dois ataques: um com a mordida e um com as garras."
+  },
+  "3795e1a447": {
+   "en": "The ettin makes two attacks: one with its battleaxe and one with its m",
+   "t": "A criatura faz dois ataques: um com o machado de batalha e um com a maça-estrela."
+  },
+  "3647f1a427": {
+   "en": "The hawk has advantage on Wisdom (Perception) checks that rely on sigh",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de visão."
+  },
+  "85cd03b2e7": {
+   "en": "The fungus makes 1d4 Rotting Touch attacks.",
+   "t": "A criatura faz 1d4 ataques de Toque Podre."
+  },
+  "1fc7afe123": {
+   "en": "The gargoyle makes two attacks: one with its bite and one with its cla",
+   "t": "A criatura faz dois ataques: um com a mordida e um com as garras."
+  },
+  "0de3d1944b": {
+   "en": "The cat has advantage on Wisdom (Perception) checks that rely on smell",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "2240ce510d": {
+   "en": "The giant makes two greatclub attacks.",
+   "t": "A criatura faz dois ataques de clava grande."
+  },
+  "3dfa02d18b": {
+   "en": "The giant makes two greatsword attacks.",
+   "t": "A criatura faz dois ataques de montante."
+  },
+  "2093b3e052": {
+   "en": "The giant has advantage on Wisdom (Perception) checks that rely on sme",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "488a500de5": {
+   "en": "The giant makes two morningstar attacks.",
+   "t": "A criatura faz dois ataques de maça-estrela."
+  },
+  "614b1de826": {
+   "en": "The giant makes two greataxe attacks.",
+   "t": "A criatura faz dois ataques de machado grande."
+  },
+  "b5a2efe965": {
+   "en": "The glabrezu makes four attacks: two with its pincers and two with its",
+   "t": "A criatura faz quatro ataques: dois com as pinças e dois com os punhos. Alternativamente, faz dois ataques com as pinças e conjura uma magia."
+  },
+  "12a2de69d6": {
+   "en": "The demon chooses what to summon and attempts a magical summoning. A g",
+   "t": "O demônio escolhe o que invocar e tenta uma invocação mágica.\nUm glabrezu tem 30 por cento de chance de invocar 1d3 vrocks, 1d2 hezrous ou um glabrezu.\nUm demônio invocado aparece em um espaço desocupado a até 18 metros de seu invocador, age como aliado dele e não pode invocar outros demônios. Permanece por 1 minuto, até que ele ou seu invocador morra, ou até que o invocador o dispense com uma ação."
+  },
+  "846e333ade": {
+   "en": "The gladiator makes three melee attacks or two ranged attacks.",
+   "t": "A criatura faz três ataques corpo a corpo ou dois ataques à distância."
+  },
+  "e4323b54b6": {
+   "en": "Whenever the golem starts its turn with 60 hit points or fewer, roll a",
+   "t": "Sempre que o golem começar seu turno com 60 pontos de vida ou menos, role um d6. Com um 6, o golem entra em fúria. Em cada um de seus turnos enquanto estiver em fúria, o golem ataca a criatura mais próxima que puder ver. Se nenhuma criatura estiver perto o bastante para que ele se mova até ela e ataque, o golem ataca um objeto, preferindo um objeto menor que ele mesmo. Depois que o golem entra em fúria, continua assim até ser destruído ou recuperar todos os seus pontos de vida."
+  },
+  "fe834e931f": {
+   "en": "The golem makes two slam attacks.",
+   "t": "A criatura faz dois ataques de pancada."
+  },
+  "aa2b7fcb23": {
+   "en": "Whenever the golem starts its turn with 40 hit points or fewer, roll a",
+   "t": "Sempre que o golem começar seu turno com 40 pontos de vida ou menos, role um d6. Com um 6, o golem entra em fúria. Em cada um de seus turnos enquanto estiver em fúria, o golem ataca a criatura mais próxima que puder ver. Se nenhuma criatura estiver perto o bastante para que ele se mova até ela e ataque, o golem ataca um objeto, preferindo um objeto menor que ele mesmo. Depois que o golem entra em fúria, continua assim até ser destruído ou recuperar todos os seus pontos de vida.\nO criador do golem, se estiver a até 18 metros do golem em fúria, pode tentar acalmá-lo falando com firmeza e persuasão. O golem precisa ouvir seu criador, que deve usar uma ação para fazer um teste de Carisma (Persuasão) CD 15. Se o teste for bem-sucedido, o golem deixa de estar em fúria. Se sofrer dano enquanto ainda estiver com 40 pontos de vida ou menos, o golem pode entrar em fúria novamente."
+  },
+  "eb86aa53ca": {
+   "en": "The golem makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "dd2ad8f809": {
+   "en": "The golem targets one or more creatures it can see within 10 ft. of it",
+   "t": "O golem escolhe uma ou mais criaturas que possa ver a até 3 metros. Cada alvo deve fazer uma salvaguarda de Sabedoria CD 17 contra esta magia. Em caso de falha, o alvo não pode usar reações, seu deslocamento é reduzido à metade e ele não pode fazer mais de um ataque em seu turno. Além disso, o alvo pode realizar uma ação ou uma ação bônus em seu turno, não ambas. Esses efeitos duram 1 minuto. Um alvo pode repetir a salvaguarda ao final de cada um de seus turnos, encerrando o efeito sobre si em caso de sucesso."
+  },
+  "7b865dc749": {
+   "en": "The ape makes two fist attacks.",
+   "t": "A criatura faz dois ataques de punho."
+  },
+  "32a877eafd": {
+   "en": "The grick makes one attack with its tentacles. If that attack hits, th",
+   "t": "A criatura faz um ataque com os tentáculos. Se esse ataque acertar, pode fazer um ataque de bico contra o mesmo alvo."
+  },
+  "94d448fdf7": {
+   "en": "The griffon has advantage on Wisdom (Perception) checks that rely on s",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de visão."
+  },
+  "872c5d9ce8": {
+   "en": "The griffon makes two attacks: one with its beak and one with its claw",
+   "t": "A criatura faz dois ataques: um com o bico e um com as garras."
+  },
+  "2454581124": {
+   "en": "The grimlock has advantage on Wisdom (Perception) checks that rely on ",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "36bada0968": {
+   "en": "The guardian makes two fist attacks.",
+   "t": "A criatura faz dois ataques de punho."
+  },
+  "224912a074": {
+   "en": "The harpy makes two attacks: one with its claws and one with its club.",
+   "t": "A criatura faz dois ataques: um com as garras e um com a clava."
+  },
+  "4b6c607537": {
+   "en": "The hezrou makes three attacks: one with its bite and two with its cla",
+   "t": "A criatura faz três ataques: um com a mordida e dois com as garras."
+  },
+  "ebe4620f87": {
+   "en": "The demon chooses what to summon and attempts a magical summoning. A h",
+   "t": "O demônio escolhe o que invocar e tenta uma invocação mágica.\nUm hezrou tem 30 por cento de chance de invocar 2d6 dretches ou um hezrou.\nUm demônio invocado aparece em um espaço desocupado a até 18 metros de seu invocador, age como aliado dele e não pode invocar outros demônios. Permanece por 1 minuto, até que ele ou seu invocador morra, ou até que o invocador o dispense com uma ação."
+  },
+  "79840114c5": {
+   "en": "The hydra makes as many bite attacks as it has heads.",
+   "t": "A criatura faz tantos ataques de mordida quanto o número de cabeças que tiver."
+  },
+  "f2a326a8a9": {
+   "en": "The hippogriff has advantage on Wisdom (Perception) checks that rely o",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de visão."
+  },
+  "e06d14895b": {
+   "en": "The hippogriff makes two attacks: one with its beak and one with its c",
+   "t": "A criatura faz dois ataques: um com o bico e um com as garras."
+  },
+  "6bd06d3f92": {
+   "en": "The wereboar makes two attacks, only one of which can be with its tusk",
+   "t": "A criatura faz dois ataques, dos quais apenas um pode ser com as presas."
+  },
+  "d5fa069fec": {
+   "en": "The wererat has advantage on Wisdom (Perception) checks that rely on s",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "3e84526ad2": {
+   "en": "The wererat makes two attacks, only one of which can be a bite.",
+   "t": "A criatura faz dois ataques, dos quais apenas um pode ser de mordida."
+  },
+  "e406ab1e2a": {
+   "en": "The weretiger has advantage on Wisdom (Perception) checks that rely on",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "b5e010867b": {
+   "en": "In humanoid form, the weretiger makes two scimitar attacks or two long",
+   "t": "Em forma humanoide, a criatura faz dois ataques de cimitarra ou dois ataques de arco longo. Em forma híbrida, pode atacar como um humanoide ou fazer dois ataques de garra."
+  },
+  "f9da91bee3": {
+   "en": "The werebear has advantage on Wisdom (Perception) checks that rely on ",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "984a76ecff": {
+   "en": "In bear form, the werebear makes two claw attacks. In humanoid form, i",
+   "t": "Em forma de urso, a criatura faz dois ataques de garra. Em forma humanoide, faz dois ataques de machado grande. Em forma híbrida, pode atacar como um urso ou como um humanoide."
+  },
+  "64617524af": {
+   "en": "The efreeti makes two scimitar attacks or uses its Hurl Flame twice.",
+   "t": "A criatura faz dois ataques de cimitarra ou usa Lançar Chama duas vezes."
+  },
+  "f7c85eb710": {
+   "en": "The wight makes two longsword attacks or two longbow attacks. It can u",
+   "t": "A criatura faz dois ataques de espada longa ou dois ataques de arco longo. Pode usar Drenar Vida no lugar de um ataque de espada longa."
+  },
+  "6beca2c3d3": {
+   "en": "The kraken uses Lightning Storm.",
+   "t": "A criatura usa Tempestade de Raios."
+  },
+  "81037e4af2": {
+   "en": "The kraken makes three tentacle attacks, each of which it can replace ",
+   "t": "A criatura faz três ataques de tentáculo, e cada um deles pode ser substituído por um uso de Arremessar."
+  },
+  "ec2afda515": {
+   "en": "The lizard can hold its breath for 15 minutes. (A lizard that has this",
+   "t": "A criatura pode prender a respiração por 15 minutos. (Um lagarto que tenha esta característica também tem deslocamento de natação de 9 metros.)"
+  },
+  "abe4d8ed8a": {
+   "en": "The lizard can climb difficult surfaces, including upside down on ceil",
+   "t": "A criatura pode escalar superfícies difíceis, inclusive de cabeça para baixo em tetos, sem precisar fazer um teste de atributo."
+  },
+  "e8d00ef7e6": {
+   "en": "The lamia makes two attacks: one with its claws and one with its dagge",
+   "t": "A criatura faz dois ataques: um com as garras e um com a adaga ou com o Toque Intoxicante."
+  },
+  "e76365cb97": {
+   "en": "The lion has advantage on Wisdom (Perception) checks that rely on smel",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "2385990e56": {
+   "en": "Magical darkness doesn't impede the lemure's darkvision.",
+   "t": "A escuridão mágica não impede a visão no escuro da criatura."
+  },
+  "07482c2fad": {
+   "en": "If it has a phylactery, a destroyed lich gains a new body in 1d10 days",
+   "t": "Se tiver um filactério, um lich destruído ganha um novo corpo em 1d10 dias, recuperando todos os seus pontos de vida e voltando a ficar ativo. O novo corpo aparece a até 1,5 metro do filactério."
+  },
+  "adc91d8520": {
+   "en": "The lich casts a cantrip.",
+   "t": "A criatura conjura um truque."
+  },
+  "afb205e8b3": {
+   "en": "The werewolf has advantage on Wisdom (Perception) checks that rely on ",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "b4fdab8da3": {
+   "en": "The werewolf makes two attacks: two with its spear (humanoid form) or ",
+   "t": "A criatura faz dois ataques: dois com a lança (forma humanoide) ou um com a mordida e um com as garras (forma híbrida)."
+  },
+  "a8426db0b9": {
+   "en": "The wolf has advantage on Wisdom (Perception) checks that rely on hear",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "2aa64fb59c": {
+   "en": "The manticore makes three attacks: one with its bite and two with its ",
+   "t": "A criatura faz três ataques: um com a mordida e dois com as garras, ou três com os espinhos da cauda."
+  },
+  "08c364549a": {
+   "en": "While the darkmantle remains motionless, it is indistinguishable from ",
+   "t": "Enquanto permanecer imóvel, a criatura é indistinguível de uma formação de caverna, como uma estalactite ou estalagmite."
+  },
+  "36af3cda03": {
+   "en": "While the cloaker remains motionless without its underside exposed, it",
+   "t": "Enquanto permanecer imóvel e sem expor sua parte inferior, a criatura é indistinguível de uma capa de couro escura."
+  },
+  "ff20bfde3d": {
+   "en": "The cloaker makes two attacks: one with its bite and one with its tail",
+   "t": "A criatura faz dois ataques: um com a mordida e um com a cauda."
+  },
+  "30920a977b": {
+   "en": "The marilith can make seven attacks: six with its longswords and one w",
+   "t": "A criatura pode fazer sete ataques: seis com as espadas longas e um com a cauda."
+  },
+  "46588dabf2": {
+   "en": "The demon chooses what to summon and attempts a magical summoning. A m",
+   "t": "O demônio escolhe o que invocar e tenta uma invocação mágica.\nUm marilith tem 50 por cento de chance de invocar 1d6 vrocks, 1d4 hezrous, 1d3 glabrezus, 1d2 nalfeshnees ou um marilith.\nUm demônio invocado aparece em um espaço desocupado a até 18 metros de seu invocador, age como aliado dele e não pode invocar outros demônios. Permanece por 1 minuto, até que ele ou seu invocador morra, ou até que o invocador o dispense com uma ação."
+  },
+  "84ee9071e5": {
+   "en": "The mastiff has advantage on Wisdom (Perception) checks that rely on h",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "8aea21c9be": {
+   "en": "The medusa makes either three melee attacks - one with its snake hair ",
+   "t": "A criatura faz três ataques corpo a corpo (um com os cabelos de serpente e dois com a espada curta) ou dois ataques à distância com o arco longo."
+  },
+  "bc6a0bd411": {
+   "en": "The mephit has a 25 percent chance of summoning 1d4 mephits of its kin",
+   "t": "A criatura tem 25 por cento de chance de invocar 1d4 mefites de sua espécie. Um mefite invocado aparece em um espaço desocupado a até 18 metros de seu invocador, age como aliado dele e não pode invocar outros mefites. Permanece por 1 minuto, até que ele ou seu invocador morra, ou até que o invocador o dispense com uma ação."
+  },
+  "493673fd2a": {
+   "en": "The veteran makes two longsword attacks. If it has a shortsword drawn,",
+   "t": "A criatura faz dois ataques de espada longa. Se estiver com uma espada curta em punho, também pode fazer um ataque de espada curta."
+  },
+  "79ba1de8ae": {
+   "en": "The rust monster corrodes a nonmagical ferrous metal object it can see",
+   "t": "A criatura corrói um objeto de metal ferroso não mágico que possa ver a até 1,5 metro. Se o objeto não estiver sendo vestido ou carregado, o toque destrói um cubo de 30 cm dele. Se o objeto estiver sendo vestido ou carregado por uma criatura, ela pode fazer uma salvaguarda de Destreza CD 11 para evitar o toque da criatura.\nSe o objeto tocado for uma armadura de metal ou um escudo de metal vestido ou carregado, ele sofre uma penalidade permanente e cumulativa de -1 na CA que oferece. Uma armadura reduzida a CA 10 ou um escudo que chegue a bônus +0 é destruído. Se o objeto tocado for uma arma de metal empunhada, ela enferruja conforme descrito na característica Enferrujar Metal."
+  },
+  "b112b36ac8": {
+   "en": "The shambling mound makes two slam attacks. If both attacks hit a Medi",
+   "t": "A criatura faz dois ataques de pancada. Se ambos acertarem um alvo Médio ou menor, o alvo fica agarrado (CD 14 para escapar) e a criatura usa Engolfar nele."
+  },
+  "8d878f1e5b": {
+   "en": "The bat has advantage on Wisdom (Perception) checks that rely on heari",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição."
+  },
+  "136f0823b1": {
+   "en": "The bat can't use its blindsight while deafened.",
+   "t": "A criatura não pode usar sua percepção às cegas enquanto estiver surda."
+  },
+  "6da6b32c8a": {
+   "en": "The mummy can use its Dreadful Glare and makes one attack with its rot",
+   "t": "A criatura pode usar seu Olhar Apavorante e faz um ataque com o punho podre."
+  },
+  "a6380ed397": {
+   "en": "A destroyed mummy lord gains a new body in 24 hours if its heart is in",
+   "t": "Um lorde múmia destruído ganha um novo corpo em 24 horas se seu coração estiver intacto, recuperando todos os seus pontos de vida e voltando a ficar ativo. O novo corpo aparece a até 1,5 metro do coração do lorde múmia."
+  },
+  "3e6d61b7e3": {
+   "en": "The mummy lord makes one attack with its rotting fist or uses its Drea",
+   "t": "A criatura faz um ataque com o punho podre ou usa seu Olhar Apavorante."
+  },
+  "23ca9394c2": {
+   "en": "The nalfeshnee uses Horror Nimbus if it can. It then makes three attac",
+   "t": "A criatura usa Aura de Horror, se puder. Em seguida, faz três ataques: um com a mordida e dois com as garras."
+  },
+  "2d99b589f2": {
+   "en": "The demon chooses what to summon and attempts a magical summoning. A n",
+   "t": "O demônio escolhe o que invocar e tenta uma invocação mágica.\nUm nalfeshnee tem 50 por cento de chance de invocar 1d4 vrocks, 1d3 hezrous, 1d2 glabrezus ou um nalfeshnee.\nUm demônio invocado aparece em um espaço desocupado a até 18 metros de seu invocador, age como aliado dele e não pode invocar outros demônios. Permanece por 1 minuto, até que ele ou seu invocador morra, ou até que o invocador o dispense com uma ação."
+  },
+  "be6088daa6": {
+   "en": "The oni magically polymorphs into a Small or Medium humanoid, into a L",
+   "t": "A criatura se transforma magicamente em um humanoide Pequeno ou Médio, em um gigante Grande, ou retorna à sua forma verdadeira. Exceto pelo tamanho, suas estatísticas são as mesmas em cada forma. O único equipamento que se transforma é sua glaive, que encolhe para poder ser empunhada em forma humanoide. Se a criatura morrer, volta à forma verdadeira e sua glaive volta ao tamanho normal."
+  },
+  "562dc0ed4a": {
+   "en": "The oni makes two attacks, either with its claws or its glaive.",
+   "t": "A criatura faz dois ataques, com as garras ou com a glaive."
+  },
+  "72a0794841": {
+   "en": "The otyugh makes three attacks: one with its bite and two with its ten",
+   "t": "A criatura faz três ataques: um com a mordida e dois com os tentáculos."
+  },
+  "74121aa60a": {
+   "en": "The panther has advantage on Wisdom (Perception) checks that rely on s",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "93e9644209": {
+   "en": "The planetar makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "b8ebb28baf": {
+   "en": "While out of water, the octopus can hold its breath for 30 minutes.",
+   "t": "Fora da água, a criatura pode prender a respiração por 30 minutos."
+  },
+  "d7e184495c": {
+   "en": "The lizardfolk makes two melee attacks, each one with a different weap",
+   "t": "A criatura faz dois ataques corpo a corpo, cada um com uma arma diferente."
+  },
+  "6630626a8e": {
+   "en": "The pseudodragon can serve another creature as a familiar, forming a m",
+   "t": "A criatura pode servir a outra criatura como familiar, formando um vínculo mágico e telepático com esse companheiro voluntário. Enquanto estiverem vinculados, o companheiro pode sentir o que a criatura sente, desde que estejam a até 1,6 km um do outro. Enquanto a criatura estiver a até 3 metros de seu companheiro, o companheiro compartilha a característica Resistência à Magia da criatura. A qualquer momento e por qualquer motivo, a criatura pode encerrar seu serviço como familiar, desfazendo o vínculo telepático."
+  },
+  "eb831608f7": {
+   "en": "The quasit can use its action to polymorph into a beast form that rese",
+   "t": "A criatura pode usar sua ação para se transformar em uma forma de fera que lembre um morcego (deslocamento 3 m, voo 12 m), uma centopeia (12 m, escalada 12 m) ou um sapo (12 m, natação 12 m), ou retornar à sua forma verdadeira. Suas estatísticas são as mesmas em cada forma, exceto pelas mudanças de deslocamento indicadas. Qualquer equipamento que esteja vestindo ou carregando não se transforma. Ela volta à sua forma verdadeira se morrer."
+  },
+  "f3edf8a158": {
+   "en": "The quasit can serve another creature as a familiar, forming a telepat",
+   "t": "A criatura pode servir a outra criatura como familiar, formando um vínculo telepático com seu mestre voluntário. Enquanto estiverem vinculados, o mestre pode sentir o que a criatura sente, desde que estejam a até 1,6 km um do outro. Enquanto a criatura estiver a até 3 metros de seu mestre, o mestre compartilha a característica Resistência à Magia da criatura. A qualquer momento e por qualquer motivo, a criatura pode encerrar seu serviço como familiar, desfazendo o vínculo telepático."
+  },
+  "ed7b29ba7c": {
+   "en": "The chimera makes three attacks: one with its bite, one with its horns",
+   "t": "A criatura faz três ataques: um com a mordida, um com os chifres e um com as garras. Quando o sopro de fogo estiver disponível, pode usá-lo no lugar da mordida ou dos chifres."
+  },
+  "a6735636e0": {
+   "en": "The rakshasa makes two claw attacks",
+   "t": "A criatura faz dois ataques de garra."
+  },
+  "c60e9d7160": {
+   "en": "The rat has advantage on Wisdom (Perception) checks that rely on smell",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "00e33a36fc": {
+   "en": "The roc has advantage on Wisdom (Perception) checks that rely on sight",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de visão."
+  },
+  "86421799cc": {
+   "en": "The roc makes two attacks: one with its beak and one with its talons.",
+   "t": "A criatura faz dois ataques: um com o bico e um com as garras."
+  },
+  "292fc228be": {
+   "en": "The thug makes two melee attacks.",
+   "t": "A criatura faz dois ataques corpo a corpo."
+  },
+  "727de960fa": {
+   "en": "The sahuagin makes two melee attacks: one with its bite and one with i",
+   "t": "A criatura faz dois ataques corpo a corpo: um com a mordida e um com as garras ou a lança."
+  },
+  "98a0a53121": {
+   "en": "The salamander makes two attacks: one with its spear and one with its ",
+   "t": "A criatura faz dois ataques: um com a lança e um com a cauda."
+  },
+  "5b5523d55a": {
+   "en": "Gentle Lullaby. The creature falls asleep and is unconscious for 1 min",
+   "t": "Canção de Ninar Suave. A criatura adormece e fica inconsciente por 1 minuto. O efeito termina se a criatura sofrer dano ou se alguém usar uma ação para sacudi-la e acordá-la."
+  },
+  "025e222c65": {
+   "en": "The merrow makes two attacks: one with its bite and one with its claws",
+   "t": "A criatura faz dois ataques: um com a mordida e um com as garras ou o arpão."
+  },
+  "97f31b25bb": {
+   "en": "The wyvern makes two attacks: one with its bite and one with its sting",
+   "t": "A criatura faz dois ataques: um com a mordida e um com o ferrão. Enquanto voa, pode usar as garras no lugar de outro ataque."
+  },
+  "c1a3d5ef7c": {
+   "en": "The solar makes two greatsword attacks.",
+   "t": "A criatura faz dois ataques de montante."
+  },
+  "03dc7335d5": {
+   "en": "The fiend magically enters the Ethereal Plane from the Material Plane,",
+   "t": "A criatura entra magicamente no Plano Etéreo vindo do Plano Material, ou vice-versa."
+  },
+  "3b09ee299d": {
+   "en": "Any time the tarrasque is targeted by a magic missile spell, a line sp",
+   "t": "Sempre que a criatura for alvo da magia mísseis mágicos, de uma magia de linha ou de uma magia que exija uma jogada de ataque à distância, role um d6. Com 1 a 5, a criatura não é afetada. Com 6, a criatura não é afetada e o efeito é refletido de volta ao conjurador como se tivesse se originado da criatura, tornando o conjurador o alvo."
+  },
+  "39bffd242d": {
+   "en": "The tarrasque makes one claw attack or tail attack.",
+   "t": "A criatura faz um ataque de garra ou de cauda."
+  },
+  "f61d09290c": {
+   "en": "The tarrasque moves up to half its speed.",
+   "t": "A criatura se move até metade de seu deslocamento."
+  },
+  "f75fda78ad": {
+   "en": "The tarrasque can use its Frightful Presence. It then makes five attac",
+   "t": "A criatura pode usar sua Presença Aterradora. Em seguida, faz cinco ataques: um com a mordida, dois com as garras, um com os chifres e um com a cauda. Pode usar Engolir em vez da mordida."
+  },
+  "0f8b9bf9a2": {
+   "en": "The badger has advantage on Wisdom (Perception) checks that rely on sm",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "072963e40b": {
+   "en": "The badger makes two attacks: one with its bite and one with its claws",
+   "t": "A criatura faz dois ataques: um com a mordida e um com as garras."
+  },
+  "f2ccbea456": {
+   "en": "The tiger has advantage on Wisdom (Perception) checks that rely on sme",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "2b0a7059df": {
+   "en": "The tyrannosaurus makes two attacks: one with its bite and one with it",
+   "t": "A criatura faz dois ataques: um com a mordida e um com a cauda. Não pode fazer os dois ataques contra o mesmo alvo."
+  },
+  "f30d1fb46f": {
+   "en": "The troll has advantage on Wisdom (Perception) checks that rely on sme",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "5e5b1ed24c": {
+   "en": "The troll regains 10 hit points at the start of its turn. If the troll",
+   "t": "A criatura recupera 10 pontos de vida no início de seu turno. Se sofrer dano de ácido ou de fogo, esta característica não funciona no início do próximo turno da criatura. A criatura só morre se começar seu turno com 0 pontos de vida e não se regenerar."
+  },
+  "6f5b0256a3": {
+   "en": "Whenever the troll takes at least 15 slashing damage at one time, roll",
+   "t": "Sempre que a criatura sofrer pelo menos 15 de dano cortante de uma só vez, role um d20 para determinar o que mais acontece com ela:\n\n1-10: Nada mais acontece.\n11-14: Uma perna é decepada da criatura, se ela ainda tiver pernas.\n15-18: Um braço é decepado da criatura, se ela ainda tiver braços.\n19-20: A criatura é decapitada, mas só morre se não puder se regenerar. Se morrer, a cabeça decepada também morre.\n\nSe a criatura terminar um descanso curto ou longo sem reanexar um membro ou a cabeça decepados, a parte volta a crescer. Nesse momento, a parte decepada morre. Até lá, uma parte decepada age na iniciativa da criatura e tem sua própria ação e movimento. Uma parte decepada tem CA 13, 10 pontos de vida e a característica Regeneração da criatura.\nUma perna decepada não consegue atacar e tem deslocamento de 1,5 metro.\nUm braço decepado tem deslocamento de 1,5 metro e pode fazer um ataque de garra em seu turno, com desvantagem na jogada de ataque a menos que a criatura possa ver o braço e seu alvo. Cada vez que a criatura perde um braço, perde um ataque de garra.\nSe a cabeça for decepada, a criatura perde seu ataque de mordida e seu corpo fica cego, a menos que a cabeça possa vê-lo. A cabeça decepada tem deslocamento de 0 metro e a característica Olfato Aguçado da criatura. Ela pode fazer um ataque de mordida, mas somente contra um alvo em seu espaço.\nO deslocamento da criatura é reduzido à metade se lhe faltar uma perna. Se perder ambas as pernas, fica caída. Se tiver ambos os braços, pode rastejar. Com apenas um braço, ainda pode rastejar, mas seu deslocamento é reduzido à metade. Sem braços nem pernas, seu deslocamento é 0 e ela não pode se beneficiar de bônus de deslocamento."
+  },
+  "00f01b2f98": {
+   "en": "The troll makes three attacks: one with its bite and two with its claw",
+   "t": "A criatura faz três ataques: um com a mordida e dois com as garras."
+  },
+  "82701b9e2e": {
+   "en": "The unicorn makes two attacks: one with its hooves and one with its ho",
+   "t": "A criatura faz dois ataques: um com os cascos e um com o chifre."
+  },
+  "a04cb3daca": {
+   "en": "The unicorn magically teleports itself and up to three willing creatur",
+   "t": "A criatura teleporta magicamente a si mesma e até três criaturas dispostas que possa ver a até 1,5 metro, junto com qualquer equipamento que estejam vestindo ou carregando, para um local que a criatura conheça, a até 1,6 km de distância."
+  },
+  "de6a2249c3": {
+   "en": "The bear has advantage on Wisdom (Perception) checks that rely on smel",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de olfato."
+  },
+  "b0ff9bf11e": {
+   "en": "The bear makes two attacks: one with its bite and one with its claws.",
+   "t": "A criatura faz dois ataques: um com a mordida e um com as garras."
+  },
+  "3626c02b41": {
+   "en": "The owlbear has advantage on Wisdom (Perception) checks that rely on s",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de visão ou olfato."
+  },
+  "9d6533b372": {
+   "en": "The owlbear makes two attacks: one with its beak and one with its claw",
+   "t": "A criatura faz dois ataques: um com o bico e um com as garras."
+  },
+  "97eb14e682": {
+   "en": "The vampire regains 20 hit points at the start of its turn if it has a",
+   "t": "A criatura recupera 20 pontos de vida no início de seu turno se tiver pelo menos 1 ponto de vida e não estiver sob luz solar ou em água corrente. Se sofrer dano radiante ou dano de água benta, esta característica não funciona no início do próximo turno da criatura."
+  },
+  "91423b27e1": {
+   "en": "If the vampire isn't in sun light or running water, it can use its act",
+   "t": "Se não estiver sob luz solar ou em água corrente, a criatura pode usar sua ação para se transformar em um morcego Miúdo ou em uma nuvem de névoa Média, ou retornar à sua forma verdadeira.\nEm forma de morcego, a criatura não pode falar, seu deslocamento de caminhada é 1,5 metro e ela tem deslocamento de voo de 9 metros. Suas estatísticas, exceto tamanho e deslocamento, não mudam. Qualquer coisa que esteja vestindo se transforma com ela, mas nada do que esteja carregando. Ela volta à sua forma verdadeira se morrer.\nEm forma de névoa, a criatura não pode realizar ações, falar nem manipular objetos. Ela não tem peso, tem deslocamento de voo de 6 metros, pode pairar e pode entrar no espaço de uma criatura hostil e parar ali. Além disso, se o ar puder passar por um espaço, a névoa pode fazê-lo sem se espremer, e não pode atravessar água. Tem vantagem em salvaguardas de Força, Destreza e Constituição e é imune a todo dano não mágico, exceto o dano que sofre da luz solar."
+  },
+  "a037a0d44e": {
+   "en": "The vampire makes one unarmed strike.",
+   "t": "A criatura faz um golpe desarmado."
+  },
+  "793bc14f63": {
+   "en": "The vampire moves up to its speed without provoking opportunity attack",
+   "t": "A criatura se move até seu deslocamento sem provocar ataques de oportunidade."
+  },
+  "99896059f1": {
+   "en": "The worm can burrow through solid rock at half its burrow speed and le",
+   "t": "A criatura pode escavar rocha sólida com metade de seu deslocamento de escavação e deixa um túnel de 3 metros de diâmetro em seu rastro."
+  },
+  "e1b17a3303": {
+   "en": "The worm makes two attacks: one with its bite and one with its stinger",
+   "t": "A criatura faz dois ataques: um com a mordida e um com o ferrão."
+  },
+  "6533ce1926": {
+   "en": "The vrock makes two attacks: one with its beak and one with its talons",
+   "t": "A criatura faz dois ataques: um com o bico e um com as garras."
+  },
+  "7ddcc9db03": {
+   "en": "The demon chooses what to summon and attempts a magical summoning. A v",
+   "t": "O demônio escolhe o que invocar e tenta uma invocação mágica.\nUm vrock tem 30 por cento de chance de invocar 2d4 dretches ou um vrock.\nUm demônio invocado aparece em um espaço desocupado a até 18 metros de seu invocador, age como aliado dele e não pode invocar outros demônios. Permanece por 1 minuto, até que ele ou seu invocador morra, ou até que o invocador o dispense com uma ação."
+  },
+  "be50b929a7": {
+   "en": "The worg has advantage on Wisdom (Perception) checks that rely on hear",
+   "t": "A criatura tem vantagem em testes de Sabedoria (Percepção) que dependam de audição ou olfato."
+  },
+  "7c25910178": {
+   "en": "The xorn makes three claw attacks and one bite attack.",
+   "t": "A criatura faz três ataques de garra e um ataque de mordida."
+  },
+  "8a70ce57d5": {
+   "en": "If damage reduces the zombie to 0 hit points, it must make a Constitut",
+   "t": "Se um dano reduzir a criatura a 0 pontos de vida, ela deve fazer uma salvaguarda de Constituição com CD igual a 5 + o dano sofrido, a menos que o dano seja radiante ou de um acerto crítico. Em caso de sucesso, a criatura cai para 1 ponto de vida em vez disso."
+  }
+ },
+ "nomes": {
+  "Attack": "Ataque",
+  "Beak": "Bico",
+  "Beaks": "Bicos",
+  "Beard": "Barba",
+  "Bites": "Mordidas",
+  "Blood Drain": "Drenar Sangue",
+  "Cantrip": "Truque",
+  "Chain": "Corrente",
+  "Constrict": "Constringir",
+  "Crush": "Esmagar",
+  "Detect": "Detectar",
+  "Devil's Sight": "Visão do Diabo",
+  "Fork": "Forcado",
+  "Glaive": "Glaive",
+  "Hag Coven": "Clã de Bruxas",
+  "Hag Eye (Coven Only)": "Olho de Bruxa (Apenas Clã)",
+  "Harpoon": "Arpão",
+  "Heavy Club": "Clava Pesada",
+  "Horn": "Chifre",
+  "Horns": "Chifres",
+  "Hurl Flame": "Lançar Chama",
+  "Keen Hearing": "Audição Aguçada",
+  "Keen Hearing and Sight": "Audição e Visão Aguçadas",
+  "Keen Hearing and Smell": "Audição e Olfato Aguçados",
+  "Keen Sight": "Visão Aguçada",
+  "Keen Sight and Smell": "Visão e Olfato Aguçados",
+  "Keen Smell": "Olfato Aguçado",
+  "Life Drain": "Drenar Vida",
+  "Lightning Strike": "Golpe de Relâmpago",
+  "Move": "Movimento",
+  "Night Hag Items": "Itens da Bruxa da Noite",
+  "Pincer": "Pinça",
+  "Poisoned Dart": "Dardo Envenenado",
+  "Pseudopod": "Pseudópode",
+  "Rake": "Rasgar",
+  "Ram": "Cabeçada",
+  "Rock": "Pedra",
+  "Rotting Fist": "Punho Podre",
+  "Rotting Touch": "Toque Podre",
+  "Shared Spellcasting (Coven Only)": "Conjuração Compartilhada (Apenas Clã)",
+  "Shield Bash": "Golpe de Escudo",
+  "Shock": "Choque",
+  "Slaying Longbow": "Arco Longo Matador",
+  "Slow": "Lentidão",
+  "Smother": "Sufocar",
+  "Snake Hair": "Cabelo de Serpentes",
+  "Spiked Bone Club": "Clava de Osso com Espinhos",
+  "Spiked Shield": "Escudo Espinhoso",
+  "Spit Poison": "Cuspir Veneno",
+  "Stinger": "Ferrão",
+  "Stomp": "Pisoteio",
+  "Strength Drain": "Drenar Força",
+  "Sword": "Espada",
+  "Tail Attack": "Ataque de Cauda",
+  "Tail Spike": "Espinho da Cauda",
+  "Tail Stinger": "Ferrão da Cauda",
+  "Tail Swipe": "Golpe de Cauda",
+  "Talons": "Garras",
+  "Tendril": "Filamento",
+  "Touch": "Toque",
+  "Tusk": "Presa",
+  "Tusks": "Presas",
+  "Variant: Familiar": "Variante: Familiar",
+  "Variant: Genie Powers": "Variante: Poderes de Gênio",
+  "Variant: Hold Breath": "Variante: Prender a Respiração",
+  "Variant: Loathsome Limbs": "Variante: Membros Repugnantes",
+  "Variant: Panpipes": "Variante: Flauta de Pã",
+  "Variant: Rope of Entanglement": "Variante: Corda de Enredamento",
+  "Variant: Spider Climb": "Variante: Escalada de Aranha",
+  "Variant: Web Garrote": "Variante: Garrote de Teia",
+  "War Pick": "Picareta de Guerra",
+  "Withering Touch": "Toque Definhante"
+ }
+}

@@ -1,0 +1,583 @@
+{
+ "vampire": [
+  {
+   "id": "vampire-vampire",
+   "en": "Vampire, Vampire Form",
+   "rotulo": "Forma de vampiro",
+   "tamanho": "medium",
+   "ca": 16,
+   "caTipo": "natural",
+   "pv": 144,
+   "dadosVida": "17d8+68",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 18,
+    "dex": 18,
+    "con": 18,
+    "int": 17,
+    "wis": 15,
+    "cha": 18
+   },
+   "percepcaoPassiva": 17,
+   "tracos": [
+    "Shapechanger",
+    "Legendary Resistance",
+    "Misty Escape",
+    "Regeneration",
+    "Spider Climb",
+    "Vampire Weaknesses"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Unarmed Strike",
+    "Bite",
+    "Charm",
+    "Children of the Night"
+   ]
+  },
+  {
+   "id": "vampire-bat",
+   "en": "Vampire, Bat Form",
+   "rotulo": "Forma de morcego",
+   "tamanho": "medium",
+   "ca": 16,
+   "caTipo": "natural",
+   "pv": 144,
+   "dadosVida": "17d8+68",
+   "deslocamento": {
+    "walk": 5,
+    "fly": 30
+   },
+   "atributos": {
+    "str": 18,
+    "dex": 18,
+    "con": 18,
+    "int": 17,
+    "wis": 15,
+    "cha": 18
+   },
+   "percepcaoPassiva": 17,
+   "tracos": [
+    "Shapechanger",
+    "Legendary Resistance",
+    "Misty Escape",
+    "Regeneration",
+    "Spider Climb",
+    "Vampire Weaknesses"
+   ],
+   "acoes": [
+    "Bite",
+    "Charm",
+    "Children of the Night"
+   ]
+  },
+  {
+   "id": "vampire-mist",
+   "en": "Vampire, Mist Form",
+   "rotulo": "Forma de névoa",
+   "tamanho": "medium",
+   "ca": 16,
+   "caTipo": "natural",
+   "pv": 144,
+   "dadosVida": "17d8+68",
+   "deslocamento": {
+    "fly": 20
+   },
+   "atributos": {
+    "str": 18,
+    "dex": 18,
+    "con": 18,
+    "int": 17,
+    "wis": 15,
+    "cha": 18
+   },
+   "percepcaoPassiva": 17,
+   "tracos": [
+    "Shapechanger",
+    "Legendary Resistance",
+    "Misty Escape",
+    "Regeneration",
+    "Spider Climb",
+    "Vampire Weaknesses"
+   ],
+   "acoes": []
+  }
+ ],
+ "werebear": [
+  {
+   "id": "werebear-human",
+   "en": "Werebear, Human Form",
+   "rotulo": "Forma humanoide",
+   "tamanho": "medium",
+   "ca": 10,
+   "caTipo": "dex",
+   "pv": 135,
+   "dadosVida": "18d8+54",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 19,
+    "dex": 10,
+    "con": 17,
+    "int": 11,
+    "wis": 12,
+    "cha": 12
+   },
+   "percepcaoPassiva": 17,
+   "tracos": [
+    "Shapechanger",
+    "Keen Smell"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Greataxe"
+   ]
+  },
+  {
+   "id": "werebear-hybrid",
+   "en": "Werebear, Hybrid Form",
+   "rotulo": "Forma híbrida",
+   "tamanho": "medium",
+   "ca": 11,
+   "caTipo": "natural",
+   "pv": 135,
+   "dadosVida": "18d8+54",
+   "deslocamento": {
+    "walk": 40,
+    "climb": 30
+   },
+   "atributos": {
+    "str": 19,
+    "dex": 10,
+    "con": 17,
+    "int": 11,
+    "wis": 12,
+    "cha": 12
+   },
+   "percepcaoPassiva": 17,
+   "tracos": [
+    "Shapechanger",
+    "Keen Smell"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Bite",
+    "Claw",
+    "Greataxe"
+   ]
+  },
+  {
+   "id": "werebear-bear",
+   "en": "Werebear, Bear Form",
+   "rotulo": "Forma de urso",
+   "tamanho": "medium",
+   "ca": 11,
+   "caTipo": "natural",
+   "pv": 135,
+   "dadosVida": "18d8+54",
+   "deslocamento": {
+    "walk": 40,
+    "climb": 30
+   },
+   "atributos": {
+    "str": 19,
+    "dex": 10,
+    "con": 17,
+    "int": 11,
+    "wis": 12,
+    "cha": 12
+   },
+   "percepcaoPassiva": 17,
+   "tracos": [
+    "Shapechanger",
+    "Keen Smell"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Bite",
+    "Claw"
+   ]
+  }
+ ],
+ "wereboar": [
+  {
+   "id": "wereboar-human",
+   "en": "Wereboar, Human Form",
+   "rotulo": "Forma humanoide",
+   "tamanho": "medium",
+   "ca": 10,
+   "caTipo": "dex",
+   "pv": 78,
+   "dadosVida": "12d8+24",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 17,
+    "dex": 10,
+    "con": 15,
+    "int": 10,
+    "wis": 11,
+    "cha": 8
+   },
+   "percepcaoPassiva": 12,
+   "tracos": [
+    "Shapechanger",
+    "Relentless"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Maul"
+   ]
+  },
+  {
+   "id": "wereboar-hybrid",
+   "en": "Wereboar, Hybrid Form",
+   "rotulo": "Forma híbrida",
+   "tamanho": "medium",
+   "ca": 11,
+   "caTipo": "natural",
+   "pv": 78,
+   "dadosVida": "12d8+24",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 17,
+    "dex": 10,
+    "con": 15,
+    "int": 10,
+    "wis": 11,
+    "cha": 8
+   },
+   "percepcaoPassiva": 12,
+   "tracos": [
+    "Shapechanger",
+    "Charge (Boar or Hybrid Form Only)",
+    "Relentless"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Maul",
+    "Tusks"
+   ]
+  },
+  {
+   "id": "wereboar-boar",
+   "en": "Wereboar, Boar Form",
+   "rotulo": "Forma de javali",
+   "tamanho": "medium",
+   "ca": 11,
+   "caTipo": "natural",
+   "pv": 78,
+   "dadosVida": "12d8+24",
+   "deslocamento": {
+    "walk": 40
+   },
+   "atributos": {
+    "str": 17,
+    "dex": 10,
+    "con": 15,
+    "int": 10,
+    "wis": 11,
+    "cha": 8
+   },
+   "percepcaoPassiva": 12,
+   "tracos": [
+    "Shapechanger",
+    "Charge (Boar or Hybrid Form Only)",
+    "Relentless"
+   ],
+   "acoes": [
+    "Tusks"
+   ]
+  }
+ ],
+ "wererat": [
+  {
+   "id": "wererat-human",
+   "en": "Wererat, Human Form",
+   "rotulo": "Forma humanoide",
+   "tamanho": "medium",
+   "ca": 12,
+   "caTipo": "dex",
+   "pv": 33,
+   "dadosVida": "6d8+6",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 10,
+    "dex": 15,
+    "con": 12,
+    "int": 11,
+    "wis": 10,
+    "cha": 8
+   },
+   "percepcaoPassiva": 12,
+   "tracos": [
+    "Shapechanger",
+    "Keen Smell"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Shortsword",
+    "Hand Crossbow"
+   ]
+  },
+  {
+   "id": "wererat-hybrid",
+   "en": "Wererat, Hybrid Form",
+   "rotulo": "Forma híbrida",
+   "tamanho": "medium",
+   "ca": 12,
+   "caTipo": "natural",
+   "pv": 33,
+   "dadosVida": "6d8+6",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 10,
+    "dex": 15,
+    "con": 12,
+    "int": 11,
+    "wis": 10,
+    "cha": 8
+   },
+   "percepcaoPassiva": 12,
+   "tracos": [
+    "Shapechanger",
+    "Keen Smell"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Bite",
+    "Shortsword",
+    "Hand Crossbow"
+   ]
+  },
+  {
+   "id": "wererat-rat",
+   "en": "Wererat, Rat Form",
+   "rotulo": "Forma de rato",
+   "tamanho": "medium",
+   "ca": 12,
+   "caTipo": "natural",
+   "pv": 33,
+   "dadosVida": "6d8+6",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 10,
+    "dex": 15,
+    "con": 12,
+    "int": 11,
+    "wis": 10,
+    "cha": 8
+   },
+   "percepcaoPassiva": 12,
+   "tracos": [
+    "Shapechanger",
+    "Keen Smell"
+   ],
+   "acoes": [
+    "Bite"
+   ]
+  }
+ ],
+ "weretiger": [
+  {
+   "id": "weretiger-human",
+   "en": "Weretiger, Human Form",
+   "rotulo": "Forma humanoide",
+   "tamanho": "medium",
+   "ca": 12,
+   "caTipo": "dex",
+   "pv": 120,
+   "dadosVida": "16d8+48",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 17,
+    "dex": 15,
+    "con": 16,
+    "int": 10,
+    "wis": 13,
+    "cha": 11
+   },
+   "percepcaoPassiva": 15,
+   "tracos": [
+    "Shapechanger",
+    "Keen Hearing and Smell"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Scimitar",
+    "Longbow"
+   ]
+  },
+  {
+   "id": "weretiger-hybrid",
+   "en": "Weretiger, Hybrid Form",
+   "rotulo": "Forma híbrida",
+   "tamanho": "medium",
+   "ca": 12,
+   "caTipo": "dex",
+   "pv": 120,
+   "dadosVida": "16d8+48",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 17,
+    "dex": 15,
+    "con": 16,
+    "int": 10,
+    "wis": 13,
+    "cha": 11
+   },
+   "percepcaoPassiva": 15,
+   "tracos": [
+    "Shapechanger",
+    "Keen Hearing and Smell",
+    "Pounce"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Bite",
+    "Claw",
+    "Scimitar",
+    "Longbow"
+   ]
+  },
+  {
+   "id": "weretiger-tiger",
+   "en": "Weretiger, Tiger Form",
+   "rotulo": "Forma de tigre",
+   "tamanho": "medium",
+   "ca": 12,
+   "caTipo": "natural",
+   "pv": 120,
+   "dadosVida": "16d8+48",
+   "deslocamento": {
+    "walk": 40
+   },
+   "atributos": {
+    "str": 17,
+    "dex": 15,
+    "con": 16,
+    "int": 10,
+    "wis": 13,
+    "cha": 11
+   },
+   "percepcaoPassiva": 15,
+   "tracos": [
+    "Shapechanger",
+    "Keen Hearing and Smell",
+    "Pounce"
+   ],
+   "acoes": [
+    "Bite",
+    "Claw"
+   ]
+  }
+ ],
+ "werewolf": [
+  {
+   "id": "werewolf-human",
+   "en": "Werewolf, Human Form",
+   "rotulo": "Forma humanoide",
+   "tamanho": "medium",
+   "ca": 11,
+   "caTipo": "dex",
+   "pv": 58,
+   "dadosVida": "9d8+18",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 15,
+    "dex": 13,
+    "con": 14,
+    "int": 10,
+    "wis": 11,
+    "cha": 10
+   },
+   "percepcaoPassiva": 14,
+   "tracos": [
+    "Shapechanger",
+    "Keen Hearing and Smell"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Spear"
+   ]
+  },
+  {
+   "id": "werewolf-hybrid",
+   "en": "Werewolf, Hybrid Form",
+   "rotulo": "Forma híbrida",
+   "tamanho": "medium",
+   "ca": 12,
+   "caTipo": "natural",
+   "pv": 58,
+   "dadosVida": "9d8+18",
+   "deslocamento": {
+    "walk": 30
+   },
+   "atributos": {
+    "str": 15,
+    "dex": 13,
+    "con": 14,
+    "int": 10,
+    "wis": 11,
+    "cha": 10
+   },
+   "percepcaoPassiva": 14,
+   "tracos": [
+    "Shapechanger",
+    "Keen Hearing and Smell"
+   ],
+   "acoes": [
+    "Multiattack",
+    "Bite",
+    "Claws"
+   ]
+  },
+  {
+   "id": "werewolf-wolf",
+   "en": "Werewolf, Wolf Form",
+   "rotulo": "Forma de lobo",
+   "tamanho": "medium",
+   "ca": 12,
+   "caTipo": "natural",
+   "pv": 58,
+   "dadosVida": "9d8+18",
+   "deslocamento": {
+    "walk": 40
+   },
+   "atributos": {
+    "str": 15,
+    "dex": 13,
+    "con": 14,
+    "int": 10,
+    "wis": 11,
+    "cha": 10
+   },
+   "percepcaoPassiva": 14,
+   "tracos": [
+    "Shapechanger",
+    "Keen Hearing and Smell"
+   ],
+   "acoes": [
+    "Bite"
+   ]
+  }
+ ]
+}
