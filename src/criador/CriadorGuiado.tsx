@@ -180,6 +180,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   }, [servidor, carga, sujo, recuperacao, salvando, userId, campaignId, id, draft, identity, publicar, revisao]);
 
   useUnsavedGuard(`criador:${id}`, sujo, salvar);
+  const estatisticas = useMemo(() => { if (!sheet || !modern2014(draft) || !regras2014) return null; try { return regras2014.statistics2014(draft); } catch { return null; } }, [sheet, draft]);
 
   /** Conflito de revisão: carrega a versão atual do servidor. As alterações não enviadas ficam na cópia de recuperação (restauráveis). */
   const recarregarServidor = async () => {
@@ -238,7 +239,6 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
 
   const resultadosBusca = busca.trim().length >= 2 ? searchCompendium(criadorRules, { kind: "item", text: busca }).filter(l => srdItem(l.ref.id)?.raridade === "mundano").slice(0, 8) : [];
   const completo = !!sheet && !!draft.name.trim() && !sheet.pending.length && gruposCompletos(draft);
-  const estatisticas = useMemo(() => { if (!sheet || !modern2014(draft) || !regras2014) return null; try { return regras2014.statistics2014(draft); } catch { return null; } }, [sheet, draft]);
   const escolhasDoNivel = (modern2014(draft) ? [] : fighter2014Advancements).flatMap(a => a.level <= draft.level ? a.choices ?? [] : []);
   const sec = (s: Secao, rotulo: string) => <button type="button" className={secao === s ? "active" : ""} aria-current={secao === s ? "true" : undefined} onClick={() => setSecao(s)}>{rotulo}</button>;
 
