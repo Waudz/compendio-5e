@@ -1,5 +1,10 @@
 # Criador, ficha e inventário — decisões e estado (20/11/2026)
 
+## Atualização normativa — 22/11/2026
+
+Consultar [DEC-20261122-A a F](../DECISOES-E-ARQUITETURA.md#decisões-vigentes--22112026-dec-20261122-a-a-f). As decisões novas substituem as propostas históricas incompatíveis neste arquivo: campanha obrigatória, beta fechado, sem biblioteca pessoal ou loot distribuído, inventário com pesquisa e criação rápida, preservação do Assimilação e PWA posterior. Não tratar como implementado.
+
+
 > **Ponto de entrada para retomar:** [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md). Registrar cada decisão de regras, fonte, fluxo ou segurança em `DECISOES-E-ARQUITETURA.md`, atualizar o índice central e manter aqui os detalhes de implementação e testes.
 
 > **Memória de implementação**. Ler junto de `DECISOES-E-ARQUITETURA.md`, `docs/PLANEJAMENTO-V2.md` e `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md`. Não confundir pesquisa, protótipo, implementação, testes executados e produção.
