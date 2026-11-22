@@ -41,7 +41,7 @@ const preencherFicha = async (nome: string) => {
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
 };
-const confirmarEquipamento = () => { fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' })); fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos iniciais' })); };
+const confirmarEquipamento = () => { fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' })); fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos SRD 2014' })); };
 
 
 /** WCAG 2.5.3 (axe `label-content-name-mismatch`): o nome acessível precisa conter o texto visível do botão. Devolve os botões que violam. */
@@ -129,14 +129,14 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(screen.getAllByText('Adaga').length).toBeGreaterThan(0);
     fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
     fireEvent.change(screen.getByLabelText('Equipamento armor'), { target: { value: 'leather-bow' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos iniciais' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
     const dialogo = await screen.findByRole('alertdialog', { name: 'Substituir equipamento inicial' });
     expect(dialogo.textContent).toMatch(/Armadura/);
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     expect(screen.getByText('Cota de malha')).toBeTruthy(); expect(screen.queryByText('Arco longo')).toBeNull();
     fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos iniciais' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
     fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Substituir equipamentos' }));
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     expect(await screen.findByText('Arco longo')).toBeTruthy(); expect(screen.getByText('Armadura de couro')).toBeTruthy();
