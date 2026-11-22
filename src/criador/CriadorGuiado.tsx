@@ -109,7 +109,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
         const p = servidor && novoNaoSalvo && alvo === id ? null : await repo.carregar(alvo);
         if (!vivo) return;
         if (!p && (!novoNaoSalvo || alvo !== id)) { setCarga({ erro: "Personagem não encontrado, removido ou sem acesso (por exemplo, você saiu da campanha). Nada foi alterado." }); return; }   // nunca abre um editor vazio no lugar de um personagem existente
-        if (p && modern2014(p.draft)) { await carregar2014(); if (!vivo) return; }
+        await carregar2014(); if (!vivo) return;
+        if (p && !modern2014(p.draft)) { setCarga({ erro: "Ficha criada no protótipo antigo. Esta versão aceita somente personagens SRD 2014." }); return; }
         if (p) aplicarCarregado(p); else { setEscolhas(escolhasDoInventario(novoRascunho(id))); registrarTitulo(id, "Novo personagem"); }
         if (servidor) setRecuperacao(lerRecuperacao(userId, campaignId, id));   // alterações não enviadas de uma falha anterior
         setCarga("pronto");
