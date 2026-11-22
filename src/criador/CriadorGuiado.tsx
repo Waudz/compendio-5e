@@ -39,7 +39,7 @@ import PublicIdentityEditor from "./identidade-publica-editor";
 import { rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
 const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
-const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
+const calcularFicha = (draft: CharacterDraft) => sheet2014(draft);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
 type Metodo = MetodoAtributos;
 const maxHpBase = (con: number) => 10 + Math.floor((con + 2 - 10) / 2);   // 10 + modificador de Constituição (Anão: +2 racial), nível 1
@@ -213,21 +213,21 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
             {(metodo === "preserved" ? [draft.baseAbilities[a]] : metodo === "standard-array" ? [15, 14, 13, 12, 10, 8] : [8, 9, 10, 11, 12, 13, 14, 15]).map(v => <option key={v} value={v}>{v}</option>)}</select>}</label>)}</div>
         {erroAtrib && <p role="alert" className="notice err">{erroAtrib}</p>}
       </fieldset>
-      <label>Nível<select aria-label="Nível" value={draft.level} onChange={e => alterarNivel(Number(e.target.value))}>{(modern2014(draft) ? Array.from({ length: 20 }, (_, i) => i + 1) : [1, 2, 3, 4, 5, 6]).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
+      <label>Nível<select aria-label="Nível" value={draft.level} onChange={e => alterarNivel(Number(e.target.value))}>{Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
       {sheet && <section aria-label="Ficha calculada" className="criador-ficha">
         <h2>Ficha calculada</h2>
         <p>{ABILITY_ORDER.map(a => `${rotuloAtributo(a)} ${sheet.abilities[a]}`).join(" · ")}</p>
         <p>PV máximo: {sheet.maxHp}</p>
-        <p>Características: {sheet.features.map(id => modern2014(draft) ? label2014(id) : rotuloOpcao(id)).join(", ") || "nenhuma"}</p>
+        <p>Características: {sheet.features.map(id => label2014(id)).join(", ") || "nenhuma"}</p>
         <p>Perícias: {sheet.skills.map(rotuloPericia).join(", ") || "nenhuma"}</p>
-        {modern2014(draft) && <details><summary>Descrições das características de classe</summary>{sheet.features.filter(id => featureDescription2014(id)).map(id => <details key={id}><summary>{label2014(id)}</summary><p style={{ whiteSpace: 'pre-wrap' }}>{featureDescription2014(id)}</p></details>)}</details>}
+        {<details><summary>Descrições das características de classe</summary>{sheet.features.filter(id => featureDescription2014(id)).map(id => <details key={id}><summary>{label2014(id)}</summary><p style={{ whiteSpace: 'pre-wrap' }}>{featureDescription2014(id)}</p></details>)}</details>}
         <p>Recursos: {Object.entries(sheet.resources).map(([n, v]) => `${rotuloOpcao(n)} ${v.remaining}/${v.maximum}`).join(" · ") || "nenhum"}</p>
         <p>Escolhas pendentes: {sheet.pending.length ? sheet.pending.map(rotuloOpcao).join(", ") : "nenhuma"}</p>
         <p role="note"><strong>{completo ? "Estado: escolhas concluídas" : "Estado: rascunho incompleto"}</strong></p>
       </section>}
     </div>}
 
-    {secao === "ficha" && modern2014(draft) && !erro && <Suspense fallback={<p role="status">Carregando resumo…</p>}><Resumo2014 draft={draft} onChange={mudar}/></Suspense>}
+    {secao === "ficha" && !erro && <Suspense fallback={<p role="status">Carregando resumo…</p>}><Resumo2014 draft={draft} onChange={mudar}/></Suspense>}
     {secao === "equipamento" && <Suspense fallback={<p role="status">Carregando equipamento…</p>}><Equipamento2014 draft={draft} onChange={mudar}/></Suspense>}
 
     {secao === "inventario" && <section className="criador-sec ficha-inventario" aria-label="Inventário">
