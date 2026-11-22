@@ -40,7 +40,7 @@ const featureDescription2014 = (id: string) => regras2014?.featureDescription201
 import PublicIdentityEditor from "./identidade-publica-editor";
 import { rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
-const { catalog, ids } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
+const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
 const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
 type Metodo = MetodoAtributos;
