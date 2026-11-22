@@ -19,7 +19,6 @@ import { ABILITY_ORDER, POINT_BUY_BUDGET, pointBuySpent, validatePointBuy } from
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft, type InventoryEntry } from "../rules/character-domain";
 import { fighter2014Advancements } from "../rules/fighter-2014";
 import { defaultPublicIdentity, type PublicIdentitySettings } from "../rules/public-identity";
-import { fighterEquipmentOptions2014 } from "../rules/starting-equipment-2014";
 import { useUnsavedGuard } from "../unsaved";
 import type { TabSpec } from "../workspace";
 import { armazenamentoLocalExperimental, type ArmazenamentoCriador } from "./armazenamento";
@@ -43,7 +42,6 @@ const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs
 const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
 type Metodo = MetodoAtributos;
-const PREFIXO = (group: string) => "starting-choice:fighter-" + group + ":";
 const maxHpBase = (con: number) => 10 + Math.floor((con + 2 - 10) / 2);   // 10 + modificador de Constituição (Anão: +2 racial), nível 1
 
 const novoRascunho = (id: string): CharacterDraft => ({ id, name: "", ruleset: "5e-2014", catalogueVersion: "character-srd-2014-v2", baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 },
@@ -52,12 +50,7 @@ const novoRascunho = (id: string): CharacterDraft => ({ id, name: "", ruleset: "
 const erroDeAtributo = (e: unknown) => { const m = e instanceof Error ? e.message : String(e); return /budget exceeded/i.test(m) ? "A compra de pontos passa de 27 pontos. Reduza outro atributo antes." : /between 8 and 15/i.test(m) ? "Na compra de pontos cada atributo vai de 8 a 15." : m; };
 const nomeDoItem = (itemId: string) => srdItem(itemId)?.nome ?? itemId;
 const nomeDaInstancia = (item: InventoryEntry) => typeof item.customName === "string" ? item.customName : nomeDoItem(item.itemId);
-const escolhasDoInventario = (d: CharacterDraft): Record<string, string> => Object.fromEntries(Object.entries(fighterEquipmentOptions2014).map(([g, opcoes]) => {
-  const sel = d.inventory.find(e => e.id.startsWith(PREFIXO(g)))?.id.split(":")[2];
-  return [g, opcoes.some(o => o.id === sel) ? sel! : opcoes[0].id];
-}));
-const gruposCompletos = (d: CharacterDraft) => modern2014(d) ? d.decisions.some(c => c.id === 'equipment-accepted' && c.optionIds.includes('yes')) && d.decisions.some(c => c.id === 'background-equipment' && c.optionIds.includes('accepted')) : Object.entries(fighterEquipmentOptions2014).every(([g, opcoes]) => opcoes.some(o => o.components.every(c =>
-  d.inventory.some(e => e.id === PREFIXO(g) + o.id + ":" + c.itemId && e.itemId === c.itemId && e.quantity === c.quantity))));
+const gruposCompletos = (d: CharacterDraft) => d.decisions.some(c => c.id === 'equipment-accepted' && c.optionIds.includes('yes')) && d.decisions.some(c => c.id === 'background-equipment' && c.optionIds.includes('accepted'));
 
 export function CriadorGuiado({ id, onOpenContent }: { id: string; onOpenContent: (s: TabSpec) => void }) {
   const { user } = useAuth(), { active } = useCampaigns(), fichas = useFichas();
@@ -87,13 +80,12 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const [secao, setSecao] = useState<Secao>("ficha");
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
-  const [, setEscolhas] = useState<Record<string, string>>({});
   const [busca, setBusca] = useState(""), [excluindo, setExcluindo] = useState(false);
 
   const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentitySettings; publicar: boolean; revision: number | null; somenteFicha: boolean }) => {
     calcularFicha(p.draft);   // dado inválido/de outra versão falha aqui, não na tela
     setDraft(p.draft); setIdentity(p.identity); setPublicar(p.publicar); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha);
-    setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity, publicar: p.publicar })); setEscolhas(escolhasDoInventario(p.draft));
+    setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity, publicar: p.publicar }));
     setMetodo(metodoPreservado(p.draft.baseAbilities, p.draft.abilityMethod));
     registrarTitulo(id, p.draft.name.trim() || "Novo personagem"); registrarTitulo(p.id, p.draft.name.trim() || "Novo personagem");
   };
@@ -108,7 +100,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
         if (!p && (!novoNaoSalvo || alvo !== id)) { setCarga({ erro: "Personagem não encontrado, removido ou sem acesso (por exemplo, você saiu da campanha). Nada foi alterado." }); return; }   // nunca abre um editor vazio no lugar de um personagem existente
         await carregar2014(); if (!vivo) return;
         if (p && !modern2014(p.draft)) { setCarga({ erro: "Ficha criada no protótipo antigo. Esta versão aceita somente personagens SRD 2014." }); return; }
-        if (p) aplicarCarregado(p); else { setEscolhas(escolhasDoInventario(novoRascunho(id))); registrarTitulo(id, "Novo personagem"); }
+        if (p) aplicarCarregado(p); else { registrarTitulo(id, "Novo personagem"); }
         if (servidor) setRecuperacao(lerRecuperacao(userId, campaignId, id));   // alterações não enviadas de uma falha anterior
         setCarga("pronto");
       } catch (e) { if (vivo) setCarga({ erro: e instanceof Error ? e.message : "Não foi possível ler o personagem salvo." }); }
@@ -165,7 +157,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
 
   if (carga === "carregando") return <div className="content"><p className="muted" role="status">Carregando personagem…</p></div>;
   if (typeof carga === "object") return <div className="content"><h1>Personagem</h1><Aviso erro t={`Não foi possível abrir este personagem: ${carga.erro}`} onRetry={() => setTentativa(n => n + 1)}/>
-    {!servidor && <div className="row"><button className="btn-secondary danger" onClick={() => { store.excluir(id); setCarga("pronto"); setDraft(novoRascunho(id)); setSalvo(null); setEscolhas(escolhasDoInventario(novoRascunho(id))); }}>Descartar dado corrompido e recomeçar</button></div>}</div>;
+    {!servidor && <div className="row"><button className="btn-secondary danger" onClick={() => { store.excluir(id); setCarga("pronto"); setDraft(novoRascunho(id)); setSalvo(null); }}>Descartar dado corrompido e recomeçar</button></div>}</div>;
 
   const alterarAtributo = (a: typeof ABILITY_ORDER[number], valor: number) => {
     const novo = { ...draft.baseAbilities, [a]: valor };
@@ -273,7 +265,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     <div className="row criador-rodape">
       {servidor ? <p className="muted" data-testid="exclusao-indisponivel">A exclusão e a transferência de personagens salvos na campanha seguem o fluxo narrativo (ainda não disponível aqui); por isso não há botão de excluir.</p>
         : !excluindo ? <button type="button" className="btn-secondary danger" onClick={() => setExcluindo(true)} disabled={salvo === null}><Trash2 size={15} aria-hidden="true"/> Excluir personagem</button>
-        : <><button type="button" className="btn-secondary danger" onClick={() => { store.excluir(id); setSalvo(null); registrarTitulo(id, "Personagem excluído"); avisarRegistros(); setDraft(novoRascunho(id)); setIdentity(defaultPublicIdentity()); setEscolhas(escolhasDoInventario(novoRascunho(id))); setExcluindo(false); setMsg({ ok: true, t: "Personagem excluído deste navegador." }); }}>Confirmar exclusão</button>
+        : <><button type="button" className="btn-secondary danger" onClick={() => { store.excluir(id); setSalvo(null); registrarTitulo(id, "Personagem excluído"); avisarRegistros(); setDraft(novoRascunho(id)); setIdentity(defaultPublicIdentity()); setExcluindo(false); setMsg({ ok: true, t: "Personagem excluído deste navegador." }); }}>Confirmar exclusão</button>
           <button type="button" className="btn-secondary" onClick={() => setExcluindo(false)}>Cancelar</button></>}
     </div>
   </div>;
