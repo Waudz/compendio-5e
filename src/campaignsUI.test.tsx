@@ -108,8 +108,7 @@ describe("campanhas (interface)", () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }, { role: "jogador", campaign: camp("c2", "Costa Rubra") }] });
     mount(api); await openMobile("Campanhas");
     const first = await screen.findByText("Festival da Lua");
-    expect(screen.getByText("Nenhuma")).toBeTruthy();
-    fireEvent.click(within(first.closest("li")!).getByRole("button", { name: "Tornar ativa" }));
+    expect(within(first.closest("li")!).getByText("Ativa")).toBeTruthy();
     await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Festival da Lua"));
     expect(localStorage.getItem(activeKey("me"))).toBe("c1");
     await openMobile("Campanhas"); // trocar de campanha troca o espaço de trabalho; a nova campanha começa com o layout padrão
@@ -122,13 +121,13 @@ describe("campanhas (interface)", () => {
     expect(document.querySelector(".mobile-simple")).toBeTruthy();   // o celular não usa layout de colunas: nada de FlexLayout salvo para ele
   });
 
-  it("campanha ativa salva é restaurada; se o usuário não participa mais, é descartada", async () => {
+  it("campanha salva é restaurada; se removida, outra válida é selecionada", async () => {
     localStorage.setItem(activeKey("me"), "c2");
     mount(fakeApi({ memberships: [{ role: "jogador", campaign: camp("c2", "Costa Rubra") }] }));
     await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Costa Rubra"));
     cleanup(); localStorage.setItem(activeKey("me"), "removida");
     mount(fakeApi({ memberships: [{ role: "jogador", campaign: camp("c2", "Costa Rubra") }] }));
-    await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Nenhuma"));
+    await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Costa Rubra"));
   });
 });
 
