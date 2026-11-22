@@ -43,7 +43,7 @@ const nomeInput = () => screen.findByLabelText("Nome do personagem") as Promise<
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar personagem/ })); return nomeInput(); };
 const preencher = async (nome: string) => {
   fireEvent.change(await nomeInput(), { target: { value: nome } });
-  const opcoes = within(await screen.findByRole("region", { name: "Opções SRD 2014" }));
+  const opcoes = within(await screen.findByLabelText("Opções SRD 2014"));
   const proficiencias = opcoes.getByText(/Proficiências de Guerreiro — escolha/).closest("fieldset")!;
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
