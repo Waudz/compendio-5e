@@ -258,8 +258,8 @@ export function Opcoes2014({
       <label>
         Classe
         <select
-          value={draft.classId}
-          onChange={(e) => setPendingClass(e.target.value)}
+          value={pendingClass || draft.classId}
+          onChange={(e) => setPendingClass(e.target.value === draft.classId ? "" : e.target.value)}
         >
           {classes2014.map((c) => (
             <option key={c.id} value={shortId(c.id)}>
