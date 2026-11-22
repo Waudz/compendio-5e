@@ -15,7 +15,7 @@
 
 ## Exibição compacta de equipamentos mágicos genéricos
 - Não criar entradas independentes no Compêndio para cada combinação genérica de equipamento +1/+2/+3 (por exemplo Espada Longa +1, +2, +3 e Machado +1). Essas configurações ficam nas opções do item-base e na cópia do inventário, respeitando a publicação e a identificação.
-- Uma **variante personalizada com identidade própria** (nome, imagem ou descrição diferenciados) pode ter entrada própria na seção Descobertos do personagem quando encontrada, sem expor outras variantes privadas do mestre. Uma mera alteração numérica de bônus não gera entrada adicional.
+- **Regra definitiva de criação de registro:** uma variante com nome próprio, imagem diferente ou descrição personalizada **cria um registro próprio no Compêndio do mestre**, vinculado ao item-base; começa privado e pode ser publicado na campanha ou descoberto pelo personagem. A simples seleção de +1/+2/+3 **mantendo nome, imagem e descrição originais não cria registro**: só configura a cópia entregue. O registro personalizado pode aparecer em Descobertos quando encontrado, sem expor as demais variantes privadas.
 - Mesmo uma arma mágica genérica recebida deve continuar acessível pelo inventário, sem exigir ficha duplicada no Compêndio. Esta regra é de apresentação e não elimina os registros canônicos de regras nem os estados de descoberta/segredo.
 
 ## Entrega e identificação
