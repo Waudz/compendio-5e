@@ -115,7 +115,7 @@ export function Mobile(_props: Props) {
   useEffect(() => {
     if (!iniciadoBrowser.current) {
       iniciadoBrowser.current = true;
-      window.history.pushState({ compendioMobile: true }, "", window.location.href);
+      window.history.replaceState({ ...window.history.state, compendioMobile: true }, "", window.location.href);
     }
     const aoVoltar = () => {
       navegacaoBrowser.current = true;
