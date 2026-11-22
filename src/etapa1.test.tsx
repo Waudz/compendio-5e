@@ -157,9 +157,10 @@ describe("layout guarda só ids (nunca títulos)", () => {
   it("o título da campanha aparece na aba, mas não é gravado no aparelho", async () => {
     medir();
     await renderApp({ api: campApi([m]) });
-    fireEvent.click(screen.getByRole("button", { name: "CAMPANHA ATIVA Nenhuma" }));
-    fireEvent.click(within((await screen.findByText("Segredo da Mesa Sombria")).closest("li")!).getByRole("button", { name: "Abrir" }));
-    expect(tabNames()).toContain("Segredo da Mesa Sombria");
+    await waitFor(() => expect(tabNames()).toContain("Segredo da Mesa Sombria"));
+    fireEvent.click(nav("Documentos"));
+    fireEvent.click(nav("Início"));
+    await waitFor(() => expect(tabNames()).toContain("Segredo da Mesa Sombria"));
     const dump = store.key(0) === null ? "" : [...Array(store.length).keys()].map(i => `${store.key(i)}=${store.getItem(store.key(i)!)}`).join("\n");
     expect(dump).toContain("campanha:c1");
     expect(dump).not.toContain("Segredo da Mesa Sombria");
@@ -168,11 +169,10 @@ describe("layout guarda só ids (nunca títulos)", () => {
 
   it("ao recarregar, o título vem da API; um layout antigo com nomes salvos não os exibe", async () => {
     medir();
-    localStorage.setItem(layoutKey(me.id), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", weight: 100, selected: 1, children: [
+    localStorage.setItem(layoutKey(me.id, "c1"), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", weight: 100, selected: 1, children: [
       { type: "tab", id: "secao:personagens", name: "Nome antigo vazado" }, { type: "tab", id: "campanha:c1", name: "Titulo antigo vazado" }] }] } }));
     await renderApp({ api: campApi([m]) });
-    const tabs = tabNames();
-    expect(tabs).toEqual(["Personagens", "Segredo da Mesa Sombria"]);
+    await waitFor(() => expect(tabNames()).toEqual(["Personagens", "Segredo da Mesa Sombria"]));
     expect(document.body.textContent).not.toMatch(/vazado/);
   });
 

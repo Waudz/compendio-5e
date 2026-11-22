@@ -237,8 +237,9 @@ describe("restauração (F5) e abas do Início", () => {
     const api = { ...apiCom([mestre()]), list: async () => { await gate; return { ok: true, data: [mestre()] }; } } as unknown as CampaignApi;
     const vistas: string[] = [];
     const obs = new MutationObserver(() => vistas.push(...abas().map(String))); obs.observe(document.body, { childList: true, subtree: true, characterData: true });
-    await renderApp({ api });
-    await waitFor(() => expect(abas()).toEqual(["Documentos"]));
+    await renderApp({ api, waitForMenu: false });
+    await screen.findByText("Carregando suas campanhas…");
+    expect(abas()).toEqual([]);
     solta(); await waitFor(() => expect(screen.getByRole("button", { name: /campanha ativa/i })).toBeTruthy());
     obs.disconnect();
     expect(abas()).toEqual(["Documentos"]); expect(vistas).not.toContain("Campanhas");

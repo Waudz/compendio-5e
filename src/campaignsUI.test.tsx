@@ -44,7 +44,7 @@ const nav = (name: string) => within(screen.getByRole("navigation", { name: "Men
 const openMobile = async (section: string) => {
   // visão simples: as demais telas ficam no menu; a tela remonta ao carregar as campanhas, então tenta até o menu aparecer
   await waitFor(() => { const m = document.querySelector<HTMLElement>(".mobile-simple"); if (!m) throw new Error("visão simples ausente"); if (!document.querySelector('[role="dialog"][aria-label="Menu de navegação"]')) fireEvent.click(within(m).getByRole("button", { name: "Abrir menu" })); expect(document.querySelector('[role="dialog"][aria-label="Menu de navegação"]')).toBeTruthy(); });
-  fireEvent.click(within(screen.getByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: section === "Campanhas" ? "Gerenciar campanhas" : section }));
+  fireEvent.click(within(await screen.findByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: section === "Campanhas" ? "Gerenciar campanhas" : section }));
 };
 const fill = (label: string | RegExp, v: string) => fireEvent.change(screen.getByLabelText(label), { target: { value: v } });
 
@@ -68,7 +68,7 @@ describe("campanhas (interface)", () => {
   it("lista campanhas do usuário com papel, e estado vazio", async () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }, { role: "jogador", campaign: camp("c2", "Costa Rubra") }] });
     mount(api); await openMobile("Campanhas");
-    expect(await screen.findByText("Festival da Lua")).toBeTruthy(); expect(screen.getByText("Costa Rubra")).toBeTruthy();
+    expect(await within(document.querySelector(".mobile-screen") as HTMLElement).findByText("Festival da Lua")).toBeTruthy(); expect(screen.getByText("Costa Rubra")).toBeTruthy();
     expect(screen.getAllByText("Mestre").length).toBeGreaterThan(0); expect(screen.getAllByText("Jogador").length).toBeGreaterThan(0);
     cleanup(); mount(fakeApi({ memberships: [] })); await openMobile("Campanhas");
     expect(await screen.findByText(/ainda não participa de nenhuma campanha/)).toBeTruthy();
@@ -76,11 +76,12 @@ describe("campanhas (interface)", () => {
 
   it("erro ao carregar mostra alerta e permite tentar de novo", async () => {
     const state = { memberships: [{ role: "mestre" as const, campaign: camp("c1", "Festival da Lua") }], listError: "Sem conexão com o servidor. Tente de novo." };
-    const api = fakeApi(state); mount(api); await openMobile("Campanhas");
-    expect((await screen.findByRole("alert")).textContent).toMatch(/Sem conexão/);
+    const api = fakeApi(state); mount(api);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Não foi possível carregar/);
+    expect(screen.queryByRole("navigation")).toBeNull();
     state.listError = undefined as unknown as string;
-    fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
-    expect(await screen.findByText("Festival da Lua")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    expect(await screen.findByRole("heading", { name: "Festival da Lua" })).toBeTruthy();
   });
 
   it("criar campanha: valida nome, cria e abre a aba da campanha", async () => {
@@ -101,15 +102,14 @@ describe("campanhas (interface)", () => {
     fill("Código ou link do convite", "ZZZZZZZZZZZZ"); fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/Convite inválido/));
     fill("Código ou link do convite", "abcd-efgh-ijkl"); fireEvent.click(screen.getByRole("button", { name: "Entrar na campanha" }));
-    expect(await screen.findByText("Mesa do Caio")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Mesa do Caio" })).toBeTruthy();
   });
 
   it("uma única campanha ativa: ativar troca o rótulo do menu e o espaço de trabalho", async () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }, { role: "jogador", campaign: camp("c2", "Costa Rubra") }] });
     mount(api); await openMobile("Campanhas");
-    const first = await screen.findByText("Festival da Lua");
-    expect(screen.getByText("Nenhuma")).toBeTruthy();
-    fireEvent.click(within(first.closest("li")!).getByRole("button", { name: "Tornar ativa" }));
+    const first = await within(document.querySelector(".mobile-screen") as HTMLElement).findByText("Festival da Lua");
+    expect(within(first.closest("li")!).getByText("Ativa")).toBeTruthy();
     await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Festival da Lua"));
     expect(localStorage.getItem(activeKey("me"))).toBe("c1");
     await openMobile("Campanhas"); // trocar de campanha troca o espaço de trabalho; a nova campanha começa com o layout padrão
@@ -122,13 +122,13 @@ describe("campanhas (interface)", () => {
     expect(document.querySelector(".mobile-simple")).toBeTruthy();   // o celular não usa layout de colunas: nada de FlexLayout salvo para ele
   });
 
-  it("campanha ativa salva é restaurada; se o usuário não participa mais, é descartada", async () => {
+  it("campanha salva é restaurada; se removida, outra válida é selecionada", async () => {
     localStorage.setItem(activeKey("me"), "c2");
     mount(fakeApi({ memberships: [{ role: "jogador", campaign: camp("c2", "Costa Rubra") }] }));
     await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Costa Rubra"));
     cleanup(); localStorage.setItem(activeKey("me"), "removida");
     mount(fakeApi({ memberships: [{ role: "jogador", campaign: camp("c2", "Costa Rubra") }] }));
-    await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Nenhuma"));
+    await waitFor(() => expect(document.querySelector(".campaign strong")?.textContent).toBe("Costa Rubra"));
   });
 });
 
@@ -137,7 +137,7 @@ describe("campanha (detalhes, mestre x jogador)", () => {
     { user_id: "me", role: "mestre", joined_at: "", display_name: "Eu" },
     { user_id: "u2", role: "jogador", joined_at: "", display_name: "Bia" }];
   const invites: Invite[] = [{ id: "i1", code: "ABCDEFGHIJKL", expires_at: "2030-01-01T00:00:00Z", max_uses: 5, uses: 1 }];
-  const openCampaign = async (name: string) => { await openMobile("Campanhas"); const li = (await screen.findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); const sm = await screen.findByText(/^(Gerenciar campanha|Participantes)$/); const d = sm.closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); };
+  const openCampaign = async (name: string) => { await openMobile("Campanhas"); const li = (await within(document.querySelector(".mobile-screen") as HTMLElement).findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); const sm = await screen.findByText(/^(Gerenciar campanha|Participantes)$/); const d = sm.closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); };
 
   it("mestre: edita informações, remove jogadores e administra convites", async () => {
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: structuredClone(members), invites: structuredClone(invites) });
@@ -203,7 +203,7 @@ describe("convites por link", () => {
     const writeText = vi.fn(async () => {}); vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     const api = fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Festival da Lua") }], members: [], invites: [{ id: "i1", code: "ABCDEFGHIJKL", expires_at: "2030-01-01T00:00:00Z", max_uses: 5, uses: 0 }] });
     mount(api); await openMobile("Campanhas");
-    fireEvent.click(within((await screen.findByText("Festival da Lua")).closest("li")!).getByRole("button", { name: "Abrir" }));
+    fireEvent.click(within((await within(document.querySelector(".mobile-screen") as HTMLElement).findByText("Festival da Lua")).closest("li")!).getByRole("button", { name: "Abrir" }));
     { const d = (await screen.findByText("Gerenciar campanha")).closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); }
     expect(await screen.findByText(/\?convite=ABCDEFGHIJKL$/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Copiar link" }));
@@ -271,7 +271,7 @@ describe("convites por link", () => {
 });
 
 describe("mestre único: sair e remover", () => {
-  const open = async (name: string) => { await openMobile("Campanhas"); const li = (await screen.findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); const sm = await screen.findByText(/^(Gerenciar campanha|Participantes)$/); const d = sm.closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); };
+  const open = async (name: string) => { await openMobile("Campanhas"); const li = (await within(document.querySelector(".mobile-screen") as HTMLElement).findByText(name)).closest("li")!; fireEvent.click(within(li).getByRole("button", { name: "Abrir" })); const sm = await screen.findByText(/^(Gerenciar campanha|Participantes)$/); const d = sm.closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); };
 
   it("jogador pode sair voluntariamente; o mestre não aparece como removível", async () => {
     const api = fakeApi({ memberships: [{ role: "jogador", campaign: camp("c2", "Costa Rubra") }], members: [
@@ -299,7 +299,7 @@ describe("mestre único: sair e remover", () => {
   it("a mesma pessoa é mestre de uma campanha e jogadora de outra", async () => {
     mount(fakeApi({ memberships: [{ role: "mestre", campaign: camp("c1", "Minha Mesa") }, { role: "jogador", campaign: camp("c2", "Mesa da Ana") }] }));
     await openMobile("Campanhas");
-    expect(within((await screen.findByText("Minha Mesa")).closest("li")!).getByText("Mestre")).toBeTruthy();
+    expect(within((await within(document.querySelector(".mobile-screen") as HTMLElement).findByText("Minha Mesa")).closest("li")!).getByText("Mestre")).toBeTruthy();
     expect(within(screen.getByText("Mesa da Ana").closest("li")!).getByText("Jogador")).toBeTruthy();
   });
 });
