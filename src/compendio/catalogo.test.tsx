@@ -42,7 +42,7 @@ describe('categorias e carregamento', () => {
   it('mostra Itens, Magias e Monstros; Itens abre primeiro e já está pronto (dados em memória, sem esqueleto)', async () => {
     await montar(); await abrirCompendio();
     const grupo = within(screen.getByRole('group', { name: 'Categorias do Compêndio' }));
-    expect(grupo.getAllByRole('button').map(b => b.textContent)).toEqual(['Itens', 'Magias', 'Monstros']);
+    expect(grupo.getAllByRole('button').map(b => b.textContent)).toEqual(['Itens', 'Magias', 'Monstros', 'Raças', 'Classes', 'Subclasses']);
     expect(grupo.getByRole('button', { name: 'Itens' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByTestId('compendio-esqueleto')).toBeNull(); expect(contagem()).toBe('578');
   });
