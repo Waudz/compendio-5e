@@ -157,6 +157,19 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
       return false;
     } finally { setSalvando(false); }
   }, [salvando, sheet, draft, identity, publicar, repo, idReal, existe, revisao, somenteFicha, servidor, userId, campaignId, id]);
+  // Proteção local contínua do rascunho: a aba pode ser desmontada ao alternar
+  // para outro conteúdo sem que o usuário pressione Salvar. Nunca enviamos
+  // essas alterações automaticamente ao servidor: restauração é explícita.
+  // Uma recuperação anterior tem prioridade e não pode ser sobrescrita pela
+  // versão recém-carregada do banco antes de o usuário decidir restaurá-la.
+  useEffect(() => {
+    if (!servidor || carga !== "pronto" || !sujo || recuperacao || salvando) return;
+    gravarRecuperacao(userId, campaignId, id, {
+      estado: { draft, identity, publicar }, baseRevisao: revisao,
+      motivo: "Rascunho não salvo recuperado deste navegador", em: new Date().toISOString(),
+    });
+  }, [servidor, carga, sujo, recuperacao, salvando, userId, campaignId, id, draft, identity, publicar, revisao]);
+
   useUnsavedGuard(`criador:${id}`, sujo, salvar);
 
   /** Conflito de revisão: carrega a versão atual do servidor. As alterações não enviadas ficam na cópia de recuperação (restauráveis). */
