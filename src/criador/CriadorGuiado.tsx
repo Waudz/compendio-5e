@@ -13,18 +13,16 @@ import { Aviso } from "../Diario";
 import { srdItem } from "../catalogue/srd-2014-items";
 import { ERRO_CONFLITO_REVISAO } from "../fichas";
 import { avisarRegistros, registrarTitulo } from "../registrosStore";
-import { buildPilotCharacterCatalog } from "../rules/character-catalogue-adapter";
 import { searchCompendium } from "../rules/compendium-query";
 import { ABILITY_ORDER, POINT_BUY_BUDGET, pointBuySpent, validatePointBuy } from "../rules/ability-generation-2014";
-import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft, type InventoryEntry } from "../rules/character-domain";
-import { fighter2014Advancements } from "../rules/fighter-2014";
+import { addInventoryInstance, changeInventoryInstanceQuantity, type CharacterDraft, type InventoryEntry } from "../rules/character-domain";
 import { defaultPublicIdentity, type PublicIdentitySettings } from "../rules/public-identity";
 import { useUnsavedGuard } from "../unsaved";
 import type { TabSpec } from "../workspace";
 import { armazenamentoLocalExperimental, type ArmazenamentoCriador } from "./armazenamento";
 import { ErroConflito, repositorioLocal, repositorioServidor, type RepositorioPersonagem } from "./repositorio";
 import { ehPersonagemNovo, gravarMapaAba, gravarRecuperacao, lerMapaAba, lerRecuperacao, limparRecuperacao, type Recuperacao } from "./recuperacao";
-import { criadorRefs, criadorRules } from "./catalogo-criador";
+import { criadorRules } from "./catalogo-criador";
 // O snapshot de personagens não entra no carregamento da navegação/catálogos gerais.
 let regras2014: typeof import('./regras-2014') | undefined;
 const carregar2014 = async () => { regras2014 = await import('./regras-2014'); return regras2014; };
@@ -38,7 +36,6 @@ const featureDescription2014 = (id: string) => regras2014?.featureDescription201
 import PublicIdentityEditor from "./identidade-publica-editor";
 import { rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
-const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
 const calcularFicha = (draft: CharacterDraft) => sheet2014(draft);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
 type Metodo = MetodoAtributos;
