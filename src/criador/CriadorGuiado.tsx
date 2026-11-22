@@ -267,18 +267,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     </div>}
 
     {secao === "ficha" && modern2014(draft) && !erro && <Suspense fallback={<p role="status">Carregando resumo…</p>}><Resumo2014 draft={draft} onChange={mudar}/></Suspense>}
-    {secao === "equipamento" && modern2014(draft) && <Suspense fallback={<p role="status">Carregando equipamento…</p>}><Equipamento2014 draft={draft} onChange={mudar}/></Suspense>}{secao === "equipamento" && !modern2014(draft) && <div className="criador-sec">
-      <h2>Equipamento inicial do Guerreiro</h2>
-      <p className="muted">Escolha um conjunto de cada grupo e confirme: os itens entram no inventário como instâncias independentes, com os dados do catálogo oficial. As opções de armas marciais são uma amostra (espada longa) até o catálogo de escolhas livres estar pronto.</p>
-      {Object.entries(fighterEquipmentOptions2014).map(([g, opcoes]) => <fieldset key={g}><legend>{GRUPOS[g]}</legend>
-        <select aria-label={"Equipamento " + g} value={escolhas[g]} onChange={e => { setEscolhas(p => ({ ...p, [g]: e.target.value })); setConfirmando(null); }}>{opcoes.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
-        <ul className="criador-previa" aria-label={"Prévia de " + GRUPOS[g]}>{opcoes.find(o => o.id === escolhas[g])?.components.map(c => <li key={c.itemId}>{nomeDoItem(c.itemId)} ×{c.quantity}</li>)}</ul>
-      </fieldset>)}
-      {confirmando && <div className="notice err" role="alertdialog" aria-label="Substituir equipamento inicial">
-        <p>Substituir o equipamento inicial de: {confirmando.map(g => GRUPOS[g]).join(", ")}? Itens iniciais já consumidos ou alterados não serão substituídos, e itens adquiridos depois são preservados.</p>
-        <div className="row"><button type="button" className="btn-primary" onClick={aplicarEquipamento}>Substituir equipamentos</button><button type="button" className="btn-secondary" onClick={() => setConfirmando(null)}>Cancelar</button></div></div>}
-      {!confirmando && <div className="row"><button type="button" className="btn-primary" onClick={pedirEquipamento}>Confirmar equipamentos iniciais</button></div>}
-    </div>}
+    {secao === "equipamento" && <Suspense fallback={<p role="status">Carregando equipamento…</p>}><Equipamento2014 draft={draft} onChange={mudar}/></Suspense>}
 
     {secao === "inventario" && <section className="criador-sec ficha-inventario" aria-label="Inventário">
       <h2>Inventário</h2>
