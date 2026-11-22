@@ -76,11 +76,12 @@ describe("campanhas (interface)", () => {
 
   it("erro ao carregar mostra alerta e permite tentar de novo", async () => {
     const state = { memberships: [{ role: "mestre" as const, campaign: camp("c1", "Festival da Lua") }], listError: "Sem conexão com o servidor. Tente de novo." };
-    const api = fakeApi(state); mount(api); await openMobile("Campanhas");
-    expect((await screen.findByRole("alert")).textContent).toMatch(/Sem conexão/);
+    const api = fakeApi(state); mount(api);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Não foi possível carregar/);
+    expect(screen.queryByRole("navigation")).toBeNull();
     state.listError = undefined as unknown as string;
-    fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
-    expect(await within(document.querySelector(".mobile-screen") as HTMLElement).findByText("Festival da Lua")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    expect(await screen.findByRole("heading", { name: "Festival da Lua" })).toBeTruthy();
   });
 
   it("criar campanha: valida nome, cria e abre a aba da campanha", async () => {
