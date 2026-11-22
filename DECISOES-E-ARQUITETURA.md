@@ -1,5 +1,9 @@
 # COMPÊNDIO 5e 2.0 — DECISÕES, ARQUITETURA E ESTADO
 
+## Atualização de itens e loot — 22/11/2026
+
+**Decisão posterior à DEC-20261122-D:** [Itens, variantes e loot](docs/ITENS-VARIANTES-LOOT.md). Mantém adição livre de equipamentos mundanos, mas **substitui a proibição de distribuição de loot**: mestre pode preparar recompensas de encontros, liberá-las para coleta pelos jogadores ou entregá-las diretamente. Itens mágicos (inclusive de raridade comum) são privados até revelação, variantes simples +1/+2/+3 são exclusivas do mestre, sem evolução automática. **Planejado, não implementado.**
+
 ## Decisões vigentes — 22/11/2026 (DEC-20261122-A a F)
 
 **Aprovadas pelo responsável; planejamento, não declaração de implementação.** Esta seção substitui trechos históricos incompatíveis sobre ficha pessoal, catálogo sem campanha, cadastro aberto e distribuição de loot.
