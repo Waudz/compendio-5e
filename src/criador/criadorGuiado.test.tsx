@@ -36,7 +36,7 @@ const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRo
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole('button', { name: /Criar personagem/ })); return screen.findByLabelText('Nome do personagem'); };
 const preencherFicha = async (nome: string) => {
   fireEvent.change(await screen.findByLabelText('Nome do personagem'), { target: { value: nome } });
-  const opcoes = within(await screen.findByRole("region", { name: "Opções SRD 2014" }));
+  const opcoes = within(await screen.findByLabelText("Opções SRD 2014"));
   const proficiencias = opcoes.getByText(/Proficiências de Guerreiro — escolha/).closest("fieldset")!;
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
