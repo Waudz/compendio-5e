@@ -42,7 +42,6 @@ const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs
 const calcularFicha = (draft: CharacterDraft) => sheet2014(draft);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
 type Metodo = MetodoAtributos;
-const maxHpBase = (con: number) => 10 + Math.floor((con + 2 - 10) / 2);   // 10 + modificador de Constituição (Anão: +2 racial), nível 1
 
 const novoRascunho = (id: string): CharacterDraft => ({ id, name: "", ruleset: "5e-2014", catalogueVersion: "character-srd-2014-v2", baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 },
   raceId: "hill-dwarf", backgroundId: "acolyte", classId: "fighter", level: 1, decisions: [], inventory: [], currentHp: 13, temporaryHp: 0, spentResources: {} });
@@ -116,7 +115,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const mudar = (proximo: CharacterDraft) => { setDraft(proximo); setMsg(null); };
 
   const alterarNivel = (level: number) => {
-    try { mudar(modern2014(draft) ? regras2014!.progressLevel2014(draft, level) : { ...draft, level }); setErroAtrib(''); }
+    try { mudar(regras2014!.progressLevel2014(draft, level)); setErroAtrib(''); }
     catch (e) { setErroAtrib(e instanceof Error ? e.message : 'Revise os recursos e as rolagens de PV antes de mudar o nível.'); }
   };
 
@@ -126,7 +125,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     const estado = { draft, identity, publicar };
     setSalvando(true);
     try {
-      const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: { name: draft.name, surname: "", race: modern2014(draft) ? label2014(draft.raceId) : "Anão", characterClass: modern2014(draft) ? label2014(draft.classId) : "Guerreiro" } });
+      const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: { name: draft.name, surname: "", race: label2014(draft.raceId), characterClass: label2014(draft.classId) } });
       const gravado = { ...draft, id: r.id };
       setDraft(gravado); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
       setSalvo(JSON.stringify({ draft: gravado, identity, publicar }));
@@ -164,15 +163,15 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     if (metodo === 'preserved') return;
     if (metodo === 'manual') {
       if (!manualValido(novo)) { setErroAtrib('Informe uma rolagem inteira entre 3 e 18, antes dos bônus raciais.'); return; }
-      setErroAtrib(''); mudar({ ...draft, baseAbilities: novo, abilityMethod: 'manual', currentHp: Math.min(draft.currentHp, modern2014(draft) ? sheet2014({ ...draft, baseAbilities: novo, currentHp: 0 }).maxHp : maxHpBase(novo.con)) }); return;
+      setErroAtrib(''); mudar({ ...draft, baseAbilities: novo, abilityMethod: 'manual', currentHp: Math.min(draft.currentHp, sheet2014({ ...draft, baseAbilities: novo, currentHp: 0 }).maxHp) }); return;
     }
     if (metodo === "standard-array") {
       const outro = ABILITY_ORDER.find(k => k !== a && draft.baseAbilities[k] === valor);
       if (!outro) return;                                                             // matriz padrão: só troca de posição entre dois valores
       const troca = { ...draft.baseAbilities, [a]: valor, [outro]: draft.baseAbilities[a] };
-      setErroAtrib(""); mudar({ ...draft, baseAbilities: troca, currentHp: Math.min(draft.currentHp, modern2014(draft) ? sheet2014({ ...draft, baseAbilities: troca, currentHp: 0 }).maxHp : maxHpBase(troca.con)) }); return;
+      setErroAtrib(""); mudar({ ...draft, baseAbilities: troca, currentHp: Math.min(draft.currentHp, sheet2014({ ...draft, baseAbilities: troca, currentHp: 0 }).maxHp) }); return;
     }
-    try { validatePointBuy(novo); setErroAtrib(""); mudar({ ...draft, baseAbilities: novo, currentHp: Math.min(draft.currentHp, modern2014(draft) ? sheet2014({ ...draft, baseAbilities: novo, currentHp: 0 }).maxHp : maxHpBase(novo.con)) }); }
+    try { validatePointBuy(novo); setErroAtrib(""); mudar({ ...draft, baseAbilities: novo, currentHp: Math.min(draft.currentHp, sheet2014({ ...draft, baseAbilities: novo, currentHp: 0 }).maxHp) }); }
     catch (e) { setErroAtrib(erroDeAtributo(e)); }
   };
   const trocarMetodo = (m: Metodo) => {
@@ -180,7 +179,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     if (m === 'manual') { if (!manualValido(draft.baseAbilities)) { setErroAtrib('Valores antigos foram preservados; rolagens manuais de criação precisam estar entre 3 e 18.'); return; } setMetodo(m); setErroAtrib(''); mudar({ ...draft, abilityMethod: 'manual' }); return; }
     setMetodo(m); setErroAtrib("");
     const base = m === "standard-array" ? { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } : { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 };
-    mudar({ ...draft, abilityMethod: m, baseAbilities: base, currentHp: modern2014(draft) ? sheet2014({ ...draft, baseAbilities: base, currentHp: 0 }).maxHp : maxHpBase(base.con) });
+    mudar({ ...draft, abilityMethod: m, baseAbilities: base, currentHp: sheet2014({ ...draft, baseAbilities: base, currentHp: 0 }).maxHp });
   };
 
   const resultadosBusca = busca.trim().length >= 2 ? searchCompendium(criadorRules, { kind: "item", text: busca }).filter(l => srdItem(l.ref.id)?.raridade === "mundano").slice(0, 8) : [];
@@ -192,8 +191,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     <div className="row-between"><h1>{draft.name.trim() || "Novo personagem"}</h1>
       <button type="button" className="btn-primary" onClick={() => void salvar()} disabled={salvando || (!sujo && salvo !== null)}>{salvando ? "Salvando…" : "Salvar"}</button></div>
     {servidor
-      ? <div className="notice ok" role="note" data-testid="aviso-servidor">{somenteFicha ? "Ficha de outro jogador: você a vê e edita como mestre da campanha. A identidade pública continua sendo do dono." : "Salvo na campanha: só você e o mestre leem esta ficha. Os outros jogadores veem apenas a identidade pública que você publicar."} {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>
-      : <div className="notice" role="note" data-testid="aviso-armazenamento">Armazenamento <strong>experimental</strong>: o personagem fica só neste navegador, não sincroniza entre aparelhos e não é privado de quem usa o mesmo navegador. Sem conta e API de fichas não há salvamento real na campanha. {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>}
+      ? <div className="notice ok" role="note" data-testid="aviso-servidor">{somenteFicha ? "Ficha de outro jogador: você a vê e edita como mestre da campanha. A identidade pública continua sendo do dono." : "Salvo na campanha: só você e o mestre leem esta ficha. Os outros jogadores veem apenas a identidade pública que você publicar."} Versão de personagens SRD 2014 ativa.</div>
+      : <div className="notice" role="note" data-testid="aviso-armazenamento">Armazenamento <strong>experimental</strong>: o personagem fica só neste navegador, não sincroniza entre aparelhos e não é privado de quem usa o mesmo navegador. Sem conta e API de fichas não há salvamento real na campanha. Versão de personagens SRD 2014 ativa.</div>}
     {conflito && <div className="notice err" role="alert" data-testid="aviso-conflito"><p>{ERRO_CONFLITO_REVISAO}</p><div className="row"><button type="button" className="btn-primary" onClick={() => void recarregarServidor()}>Carregar a versão atual</button><button type="button" className="btn-secondary" onClick={() => setConflito(false)}>Continuar editando</button></div></div>}
     {recuperacao && <div className="notice" role="status" data-testid="aviso-recuperacao"><p>Há alterações deste personagem que não chegaram ao servidor ({recuperacao.motivo || "falha anterior"}), guardadas neste navegador em {new Date(recuperacao.em).toLocaleString("pt-BR")}.</p><div className="row"><button type="button" className="btn-primary" onClick={restaurar}>Restaurar essas alterações</button><button type="button" className="btn-secondary" onClick={descartarRecuperacao}>Descartar</button></div></div>}
     <nav className="ficha-subnav" aria-label="Seções do personagem">{sec("ficha", "Ficha")}{sec("equipamento", "Equipamento inicial")}{sec("inventario", "Inventário")}{sec("identidade", "Identidade pública")}</nav>
@@ -248,7 +247,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
       {somenteFicha ? <Aviso t="A identidade pública pertence ao dono do personagem. Como mestre, você edita a ficha, mas não altera nem lê a identidade privada dele."/> : <>
       <p className="muted">O cartão público é separado da ficha privada: nível, PV, atributos, inventário e anotações nunca aparecem nele.{servidor ? " Só o que você publicar aparece para os outros jogadores." : " Vale para a prévia local; a publicação na campanha exige conta e a API de fichas."}</p>
       {servidor && <label className="check"><input type="checkbox" aria-label="Publicar identidade na campanha" checked={publicar} onChange={e => { setPublicar(e.target.checked); setMsg(null); }}/> Publicar a identidade pública na campanha (aparece em Personagens e no Início)</label>}
-      <PublicIdentityEditor key={draft.id} source={{ name: draft.name, surname: "", race: modern2014(draft) ? label2014(draft.raceId) : "Anão", characterClass: modern2014(draft) ? label2014(draft.classId) : "Guerreiro" }} initialSettings={identity}
+      <PublicIdentityEditor key={draft.id} source={{ name: draft.name, surname: "", race: label2014(draft.raceId), characterClass: label2014(draft.classId) }} initialSettings={identity}
         onSave={s => { setIdentity(s); setMsg({ ok: true, t: "Identidade pública atualizada. Clique em Salvar para guardá-la." }); }}/></>}
     </div>}
 
