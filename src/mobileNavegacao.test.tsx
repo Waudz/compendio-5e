@@ -62,6 +62,14 @@ describe("celular: estrutura independente do FlexLayout", () => {
     fireEvent.click(voltar()); await waitFor(() => expect(titulo()).toBe("Anotações"));
     fireEvent.click(voltar()); await waitFor(() => expect(voltar().disabled).toBe(true));
   });
+  it("gesto Voltar do Android retorna do atalho à campanha sem sair do aplicativo", async () => {
+    await montar(mestre);
+    fireEvent.click(barra().getByRole("button", { name: "Anotações" }));
+    await waitFor(() => expect(titulo()).toBe("Anotações"));
+    fireEvent.popState(window);
+    await waitFor(() => expect(titulo()).toBe(camp.name));
+    expect(document.querySelector(".mobile-simple")).toBeTruthy();
+  });
   it("restaura a posição de rolagem ao voltar para uma tela", async () => {
     await montar(mestre);
     const area = () => document.querySelector<HTMLElement>(".mobile-screen")!;
