@@ -1364,7 +1364,19 @@ export function grantBackground2014(
 ): CharacterDraft {
   if (!['acolyte', 'custom'].includes(d.backgroundId))
     throw Error('Origem não suportada.');
-  if (selected2014(d, 'background-equipment').includes('accepted')) return d;
+  // A origem já concedida não deve duplicar itens nem moedas, mas a escolha
+  // posterior do símbolo sagrado precisa substituir o símbolo anterior.
+  if (selected2014(d, 'background-equipment').includes('accepted')) {
+    if (!['amulet', 'emblem', 'reliquary'].includes(holySymbol))
+      throw Error('Escolha um símbolo sagrado do catálogo.');
+    const symbolId = canonicalItem2014('srd51:item/' + holySymbol);
+    const oldSymbol = d.inventory.find(i => i.id === 'background-acolyte:symbol');
+    if (!oldSymbol) throw Error('Símbolo sagrado da origem ausente. Revise o inventário antes de substituir.');
+    if (oldSymbol.itemId === symbolId) return d;
+    if (oldSymbol.quantity !== 1 || oldSymbol.equipped || oldSymbol.customName)
+      throw Error('O símbolo sagrado inicial foi modificado. Revise o inventário antes de substituí-lo.');
+    return { ...d, inventory: d.inventory.map(i => i.id === oldSymbol.id ? { ...i, itemId: symbolId } : i) };
+  }
   if (!['amulet', 'emblem', 'reliquary'].includes(holySymbol))
     throw Error('Escolha um símbolo sagrado do catálogo.');
   const inventory = [...d.inventory];
