@@ -5,7 +5,7 @@
 Consultar [DEC-20261122-A a F](DECISOES-E-ARQUITETURA.md#decisões-vigentes--22112026-dec-20261122-a-a-f). As decisões novas substituem as propostas históricas incompatíveis neste arquivo: campanha obrigatória, beta fechado, sem biblioteca pessoal ou loot distribuído, inventário com pesquisa e criação rápida, preservação do Assimilação e PWA posterior. Não tratar como implementado.
 
 
-Ferramenta gratuita de apoio à mesa de D&D 5e (regras de 2014), para mestre e jogadores. React + TypeScript + Vite, Supabase (Auth, Postgres, RLS) e GitHub Pages. Projeto de fãs, sem afiliação oficial. O aplicativo anterior (`rastreador-dnd`) permanece independente e não é tocado.
+Plataforma gratuita de apoio a mesas de RPG, para mestres e jogadores. **Nenhum sistema é padrão ou principal**: cada campanha define seu sistema e suas regras. D&D 5e (SRD 2014) é o primeiro módulo em desenvolvimento, não a identidade obrigatória da plataforma. React + TypeScript + Vite, Supabase (Auth, Postgres, RLS) e GitHub Pages. Projeto de fãs, sem afiliação oficial. O aplicativo anterior (`rastreador-dnd`) permanece independente e não é tocado.
 
 Site publicado: https://waudz.github.io/compendio-5e/ (exige login).
 
@@ -28,7 +28,7 @@ Configuração (sem ela o aplicativo não abre, pois exige login): copie `.env.e
 
 | Arquivo | Para quê |
 |---|---|
-| `docs/CONTINUIDADE-DESENVOLVIMENTO.md` | **Comece aqui**: protocolo de retomada, índice de decisões e referências, hierarquia documental e próximos passos. |
+| `docs/INTEGRACAO-PRS-2026-11-22.md` | Registro dos merges, CI e publicação de 22/11. |\n| `docs/REVISAO-INTEGRACAO-ENCICLOPEDIA-PR75.md` | Limites de segurança e persistência pendente da Enciclopédia. |\n| `docs/CONTINUIDADE-DESENVOLVIMENTO.md` | **Comece aqui**: protocolo de retomada, índice de decisões e referências, hierarquia documental e próximos passos. |
 | `DECISOES-E-ARQUITETURA.md` | Regras do projeto, arquitetura vigente e estado real de cada parte. **Ler primeiro.** |
 | `docs/PLANEJAMENTO-V2.md` | **Documento principal**: estado, arquitetura, roteiro, pendências e decisões consolidadas de múltiplos chats (atualização de 20/11/2026). **Consultar antes de desenvolver.** |
 | `docs/NAVEGACAO-ABAS.md` | Navegação por abas, fixação, divisão de painéis e proteção de alterações (implementado). |
@@ -52,16 +52,19 @@ npm run dev
 Abra `http://localhost:5173/compendio-5e/?demo=mestre` (ou `?demo=jogador`). Os dados ficam no localStorage do navegador e são compartilhados entre os dois papéis: publique um registro como mestre e confira como jogador. O modo existe só no `npm run dev` e não entra no build de produção. Ele não usa Supabase; a persistência real do Diário, do Planejamento e da capa depende da migração proposta em `docs/propostas/0006_registros_meta.sql` (e da 0005), ainda não aplicada.
 
 
-## Estado do catálogo e do criador (PR #74 — em desenvolvimento)
+## Estado atual da aplicação — 22/11/2026
 
-**O site publicado ainda não contém estas mudanças.** O catálogo SRD 2014 e o criador estão sendo preparados na branch `docs/auditoria-catalogos-personagem-2014`, [PR #74](https://github.com/Waudz/compendio-5e/pull/74). Não há merge, deploy nem migração de banco autorizados por este trabalho.
+**Publicação verificada:** `main` em `ebab8d47e4339a08405c097255f576a501723708`; [CI](https://github.com/Waudz/compendio-5e/actions/runs/45061962169) e [deploy](https://github.com/Waudz/compendio-5e/actions/runs/45061962208) aprovados. PRs #92 (criador SRD 2014), #93 (barras mobile), #94 (largura do criador) e #75 (fundação da Enciclopédia) integrados; #87 substituído pelo #93. A Enciclopédia **não** tem API persistente ativada: depende de migração incremental revisada e testes multi-sessão. Veja [integração](docs/INTEGRACAO-PRS-2026-11-22.md), [segurança](docs/REVISAO-INTEGRACAO-ENCICLOPEDIA-PR75.md) e [auditoria pós-merge](docs/AUDITORIA-POS-MERGE-2026-11-22.md) (documento proposto em PR separado, se ainda não integrado).
 
-- **Implementado e testado em código:** registro canônico de fontes e IDs, consulta do Compêndio com filtros e visualização lista/grade no piloto, restrições de conteúdo por campanha no domínio, núcleo do criador e inventário, importação e revisão de registros SRD, snapshot offline e leitura validada.
-- **Pilotos locais:** `?demo=compendio-piloto` e `?demo=criador-piloto` em `npm run dev`. Usam **dados ilustrativos**, não um catálogo SRD completo. Não são funcionalidades publicadas nem substituem a persistência real.
-- **Em preparação:** coleta real e revisão editorial dos dados, tradução, efeitos das habilidades e progressão completa das classes, integração com telas reais e persistência segura.
-- **Cartão de Identidade público (piloto):** projeção segura de campos públicos e editor experimental com prévia e testes em `src/rules/public-identity.ts` e `src/dev/public-identity-editor.tsx`. **Ainda sem integração ao criador real, Enciclopédia, banco ou RLS**; não confundir com recurso disponível no site.
-- **Projeção da Enciclopédia (domínio experimental):** `src/rules/public-character-encyclopedia.ts` gera apenas os campos autorizados para outros jogadores e mantém o histórico da campanha separado da descrição pública do jogador. Testes cobrem ausência de dados privados. **Não é endpoint seguro nem substitui RLS no Supabase.**
-- **Importante:** o endpoint de classe da API não entrega sozinho todos os efeitos e escolhas necessários à ficha. `src/rules/srd-2014-class-level-staging.ts` valida os 20 níveis e registra os IDs de características, **sem inventar regras ou liberar a classe para criação**.
+**Testes reportados na integração:** 1.293 unitários, 220 E2E, 72 varreduras axe, TypeScript e build aprovados. Testes automatizados não substituem validação manual.
+
+**Criador:** interface SRD 2014 integrada, com rascunhos incompletos e preservação de fichas legadas. **Problemas relatados em teste real ainda pendentes de correção**: perda de alterações não salvas ao sair/retornar à aba, inventário e equipamento de origem inconsistentes, seleção pré-preenchida, troca de classe confusa, atributos e identidade pública. Acompanhar [issue #96](https://github.com/Waudz/compendio-5e/issues/96); **não confiar no criador para dados importantes sem salvar e conferir a confirmação**.
+
+**Núcleo multissistema:** anotações, abas, divisão de telas, campanhas e permissões são ferramentas compartilhadas, não específicas de D&D. Planejamento e Diário já possuem componentes de edição, mas sua persistência, permissões e sincronização ainda exigem auditoria ponta a ponta. O tema claro/escuro e a identidade visual por sistema ficam para depois da estabilidade funcional.
+
+### Histórico do PR #74
+
+O PR #74 foi uma etapa anterior de desenvolvimento e seus pilotos/limitações de 20/11/2026 são **históricos**, não o estado atual da `main`. A documentação de regras e auditoria abaixo continua útil como referência, mas afirmações como “não publicado”, “somente piloto” ou “CI pendente” devem ser lidas como registros daquela etapa, não como diagnóstico atual.
 
 ### Coleta controlada de dados SRD 2014
 
@@ -76,7 +79,7 @@ O comando consulta a API `/api/2014` e grava registros **não aprovados** em `.s
 
 ### Validação estrita do adaptador do criador (20/11/2026)
 
-O adaptador `src/rules/character-catalogue-adapter.ts` agora valida em runtime cada variante de concessão (`Grant`), seus campos numéricos, IDs e escolhas aninhadas antes de encaminhar dados ao cálculo da ficha. Rejeita valores inválidos, tipos desconhecidos, opções repetidas e escolhas impossíveis; há testes de regressão em `src/rules/character-catalogue-adapter.test.ts`. Isso **não** substitui a revisão editorial de regras 2014, o esquema completo por categoria, a validação no servidor, a persistência autenticada nem os testes E2E. Mudança restrita à branch do PR #74; sem deploy ou migração.
+O adaptador `src/rules/character-catalogue-adapter.ts` agora valida em runtime cada variante de concessão (`Grant`), seus campos numéricos, IDs e escolhas aninhadas antes de encaminhar dados ao cálculo da ficha. Rejeita valores inválidos, tipos desconhecidos, opções repetidas e escolhas impossíveis; há testes de regressão em `src/rules/character-catalogue-adapter.test.ts`. Isso **não** substitui a revisão editorial de regras 2014, o esquema completo por categoria, a validação no servidor, a persistência autenticada nem os testes E2E. Nota histórica do PR #74; consultar o estado atual acima.
 
 ### Validação de progressão e escolhas cruzadas (20/11/2026)
 
@@ -84,7 +87,7 @@ O adaptador do catálogo canônico rejeita concessões malformadas também nas p
 
 ### Integridade de atributos de fichas (20/11/2026)
 
-O domínio experimental rejeita atributos-base não inteiros, não finitos ou fora de 1–30 antes de calcular modificadores e PV, com regressões para `NaN`, infinito, frações e limites. O intervalo é **limite técnico de integridade**, não autorização para distribuir atributos acima dos limites normais de criação 2014; regras de geração e limites de campanha ainda exigem validação própria. Alteração restrita ao PR #74, sem banco ou deploy.
+O domínio experimental rejeita atributos-base não inteiros, não finitos ou fora de 1–30 antes de calcular modificadores e PV, com regressões para `NaN`, infinito, frações e limites. O intervalo é **limite técnico de integridade**, não autorização para distribuir atributos acima dos limites normais de criação 2014; regras de geração e limites de campanha ainda exigem validação própria. Nota histórica do PR #74; consultar o estado atual acima.
 
 ### Proteção do motor de regras chamado diretamente (20/11/2026)
 
@@ -126,14 +129,14 @@ O criador local do Guerreiro agora permite **compra de 27 pontos** (atributos-ba
 
 ## Criador guiado e Compêndio (experimental)
 
-Pelo menu normal: **Personagens → Criar com o criador guiado** (Guerreiro SRD 2014, equipamento inicial do catálogo oficial, inventário e identidade pública) e **Compêndio** (busca, filtros, lista/grade e página de cada item). No celular: Menu → Personagens / barra inferior → Compêndio. Os personagens guiados ficam **só neste navegador** (armazenamento experimental; ver `docs/CRIADOR-FICHA-INVENTARIO.md`, "Persistência pendente").
+Pelo menu normal: **Personagens → Criar com o criador guiado** (Guerreiro SRD 2014, equipamento inicial do catálogo oficial, inventário e identidade pública) e **Compêndio** (busca, filtros, lista/grade e página de cada item). No celular: Menu → Personagens / barra inferior → Compêndio. O criador usa o repositório do servidor quando a API de fichas está disponível; há fallback local experimental em ambientes sem a API. A disponibilidade e a migração efetivamente aplicada devem ser conferidas no ambiente de destino. Alterações em andamento **não são automaticamente salvas** (ver issue #96).
 
 ## E2E do criador, ficha, inventário e Compêndio
 
 Infraestrutura reutilizada dos PRs #76/#77 sobre o código funcional do #78; sem alterações de domínio. Execute `npm ci`, `npx playwright install --with-deps chromium`, `npm run test:e2e:types` e `npm run test:creator`. Testes isolados, sem contas ou serviços externos. Comandos, dependências e resultados: [TESTES-CRIADOR-E2E](docs/TESTES-CRIADOR-E2E.md). As suítes anteriores continuam disponíveis em `npm run test:e2e` e `npm run test:quality`.
-### Persistência das fichas (proposta, não aplicada)
+### Persistência das fichas — verificar ambiente antes de usar
 
-Com conta e a migração `supabase/migrations/0008_character_sheets_persistencia.sql` aplicada, o criador guiado salva a ficha **privada** em `character_sheets` (só o dono e o mestre leem) e publica apenas a identidade que o jogador escolher; há controle de revisão (conflitos), cópia de recuperação local e envio explícito dos rascunhos antigos do navegador. **A 0008 ainda não foi aplicada ao Supabase**: até lá o app informa "banco desatualizado" ao salvar e o modo local experimental continua disponível sem conta. Detalhes, auditoria e procedimento: `docs/CRIADOR-FICHA-INVENTARIO.md`.
+Com conta e a migração `supabase/migrations/0008_character_sheets_persistencia.sql` aplicada, o criador guiado salva a ficha **privada** em `character_sheets` (só o dono e o mestre leem) e publica apenas a identidade que o jogador escolher; há controle de revisão (conflitos), cópia de recuperação local e envio explícito dos rascunhos antigos do navegador. O estado remoto efetivo da migração 0008 **não foi revalidado nesta atualização do README**. Não assumir aplicação nem ausência da migração com base em documentação histórica; verificar o ambiente antes de operar. O modo local é experimental. Detalhes, auditoria e procedimento: `docs/CRIADOR-FICHA-INVENTARIO.md`.
 
 ## Catálogo de D&D 5e (2014): itens, magias e monstros
 
