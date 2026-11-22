@@ -93,6 +93,8 @@ export function Mobile(_props: Props) {
   const navigate = irPara;
   const goBack = () => {
     if (!history.length) { irPara(home); return; }
+    // A navegação interna também deve consumir a entrada do navegador.
+    if (window.history.state?.compendioMobile) { window.history.back(); return; }
     unsaved.guard("all", () => {
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
       const previous = history[history.length - 1];
@@ -103,7 +105,7 @@ export function Mobile(_props: Props) {
   // O gesto Voltar do Android aciona popstate. Consumir o histórico interno
   // evita que um atalho da campanha feche o navegador/PWA.
   voltarPeloNavegador.current = () => {
-    if (menuOpen) { setMenuOpen(false); return; }
+    if (menuOpen) { setMenuOpen(false); window.history.pushState({ compendioMobile: true }, "", window.location.href); return; }
     if (!history.length) return;
     unsaved.guard("all", () => {
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
