@@ -66,6 +66,21 @@ describe("Início: mestre", () => {
   });
 });
 
+describe("Início: atalhos do mestre", () => {
+  it("abre as quatro seções reais pelo mesmo roteador e sinaliza o módulo ainda pendente", async () => {
+    const { onOpen } = await montarHome(mestre());
+    const nav = within(screen.getByRole("navigation", { name: "Atalhos da campanha" }));
+    for (const [name, ref] of [["Enciclopédia Em desenvolvimento", "enciclopedia"], ["Compêndio", "compendio"], ["Diário", "diario"], ["Personagens da campanha", "personagens"]]) {
+      fireEvent.click(nav.getByRole("button", { name }));
+      expect(onOpen).toHaveBeenLastCalledWith({ kind: "secao", ref });
+    }
+  });
+  it("não apresenta atalhos administrativos ao jogador", async () => {
+    await montarHome(jogador());
+    expect(screen.queryByRole("navigation", { name: "Atalhos da campanha" })).toBeNull();
+  });
+});
+
 describe("Início: jogador", () => {
   it("lê nome e descrição sem editar, sem gestão do mestre e sem consultar convites", async () => {
     const { api } = await montarHome(jogador());
