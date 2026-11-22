@@ -64,7 +64,7 @@ const escolhasDoInventario = (d: CharacterDraft): Record<string, string> => Obje
 const gruposCompletos = (d: CharacterDraft) => modern2014(d) ? d.decisions.some(c => c.id === 'equipment-accepted' && c.optionIds.includes('yes')) && d.decisions.some(c => c.id === 'background-equipment' && c.optionIds.includes('accepted')) : Object.entries(fighterEquipmentOptions2014).every(([g, opcoes]) => opcoes.some(o => o.components.every(c =>
   d.inventory.some(e => e.id === PREFIXO(g) + o.id + ":" + c.itemId && e.itemId === c.itemId && e.quantity === c.quantity))));
 
-export function CriadorGuiado({ id, onOpenContent }: { id: string; onOpenContent: (s: TabSpec) => void }) {
+export function CriadorGuiado({ id, onOpenContent, initialView = false }: { id: string; onOpenContent: (s: TabSpec) => void; initialView?: boolean }) {
   const { user } = useAuth(), { active } = useCampaigns(), fichas = useFichas();
   const aviso = (t: string) => <div className="content"><h1>Personagem</h1><Aviso t={t}/></div>;
   // Usar identificadores estáveis: contextos podem emitir novos objetos para a
@@ -76,10 +76,10 @@ export function CriadorGuiado({ id, onOpenContent }: { id: string; onOpenContent
   if (!user) return aviso("Conta necessária para usar o criador de personagens.");
   if (!active) return aviso("Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral.");
   if (!store || !repo) return aviso("Não foi possível preparar o armazenamento deste usuário e campanha.");
-  return <Editor key={`${active.campaign.id}:${id}`} id={id} repo={repo} store={store} userId={user.id} campaignId={active.campaign.id} campanha={active.campaign.name} onOpenContent={onOpenContent}/>;
+  return <Editor key={`${active.campaign.id}:${id}`} id={id} repo={repo} store={store} userId={user.id} campaignId={active.campaign.id} campanha={active.campaign.name} onOpenContent={onOpenContent} initialView={initialView}/>;
 }
 
-function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }: { id: string; repo: RepositorioPersonagem; store: ArmazenamentoCriador; userId: string; campaignId: string; campanha: string; onOpenContent: (s: TabSpec) => void }) {
+function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, initialView }: { id: string; repo: RepositorioPersonagem; store: ArmazenamentoCriador; userId: string; campaignId: string; campanha: string; onOpenContent: (s: TabSpec) => void; initialView: boolean }) {
   const servidor = repo.tipo === "servidor";
   const [carga, setCarga] = useState<"carregando" | "pronto" | { erro: string }>("carregando"), [tentativa, setTentativa] = useState(0);
   const [draft, setDraft] = useState<CharacterDraft>(() => novoRascunho(id));
@@ -94,6 +94,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
   const [salvando, setSalvando] = useState(false), [conflito, setConflito] = useState(false), [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
   const [secao, setSecao] = useState<Secao>("ficha");
+  const [visualizando, setVisualizando] = useState(initialView);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
@@ -154,6 +155,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
       registrarTitulo(id, draft.name.trim()); registrarTitulo(r.id, draft.name.trim()); avisarRegistros();
       const incompleto = sheet.pending.length || !gruposCompletos(draft);
       setMsg({ ok: true, t: servidor ? `${incompleto ? "Rascunho incompleto" : "Personagem"} salvo na campanha (revisão ${r.revision}).` : `${incompleto ? "Rascunho incompleto salvo" : "Personagem salvo"} neste navegador (armazenamento experimental).` });
+      if (!incompleto) { setVisualizando(true); setSecao("ficha"); }
 
       return true;
     } catch (e) {
@@ -238,6 +240,24 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const completo = !!sheet && !!draft.name.trim() && !sheet.pending.length && gruposCompletos(draft);
   const escolhasDoNivel = (modern2014(draft) ? [] : fighter2014Advancements).flatMap(a => a.level <= draft.level ? a.choices ?? [] : []);
   const sec = (s: Secao, rotulo: string) => <button type="button" className={secao === s ? "active" : ""} aria-current={secao === s ? "true" : undefined} onClick={() => setSecao(s)}>{rotulo}</button>;
+
+  // Ficha pronta em leitura, independente das etapas do criador. Os mesmos
+  // dados derivados do motor alimentam a edição e a visualização.
+  if (visualizando && carga === "pronto" && existe && sheet) return <div className="content ficha auth wide" data-testid="ficha-guiada-leitura">
+    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
+    <div className="row-between"><h1>{draft.name || "Personagem sem nome"}</h1>
+      <button type="button" className="btn-primary" onClick={() => setVisualizando(false)}>Editar personagem</button></div>
+    <p>{modern2014(draft) ? label2014(draft.raceId) : "Anão"} · {modern2014(draft) ? label2014(draft.classId) : "Guerreiro"} · Nível {draft.level}</p>
+    {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => setVisualizando(false)}>Revisar recuperação no editor</button></div>}
+    <nav className="ficha-subnav" aria-label="Seções da ficha"><button type="button" className={secao === "ficha" ? "active" : ""} onClick={() => setSecao("ficha")}>Ficha</button><button type="button" className={secao === "inventario" ? "active" : ""} onClick={() => setSecao("inventario")}>Inventário</button></nav>
+    {secao === "ficha" && <>
+      <section className="criador-ficha" aria-label="Atributos e combate"><h2>Atributos e combate</h2><div className="criador-atributos">{ABILITY_ORDER.map(a => <div key={a}><strong>{rotuloAtributo(a)}</strong><p>{sheet.abilities[a]}</p></div>)}</div><p><strong>PV máximo:</strong> {sheet.maxHp}</p></section>
+      {modern2014(draft) && <Suspense fallback={<p role="status">Carregando estatísticas…</p>}><Resumo2014 draft={draft} onChange={() => { /* visualização sem alteração */ }}/></Suspense>}
+      <section aria-label="Perícias e características"><h2>Perícias</h2><p>{sheet.skills.map(rotuloPericia).join(", ") || "Nenhuma"}</p><h2>Características</h2>{sheet.features.length ? <ul>{sheet.features.map((f,i) => <li key={f + i}><strong>{modern2014(draft) ? label2014(f) : rotuloOpcao(f)}</strong>{modern2014(draft) && featureDescription2014(f) && <p>{featureDescription2014(f)}</p>}</li>)}</ul> : <p>Nenhuma</p>}<h2>Recursos</h2><p>{Object.entries(sheet.resources).map(([k,v]) => `${rotuloOpcao(k)}: ${v.remaining}/${v.maximum}`).join(" · ") || "Nenhum"}</p></section>
+      {sheet.pending.length > 0 && <p className="notice" role="note">Ficha com escolhas pendentes. Use Editar personagem para concluir.</p>}
+    </>}
+    {secao === "inventario" && <section aria-label="Inventário do personagem"><h2>Inventário</h2>{sheet.inventory.length ? <ul>{sheet.inventory.map(i => <li key={i.id}>{nomeDaInstancia(i)} ×{i.quantity}{i.equipped ? " · equipado" : ""}</li>)}</ul> : <p>Inventário vazio.</p>}</section>}
+  </div>;
 
   return <div className="content ficha auth wide criador">
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · CRIADOR GUIADO · {modern2014(draft) ? label2014(draft.classId).toLocaleUpperCase("pt-BR") : "GUERREIRO"} (SRD 2014)</div>
