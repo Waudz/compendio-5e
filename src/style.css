@@ -671,3 +671,15 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 @media(max-width:700px) and (prefers-reduced-motion:reduce){
   .mobile-simple{transition:none}
 }
+
+/* Iniciativa e Encontros */
+.iniciativa .ini-form{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:12px 0}.iniciativa .ini-form label{display:grid;gap:2px;font-size:13px}.iniciativa .ini-form input,.iniciativa .ini-form select{min-height:36px}
+.iniciativa .ini-barra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.iniciativa .ini-lista{list-style:none;padding:0;margin:8px 0;display:grid;gap:8px}
+.iniciativa .ini-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;border:1px solid var(--line,#8884);border-left-width:4px;border-radius:8px;padding:8px 10px}
+.iniciativa .ini-item.atual{outline:2px solid currentColor;outline-offset:1px}.iniciativa .ini-item.lado-inimigo{border-left-color:#b3402e}.iniciativa .ini-item.lado-aliado{border-left-color:#2e7d4f}.iniciativa .ini-item.lado-neutro{border-left-color:#888}
+.iniciativa .ini-valor{display:grid;gap:2px;font-size:12px}.iniciativa .ini-valor input{width:72px;min-height:36px}
+.iniciativa .ini-pv{display:flex;flex-wrap:wrap;gap:6px;align-items:center;grid-column:1 / -1}.iniciativa .ini-pv input{width:72px;min-height:36px}
+.iniciativa .ini-cartao{border:1px solid var(--line,#8884);border-radius:8px;padding:10px 12px;margin:10px 0}.iniciativa .ini-cartao h2{margin:0 0 6px;font-size:16px}
+.iniciativa .vazio{display:grid;gap:6px;justify-items:center;text-align:center;padding:18px}
+@media (max-width:700px){.iniciativa .ini-form label{flex:1 1 140px}.iniciativa .ini-item{grid-template-columns:1fr}}
