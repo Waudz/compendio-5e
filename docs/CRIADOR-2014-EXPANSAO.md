@@ -1,0 +1,37 @@
+# Expansão do criador e fichas 2014 — 22/11/2026
+
+## Base e limites de responsabilidade
+Branch `feat/character-2014`, main `f258172` (PR #82). Não altera autenticação, arquitetura de campanhas, navegação global, catálogo geral ou migrations. Modifica somente domínio de personagem, criador/ficha, lista e API de fichas, testes e documentação.
+
+## Auditoria da base
+- Editor fixava Guerreiro/Anão/Acólito e níveis 1–6, embora o motor já aceitasse tabelas 1–20.
+- Campos raciais/origem eram amostras; proficiências, grimório, preparo, slots, perícias de origem e equipamento por categoria não estavam integrados.
+- Itens canônicos, point buy de 27, matriz padrão, escolhas de Guerreiro, recursos, inventário e guarda de alterações já existiam: reaproveitados.
+- Servidor já usa `character_sheets`, RPCs com revisão otimista e identidade pública separada. Não criar outro sistema de persistência.
+- Compêndio 1.0 contém 12 classes/20 níveis, 12 subclasses SRD, 407 características e receitas. Outras entradas do legado misturam suplementos ou não têm auditoria/licença suficiente: não importadas.
+
+## Dados e fontes
+Snapshot isolado de personagens em `src/criador/data/character-2014.json`, com hash em `manifest.json` e atribuições/MIT em `LICENCAS.md`. Mecânicas/descrições de classe, subclasse e receitas reaproveitadas de `dados/criacao-srd2014.json` do legado. Nomes/traduções de magias reaproveitados de `dados/magias.json`, limitados por interseção com os 319 IDs da coleção **2014** de 5e-bits. Raças, subraças e traços vêm da mesma coleção 2014. Fonte normativa: [SRD 5.1 CC BY 4.0](https://media.wizards.com/2023/downloads/dnd/SRD_CC_v5.1.pdf). Não é importação de conteúdo 2024, nem do PHB completo. Não publica dados no catálogo geral.
+
+## Funcionalidades
+- Ativação explícita de regras versionadas: mantém nome, atributos, inventário e moedas; reinício de escolhas confirmado pelo usuário. Fichas antigas continuam sendo lidas pelo catálogo original, sem migração automática ou regravação.
+- Doze classes, uma subclasse SRD por classe, seleção nos níveis próprios e tabelas 1–20; escolhas, perícias, ferramentas, expertise, estilos, melhorias de atributos e pré-requisitos estruturados de invocações.
+- Nove opções raciais SRD com suas subraças publicadas; bônus, habilidades e idiomas da fonte. Traços mantêm descrição, não apenas o nome.
+- Acólito e origem personalizada conforme o SRD: perícias/idiomas/ferramentas, característica própria, pacote de origem e 15 po idempotentes. Pacotes fora do Acólito precisam de fonte autorizada adicional e acordo com o mestre.
+- Point buy/matriz existentes reaproveitados. Bônus raciais, ASI e teto do Campeão Primitivo na ordem correta; PV e dados de vida pelo motor existente.
+- 319 magias: truques, conhecidas, preparo, grimório por nível (seis iniciais + duas/nível), domínio/juramento e magia racial, lista expandida do Corruptor, slots e recursos. Não transforma lista expandida em magia conhecida gratuita.
+- Equipamentos iniciais por classe com escolhas de categorias, quantidades e expansão de pacotes usando os IDs atuais; nunca substitui inventário adquirido nem concede outro conjunto após consumo.
+- Moedas, itens de origem personalizados na ficha, equipar, CA, perícias, salvaguardas, percepção passiva, deslocamento, ataques básicos, CD/ataque de magia e recursos/dados de vida. Gasto de dado de vida separado da cura física/manual.
+- Condições de combate (fúria ativa, dano situacional, crítico, ações, transformações e interpretação da característica narrativa) permanecem descritas; não são aplicadas como bônus permanentes indevidos.
+
+## Persistência e preservação
+As escolhas/recursos/moedas são dados do `draft`, gravados pelas RPCs existentes, sem novo schema. O snapshot não é salvo em cada ficha. Ficha exige campanha ativa; repositório recusa carregar outra campanha, mesmo se o usuário puder acessar ambas. RLS, funções de segurança e migrations intactas.
+
+**Verificação remota somente leitura em 22/11:** projeto `gwcttjlxzelzjhbuitmi` (`compendio-5e`); histórico inclui `character_sheets_persistencia_0008` em `20261121075413`. As RPCs `create_guided_character` e `save_guided_character` existem com `security_definer=false`; `character_sheets` tem RLS habilitada. Os comentários antigos que dizem “0008 não aplicada” são históricos. Não reexecutar SQL com base neles. Nenhum dado de usuário lido/gravado e nenhuma migração aplicada por esta tarefa. Testes de gravação/reabertura/conflito usam a API de servidor em memória; testes SQL existentes usam PGlite isolado. Não alegar teste de login/gravação com conta real.
+
+## Verificação e pendências
+Comandos: `npm run test:e2e:types`, `npm run build`, `npm test`, `npm run test:creator`, `npm run test:quality` e `npm run test:e2e`. No Windows restrito, build/Vitest com `--configLoader runner`; navegador no CI Linux.
+
+Testes novos cobrem tabelas 12×20, bônus raciais/ASI, duplicação de perícia, expertise, referências de equipamento, grimório por nível, preparo/domínios, requisitos, origem idempotente e persistência por campanha/revisão. E2E novo cria Maga, distribui atributos/escolhas, prepara grimório, confirma equipamentos, salva/reabre e valida Bárbaro 20, axe e oito larguras. Resultados reais serão registrados no PR, sem confundir enumeração de casos com aprovação.
+
+**Limites de cobertura:** não é catálogo completo de todas as publicações de 2014. Subclasses/raças/antecedentes não SRD, multiclasse, talentos opcionais, troca de magias aprendidas em níveis anteriores, automação de efeitos contextuais e personagens legados de ficha simples não ganham conversão automática. Regras descritivas e traduções reaproveitadas ainda precisam de revisão editorial independente; a bateria de integridade 12×20 não certifica sozinha todos os efeitos do livro. Não rotular cobertura do PHB como concluída.

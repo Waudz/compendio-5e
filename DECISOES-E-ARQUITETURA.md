@@ -224,3 +224,10 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Revisão do PR #80 (21/11):** invariantes presas à existência da ficha (gatilho em `notes`), INSERT/UPDATE com nota ativa, meta estrito e título derivado pelo servidor, 0007 corrigida; duas funções SECURITY DEFINER booleanas em schema `private` (ver `CRIADOR-FICHA-INVENTARIO.md`).
 - **Verificação:** `supabase/character-sheets.test.ts` (48, incluindo compatibilidade com a 0007, notas legadas e testes negativos de RLS/ownership), `src/fichas.test.ts`, `src/criador/persistenciaServidor.test.tsx`, `recuperacao.test.ts`; tsc, build e 800 testes locais. Não validado no Supabase hospedado.
 - **Pendências:** aplicar a 0008 (autorização), testar contra o remoto, exclusão/transferência narrativas (PR #75), migração das fichas simples, Realtime (fora de escopo).
+
+### DEC-018 — Regras de personagens 2014 versionadas e isoladas (22/11/2026)
+- **Situação:** implementada parcialmente, em revisão na branch feat/character-2014.
+- **Contexto:** criador da main #82 fixa opções de demonstração; preservar fichas existentes e não interferir no catálogo geral.
+- **Decisão:** snapshot SRD 5.1 próprio do módulo de personagens, IDs/versão novos, ativação explícita; motor existente e persistência/RPCs reaproveitados. Alternativa rejeitada: substituir silenciosamente o catálogo das fichas antigas ou copiar o aplicativo legado inteiro.
+- **Impacto:** sem migração de dados ou schema, sem publicações globais. Dados carregados sob demanda. Fonte/licenças, cobertura e pendências em docs/CRIADOR-2014-EXPANSAO.md.
+- **Verificação:** testes unitários e E2E dedicados; aprovação final vinculada ao SHA/CI do PR, não presumida por este documento.
