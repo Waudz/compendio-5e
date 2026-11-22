@@ -67,8 +67,12 @@ const gruposCompletos = (d: CharacterDraft) => modern2014(d) ? d.decisions.some(
 export function CriadorGuiado({ id, onOpenContent }: { id: string; onOpenContent: (s: TabSpec) => void }) {
   const { user } = useAuth(), { active } = useCampaigns(), fichas = useFichas();
   const aviso = (t: string) => <div className="content"><h1>Personagem</h1><Aviso t={t}/></div>;
-  const store = useMemo<ArmazenamentoCriador | null>(() => { try { return user && active ? armazenamentoLocalExperimental(user.id, active.campaign.id) : null; } catch { return null; } }, [user, active]);
-  const repo = useMemo<RepositorioPersonagem | null>(() => !user || !active || !store ? null : fichas ? repositorioServidor(fichas, active.campaign.id, user.id) : repositorioLocal(store), [user, active, store, fichas]);
+  // Usar identificadores estáveis: contextos podem emitir novos objetos para a
+  // mesma conta/campanha e recriar o repositório, recarregando a ficha por cima
+  // das escolhas ainda não salvas.
+  const userId = user?.id, campaignId = active?.campaign.id;
+  const store = useMemo<ArmazenamentoCriador | null>(() => { try { return userId && campaignId ? armazenamentoLocalExperimental(userId, campaignId) : null; } catch { return null; } }, [userId, campaignId]);
+  const repo = useMemo<RepositorioPersonagem | null>(() => !userId || !campaignId || !store ? null : fichas ? repositorioServidor(fichas, campaignId, userId) : repositorioLocal(store), [userId, campaignId, store, fichas]);
   if (!user) return aviso("Conta necessária para usar o criador de personagens.");
   if (!active) return aviso("Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral.");
   if (!store || !repo) return aviso("Não foi possível preparar o armazenamento deste usuário e campanha.");
