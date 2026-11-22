@@ -84,7 +84,7 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec, mode?: NavMode
     e.preventDefault();
     const bad = validateCampaign(name, desc); if (bad) { create.setMsg({ kind: "err", text: bad }); return; }
     const r = await create.run(() => api.create(name.trim(), desc), "Campanha criada.");
-    if (r?.ok) { setName(""); setDesc(""); await refresh(); onOpen({ kind: "campanha", ref: r.data, title: name.trim() }, "new"); }
+    if (r?.ok) { setName(""); setDesc(""); await refresh(); if (await unsaved.confirmAll()) setActive(r.data); onOpen({ kind: "campanha", ref: r.data, title: name.trim() }, "new"); }
   };
   const onJoin = async (e: FormEvent) => {
     e.preventDefault();
