@@ -131,28 +131,20 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(screen.getByRole('button', { name: 'Salvar' }).hasAttribute('disabled')).toBe(true);   // nada pendente depois de reabrir
   });
 
-  it('revisão do equipamento: trocar a escolha pede confirmação com aviso, Cancelar preserva e Substituir troca preservando itens adquiridos', async () => {
+  it('equipamento SRD 2014 não é concedido duas vezes e preserva itens adquiridos', async () => {
     await montar(); await abrirPersonagens(); await novoGuiado(); await preencherFicha('Thorin');
     await confirmarEquipamento();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
+    const inventario = screen.getByRole('region', { name: 'Inventário' });
+    const quantidadeInicial = inventario.querySelectorAll('li').length;
     fireEvent.change(screen.getByLabelText('Buscar item para adicionar'), { target: { value: 'adaga' } });
     fireEvent.click(await screen.findByRole('button', { name: /^Adicionar Adaga$/ }));
+    fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
+    expect(await screen.findByText(/Equipamento inicial já concedido e consumido/)).toBeTruthy();
+    fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
+    expect(screen.getByRole('region', { name: 'Inventário' }).querySelectorAll('li').length).toBeGreaterThanOrEqual(quantidadeInicial + 1);
     expect(screen.getAllByText('Adaga').length).toBeGreaterThan(0);
-    fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
-    fireEvent.change(screen.getByLabelText('Equipamento armor'), { target: { value: 'leather-bow' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
-    const dialogo = await screen.findByRole('alertdialog', { name: 'Substituir equipamento inicial' });
-    expect(dialogo.textContent).toMatch(/Armadura/);
-    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
-    fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
-    expect(screen.getByText('Cota de malha')).toBeTruthy(); expect(screen.queryByText('Arco longo')).toBeNull();
-    fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
-    fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Substituir equipamentos' }));
-    fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
-    expect(await screen.findByText('Arco longo')).toBeTruthy(); expect(screen.getByText('Armadura de couro')).toBeTruthy();
-    expect(screen.queryByText('Cota de malha')).toBeNull();
-    expect(screen.getAllByText('Adaga').length).toBeGreaterThan(0);   // item adquirido preservado
   });
 
   it('C-E2E-01: no inventário o nome acessível de "Consultar no Compêndio", "+1" e "−1" contém o texto visível e continua identificando o item', async () => {
