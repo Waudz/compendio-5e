@@ -56,6 +56,8 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(abas()).toEqual(['Personagens', 'Novo personagem']);
     expect(screen.getByTestId('aviso-armazenamento').textContent).toMatch(/experimental.*só neste navegador.*não é privado/s);
     expect(screen.getByRole('heading', { name: 'Novo personagem' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Opções SRD 2014' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Ativar opções SRD 2014' })).toBeNull();
   });
 
   it('fluxo completo: ficha, equipamento do catálogo oficial com prévia, inventário, detalhes no Compêndio, identidade pública, salvar e reabrir', async () => {
