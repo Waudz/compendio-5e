@@ -158,6 +158,9 @@ describe("layout guarda só ids (nunca títulos)", () => {
     medir();
     await renderApp({ api: campApi([m]) });
     await waitFor(() => expect(tabNames()).toContain("Segredo da Mesa Sombria"));
+    fireEvent.click(nav("Documentos"));
+    fireEvent.click(nav("Início"));
+    await waitFor(() => expect(tabNames()).toContain("Segredo da Mesa Sombria"));
     const dump = store.key(0) === null ? "" : [...Array(store.length).keys()].map(i => `${store.key(i)}=${store.getItem(store.key(i)!)}`).join("\n");
     expect(dump).toContain("campanha:c1");
     expect(dump).not.toContain("Segredo da Mesa Sombria");
