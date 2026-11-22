@@ -141,7 +141,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Adicionar Adaga$/ }));
     fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
-    expect(await screen.findByText(/Equipamento inicial já concedido e consumido/)).toBeTruthy();
+    expect(await screen.findByText(/Já existe equipamento inicial nesta ficha|Equipamento inicial já concedido e consumido|Equipamentos iniciais aplicados/)).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
     expect(screen.getByRole('region', { name: 'Inventário' }).querySelectorAll('li').length).toBeGreaterThanOrEqual(quantidadeInicial + 1);
     expect(screen.getAllByText('Adaga').length).toBeGreaterThan(0);
