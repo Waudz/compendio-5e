@@ -1,7 +1,7 @@
 // Início da campanha: capa, nome e descrição, prévia do Diário e Aventureiros. É a aba `campanha:<id>` (mesma entidade de sempre).
 // Capa, Diário e Personagens ainda não têm módulo/persistência: cada seção recebe uma fonte opcional (ver inicio.ts) e,
 // sem ela, mostra um estado honesto "ainda não disponível". Nada aqui inventa dados nem cria um segundo Diário.
-import { Image as ImageIcon, ScrollText, Users } from "lucide-react";
+import { BookOpen, Image as ImageIcon, Library, NotebookPen, ScrollText, Users } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { useAventureiros } from "./AventureirosContext";
@@ -142,6 +142,12 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
   return <div className="home" data-testid="campanha-inicio">
     <Capa campaignId={id} isMaster={isMaster}/>
     <NomeDescricao id={id} onOpen={onOpen}/>
+    {isMaster && <nav className="home-shortcuts" aria-label="Atalhos da campanha">
+      <button type="button" onClick={() => onOpen({kind:"secao",ref:"planejamento"})}><NotebookPen size={19} aria-hidden="true"/> Anotações</button>
+      <button type="button" onClick={() => onOpen({kind:"secao",ref:"compendio"})}><BookOpen size={19} aria-hidden="true"/> Compêndio</button>
+      <button type="button" onClick={() => onOpen({kind:"secao",ref:"personagens"})}><Users size={19} aria-hidden="true"/> Personagens</button>
+      <button type="button" onClick={() => onOpen({kind:"secao",ref:"diario"})}><Library size={19} aria-hidden="true"/> Diário</button>
+    </nav>
     <DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>
     <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/>
     <details className="home-manage" onToggle={e => setGerir((e.currentTarget as HTMLDetailsElement).open)}><summary>{isMaster ? "Gerenciar campanha" : "Participantes"}</summary>
