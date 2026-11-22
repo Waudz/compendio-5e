@@ -5,10 +5,11 @@
 ## Visibilidade e aquisição
 - Jogadores consultam e adicionam livremente equipamentos **mundanos** (armas, armaduras, ferramentas, suprimentos) e **itens mágicos de raridade comum** do catálogo; itens pessoais mundanos podem ser personalizados.
 - Itens mágicos **comuns** do catálogo oficial são pesquisáveis e adicionáveis pelo jogador (ex.: Poção de Cura básica); não exigem entrega do mestre. Adicionar ao inventário registra uma aquisição narrada na mesa, não concede um item gratuitamente nas regras.
-- Itens mágicos **incomuns ou superiores** ficam ocultos do catálogo de jogador enquanto não revelados e não aparecem na pesquisa de inclusão direta. Ex.: Poção de Cura Maior (incomum), Superior (rara) e Suprema (muito rara).
-- Itens mágicos incomuns ou superiores são concedidos pelo mestre, individualmente ou por loot de encontro liberado. Após identificação/revelação, o jogador vê as propriedades do exemplar descoberto; não recebe acesso ao catálogo mágico inteiro nem às variantes privadas.
+- Itens mágicos **incomuns ou superiores** ficam ocultos do catálogo de jogador por padrão, mas o mestre pode **revelar ou ocultar cada item oficial para todos os jogadores da campanha**, no mesmo princípio de publicação de monstros. Um item revelado aparece na pesquisa do Compêndio e pode ser selecionado/adicionado pelo jogador no inventário; um item oculto não aparece na pesquisa geral. Itens mágicos comuns são públicos por padrão. Ex.: Poção de Cura Maior (incomum), Superior (rara) e Suprema (muito rara).
+- Itens mágicos incomuns ou superiores **ainda ocultos** são concedidos pelo mestre, individualmente ou por loot de encontro liberado; quando publicados para a campanha, podem ser adicionados pelo próprio jogador. Publicar não equivale a entregar fisicamente o item na narrativa. Após identificação/revelação, o jogador vê as propriedades do exemplar descoberto; não recebe acesso ao catálogo mágico inteiro nem às variantes privadas.
 - O mestre vê o catálogo completo. Regras de autorização devem ser verificadas no servidor/RLS, sem enviar IDs ou propriedades secretas ao cliente antes da revelação. O ID interno verdadeiro pode ser preservado no servidor.
-- **Raridade é critério de permissão para adição direta:** mundanos e mágicos comuns são livres; mágicos incomuns ou superiores dependem de entrega/revelação. O mestre pode entregar qualquer item já revelado.
+- **Raridade define o padrão inicial, não uma proibição permanente:** mundanos e mágicos comuns são públicos e adicionáveis por padrão; mágicos incomuns ou superiores exigem entrega individual ou publicação pelo mestre. Publicação/ocultação é por campanha. Ocultar não remove itens já possuídos nem apaga descobertas anteriores.
+- **Publicação por campanha:** revelar/ocultar itens mágicos oficiais funciona como a publicação de monstros, visível a todos os jogadores da campanha; não revela automaticamente variantes privadas do mestre. Reverter para oculto remove da pesquisa geral, sem apagar cópias ou descobertas já registradas.
 - **Descobertas por personagem:** ao encontrar/receber uma arma ou outro item especial, o personagem passa a ver no Compêndio > Itens > Descobertos a representação daquele exemplar, com imagem, nome e descrição liberados pelo mestre, mesmo que ainda não esteja identificado. Propriedades mágicas e bônus ocultos continuam protegidos até identificação/revelação. A descoberta persiste mesmo que o item seja perdido, consumido ou transferido, sem liberar variantes privadas nem itens desconhecidos. A descoberta é por personagem/campanha, não global por conta; proteger projeções com RLS.
 - Diferenciar pesquisa do catálogo, posse de um exemplar, conhecimento de sua existência, conhecimento de suas propriedades e estado de sintonização.
 
@@ -35,10 +36,10 @@
 - Sorteio de item mágico é **ideia futura, não requisito da primeira etapa**; poderá usar registros oficiais e arma-base compatível. Variantes pessoais ficam excluídas por padrão.
 
 ## Prioridade e validação
-1. Catálogo com distinção segura entre mundano, mágico comum e mágico incomum ou superior; pesquisa de inventário permite mundanos e mágicos comuns.
+1. Catálogo com distinção segura entre mundano, mágico comum e mágico incomum ou superior; pesquisa de inventário permite mundanos, mágicos comuns e itens mágicos publicados pelo mestre na campanha.
 2. Entrega pelo mestre e identificação, com privacidade real.
 3. Bônus mágicos parametrizados e variantes privadas simples.
 4. Loot de encontro preparado, liberação e coleta concorrente segura.
 5. Sorteio opcional futuramente.
 
-**Testes necessários:** RLS e isolamento por campanha; jogador não consegue consultar variante nem dados ocultos por API; identificação não vaza segredos de outros itens; duas coletas simultâneas não duplicam loot; editar variante não modifica cópias entregues; opções +1/+2/+3 respeitam as categorias permitidas; manutenção de dados existentes. **Nada acima é declaração de implementação.**
+**Testes necessários:** publicação/ocultação por campanha, sem vazamento entre campanhas; item publicado pode ser pesquisado e adicionado; ocultação não apaga descoberta nem posse; variantes privadas nunca entram na busca pública; RLS e isolamento por campanha; jogador não consegue consultar variante nem dados ocultos por API; identificação não vaza segredos de outros itens; duas coletas simultâneas não duplicam loot; editar variante não modifica cópias entregues; opções +1/+2/+3 respeitam as categorias permitidas; manutenção de dados existentes. **Nada acima é declaração de implementação.**
