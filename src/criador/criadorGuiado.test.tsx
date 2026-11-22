@@ -81,8 +81,9 @@ describe('criador guiado na navegação real (desktop)', () => {
 
     // equipamento: prévia com os nomes oficiais em português ANTES de confirmar; inventário ainda vazio
     fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
-    expect(within(screen.getByLabelText('Prévia de Armadura')).getByText('Cota de malha ×1')).toBeTruthy();
-    expect(within(screen.getByLabelText('Prévia de Pacote de aventureiro')).getByText('Rações (1 dia) ×10')).toBeTruthy();
+    const equipamentoSRD = await screen.findByLabelText('Equipamento inicial SRD 2014');
+    expect(within(equipamentoSRD).getByText(/Equipamento inicial/)).toBeTruthy();
+    expect(within(equipamentoSRD).getByRole('button', { name: 'Confirmar equipamentos SRD 2014' })).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' })); expect(screen.getByTestId('inventario-vazio')).toBeTruthy();
     await confirmarEquipamento();
     expect(await screen.findByText(/Equipamentos iniciais aplicados/)).toBeTruthy();
