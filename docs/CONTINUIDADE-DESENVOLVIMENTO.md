@@ -306,3 +306,8 @@ Achado do Codex (PR #79): o nome acessível dos botões do inventário não cont
 Corrigidos (ver `CRIADOR-FICHA-INVENTARIO.md`): `meta` da nota presa à existência da ficha (não ao marcador), INSERT/UPDATE com `notes.deleted_at IS NULL`, `p_meta` estrito e título derivado no servidor, 0007 alinhada ao remoto. 43 testes de RLS em PostgreSQL isolado com 6 mutações detectadas. **0008 continua NÃO aplicada** (aguarda comparação do DDL real e autorização).
 
 **Ação final do PR #80:** `private.nota_guiada_ativa` com dono + meta válido; CHECK global removida para não travar notas legadas; 48 testes de RLS. 0008 continua NÃO aplicada.
+
+### Entrega — catálogo de magias, monstros e itens (22/11/2026)
+
+- **Branch:** `feat/catalogo-dnd-2014` (a partir da `main` com o PR #82). Frente exclusiva do catálogo: **não altera** autenticação, campanhas, navegação global nem o criador. O contrato para o criador está em `src/catalogue/contratos.ts` e `docs/CATALOGO-DND-2014.md` (seção 4).
+- **Impacto em outras branches:** o clique em um item do Compêndio agora abre o detalhe no painel (antes abria uma aba `item:`); a aba continua disponível por "Abrir em nova aba" e é o destino de "Consultar no Compêndio" do inventário. Testes E2E que clicavam em `Abrir <item>` precisam usar o nome acessível novo (texto visível do cartão).

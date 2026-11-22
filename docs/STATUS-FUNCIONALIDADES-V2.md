@@ -9,9 +9,9 @@ Atualização: 20/11/2026. **Estimativas de planejamento**, não cobertura medid
 | Criador | 40% | Guerreiro SRD 2014 com escolhas, equipamento e identidade pública | **Na navegação real** (Personagens → criador guiado), desktop e celular | Armazenamento local **experimental** | Demais classes/raças/antecedentes, persistência autenticada |
 | Ficha | 20% | Cálculo experimental | Perfil simples da campanha | Registros de perfil, não ficha D&D completa | Atributos, magias, recursos e ficha única |
 | Inventário | 35% | Instâncias com catálogo oficial de itens | Dentro do criador, com "Consultar no Compêndio" | Local experimental | Peso total, equipar, transferência, servidor |
-| Compêndio | 30% | Catálogo real de 578 itens + busca indexada | **Seção real**: busca, filtros, lista/grade, página de item | Catálogo embutido no código | Classes, magias, criaturas, descrições integrais |
-| Magias | 5% | Tipo de referência | Placeholder | Não implementada | Catálogo, escolas, regras e conjuração |
-| Bestiário | 5% | Referências planejadas | Placeholder | Não implementada | Catálogo e busca |
+| Compêndio | 60% | Catálogo de itens, magias e monstros com núcleo genérico, busca e filtros | **Seção real**: categorias, filtros, lista/grade, detalhe em painel, esqueletos | Dados embutidos (pedaços sob demanda), sem persistência | Classes, raças, antecedentes, seletor de sistema, rolagens |
+| Magias | 65% | 319 magias SRD validadas contra a API; contratos por classe para o criador | Catálogo, filtros e detalhe | Dados embutidos | Conjuração (espaços, preparadas) é do criador; 5 listas de classes a confirmar |
+| Bestiário | 55% | 323 monstros SRD (pt-BR, 78% dos textos traduzidos) | Catálogo, filtros e ficha | Dados embutidos | Rolagens, links para magias, textos restantes |
 | Iniciativa | 10% | Planejamento e navegação | Placeholder | Não implementada | Combate completo |
 | Campanhas | 50% | API de campanhas | Painéis e navegação | Auth e regras existentes | Fluxos completos, integração com personagens |
 | Anotações/diário | 55% | Registros, visibilidade, editor | Interface existente | Migrações propostas ainda pendentes | Persistência final e testes |
@@ -74,3 +74,7 @@ Criador guiado (Guerreiro) e Compêndio de itens acessíveis pelo menu normal, t
 ## Persistência das fichas — 21/11/2026
 
 Código + 24 testes de RLS em PostgreSQL isolado + interface testada; **sem funcionamento real no Supabase** até a migração 0008 ser autorizada e aplicada. Percentuais são estimativas.
+
+## Catálogo de magias, monstros e itens — 22/11/2026
+
+Compêndio com três categorias, validado em jsdom e contra a SRD API; percentuais são estimativas. Ver `docs/CATALOGO-DND-2014.md`.
