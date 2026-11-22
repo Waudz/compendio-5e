@@ -313,9 +313,14 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
           {def && <button type="button" className="btn-secondary" aria-label={`Consultar no Compêndio: ${nomeDaInstancia(item)}`} onClick={() => onOpenContent(itemSpec(item.itemId, nomeDaInstancia(item)))}>Consultar no Compêndio</button>}
           <button type="button" className="btn-secondary" aria-label={`+1: adicionar quantidade de ${nomeDaInstancia(item)}`} onClick={() => mudar(changeInventoryInstanceQuantity(draft, item.id, 1))}>+1</button>
           <button type="button" className="btn-secondary" aria-label={`−1: remover quantidade de ${nomeDaInstancia(item)}`} onClick={() => mudar(changeInventoryInstanceQuantity(draft, item.id, -1))}>−1</button></span></li>; })}</ul>
-      <label>Adicionar item do catálogo<input type="search" aria-label="Buscar item para adicionar" value={busca} placeholder="Digite ao menos 2 letras" onChange={e => setBusca(e.target.value)}/></label>
-      {busca.trim().length >= 2 && resultadosBusca.length === 0 && <p className="muted">Nenhum item mundano encontrado.</p>}
-      <ul>{resultadosBusca.map(l => <li key={l.key}><span>{l.name}</span><button type="button" className="btn-secondary" aria-label={`Adicionar ${l.name}`} onClick={() => { mudar(addInventoryInstance(draft, { id: crypto.randomUUID(), itemId: l.ref.id, quantity: 1, equipped: false, origin: "acquired" })); setBusca(""); }}><Plus size={14} aria-hidden="true"/> Adicionar</button></li>)}</ul>
+      <div style={{ position: "relative", maxWidth: 520 }}>
+        <label htmlFor="criador-busca-item">Adicionar item do catálogo</label>
+        <input id="criador-busca-item" type="search" role="combobox" aria-autocomplete="list" aria-expanded={resultadosBusca.length > 0} aria-controls="criador-sugestoes-item" aria-label="Buscar item para adicionar" value={busca} placeholder="Digite ao menos 2 letras" onChange={e => setBusca(e.target.value)}/>
+        {busca.trim().length >= 2 && <div id="criador-sugestoes-item" role="listbox" aria-label="Resultados da pesquisa de itens" style={{ position: "absolute", zIndex: 20, top: "100%", left: 0, right: 0, maxHeight: 260, overflowY: "auto", background: "var(--surface, #20242b)", border: "1px solid var(--border, #626b78)", borderRadius: 8, padding: 8, boxShadow: "0 8px 20px #0005" }}>
+          {resultadosBusca.length === 0 && <p className="muted" role="status">Nenhum item mundano encontrado.</p>}
+          {resultadosBusca.map(l => <div role="option" aria-selected={false} key={l.key} className="row-between" style={{ gap: 8, padding: "6px 0" }}><span>{l.name}</span><button type="button" className="btn-secondary" aria-label={`Adicionar ${l.name}`} onClick={() => { mudar(addInventoryInstance(draft, { id: crypto.randomUUID(), itemId: l.ref.id, quantity: 1, equipped: false, origin: "acquired" })); setBusca(""); }}><Plus size={14} aria-hidden="true"/> Adicionar</button></div>)}
+        </div>}
+      </div>
     </section>}
 
     {secao === "identidade" && <div className="criador-sec">
