@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { createCampaignApi, type CampaignApi, type Membership } from "./campaigns";
 
@@ -24,34 +24,45 @@ export function CampaignsProvider({ children, apiFactory }: { children: ReactNod
   const { status, user, client } = useAuth();
   const userId = status === "authenticated" ? user?.id ?? null : null;
   const api = useMemo(() => userId ? (apiFactory ? apiFactory(userId) : client ? createCampaignApi(client, userId) : null) : null, [userId, client, apiFactory]);
-  const [memberships, setMemberships] = useState<Membership[]>([]);
-  const [fetching, setFetching] = useState(false);
-  const [loadedFor, setLoadedFor] = useState<CampaignApi | null>(null);   // api cuja primeira listagem já terminou
-  const [error, setError] = useState<string | null>(null);
-  // Campanha ativa lida de forma SÍNCRONA no mesmo render em que o usuário passa a existir (antes era lida num efeito, e o primeiro
-  // render do espaço de trabalho usava "nenhuma" e mostrava o layout/aba de Campanhas por um instante ao atualizar a página).
+  const [snapshot, setSnapshot] = useState<{ api: CampaignApi; memberships: Membership[]; loading: boolean; error: string | null } | null>(null);
+  const request = useRef(0);
+  const current = snapshot?.api === api ? snapshot : null;
+  const memberships = useMemo(() => current?.memberships ?? [], [current]);
+  const loading = !!api && (!current || current.loading);
+  const error = current?.error ?? null;
   const [chosen, setChosen] = useState<{ uid: string; id: string | null } | null>(null);
   const activeRaw = userId ? (chosen?.uid === userId ? chosen.id : read(activeKey(userId))) : null;
-  // Até a primeira listagem terminar, "carregando": o espaço de trabalho mantém a campanha ativa lembrada em vez de cair em "nenhuma".
-  const loading = fetching || (!!api && loadedFor !== api);
 
   const refresh = useCallback(async () => {
-    if (!api) { setMemberships([]); setError(null); return; }
-    setFetching(true);
+    if (!api) return;
+    const ticket = ++request.current;
+    setSnapshot(prev => ({ api, memberships: prev?.api === api ? prev.memberships : [], loading: true, error: null }));
     const r = await api.list();
-    setFetching(false); setLoadedFor(api);
-    if (r.ok) { setMemberships(r.data); setError(null); } else setError(r.error);
+    if (ticket !== request.current) return;
+    setSnapshot(prev => ({ api, memberships: r.ok ? r.data : prev?.api === api ? prev.memberships : [], loading: false, error: r.ok ? null : r.error }));
   }, [api]);
 
-  useEffect(() => { // carrega ao entrar; ao sair, zera tudo (nada de dados de outra conta)
-    setMemberships([]); setError(null);
+  useEffect(() => {
     if (api) void refresh();
-  }, [api, userId, refresh]);
+    else setSnapshot(null);
+    return () => { request.current++; };
+  }, [api, refresh]);
 
-  // A campanha ativa só vale se o usuário ainda participa dela (foi removido? sai do estado ativo).
-  const active = useMemo(() => memberships.find(m => m.campaign.id === activeRaw) ?? null, [memberships, activeRaw]);
-  const activeId = active ? active.campaign.id : (loading || error ? activeRaw : null); // enquanto carrega, mantém o espaço de trabalho
-  const setActive = useCallback((id: string | null) => { if (userId) { write(activeKey(userId), id); setChosen({ uid: userId, id }); } }, [userId]);
+  const active = useMemo(() => memberships.find(m => m.campaign.id === activeRaw)
+    ?? (!loading && !error ? [...memberships].sort((a,b) => a.campaign.id.localeCompare(b.campaign.id))[0] ?? null : null),
+    [memberships, activeRaw, loading, error]);
+  const activeId = active?.campaign.id ?? (loading || error ? activeRaw : null);
+  const setActive = useCallback((id: string | null) => {
+    if (userId && id) { write(activeKey(userId), id); setChosen({ uid: userId, id }); }
+  }, [userId]);
+  useEffect(() => {
+    if (!userId || loading || error) return;
+    if (active && active.campaign.id !== activeRaw) setActive(active.campaign.id);
+    else if (!active && activeRaw) {
+      write(activeKey(userId), null);
+      setChosen({ uid: userId, id: null });
+    }
+  }, [userId, loading, error, active, activeRaw, setActive]);
 
   const value = useMemo(() => ({ api, memberships, loading, error, activeId, active, setActive, refresh }), [api, memberships, loading, error, activeId, active, setActive, refresh]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
