@@ -12,6 +12,18 @@ for (const role of ['mestre', 'jogador'] as const) {
       await page.getByRole('button', { name: 'Abrir menu', exact: true }).click();
       const menu = page.getByRole('dialog', { name: 'Menu de navegação' });
       await expect(menu).toBeInViewport({ ratio: 1 });
+      // A folha do menu deve terminar ANTES da barra inferior, inclusive na área de gestos.
+      const limites = await page.evaluate(() => {
+        const overlay = document.querySelector('.mobile-menu-overlay')?.getBoundingClientRect();
+        const barra = document.querySelector('.mobile-bottom-nav')?.getBoundingClientRect();
+        const folha = document.querySelector('.mobile-menu-sheet')?.getBoundingClientRect();
+        return { overlayBottom: overlay?.bottom, navTop: barra?.top, sheetBottom: folha?.bottom };
+      });
+      expect(limites.overlayBottom).toBeDefined();
+      expect(limites.navTop).toBeDefined();
+      expect(limites.sheetBottom).toBeDefined();
+      expect(limites.overlayBottom!).toBeLessThanOrEqual(limites.navTop! + 1);
+      expect(limites.sheetBottom!).toBeLessThanOrEqual(limites.navTop! + 1);
       const close = menu.getByRole('button', { name: 'Fechar menu' });
       await expect(close).toBeInViewport({ ratio: 1 });
       await close.click();

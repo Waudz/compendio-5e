@@ -78,6 +78,21 @@ describe("celular: estrutura independente do FlexLayout", () => {
   });
 });
 
+describe("celular: menu e barra inferior", () => {
+  it("abre e fecha o menu mantendo a barra de navegação independente", async () => {
+    await montar(mestre);
+    const botao = barra().getByRole("button", { name: "Menu" });
+    fireEvent.click(botao);
+    const dialogo = screen.getByRole("dialog", { name: "Menu de navegação" });
+    expect(dialogo.closest(".mobile-menu-overlay")).toBeTruthy();
+    expect(botao.getAttribute("aria-expanded")).toBe("true");
+    expect(barra().getByRole("button", { name: "Início" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Fechar menu" }));
+    expect(screen.queryByRole("dialog", { name: "Menu de navegação" })).toBeNull();
+    expect(botao.getAttribute("aria-expanded")).toBe("false");
+  });
+});
+
 describe("celular: Ficha do jogador", () => {
   const dados = () => [pc("p1", me.id, "Lydia", "2026-02-01T00:00:00Z"), pc("p2", me.id, "Torin", "2026-03-01T00:00:00Z"), pc("p3", other.id, "Alheio", "2026-04-01T00:00:00Z", "campaign")];
   it("o botão Ficha abre a ficha do próprio personagem (a mais recente), não a lista nem a ficha de outro jogador", async () => {
