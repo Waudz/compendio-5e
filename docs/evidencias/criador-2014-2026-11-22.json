@@ -1,0 +1,45 @@
+{
+  "implementationSha": "80093941938eadb64c554162aa854ccefe63800c",
+  "mainIntegrated": "878914de868fc31344c91ae7e77b54ec252cf849",
+  "unit": {
+    "run": 44991838934,
+    "filesPassed": 85,
+    "testsPassed": 1124,
+    "failed": 0
+  },
+  "e2e": {
+    "run": 44991838856,
+    "basicPassed": 36,
+    "creatorPassed": 88,
+    "qualityPassed": 80,
+    "failed": 0,
+    "inheritedConditionalSkips": 32,
+    "widths": [
+      320,
+      360,
+      390,
+      700,
+      701,
+      768,
+      1024,
+      1440
+    ]
+  },
+  "axe": {
+    "artifact": 14741414466,
+    "scans": 72,
+    "violations": 0
+  },
+  "screenshotsInspected": [
+    320,
+    701,
+    1440
+  ],
+  "productionWrites": false,
+  "limitations": [
+    "SRD 5.1 2014 only; not full PHB",
+    "No real-account production login/save test",
+    "Conditional combat effects descriptive",
+    "Build chunk-size warnings remain"
+  ]
+}

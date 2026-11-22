@@ -56,3 +56,16 @@ PV podem usar média fixa ou resultados físicos informados por nível, com conf
 
 ### Responsividade do painel interno
 A inspeção das capturas de 320 px encontrou corte lateral no inventário: a largura do documento continuava correta, mas a subnavegação do criador podia alargar o scroll container mobile. Corrigido exclusivamente no CSS do criador com quebra de suas seções/controles e mínimo inline de fieldsets. Acrescentada asserção dos retângulos reais de todos os controles, fieldsets, navegação e itens do criador, incluindo margens negativas; a asserção anterior apenas do documento é mantida.
+
+
+### Resultado final da implementação funcional — 8009394
+A main avançou durante o trabalho; incorporados integralmente os PRs #83 e #85 (main `878914d`), sem conflitos. Código de campanhas, autenticação, navegação global, catálogo geral e migrations permanece idêntico à main recebida.
+
+- [CI TypeScript/build/unitários](https://github.com/Waudz/compendio-5e/actions/runs/44991838934): **85 arquivos / 1.124 testes aprovados**, zero falhas.
+- [CI Playwright Linux](https://github.com/Waudz/compendio-5e/actions/runs/44991838856): **36 básicos + 88 criador + 80 qualidade = 204 aprovados**, zero falhas; 32 casos de layout condicionais herdados não aplicáveis. Oito larguras: 320, 360, 390, 700, 701, 768, 1024 e 1440 px.
+- Artefato `14741414466`: analisados os relatórios HTML/JSON, **72 varreduras axe, zero violações**. Capturas do inventário inspecionadas em 320, 701 e 1440 px; corte lateral corrigido. [Baixar evidências pelo GitHub Actions](https://github.com/Waudz/compendio-5e/actions/runs/44991838856/artifacts/14741414466) (retenção até 29/11/2026).
+- 287 verificações específicas acrescentadas de regras, atributos e persistência; a enumeração de 12×20 níveis é complementada por valores esperados independentes de PV/dados de vida, recursos, espaços, movimento, ataques e salvaguardas.
+- Snapshot confere com SHA-256 do manifest. Origem legada fixada em `Waudz/rastreador-dnd@6086b360a7522d54a3cce3c40fcff7a7e20d4507`.
+- Build aprovado com avisos de chunks acima de 500 kB e anotações de dependências; dados novos são carregados sob demanda. Não foi executado login/gravação com contas reais; segurança/persistência verificadas em ambiente isolado e metadados remotos somente leitura.
+
+O commit seguinte registra apenas documentação, evidências e correção da referência da fonte no manifest, sem alterar código funcional ou snapshot. Riscos de integração: seleção de campanha e identidade são compartilhadas por outras frentes; manter os testes de campanha/RLS e executar uma rodada com duas sessões sintéticas em Supabase local antes de liberar sincronização para usuários. Os limites de conteúdo e automação acima continuam pendentes; não apresentar como PHB completo.
