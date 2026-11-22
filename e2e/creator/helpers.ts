@@ -8,7 +8,7 @@ export async function startCreator(page: Page) {
   await openDemo(page, 'jogador');
   await navigate(page, 'Personagens');
   await expect(page.getByRole('heading', { name: 'Personagens', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /Criar com o criador guiado/ }).click();
+  await page.getByRole('button', { name: /Criar personagem/ }).click();
   await expect(nameField(page)).toBeVisible();
   await expect(page.getByRole('note').filter({ hasText: 'Armazenamento' })).toContainText('experimental');
 }
