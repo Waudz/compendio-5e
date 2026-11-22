@@ -39,11 +39,6 @@ const montar = async (user: User = me, layoutNovo = true) => {
   return renderApp({ user, api: apiC(papelDe(user)), registros: registrosEmMemoria(papelDe(user), user.id, [], registros as never), fichas: fichasEmMemoria(user.id, banco) });
 };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole("button", { name: "Personagens" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Personagens" })); };
-/** Ao reabrir, a ficha é exibida em leitura; edição exige ação explícita. */
-const abrirEdicaoSeNecessario = async () => {
-  const botao = screen.queryByRole("button", { name: "Editar personagem" });
-  if (botao) fireEvent.click(botao);
-};
 const nomeInput = async () => {
   const campo = screen.queryByLabelText("Nome do personagem") as HTMLInputElement | null;
   if (campo) return campo;
