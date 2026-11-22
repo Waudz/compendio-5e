@@ -144,6 +144,7 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
     <NomeDescricao id={id} onOpen={onOpen}/>
     {isMaster && <nav className="home-shortcuts" aria-label="Atalhos da campanha">
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"planejamento"})}><NotebookPen size={19} aria-hidden="true"/> Anotações</button>
+      <button type="button" onClick={() => onOpen({kind:"secao",ref:"enciclopedia"})}><BookOpen size={19} aria-hidden="true"/> Enciclopédia</button>
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"compendio"})}><BookOpen size={19} aria-hidden="true"/> Compêndio</button>
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"personagens"})}><Users size={19} aria-hidden="true"/> Personagens</button>
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"diario"})}><Library size={19} aria-hidden="true"/> Diário</button>
