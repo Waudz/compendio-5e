@@ -34,8 +34,21 @@ function useMobile() {
 /** Só existe com sessão. `key` por usuário: trocar de conta descarta TODO o estado do espaço de trabalho (nada vaza entre contas). */
 export default function App() {
   const { status, user } = useAuth();
-  if (status !== "authenticated" || !user) return null;
+  const { loading, active, error } = useCampaigns();
+  const readyFor = useRef<string | null>(null);
+  if (status !== "authenticated" || !user) { readyFor.current = null; return null; }
+  // Não monte o workspace provisório antes de resolver a primeira campanha.
+  if (!loading && !error) readyFor.current = user.id;
+  if (readyFor.current !== user.id && !active) {
+    if (error) return <CampaignLoadError/>;
+    return <div role="status">Carregando suas campanhas…</div>;
+  }
   return <Workspace key={user.id} userId={user.id}/>;
+}
+
+function CampaignLoadError() {
+  const { refresh } = useCampaigns();
+  return <div role="alert">Não foi possível carregar suas campanhas. <button onClick={() => void refresh()}>Tentar novamente</button></div>;
 }
 
 function Workspace({ userId }: { userId: string }) {
@@ -50,6 +63,7 @@ function Workspace({ userId }: { userId: string }) {
     if (!hasSavedLayout(scope) && scope.campaign !== "nenhuma") return firstVisitModel(scope.campaign, memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name);
     return createModel(loadLayout(scope));
   });
+  const modelRef = useRef(model); modelRef.current = model;
   const [modelKey, setModelKey] = useState(scopeKey);
   const [, redraw] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
@@ -65,13 +79,15 @@ function Workspace({ userId }: { userId: string }) {
   if (modelKey !== scopeKey) {
     // Primeira vez nesta campanha: abre o Início (ex.: logo após entrar por convite).
     const m = !hasSavedLayout(scope) && scope.campaign !== "nenhuma" ? firstVisitModel(scope.campaign, memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name) : createModel(loadLayout(scope));
-    good.current = m.toJson(); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
+    modelRef.current = m; good.current = m.toJson(); setMenu(null); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
 
   // Toda mudança passa por aqui: valida a restrição de colunas (reverte se violada) e persiste.
   const onModelChange = useCallback((m: Model) => {
+    // Um callback atrasado do layout anterior não pode gravar no escopo atual.
+    if (m !== modelRef.current) return;
     if (normalizeEmptyPanels(m)) return;   // painel que recebeu aba deixa de ser "vazio intencional"; a ação de correção volta aqui
     const json = m.toJson();
-    if (!isColumnsOnly(json)) { setModel(createModel(good.current)); return; }
+    if (!isColumnsOnly(json)) { const restored = createModel(good.current); modelRef.current = restored; setModel(restored); return; }
     good.current = json; saveLayout(json, scopeRef.current); refresh();
   }, [refresh]);
   // Fechar aba/coluna pelos botões do FlexLayout também respeita alterações não salvas.

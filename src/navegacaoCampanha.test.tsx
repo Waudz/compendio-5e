@@ -140,7 +140,7 @@ describe("Planejamento", () => {
     expect(nomesMenu()).toContain("Anotações"); expect(nomesMenu()).not.toContain("Iniciativa"); expect(visibleSections(false).map(s => s.page)).toContain("planejamento");
   });
   it("sem campanha ativa Anotações abre um aviso (pertencem a uma campanha), sem dados", async () => {
-    await montar([mA], null);
+    await montar([], null);
     fireEvent.click(within(menu()).getByRole("button", { name: "Anotações" }));
     expect(await screen.findByText(/pertencem a uma campanha/)).toBeTruthy();
     expect(visibleSections(true).map(s => s.page)).toContain("planejamento");
