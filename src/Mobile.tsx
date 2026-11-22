@@ -93,8 +93,6 @@ export function Mobile(_props: Props) {
   const navigate = irPara;
   const goBack = () => {
     if (!history.length) { irPara(home); return; }
-    // A navegação interna também deve consumir a entrada do navegador.
-    if (window.history.state?.compendioMobile) { window.history.back(); return; }
     unsaved.guard("all", () => {
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
       const previous = history[history.length - 1];
