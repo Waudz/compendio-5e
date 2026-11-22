@@ -185,7 +185,6 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
 
   const resultadosBusca = busca.trim().length >= 2 ? searchCompendium(criadorRules, { kind: "item", text: busca }).filter(l => srdItem(l.ref.id)?.raridade === "mundano").slice(0, 8) : [];
   const completo = !!sheet && !!draft.name.trim() && !sheet.pending.length && gruposCompletos(draft);
-  const escolhasDoNivel = (modern2014(draft) ? [] : fighter2014Advancements).flatMap(a => a.level <= draft.level ? a.choices ?? [] : []);
   const sec = (s: Secao, rotulo: string) => <button type="button" className={secao === s ? "active" : ""} aria-current={secao === s ? "true" : undefined} onClick={() => setSecao(s)}>{rotulo}</button>;
 
   return <div className="content ficha auth wide criador">
@@ -215,15 +214,6 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
         {erroAtrib && <p role="alert" className="notice err">{erroAtrib}</p>}
       </fieldset>
       <label>Nível<select aria-label="Nível" value={draft.level} onChange={e => alterarNivel(Number(e.target.value))}>{(modern2014(draft) ? Array.from({ length: 20 }, (_, i) => i + 1) : [1, 2, 3, 4, 5, 6]).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
-      {escolhasDoNivel.map(ch => ch.count > 1
-        ? <fieldset key={ch.id}><legend>Perícias do Guerreiro (escolha {ch.count})</legend>
-          <div className="criador-pericias">{ch.options.map(o => { const marcadas = draft.decisions.find(d => d.id === ch.id)?.optionIds ?? [];
-            return <label key={o.id} className="check"><input type="checkbox" aria-label={"Perícia " + o.id} checked={marcadas.includes(o.id)} disabled={!marcadas.includes(o.id) && marcadas.length >= ch.count}
-              onChange={e => mudar({ ...draft, decisions: [...draft.decisions.filter(d => d.id !== ch.id), { id: ch.id, optionIds: e.target.checked ? [...marcadas, o.id] : marcadas.filter(x => x !== o.id) }] })}/> {rotuloPericia(o.id)}</label>; })}</div></fieldset>
-        : <label key={ch.id}>{ch.id === "fighter-style-1" ? "Estilo de luta (nível 1)" : ch.id === "fighter-archetype-3" ? "Arquétipo marcial (nível 3)" : `Melhoria de atributo (nível ${ch.level})`}
-          <select aria-label={ch.id === "fighter-asi-4" ? "Melhoria de atributo" : ch.id} value={draft.decisions.find(d => d.id === ch.id)?.optionIds[0] ?? ""}
-            onChange={e => mudar({ ...draft, decisions: [...draft.decisions.filter(d => d.id !== ch.id), ...(e.target.value ? [{ id: ch.id, optionIds: [e.target.value] }] : [])] })}>
-            <option value="">Selecione uma opção</option>{ch.options.map(o => <option key={o.id} value={o.id}>{rotuloOpcao(o.id)}</option>)}</select></label>)}
       {sheet && <section aria-label="Ficha calculada" className="criador-ficha">
         <h2>Ficha calculada</h2>
         <p>{ABILITY_ORDER.map(a => `${rotuloAtributo(a)} ${sheet.abilities[a]}`).join(" · ")}</p>
