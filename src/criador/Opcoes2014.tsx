@@ -322,8 +322,8 @@ export function Opcoes2014({
       <label>
         Classe
         <select
-          value={draft.classId}
-          onChange={(e) => setPendingClass(e.target.value)}
+          value={pendingClass || draft.classId}
+          onChange={(e) => setPendingClass(e.target.value === draft.classId ? '' : e.target.value)}
         >
           {classes2014.map((c) => (
             <option key={c.id} value={shortId(c.id)}>
@@ -332,8 +332,13 @@ export function Opcoes2014({
           ))}
         </select>
       </label>
-      {pendingClass && (
-        <section aria-label="Confirmar classe">
+      {pendingClass && pendingClass !== draft.classId && (
+        <section aria-label="Confirmar classe" role="region">
+          <p>
+            Você está mudando de <strong>{label2014(draft.classId)}</strong> para{' '}
+            <strong>{label2014(pendingClass)}</strong>. A mudança só será aplicada
+            ao confirmar.
+          </p>
           <p>
             Trocar a classe reinicia escolhas de classe, recursos e a progressão
             de PV. Nome, atributos, raça, origem e inventário são preservados; a
