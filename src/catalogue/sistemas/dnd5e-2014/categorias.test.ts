@@ -43,7 +43,7 @@ describe('formatadores (pt-BR, metros = pés × 0,3)', () => {
 describe('sistema registrado', () => {
   it('registra D&D 5e (2014) com itens, magias e monstros e é idempotente', () => {
     expect(garantirSistemaDnd5e2014()).toBe(sistemaDnd5e2014); expect(garantirSistemaDnd5e2014()).toBe(sistemaDnd5e2014);
-    expect(sistema(DND5E_2014)?.categorias.map(c => c.id)).toEqual(['itens', 'magias', 'monstros']);
+    expect(sistema(DND5E_2014)?.categorias.map(c => c.id)).toEqual(['itens', 'magias', 'monstros', 'racas', 'classes', 'subclasses']);
     expect(categoria(DND5E_2014, 'magias')).toBe(categoriaMagias as never);
     expect(sistemaDnd5e2014.fonte).toMatchObject({ licenca: 'CC BY 4.0' }); expect(sistemaDnd5e2014.fonte.atribuicao).toMatch(/Wizards of the Coast/);
   });
