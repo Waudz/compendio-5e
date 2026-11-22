@@ -71,7 +71,7 @@ const identidade = (publicar: boolean, titulo = "O Escudo") => {
   fireEvent.click(screen.getByRole("button", { name: "Salvar identidade pública" }));
   if (publicar) fireEvent.click(screen.getByLabelText("Publicar identidade na campanha"));
 };
-const salvar = async (revisao: number) => { fireEvent.click(screen.getByRole("button", { name: "Salvar" })); expect(await screen.findByText(new RegExp(`salvo na campanha \\(revisão ${revisao}\\)`))).toBeTruthy(); };
+const salvar = async (revisao: number) => { fireEvent.click(screen.getByRole("button", { name: "Salvar" })); expect(await screen.findByText(new RegExp(`salvo na campanha \\(revisão ${revisao}\\)`))).toBeTruthy(); const editar = screen.queryByRole("button", { name: "Editar personagem" }); if (editar) fireEvent.click(editar); };
 /** Cria e salva um personagem como `user` pela interface. */
 async function criarPersonagem(nome = "Thorin", publicar = false, user: User = me) {
   await montar(user); await abrirPersonagens(); await novoGuiado(); await preencher(nome); identidade(publicar); await salvar(1);
