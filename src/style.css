@@ -137,6 +137,9 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 
 /* Campanhas */
 .auth.wide{max-width:720px}
+/* O criador é uma área de trabalho, não um formulário de autenticação estreito. */
+.content.criador.auth.wide{max-width:none;min-width:0;width:100%;box-sizing:border-box}
+
 .auth textarea{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 11px;font:inherit;font-size:14px;resize:vertical}
 .auth textarea:focus-visible{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
 .camp-list{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:8px}
@@ -653,11 +656,11 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     transition:grid-template-rows .22s ease;
   }
   .mobile-simple .mobile-topbar{
-    grid-row:1;height:100%;min-height:0;overflow:hidden;box-sizing:border-box;
+    grid-row:1;position:static;height:100%;min-height:0;overflow:hidden;box-sizing:border-box;
   }
-  .mobile-simple .mobile-screen{grid-row:2;min-height:0}
+  .mobile-simple .mobile-screen{grid-row:2;min-height:0;padding:0;overflow-anchor:none}
   .mobile-simple .mobile-bottom-nav{
-    grid-row:3;height:100%;min-height:0;overflow:hidden;box-sizing:border-box;
+    grid-row:3;position:static;height:100%;min-height:0;overflow:hidden;box-sizing:border-box;
   }
   .chrome-hidden .mobile-simple{grid-template-rows:0px minmax(0,1fr) 0px}
   .chrome-hidden .mobile-simple .mobile-topbar,
