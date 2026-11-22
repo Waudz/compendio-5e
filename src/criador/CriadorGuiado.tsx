@@ -10,7 +10,7 @@ import { useCampaigns } from "../CampaignsContext";
 import { useFichas } from "../RegistrosContext";
 import { itemSpec } from "../Compendio";
 import { Aviso } from "../Diario";
-import { srdItem, srdItemIds } from "../catalogue/srd-2014-items";
+import { srdItem } from "../catalogue/srd-2014-items";
 import { ERRO_CONFLITO_REVISAO } from "../fichas";
 import { avisarRegistros, registrarTitulo } from "../registrosStore";
 import { buildPilotCharacterCatalog } from "../rules/character-catalogue-adapter";
@@ -20,7 +20,6 @@ import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterS
 import { fighter2014Advancements } from "../rules/fighter-2014";
 import { defaultPublicIdentity, type PublicIdentitySettings } from "../rules/public-identity";
 import { fighterEquipmentOptions2014 } from "../rules/starting-equipment-2014";
-import { applyStartingEquipmentSelection, replaceStartingEquipmentSelection } from "../rules/starting-equipment-selection";
 import { useUnsavedGuard } from "../unsaved";
 import type { TabSpec } from "../workspace";
 import { armazenamentoLocalExperimental, type ArmazenamentoCriador } from "./armazenamento";
@@ -44,7 +43,6 @@ const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs
 const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
 type Metodo = MetodoAtributos;
-const GRUPOS: Record<string, string> = { armor: "Armadura", weapons: "Armas marciais", ranged: "Armas adicionais", pack: "Pacote de aventureiro" };
 const PREFIXO = (group: string) => "starting-choice:fighter-" + group + ":";
 const maxHpBase = (con: number) => 10 + Math.floor((con + 2 - 10) / 2);   // 10 + modificador de Constituição (Anão: +2 racial), nível 1
 
@@ -90,7 +88,6 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
-  const [confirmando, setConfirmando] = useState<string[] | null>(null);   // grupos cujas escolhas substituem equipamento já concedido
   const [busca, setBusca] = useState(""), [excluindo, setExcluindo] = useState(false);
 
   const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentitySettings; publicar: boolean; revision: number | null; somenteFicha: boolean }) => {
@@ -193,24 +190,6 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     const base = m === "standard-array" ? { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } : { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 };
     mudar({ ...draft, abilityMethod: m, baseAbilities: base, currentHp: modern2014(draft) ? sheet2014({ ...draft, baseAbilities: base, currentHp: 0 }).maxHp : maxHpBase(base.con) });
   };
-
-  /** Mudanças de escolha que substituiriam equipamento inicial já concedido (precisam de confirmação). */
-  const substituicoes = Object.keys(fighterEquipmentOptions2014).filter(g => { const atual = draft.inventory.find(e => e.id.startsWith(PREFIXO(g)))?.id.split(":")[2]; return !!atual && atual !== escolhas[g]; });
-  const aplicarEquipamento = () => {
-    try {
-      const conhecidos = srdItemIds(); let proximo = draft;
-      for (const [g, opcoes] of Object.entries(fighterEquipmentOptions2014)) {
-        const opcao = opcoes.find(o => o.id === escolhas[g]); if (!opcao) throw new Error("Selecione o equipamento: " + GRUPOS[g]);
-        const origem = "fighter-" + g, atual = proximo.inventory.find(e => e.id.startsWith("starting-choice:" + origem + ":"))?.id.split(":")[2];
-        if (atual && atual !== opcao.id) {
-          const antiga = opcoes.find(o => o.id === atual); if (!antiga) throw new Error("Equipamento inicial anterior desconhecido.");
-          proximo = replaceStartingEquipmentSelection(proximo, { sourceId: origem, optionId: antiga.id, components: antiga.components }, { sourceId: origem, optionId: opcao.id, components: opcao.components }, conhecidos, true);
-        } else proximo = applyStartingEquipmentSelection(proximo, { sourceId: origem, optionId: opcao.id, components: opcao.components }, conhecidos);
-      }
-      mudar(proximo); setConfirmando(null); setMsg({ ok: true, t: "Equipamentos iniciais aplicados ao inventário. Revise na seção Inventário." });
-    } catch (e) { setConfirmando(null); setMsg({ ok: false, t: e instanceof Error ? e.message : "Não foi possível confirmar os equipamentos." }); }
-  };
-  const pedirEquipamento = () => { if (substituicoes.length) setConfirmando(substituicoes); else aplicarEquipamento(); };
 
   const resultadosBusca = busca.trim().length >= 2 ? searchCompendium(criadorRules, { kind: "item", text: busca }).filter(l => srdItem(l.ref.id)?.raridade === "mundano").slice(0, 8) : [];
   const completo = !!sheet && !!draft.name.trim() && !sheet.pending.length && gruposCompletos(draft);
