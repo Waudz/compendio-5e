@@ -1,9 +1,10 @@
+import { metodoPreservado, manualValido, type MetodoAtributos } from './atributos-2014';
 // Criador guiado de personagem (aba `criador:<id>`), hoje só o Guerreiro. Reaproveita as regras de `src/rules` e o catálogo
 // canônico; não duplica lógica. Ficha, equipamento inicial, inventário (dentro da ficha) e identidade pública em seções.
 // Persistência por `RepositorioPersonagem`: SERVIDOR (Supabase, ficha privada + identidade pública, revisão otimista) quando há conta e a API de fichas;
 // senão o armazenamento local EXPERIMENTAL (`armazenamento.ts`: sem segurança entre usuários e sem sincronização).
 import { Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef, lazy, Suspense } from "react";
 import { useAuth } from "../AuthContext";
 import { useCampaigns } from "../CampaignsContext";
 import { useFichas } from "../RegistrosContext";
@@ -14,7 +15,7 @@ import { ERRO_CONFLITO_REVISAO } from "../fichas";
 import { avisarRegistros, registrarTitulo } from "../registrosStore";
 import { buildPilotCharacterCatalog } from "../rules/character-catalogue-adapter";
 import { searchCompendium } from "../rules/compendium-query";
-import { ABILITY_ORDER, POINT_BUY_BUDGET, isStandardArray, pointBuySpent, validatePointBuy } from "../rules/ability-generation-2014";
+import { ABILITY_ORDER, POINT_BUY_BUDGET, pointBuySpent, validatePointBuy } from "../rules/ability-generation-2014";
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft, type InventoryEntry } from "../rules/character-domain";
 import { fighter2014Advancements } from "../rules/fighter-2014";
 import { defaultPublicIdentity, type PublicIdentitySettings } from "../rules/public-identity";
@@ -43,7 +44,7 @@ import { rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 const { catalog, ids } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
 const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
-type Metodo = "point-buy" | "standard-array";
+type Metodo = MetodoAtributos;
 const GRUPOS: Record<string, string> = { armor: "Armadura", weapons: "Armas marciais", ranged: "Armas adicionais", pack: "Pacote de aventureiro" };
 const PREFIXO = (group: string) => "starting-choice:fighter-" + group + ":";
 const maxHpBase = (con: number) => 10 + Math.floor((con + 2 - 10) / 2);   // 10 + modificador de Constituição (Anão: +2 racial), nível 1
@@ -53,7 +54,7 @@ const novoRascunho = (id: string): CharacterDraft => ({ id, name: "", ruleset: "
 /** Erros do domínio estão em inglês; a interface mostra a versão em português. */
 const erroDeAtributo = (e: unknown) => { const m = e instanceof Error ? e.message : String(e); return /budget exceeded/i.test(m) ? "A compra de pontos passa de 27 pontos. Reduza outro atributo antes." : /between 8 and 15/i.test(m) ? "Na compra de pontos cada atributo vai de 8 a 15." : m; };
 const nomeDoItem = (itemId: string) => srdItem(itemId)?.nome ?? itemId;
-const nomeDaInstancia = (item: InventoryEntry) => item.customName ?? nomeDoItem(item.itemId);
+const nomeDaInstancia = (item: InventoryEntry) => typeof item.customName === "string" ? item.customName : nomeDoItem(item.itemId);
 const escolhasDoInventario = (d: CharacterDraft): Record<string, string> => Object.fromEntries(Object.entries(fighterEquipmentOptions2014).map(([g, opcoes]) => {
   const sel = d.inventory.find(e => e.id.startsWith(PREFIXO(g)))?.id.split(":")[2];
   return [g, opcoes.some(o => o.id === sel) ? sel! : opcoes[0].id];
@@ -76,6 +77,12 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const servidor = repo.tipo === "servidor";
   const [carga, setCarga] = useState<"carregando" | "pronto" | { erro: string }>("carregando"), [tentativa, setTentativa] = useState(0);
   const [draft, setDraft] = useState<CharacterDraft>(() => novoRascunho(id));
+  const nameRef = useRef<HTMLInputElement>(null);
+  const previousVersion = useRef(draft.catalogueVersion);
+  useEffect(() => {
+    if (previousVersion.current !== draft.catalogueVersion && modern2014(draft)) nameRef.current?.focus();
+    previousVersion.current = draft.catalogueVersion;
+  }, [draft.catalogueVersion]);
   const [identity, setIdentity] = useState<PublicIdentitySettings>(defaultPublicIdentity), [publicar, setPublicar] = useState(false);
   const [salvo, setSalvo] = useState<string | null>(null);          // retrato do último estado salvo (null = nunca salvo)
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
@@ -91,7 +98,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     calcularFicha(p.draft);   // dado inválido/de outra versão falha aqui, não na tela
     setDraft(p.draft); setIdentity(p.identity); setPublicar(p.publicar); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha);
     setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity, publicar: p.publicar })); setEscolhas(escolhasDoInventario(p.draft));
-    setMetodo(isStandardArray(p.draft.baseAbilities) ? "standard-array" : "point-buy");
+    setMetodo(metodoPreservado(p.draft.baseAbilities, p.draft.abilityMethod));
     registrarTitulo(id, p.draft.name.trim() || "Novo personagem"); registrarTitulo(p.id, p.draft.name.trim() || "Novo personagem");
   };
   useEffect(() => {
@@ -165,6 +172,11 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
 
   const alterarAtributo = (a: typeof ABILITY_ORDER[number], valor: number) => {
     const novo = { ...draft.baseAbilities, [a]: valor };
+    if (metodo === 'preserved') return;
+    if (metodo === 'manual') {
+      if (!manualValido(novo)) { setErroAtrib('Informe uma rolagem inteira entre 3 e 18, antes dos bônus raciais.'); return; }
+      setErroAtrib(''); mudar({ ...draft, baseAbilities: novo, abilityMethod: 'manual', currentHp: Math.min(draft.currentHp, modern2014(draft) ? sheet2014({ ...draft, baseAbilities: novo, currentHp: 0 }).maxHp : maxHpBase(novo.con)) }); return;
+    }
     if (metodo === "standard-array") {
       const outro = ABILITY_ORDER.find(k => k !== a && draft.baseAbilities[k] === valor);
       if (!outro) return;                                                             // matriz padrão: só troca de posição entre dois valores
@@ -175,9 +187,11 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     catch (e) { setErroAtrib(erroDeAtributo(e)); }
   };
   const trocarMetodo = (m: Metodo) => {
+    if (m === 'preserved') return;
+    if (m === 'manual') { if (!manualValido(draft.baseAbilities)) { setErroAtrib('Valores antigos foram preservados; rolagens manuais de criação precisam estar entre 3 e 18.'); return; } setMetodo(m); setErroAtrib(''); mudar({ ...draft, abilityMethod: 'manual' }); return; }
     setMetodo(m); setErroAtrib("");
     const base = m === "standard-array" ? { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 } : { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 };
-    mudar({ ...draft, baseAbilities: base, currentHp: modern2014(draft) ? sheet2014({ ...draft, baseAbilities: base, currentHp: 0 }).maxHp : maxHpBase(base.con) });
+    mudar({ ...draft, abilityMethod: m, baseAbilities: base, currentHp: modern2014(draft) ? sheet2014({ ...draft, baseAbilities: base, currentHp: 0 }).maxHp : maxHpBase(base.con) });
   };
 
   /** Mudanças de escolha que substituiriam equipamento inicial já concedido (precisam de confirmação). */
@@ -218,14 +232,16 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     {sujo && <p className="muted" role="status">Alterações não salvas.</p>}
 
     {secao === "ficha" && <div className="criador-sec">
-      <label>Nome do personagem<input aria-label="Nome do personagem" value={draft.name} maxLength={120} onChange={e => mudar({ ...draft, name: e.target.value })}/></label>
-      <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>{!modern2014(draft) && <p className="muted">Raça: Anão · Antecedente: Acólito · Classe: Guerreiro</p>}
+      {!modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>}
+      <label>Nome do personagem<input ref={nameRef} aria-label="Nome do personagem" value={draft.name} maxLength={120} onChange={e => mudar({ ...draft, name: e.target.value })}/></label>
+      {modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>}{!modern2014(draft) && <p className="muted">Raça: Anão · Antecedente: Acólito · Classe: Guerreiro</p>}
       <fieldset><legend>Atributos-base (antes dos bônus raciais)</legend>
-        <label>Método<select aria-label="Método de atributos" value={metodo} onChange={e => trocarMetodo(e.target.value as Metodo)}><option value="point-buy">Compra de pontos (27)</option><option value="standard-array">Matriz padrão</option></select></label>
+        <label>Método<select aria-label="Método de atributos" value={metodo} onChange={e => trocarMetodo(e.target.value as Metodo)}><option value="point-buy">Compra de pontos (27)</option><option value="standard-array">Matriz padrão</option><option value="manual">Rolagens manuais (3–18)</option>{metodo === "preserved" && <option value="preserved">Valores preservados da ficha</option>}</select></label>
         {metodo === "point-buy" && <p className="muted">Pontos gastos: {pointBuySpent(draft.baseAbilities)} / {POINT_BUY_BUDGET}</p>}
+        {metodo === "preserved" && <p role="note">Os atributos desta ficha foram preservados. Selecione outro método somente se deseja redistribuí-los; nada será salvo automaticamente.</p>}{metodo === "manual" && <p>Role 4d6, descarte o menor dado e informe a soma dos três restantes em cada atributo, antes dos bônus raciais.</p>}
         <div className="criador-atributos">{ABILITY_ORDER.map(a => <label key={a}>{rotuloAtributo(a)}
-          <select aria-label={"Atributo " + a} value={draft.baseAbilities[a]} onChange={e => alterarAtributo(a, Number(e.target.value))}>
-            {(metodo === "standard-array" ? [15, 14, 13, 12, 10, 8] : [8, 9, 10, 11, 12, 13, 14, 15]).map(v => <option key={v} value={v}>{v}</option>)}</select></label>)}</div>
+          {metodo === "manual" ? <input type="number" aria-label={"Atributo " + a} min={3} max={18} value={draft.baseAbilities[a]} onChange={e => alterarAtributo(a, Number(e.target.value))}/> : <select disabled={metodo === "preserved"} aria-label={"Atributo " + a} value={draft.baseAbilities[a]} onChange={e => alterarAtributo(a, Number(e.target.value))}>
+            {(metodo === "preserved" ? [draft.baseAbilities[a]] : metodo === "standard-array" ? [15, 14, 13, 12, 10, 8] : [8, 9, 10, 11, 12, 13, 14, 15]).map(v => <option key={v} value={v}>{v}</option>)}</select>}</label>)}</div>
         {erroAtrib && <p role="alert" className="notice err">{erroAtrib}</p>}
       </fieldset>
       <label>Nível<select aria-label="Nível" value={draft.level} onChange={e => alterarNivel(Number(e.target.value))}>{(modern2014(draft) ? Array.from({ length: 20 }, (_, i) => i + 1) : [1, 2, 3, 4, 5, 6]).map(n => <option key={n} value={n}>{n}</option>)}</select></label>

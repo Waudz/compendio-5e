@@ -13,6 +13,7 @@ export type CharacterDraft = {
   inventory: InventoryEntry[]; currentHp: number; temporaryHp: number;
   spentResources: Record<string, number>;
   currency?: { cp: number; sp: number; gp: number };
+  abilityMethod?: 'point-buy' | 'standard-array' | 'manual';
 };
 export type CharacterCatalog = {
   version: string; races: Record<string, CatalogOption>;
@@ -46,7 +47,7 @@ export function createCharacterSheet(draft: CharacterDraft, catalog: CharacterCa
     !Number.isSafeInteger(draft.baseAbilities[key]) || draft.baseAbilities[key] < 1 || draft.baseAbilities[key] > 30))
     throw new Error('Invalid base ability scores');
   validateInventory(draft.inventory);
-  if (draft.currency && Object.values(draft.currency).some(n => !Number.isSafeInteger(n) || n < 0)) throw new Error("Invalid character currency");
+  if (draft.catalogueVersion === 'character-srd-2014-v2' && draft.currency && Object.values(draft.currency).some(n => !Number.isSafeInteger(n) || n < 0)) throw new Error("Invalid character currency");
   if (!Number.isSafeInteger(draft.currentHp) || draft.currentHp < 0 || !Number.isSafeInteger(draft.temporaryHp) || draft.temporaryHp < 0)
     throw new Error('Invalid hit points');
   const pending: string[] = [];
