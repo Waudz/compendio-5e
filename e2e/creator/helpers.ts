@@ -10,6 +10,7 @@ export async function startCreator(page: Page) {
   await expect(page.getByRole('heading', { name: 'Personagens', exact: true })).toBeVisible();
   await page.getByRole('button', { name: /Criar personagem/ }).click();
   await expect(nameField(page)).toBeVisible();
+  await expect(page.getByRole('combobox',{name:'Classe',exact:true})).toBeVisible();
   await expect(page.getByRole('note').filter({ hasText: 'Armazenamento' })).toContainText('experimental');
 }
 export async function chooseFighter(page: Page) {
@@ -17,10 +18,12 @@ export async function chooseFighter(page: Page) {
   // Reduzir antes de aumentar: compra de pontos é validada a cada mudança real.
   await page.getByRole('combobox', { name: 'Atributo str', exact: true }).selectOption('14');
   await page.getByRole('combobox', { name: 'Atributo dex', exact: true }).selectOption('13');
-  await page.getByRole('checkbox', { name: 'Perícia athletics', exact: true }).check();
-  await page.getByRole('checkbox', { name: 'Perícia perception', exact: true }).check();
-  await page.getByRole('combobox', { name: 'fighter-style-1', exact: true }).selectOption('defense');
-  await expect(page.getByRole('region', { name: 'Ficha calculada' })).toContainText('Atletismo, Percepção');
+  const prof = page.getByRole('group', { name: /^Proficiências de Guerreiro/ });
+  await prof.getByRole('checkbox', { name: 'Atletismo', exact: true }).check();
+  await prof.getByRole('checkbox', { name: 'Percepção', exact: true }).check();
+  await page.getByRole('combobox', { name: /Fighting Style|Estilo de luta/i }).selectOption('srd51:feature/fighter-fighting-style-defense');
+  await expect(page.getByRole('region', { name: 'Ficha calculada' })).toContainText('Atletismo');
+  await expect(page.getByRole('region', { name: 'Ficha calculada' })).toContainText('Percepção');
 }
 export async function showSection(page: Page, name: string) {
   await sections(page).getByRole('button', { name, exact: true }).click();
@@ -28,10 +31,17 @@ export async function showSection(page: Page, name: string) {
 }
 export async function equip(page: Page) {
   await showSection(page, 'Equipamento inicial');
-  await page.getByRole('combobox', { name: 'Equipamento armor', exact: true }).selectOption('leather-bow');
-  await expect(page.getByRole('list', { name: 'Prévia de Armadura', exact: true })).toContainText('Arco longo ×1');
-  await page.getByRole('button', { name: 'Confirmar equipamentos iniciais', exact: true }).click();
-  await expect(page.getByText(/Equipamentos iniciais aplicados ao inventário/)).toBeVisible();
+  await page.getByRole('combobox', {name:'Alternativa do grupo 1',exact:true}).selectOption('1');
+  const equipment=page.getByRole('region',{name:'Equipamento inicial SRD 2014',exact:true});
+  // Cada categoria exige uma escolha real; usa espada longa nas armas marciais.
+  for(const select of await equipment.getByRole('combobox').all()) {
+    if(await select.inputValue()==='') {
+      const values=await select.getByRole('option').evaluateAll(options=>options.map(o=>(o as HTMLOptionElement).value).filter(Boolean));
+      await select.selectOption(values.includes('longsword')?'longsword':values[0]);
+    }
+  }
+  await page.getByRole('button', { name: 'Confirmar equipamentos SRD 2014', exact: true }).click();
+  await expect(page.getByRole('status').filter({hasText:'Equipamentos iniciais aplicados'})).toBeVisible();
 }
 export async function leaveCreator(page: Page) {
   if (isMobile(page)) await page.getByRole('button', { name: 'Voltar', exact: true }).click();

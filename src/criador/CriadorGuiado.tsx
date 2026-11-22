@@ -1,5 +1,5 @@
 import { metodoPreservado, manualValido, type MetodoAtributos } from './atributos-2014';
-// Criador guiado de personagem (aba `criador:<id>`), hoje só o Guerreiro. Reaproveita as regras de `src/rules` e o catálogo
+// Criador guiado SRD 2014; mantém leitura/edição versionada das fichas legadas. Reaproveita as regras de `src/rules` e o catálogo
 // canônico; não duplica lógica. Ficha, equipamento inicial, inventário (dentro da ficha) e identidade pública em seções.
 // Persistência por `RepositorioPersonagem`: SERVIDOR (Supabase, ficha privada + identidade pública, revisão otimista) quando há conta e a API de fichas;
 // senão o armazenamento local EXPERIMENTAL (`armazenamento.ts`: sem segurança entre usuários e sem sincronização).
@@ -40,7 +40,7 @@ const featureDescription2014 = (id: string) => regras2014?.featureDescription201
 import PublicIdentityEditor from "./identidade-publica-editor";
 import { rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
-const { catalog, ids } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
+const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
 const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
 type Metodo = MetodoAtributos;
@@ -48,8 +48,11 @@ const GRUPOS: Record<string, string> = { armor: "Armadura", weapons: "Armas marc
 const PREFIXO = (group: string) => "starting-choice:fighter-" + group + ":";
 const maxHpBase = (con: number) => 10 + Math.floor((con + 2 - 10) / 2);   // 10 + modificador de Constituição (Anão: +2 racial), nível 1
 
-const novoRascunho = (id: string): CharacterDraft => ({ id, name: "", ruleset: "5e-2014", catalogueVersion: catalog.version, baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 },
-  raceId: ids.raceId, backgroundId: ids.backgroundId, classId: ids.classId, level: 1, decisions: [], inventory: [], currentHp: 13, temporaryHp: 0, spentResources: {} });
+const novoRascunho = (id: string): CharacterDraft => {
+  const draft: CharacterDraft = { id, name: "", ruleset: "5e-2014", catalogueVersion: "character-srd-2014-v2", baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 },
+    raceId: "hill-dwarf", backgroundId: "acolyte", classId: "fighter", level: 1, decisions: [], inventory: [], currentHp: 0, temporaryHp: 0, spentResources: {} };
+  return regras2014 ? { ...draft, currentHp: regras2014.sheet2014(draft).maxHp } : draft;
+};
 /** Erros do domínio estão em inglês; a interface mostra a versão em português. */
 const erroDeAtributo = (e: unknown) => { const m = e instanceof Error ? e.message : String(e); return /budget exceeded/i.test(m) ? "A compra de pontos passa de 27 pontos. Reduza outro atributo antes." : /between 8 and 15/i.test(m) ? "Na compra de pontos cada atributo vai de 8 a 15." : m; };
 const nomeDoItem = (itemId: string) => srdItem(itemId)?.nome ?? itemId;
@@ -109,8 +112,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
         const p = servidor && novoNaoSalvo && alvo === id ? null : await repo.carregar(alvo);
         if (!vivo) return;
         if (!p && (!novoNaoSalvo || alvo !== id)) { setCarga({ erro: "Personagem não encontrado, removido ou sem acesso (por exemplo, você saiu da campanha). Nada foi alterado." }); return; }   // nunca abre um editor vazio no lugar de um personagem existente
-        if (p && modern2014(p.draft)) { await carregar2014(); if (!vivo) return; }
-        if (p) aplicarCarregado(p); else { setEscolhas(escolhasDoInventario(novoRascunho(id))); registrarTitulo(id, "Novo personagem"); }
+        if (!p || modern2014(p.draft)) { await carregar2014(); if (!vivo) return; }
+        if (p) aplicarCarregado(p); else { const novo = novoRascunho(id); setDraft(novo); setEscolhas(escolhasDoInventario(novo)); registrarTitulo(id, "Novo personagem"); }
         if (servidor) setRecuperacao(lerRecuperacao(userId, campaignId, id));   // alterações não enviadas de uma falha anterior
         setCarga("pronto");
       } catch (e) { if (vivo) setCarga({ erro: e instanceof Error ? e.message : "Não foi possível ler o personagem salvo." }); }
@@ -161,8 +164,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     try { const p = await repo.carregar(idReal); if (!p) { setMsg({ ok: false, t: "Personagem não encontrado ou sem permissão." }); return; } aplicarCarregado(p); setConflito(false); setRecuperacao(lerRecuperacao(userId, campaignId, id)); setMsg({ ok: true, t: "Versão atual carregada do servidor. Suas alterações anteriores continuam guardadas para restaurar." }); }
     catch (e) { setMsg({ ok: false, t: e instanceof Error ? e.message : "Não foi possível recarregar." }); }
   };
-  const restaurar = () => { if (!recuperacao) return; try { createCharacterSheet(recuperacao.estado.draft, catalog); } catch { setMsg({ ok: false, t: "A cópia guardada é inválida e não pôde ser restaurada." }); return; }
-    setDraft({ ...recuperacao.estado.draft, id: idReal }); setIdentity(recuperacao.estado.identity); setPublicar(recuperacao.estado.publicar); setEscolhas(escolhasDoInventario(recuperacao.estado.draft)); limparRecuperacao(userId, campaignId, id); setRecuperacao(null); setMsg({ ok: true, t: "Alterações restauradas. Revise e clique em Salvar." }); };
+  const restaurar = async () => { if (!recuperacao) return; try { if (modern2014(recuperacao.estado.draft) && !regras2014) await carregar2014(); calcularFicha(recuperacao.estado.draft); } catch { setMsg({ ok: false, t: "A cópia guardada é inválida e não pôde ser restaurada." }); return; }
+    setDraft({ ...recuperacao.estado.draft, id: idReal }); setMetodo(metodoPreservado(recuperacao.estado.draft.baseAbilities, recuperacao.estado.draft.abilityMethod)); setIdentity(recuperacao.estado.identity); setPublicar(recuperacao.estado.publicar); setEscolhas(escolhasDoInventario(recuperacao.estado.draft)); limparRecuperacao(userId, campaignId, id); setRecuperacao(null); setMsg({ ok: true, t: "Alterações restauradas. Revise e clique em Salvar." }); };
   const descartarRecuperacao = () => { limparRecuperacao(userId, campaignId, id); setRecuperacao(null); };
 
   if (carga === "carregando") return <div className="content"><p className="muted" role="status">Carregando personagem…</p></div>;
