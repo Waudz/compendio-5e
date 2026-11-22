@@ -72,6 +72,21 @@ describe("Enciclopédia: projeção e RLS em Postgres descartável",()=>{
     await as(master,"update public.encyclopedia_entries set deleted_at=null,deleted_by=null where id=$1",[entry]);
     expect(await publications(player)).toHaveLength(1);
   });
+  it("nega criação já descoberta ou na lixeira, exclusão definitiva e acesso à função interna",async()=>{
+    await expect(as(master,"insert into public.encyclopedia_entries(campaign_id,kind,name,visibility) values ($1,'place','Hack','full')",[campaign])).rejects.toThrow(/permission denied/);
+    await expect(as(master,"insert into public.encyclopedia_entries(campaign_id,kind,name,deleted_at) values ($1,'place','Hack',now())",[campaign])).rejects.toThrow(/permission denied/);
+    await expect(as(master,"delete from public.encyclopedia_entries where id=$1",[entry])).rejects.toThrow(/permission denied/);
+    await expect(as(player,"select encyclopedia_internal.sync_publication()")).rejects.toThrow(/permission denied/);
+    expect(await as(player,"select count(*)::int as n from public.encyclopedia_publications where public_description ilike '%Senha secreta%'")).toEqual([{n:0}]);
+  });
+  it("falha na projeção reverte a alteração da origem",async()=>{
+    await db.exec("alter table public.encyclopedia_publications add constraint test_reject_name check (name <> 'Falha forçada')");
+    try {
+      await expect(as(master,"update public.encyclopedia_entries set name='Falha forçada' where id=$1",[entry])).rejects.toThrow(/test_reject_name/);
+      expect(await as(master,"select name from public.encyclopedia_entries where id=$1",[entry])).toEqual([{name:"Ferreiro"}]);
+      expect(await publications(player)).toEqual([expect.objectContaining({name:"Ferreiro"})]);
+    } finally { await db.exec("alter table public.encyclopedia_publications drop constraint test_reject_name"); }
+  });
   it("ocultar e remover membro revoga novas consultas",async()=>{
     await as(master,"update public.encyclopedia_entries set visibility='hidden' where id=$1",[entry]);
     expect(await publications(player)).toEqual([]);
