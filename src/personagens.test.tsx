@@ -47,7 +47,7 @@ describe("Personagens e Aventureiros", () => {
     await abrir("Personagens");
     fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha de Lydia" }));
     expect(await screen.findByLabelText("Nome")).toBeTruthy();
-    expect(screen.getByLabelText("Classe")).toBeTruthy();
+    expect((await screen.findByRole("region", { name: "Opções SRD 2014" })).querySelector("select")).toBeTruthy();
   });
   it("personagem privado não aparece para os outros nem na vitrine do Início; valida nível antes de gravar", async () => {
     const store = { dados: [pc("p1", "outro", "Privado alheio", "private"), pc("p2", "outro", "Público alheio", "campaign"), pc("p3", me.id, "Meu privado", "private")] };
