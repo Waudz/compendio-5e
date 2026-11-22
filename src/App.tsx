@@ -34,8 +34,21 @@ function useMobile() {
 /** Só existe com sessão. `key` por usuário: trocar de conta descarta TODO o estado do espaço de trabalho (nada vaza entre contas). */
 export default function App() {
   const { status, user } = useAuth();
-  if (status !== "authenticated" || !user) return null;
+  const { loading, active, error } = useCampaigns();
+  const readyFor = useRef<string | null>(null);
+  if (status !== "authenticated" || !user) { readyFor.current = null; return null; }
+  // Não monte o workspace provisório antes de resolver a primeira campanha.
+  if (!loading && !error) readyFor.current = user.id;
+  if (readyFor.current !== user.id && !active) {
+    if (error) return <CampaignLoadError/>;
+    return <div role="status">Carregando suas campanhas…</div>;
+  }
   return <Workspace key={user.id} userId={user.id}/>;
+}
+
+function CampaignLoadError() {
+  const { refresh } = useCampaigns();
+  return <div role="alert">Não foi possível carregar suas campanhas. <button onClick={() => void refresh()}>Tentar novamente</button></div>;
 }
 
 function Workspace({ userId }: { userId: string }) {
