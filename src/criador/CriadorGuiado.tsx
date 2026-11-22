@@ -49,7 +49,7 @@ const PREFIXO = (group: string) => "starting-choice:fighter-" + group + ":";
 const maxHpBase = (con: number) => 10 + Math.floor((con + 2 - 10) / 2);   // 10 + modificador de Constituição (Anão: +2 racial), nível 1
 
 const novoRascunho = (id: string): CharacterDraft => ({ id, name: "", ruleset: "5e-2014", catalogueVersion: "character-srd-2014-v2", baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 },
-  raceId: "hill-dwarf", backgroundId: "acolyte", classId: "fighter", level: 1, decisions: [], inventory: [], currentHp: 12, temporaryHp: 0, spentResources: {} });
+  raceId: "hill-dwarf", backgroundId: "acolyte", classId: "fighter", level: 1, decisions: [], inventory: [], currentHp: 13, temporaryHp: 0, spentResources: {} });
 /** Erros do domínio estão em inglês; a interface mostra a versão em português. */
 const erroDeAtributo = (e: unknown) => { const m = e instanceof Error ? e.message : String(e); return /budget exceeded/i.test(m) ? "A compra de pontos passa de 27 pontos. Reduza outro atributo antes." : /between 8 and 15/i.test(m) ? "Na compra de pontos cada atributo vai de 8 a 15." : m; };
 const nomeDoItem = (itemId: string) => srdItem(itemId)?.nome ?? itemId;
