@@ -13,6 +13,11 @@
 - **Descobertas por personagem:** ao encontrar/receber uma arma ou outro item especial, o personagem passa a ver no Compêndio > Itens > Descobertos a representação daquele exemplar, com imagem, nome e descrição liberados pelo mestre, mesmo que ainda não esteja identificado. Propriedades mágicas e bônus ocultos continuam protegidos até identificação/revelação. A descoberta persiste mesmo que o item seja perdido, consumido ou transferido, sem liberar variantes privadas nem itens desconhecidos. A descoberta é por personagem/campanha, não global por conta; proteger projeções com RLS.
 - Diferenciar pesquisa do catálogo, posse de um exemplar, conhecimento de sua existência, conhecimento de suas propriedades e estado de sintonização.
 
+## Exibição compacta de equipamentos mágicos genéricos
+- Não criar entradas independentes no Compêndio para cada combinação genérica de equipamento +1/+2/+3 (por exemplo Espada Longa +1, +2, +3 e Machado +1). Essas configurações ficam nas opções do item-base e na cópia do inventário, respeitando a publicação e a identificação.
+- Uma **variante personalizada com identidade própria** (nome, imagem ou descrição diferenciados) pode ter entrada própria na seção Descobertos do personagem quando encontrada, sem expor outras variantes privadas do mestre. Uma mera alteração numérica de bônus não gera entrada adicional.
+- Mesmo uma arma mágica genérica recebida deve continuar acessível pelo inventário, sem exigir ficha duplicada no Compêndio. Esta regra é de apresentação e não elimina os registros canônicos de regras nem os estados de descoberta/segredo.
+
 ## Entrega e identificação
 - Mestre abre um item em Compêndio > Itens e escolhe **Entregar**, ou inicia entrega no inventário do personagem. Seleciona personagem, estado revelado/não revelado e pode personalizar nome e descrição do exemplar.
 - Para armas, armaduras e escudos com versões oficiais de bônus mágico, a entrega pode oferecer **normal, +1, +2, +3**, apenas conforme opções compatíveis do SRD 2014. Usar a definição canônica da arma/armadura-base e do bônus mágico, sem cadastrar cada combinação.
