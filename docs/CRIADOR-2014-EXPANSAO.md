@@ -69,3 +69,7 @@ A main avançou durante o trabalho; incorporados integralmente os PRs #83 e #85 
 - Build aprovado com avisos de chunks acima de 500 kB e anotações de dependências; dados novos são carregados sob demanda. Não foi executado login/gravação com contas reais; segurança/persistência verificadas em ambiente isolado e metadados remotos somente leitura.
 
 O commit seguinte registra apenas documentação, evidências e correção da referência da fonte no manifest, sem alterar código funcional ou snapshot. Riscos de integração: seleção de campanha e identidade são compartilhadas por outras frentes; manter os testes de campanha/RLS e executar uma rodada com duas sessões sintéticas em Supabase local antes de liberar sincronização para usuários. Os limites de conteúdo e automação acima continuam pendentes; não apresentar como PHB completo.
+
+
+### Regressão adicional da auditoria de recursos
+Forma Selvagem passa a ser ilimitada no Druida 20 (Arquidruida); níveis 2–19 mantêm dois usos. Teste explícito compara 19 e 20 e os estados `maximum/remaining=null`. A validação 8009394 acima precede esta correção; o CI final do PR registra o novo SHA e total de 1.125 unitários se aprovados.

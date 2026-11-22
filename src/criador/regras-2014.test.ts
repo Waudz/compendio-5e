@@ -458,3 +458,11 @@ describe('PV rolados por nível sem inventar resultados confirmados', () => {
     ).toBe(0);
   });
 });
+
+
+it('Arquidruida no nível 20 remove o limite de Forma Selvagem sem alterar o limite dos níveis anteriores', () => {
+  expect(sheet2014(draft2014({classId:'druid',level:19})).resources['wild-shape'].maximum).toBe(2);
+  const resource=sheet2014(draft2014({classId:'druid',level:20})).resources['wild-shape'];
+  expect(resource.maximum).toBeNull();
+  expect(resource.remaining).toBeNull();
+});

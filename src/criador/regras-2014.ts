@@ -771,7 +771,7 @@ export function catalog2014(d: CharacterDraft): CharacterCatalog {
     raceGrants.push({
       type: 'resource',
       resource: 'wild-shape',
-      uses: 2,
+      uses: d.level === 20 ? null : 2,
       source: c.id,
     });
   if (d.classId === 'paladin')
