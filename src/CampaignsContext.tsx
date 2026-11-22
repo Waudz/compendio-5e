@@ -26,6 +26,8 @@ export function CampaignsProvider({ children, apiFactory }: { children: ReactNod
   const api = useMemo(() => userId ? (apiFactory ? apiFactory(userId) : client ? createCampaignApi(client, userId) : null) : null, [userId, client, apiFactory]);
   const [snapshot, setSnapshot] = useState<{ api: CampaignApi; memberships: Membership[]; loading: boolean; error: string | null } | null>(null);
   const request = useRef(0);
+  const liveApi = useRef(api); liveApi.current = api;
+  const validated = useRef<{ api: CampaignApi; ids: Set<string> } | null>(null);
   const current = snapshot?.api === api ? snapshot : null;
   const memberships = useMemo(() => current?.memberships ?? [], [current]);
   const loading = !!api && (!current || current.loading);
@@ -38,7 +40,8 @@ export function CampaignsProvider({ children, apiFactory }: { children: ReactNod
     const ticket = ++request.current;
     setSnapshot(prev => ({ api, memberships: prev?.api === api ? prev.memberships : [], loading: true, error: null }));
     const r = await api.list();
-    if (ticket !== request.current) return;
+    if (ticket !== request.current || liveApi.current !== api) return;
+    if (r.ok) validated.current = { api, ids: new Set(r.data.map(m => m.campaign.id)) };
     setSnapshot(prev => ({ api, memberships: r.ok ? r.data : prev?.api === api ? prev.memberships : [], loading: false, error: r.ok ? null : r.error }));
   }, [api]);
 
@@ -53,8 +56,10 @@ export function CampaignsProvider({ children, apiFactory }: { children: ReactNod
     [memberships, activeRaw, loading, error]);
   const activeId = active?.campaign.id ?? (loading || error ? activeRaw : null);
   const setActive = useCallback((id: string | null) => {
-    if (userId && id) { write(activeKey(userId), id); setChosen({ uid: userId, id }); }
-  }, [userId]);
+    if (userId && id && api && liveApi.current === api && validated.current?.api === api && validated.current.ids.has(id)) {
+      write(activeKey(userId), id); setChosen({ uid: userId, id });
+    }
+  }, [userId, api]);
   useEffect(() => {
     if (!userId || loading || error) return;
     if (active && active.campaign.id !== activeRaw) setActive(active.campaign.id);
