@@ -10,6 +10,9 @@ import { registrosEmMemoria } from '../registrosMemoria';
 import { me, memoryStorage, other, renderApp } from '../testUtils';
 import { armazenamentoLocalExperimental } from './armazenamento';
 import { clearUserLocalData } from '../localData';
+import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter';
+import { fighter2014Advancements } from '../rules/fighter-2014';
+import { criadorRules, criadorRefs } from './catalogo-criador';
 import { defaultPublicIdentity } from '../rules/public-identity';
 
 const camp = { id: 'ca', name: 'Mesa dos Dragões', description: 'Desc.', created_at: '' };
@@ -246,4 +249,19 @@ describe('criador guiado no celular', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(await screen.findByRole('button', { name: 'Abrir personagem guiado Thorin' })).toBeTruthy();
   });
+});
+
+
+it('ficha legada continua editável na versão original, sem conversão nem regravação ao abrir', async()=>{
+ const {catalog,ids}=buildPilotCharacterCatalog(criadorRules,{race:criadorRefs.race,background:criadorRefs.background,class:criadorRefs.class},fighter2014Advancements);
+ const store=armazenamentoLocalExperimental(me.id,'ca');
+ const inventory=[{id:'reliquia',itemId:'dagger',quantity:2,equipped:false,origin:'acquired' as const}];
+ store.salvar({schemaVersion:1,savedAt:'2026-11-20T00:00:00Z',identity:defaultPublicIdentity(),draft:{id:'antiga',name:'Veterana',ruleset:'5e-2014',catalogueVersion:catalog.version,baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},raceId:ids.raceId,backgroundId:ids.backgroundId,classId:ids.classId,level:1,decisions:[],inventory,currentHp:13,temporaryHp:0,spentResources:{},currency:{cp:0,sp:0,gp:7}}});
+ const before=structuredClone(store.carregar('antiga'));
+ await montar();await abrirPersonagens();fireEvent.click(await screen.findByRole('button',{name:/^Abrir personagem guiado Veterana$/}));
+ expect((await screen.findByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('Veterana');
+ expect(store.carregar('antiga')).toEqual(before);
+ fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Veterana revisada'}});
+ fireEvent.click(screen.getByRole('button',{name:/^Salvar$/}));await screen.findByText(/Rascunho incompleto salvo/);
+ const after=store.carregar('antiga')!;expect(after.draft.catalogueVersion).toBe(catalog.version);expect(after.draft.inventory).toEqual(inventory);expect(after.draft.currency?.gp).toBe(7);expect(after.draft.name).toBe('Veterana revisada');
 });

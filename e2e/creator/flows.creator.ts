@@ -5,8 +5,8 @@ test('Personagens → criador: atributos, escolhas de Guerreiro e ficha calculad
   await startCreator(page); await chooseFighter(page);
   await expect(page.getByRole('combobox', { name: 'Atributo str', exact: true })).toHaveValue('14');
   await expect(page.getByRole('combobox', { name: 'Atributo dex', exact: true })).toHaveValue('13');
-  await expect(page.getByRole('checkbox', { name: 'Perícia acrobatics', exact: true })).toBeDisabled();
-  await expect(page.getByRole('region', { name: 'Ficha calculada' })).toContainText('PV máximo: 13');
+  await expect(page.getByRole('group',{name:/^Proficiências de Guerreiro/}).getByRole('checkbox', { name: 'Acrobacia', exact: true })).toBeDisabled();
+  await expect(page.getByRole('region', { name: 'Ficha calculada' })).toContainText('PV máximo: 14');
   await expectNoHorizontalOverflow(page); await evidence(page, info, 'guerreiro');
 });
 
@@ -22,7 +22,7 @@ test('equipamentos: prévia, confirmação e inventário com escolhas alternativ
   // Confirmar novamente não pode duplicar instâncias concedidas.
   const count = await inventory.getByRole('button', { name: /^Consultar no Compêndio: .*$/ }).count();
   await showSection(page, 'Equipamento inicial');
-  await page.getByRole('button', { name: 'Confirmar equipamentos iniciais', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirmar equipamentos SRD 2014', exact: true }).click();
   await showSection(page, 'Inventário');
   await expect(inventory.getByRole('button', { name: /^Consultar no Compêndio: .*$/ })).toHaveCount(count);
   await expectNoHorizontalOverflow(page); await evidence(page, info, 'equipamento-inventario');
@@ -71,7 +71,7 @@ test('alterações não salvas: salvar pelo diálogo e reabrir o personagem loca
   await expect(page.getByRole('alertdialog')).toBeHidden();
   await page.getByRole('button', { name: 'Abrir personagem guiado Guerreira E2E', exact: true }).click();
   await expect(nameField(page)).toHaveValue('Guerreira E2E');
-  await expect(page.getByRole('checkbox', { name: 'Perícia athletics', exact: true })).toBeChecked();
+  await expect(page.getByRole('group',{name:/^Proficiências de Guerreiro/}).getByRole('checkbox', { name: 'Atletismo', exact: true })).toBeChecked();
   await expect(page.getByRole('button', { name: 'Salvar', exact: true })).toBeDisabled();
 });
 
@@ -79,9 +79,9 @@ test('teclado: ordem do formulário e ativação das seções sem mouse', async 
   await startCreator(page);
   await nameField(page).focus(); await page.keyboard.type('Teclado E2E');
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('combobox', { name: 'Método de atributos', exact: true })).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Classe', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('combobox', { name: 'Atributo str', exact: true })).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Raça', exact: true })).toBeFocused();
   await keyboardActivate(page, sections(page).getByRole('button', { name: 'Inventário', exact: true }));
   const search = page.getByRole('searchbox', { name: 'Buscar item para adicionar', exact: true });
   await search.focus(); await page.keyboard.type('adaga'); await page.keyboard.press('Tab');

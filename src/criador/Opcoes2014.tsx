@@ -5,6 +5,7 @@ import { srdItem, srdItemIds } from '../catalogue/srd-2014-items';
 import { applyStartingEquipmentSelection } from '../rules/starting-equipment-selection';
 import { rotuloAtributo, rotuloOpcao, rotuloPericia } from './rotulos';
 import {
+  activate2014,
   modern2014,
   classes2014,
   class2014,
@@ -235,10 +236,73 @@ export function Opcoes2014({
   draft: CharacterDraft;
   onChange: (d: CharacterDraft) => void;
 }) {
+  const [confirm, setConfirm] = useState(false);
   const [pendingClass, setPendingClass] = useState('');
   const [symbol, setSymbol] = useState('amulet');
   const [error, setError] = useState('');
-  if (!modern2014(draft)) return <p role="alert">Esta ficha pertence ao protótipo descontinuado. Crie um personagem SRD 2014.</p>;
+  if (!modern2014(draft))
+    return (
+      <section className="character-2014" aria-label="Opções SRD 2014">
+        <p>
+          As escolhas desta ficha estão preservadas. Para configurar classe,
+          raça e origem pelas opções SRD 2014, confirme a atualização deste
+          rascunho.
+        </p>
+        <label>
+          Classe para configurar
+          <select
+            value={pendingClass || 'fighter'}
+            onChange={(e) => setPendingClass(e.target.value)}
+          >
+            {classes2014.map((c) => (
+              <option key={c.id} value={shortId(c.id)}>
+                {label2014(c.id)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {!confirm ? (
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setConfirm(true)}
+          >
+            Ativar opções SRD 2014
+          </button>
+        ) : (
+          <div role="region" aria-label="Revisar mudança de regras">
+            <p>
+              Nome, atributos e inventário serão preservados. As escolhas de
+              classe serão reiniciadas; uma cópia privada do rascunho anterior
+              será preservada. A ficha salva só muda depois de clicar em Salvar.
+            </p>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() =>
+                onChange(
+                  change2014(activate2014(draft), {
+                    classId: pendingClass || 'fighter',
+                    ...(pendingClass && pendingClass !== 'fighter'
+                      ? { hpRolls: undefined, decisions: [] }
+                      : {}),
+                  }),
+                )
+              }
+            >
+              Confirmar nova versão de regras
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setConfirm(false)}
+            >
+              Cancelar mudança de regras
+            </button>
+          </div>
+        )}
+      </section>
+    );
   const set = (patch: Partial<CharacterDraft>) => {
     try {
       onChange(change2014(draft, patch));
@@ -258,8 +322,8 @@ export function Opcoes2014({
       <label>
         Classe
         <select
-          value={pendingClass || draft.classId}
-          onChange={(e) => setPendingClass(e.target.value === draft.classId ? "" : e.target.value)}
+          value={draft.classId}
+          onChange={(e) => setPendingClass(e.target.value)}
         >
           {classes2014.map((c) => (
             <option key={c.id} value={shortId(c.id)}>

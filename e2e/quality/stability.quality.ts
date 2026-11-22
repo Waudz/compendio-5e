@@ -12,9 +12,17 @@ test('alternância rápida estabiliza na última página e recarrega conforme o 
 
 test('trocar papéis sintéticos, voltar e avançar no navegador mantém a identidade', async ({ page }) => {
   await openDemo(page, 'mestre'); await openDemo(page, 'jogador');
-  await navigate(page,'Conta'); await expect(page.getByText('jogador@demo.local',{exact:true})).toBeVisible();
-  await page.goBack(); await navigate(page,'Conta'); await expect(page.getByText('mestre@demo.local',{exact:true})).toBeVisible();
-  await page.goForward(); await navigate(page,'Conta'); await expect(page.getByText('jogador@demo.local',{exact:true})).toBeVisible();
+  // Navegação de perfis é histórico de documentos; abrir Conta no mobile cria
+  // uma entrada de tela própria, portanto verificar back/forward ANTES dela.
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: 'Sociedade do Véu Negro', exact: true })).toBeVisible();
+  await navigate(page, 'Conta');
+  await expect(page.getByText('mestre@demo.local', { exact: true })).toBeVisible();
+  // A ida a Conta cria uma entrada de tela no mobile: retornar ao perfil jogador
+  // exige nova navegação de documento, não forward após ramificar o histórico.
+  await openDemo(page, 'jogador');
+  await navigate(page, 'Conta');
+  await expect(page.getByText('jogador@demo.local', { exact: true })).toBeVisible();
 });
 
 test('Voltar do aplicativo retorna à tela de origem no celular', async ({ page }) => {

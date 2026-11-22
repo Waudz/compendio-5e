@@ -48,6 +48,9 @@ export function Mobile(_props: Props) {
   const [history, setHistory] = useState<TabSpec[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuDialog = useRef<HTMLDivElement>(null);
+  const voltarPeloNavegador = useRef<() => void>(() => {});
+  const navegacaoBrowser = useRef(false);
+  const iniciadoBrowser = useRef(false);
   useEffect(() => {
     if (!menuOpen || !menuDialog.current) return;
     const root = menuDialog.current;
@@ -82,6 +85,7 @@ export function Mobile(_props: Props) {
     unsaved.guard("all", () => {
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
       setHistory(h => [...h.slice(-39), screen]);
+      if (!navegacaoBrowser.current) window.history.pushState({ compendioMobile: true }, "", window.location.href);
       setScreen(spec);
       if (spec.kind === "ficha" && user && active) gravarFicha(chaveFicha(user.id, active.campaign.id), spec.ref);
     });
@@ -96,6 +100,31 @@ export function Mobile(_props: Props) {
       setScreen(previous);
     });
   };
+  // O gesto Voltar do Android aciona popstate. Consumir o histórico interno
+  // evita que um atalho da campanha feche o navegador/PWA.
+  voltarPeloNavegador.current = () => {
+    if (menuOpen) { setMenuOpen(false); window.history.pushState({ compendioMobile: true }, "", window.location.href); return; }
+    if (!history.length) return;
+    unsaved.guard("all", () => {
+      positions.current.set(current, scroll.current?.scrollTop ?? 0);
+      const previous = history[history.length - 1];
+      setHistory(h => h.slice(0, -1));
+      setScreen(previous);
+    });
+  };
+  useEffect(() => {
+    if (!iniciadoBrowser.current) {
+      iniciadoBrowser.current = true;
+      window.history.replaceState({ ...window.history.state, compendioMobile: true }, "", window.location.href);
+    }
+    const aoVoltar = () => {
+      navegacaoBrowser.current = true;
+      voltarPeloNavegador.current();
+      navegacaoBrowser.current = false;
+    };
+    window.addEventListener("popstate", aoVoltar);
+    return () => window.removeEventListener("popstate", aoVoltar);
+  }, []);
   useEffect(() => restaurarRolagem(scroll.current, positions.current.get(current) ?? 0), [current]);
   /** Botão "Ficha" do jogador: abre A ficha (a usada por último, ou a mais recente dele), não só a lista; sem ficha ainda, abre a lista para criar. */
   const abrirMinhaFicha = async () => {
