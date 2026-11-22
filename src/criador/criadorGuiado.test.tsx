@@ -41,7 +41,17 @@ const preencherFicha = async (nome: string) => {
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
 };
-const confirmarEquipamento = async () => { fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' })); fireEvent.click(await screen.findByRole('button', { name: 'Confirmar equipamentos SRD 2014' })); };
+const confirmarEquipamento = async () => {
+  fireEvent.click(secoes().getByRole('button', { name: 'Equipamento inicial' }));
+  const equipamento = await screen.findByLabelText('Equipamento inicial SRD 2014');
+  for (const seletor of equipamento.querySelectorAll<HTMLSelectElement>('select')) {
+    if (seletor.value === '' && seletor.options.length > 1) {
+      const escolha = [...seletor.options].find(o => o.value && !o.disabled);
+      if (escolha) fireEvent.change(seletor, { target: { value: escolha.value } });
+    }
+  }
+  fireEvent.click(await screen.findByRole('button', { name: 'Confirmar equipamentos SRD 2014' }));
+};
 
 
 /** WCAG 2.5.3 (axe `label-content-name-mismatch`): o nome acessível precisa conter o texto visível do botão. Devolve os botões que violam. */
