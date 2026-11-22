@@ -37,7 +37,6 @@ const modern2014 = (d: CharacterDraft) => d.catalogueVersion === 'character-srd-
 const sheet2014 = (d: CharacterDraft) => { if (!regras2014) throw new Error('Carregando regras de personagem…'); return regras2014.sheet2014(d); };
 const label2014 = (id: string) => regras2014?.label2014(id) ?? id;
 const featureDescription2014 = (id: string) => regras2014?.featureDescription2014(id) ?? '';
-const change2014 = (d: CharacterDraft, patch: Partial<CharacterDraft>) => regras2014!.change2014(d, patch);
 import PublicIdentityEditor from "./identidade-publica-editor";
 import { rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
@@ -127,7 +126,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const mudar = (proximo: CharacterDraft) => { setDraft(proximo); setMsg(null); };
 
   const alterarNivel = (level: number) => {
-    try { mudar(modern2014(draft) ? change2014(draft, { level }) : { ...draft, level }); setErroAtrib(''); }
+    try { mudar(modern2014(draft) ? regras2014!.progressLevel2014(draft, level) : { ...draft, level }); setErroAtrib(''); }
     catch (e) { setErroAtrib(e instanceof Error ? e.message : 'Revise os recursos e as rolagens de PV antes de mudar o nível.'); }
   };
 

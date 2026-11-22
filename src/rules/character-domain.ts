@@ -14,6 +14,7 @@ export type CharacterDraft = {
   spentResources: Record<string, number>;
   currency?: { cp: number; sp: number; gp: number };
   abilityMethod?: 'point-buy' | 'standard-array' | 'manual';
+  previousRulesDraft?: Omit<CharacterDraft, 'previousRulesDraft'>;
 };
 export type CharacterCatalog = {
   version: string; races: Record<string, CatalogOption>;

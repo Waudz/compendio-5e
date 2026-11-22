@@ -46,3 +46,19 @@
   max-width: 100%;
   white-space: normal;
 }
+
+.character-2014 .character-spell-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.character-2014 .character-spell-option label {
+  flex: 1;
+  min-width: 130px;
+}
+.character-2014 .character-spell-option button {
+  font-size: 12px;
+  padding: 5px 8px;
+}

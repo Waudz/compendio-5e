@@ -778,7 +778,7 @@ export function catalog2014(d: CharacterDraft): CharacterCatalog {
     raceGrants.push({
       type: 'resource',
       resource: 'divine-sense',
-      uses: Math.max(1, 1 + modifier(effectiveAbilities2014(d).cha)),
+      uses: Math.max(0, 1 + modifier(effectiveAbilities2014(d).cha)),
       source: c.id,
     });
   if (d.classId === 'paladin' && d.level >= 3)
@@ -899,6 +899,13 @@ export function sheet2014(d: CharacterDraft): CharacterSheet {
     throw Error('Origem desconhecida.');
   const sheet = createCharacterSheet(prepared, catalog2014(d));
   sheet.draft = d;
+  if (d.hpRolls)
+    for (let level = 2; level <= d.level; level++)
+      if (
+        selected2014(d, 'hp-roll-confirmed-' + level)[0] !==
+        String(d.hpRolls[level - 2])
+      )
+        sheet.pending.push('hp-roll-confirmed-' + level);
   if (
     d.backgroundId === 'custom' &&
     (!selected2014(d, 'background-feature')[0]?.trim() ||
@@ -995,12 +1002,18 @@ export function change2014(
   return { ...next, currentHp: Math.min(d.currentHp, max) };
 }
 export function activate2014(d: CharacterDraft): CharacterDraft {
+  if (modern2014(d)) return d;
+  const { previousRulesDraft: _previous, ...original } = d;
   return change2014(d, {
+    previousRulesDraft: structuredClone(original),
     catalogueVersion: VERSION_2014,
     classId: 'fighter',
     raceId: 'hill-dwarf',
     backgroundId: 'acolyte',
-    decisions: [],
+    decisions: (d.hpRolls ?? []).map((value, i) => ({
+      id: 'hp-roll-confirmed-' + (i + 2),
+      optionIds: [String(value)],
+    })),
     spentResources: {},
   });
 }
@@ -1533,4 +1546,49 @@ export function proficiencyLabel2014(value: string) {
     (kind === 'tool' ? 'Ferramenta: ' : '') +
     (item ? (srdItem(item)?.nome ?? target) : target.replaceAll('-', ' '))
   );
+}
+
+function storedHpRoll2014(d: CharacterDraft, level: number) {
+  const n = Number(selected2014(d, 'hp-roll-confirmed-' + level)[0]);
+  const die = class2014(d).data.hitDie;
+  return Number.isSafeInteger(n) && n >= 1 && n <= die
+    ? n
+    : Math.floor(die / 2) + 1;
+}
+export function progressLevel2014(d: CharacterDraft, level: number) {
+  if (!Number.isSafeInteger(level) || level < 1 || level > 20)
+    throw Error('Nível inválido.');
+  return change2014(d, {
+    level,
+    hpRolls: d.hpRolls
+      ? Array.from(
+          { length: level - 1 },
+          (_, i) => d.hpRolls?.[i] ?? storedHpRoll2014(d, i + 2),
+        )
+      : undefined,
+  });
+}
+export function hpMode2014(d: CharacterDraft, rolled: boolean) {
+  return change2014(d, {
+    hpRolls: rolled
+      ? Array.from(
+          { length: d.level - 1 },
+          (_, i) => d.hpRolls?.[i] ?? storedHpRoll2014(d, i + 2),
+        )
+      : undefined,
+  });
+}
+export function hpRoll2014(d: CharacterDraft, level: number, value: number) {
+  if (
+    !d.hpRolls ||
+    level < 2 ||
+    level > d.level ||
+    !Number.isSafeInteger(value) ||
+    value < 1 ||
+    value > class2014(d).data.hitDie
+  )
+    throw Error('Rolagem de PV inválida.');
+  const rolls = [...d.hpRolls];
+  rolls[level - 2] = value;
+  return change2014(d, { hpRolls: rolls });
 }

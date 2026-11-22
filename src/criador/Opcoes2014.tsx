@@ -8,6 +8,10 @@ import {
   activate2014,
   modern2014,
   classes2014,
+  class2014,
+  spells2014,
+  hpMode2014,
+  hpRoll2014,
   races2014,
   label2014,
   shortId,
@@ -43,6 +47,7 @@ function Choice({
   onChange: (d: CharacterDraft) => void;
 }) {
   const [search, setSearch] = useState('');
+  const [previewSpell, setPreviewSpell] = useState('');
   const selected = selected2014(draft, choice.id);
   const calculated = sheet2014(draft);
   const taken = new Set(
@@ -108,6 +113,7 @@ function Choice({
         : choice.kind === 'feature'
           ? rotuloOpcao(label2014(id))
           : (choice.options.find((o) => o.id === id)?.name ?? id);
+  const preview = spells2014.find((s) => s.id === previewSpell);
   const options = choice.options.filter(
     (o) =>
       !search ||
@@ -159,27 +165,56 @@ function Choice({
             }}
           >
             {options.map((o) => (
-              <label className="check" key={o.id}>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(o.id)}
-                  disabled={
-                    !selected.includes(o.id) &&
-                    (selected.length >= choice.count || unavailable(o.id))
-                  }
-                  onChange={(e) =>
-                    set(
-                      e.target.checked
-                        ? [...selected, o.id]
-                        : selected.filter((id) => id !== o.id),
-                    )
-                  }
-                />
-                {name(o.id)}
-              </label>
+              <div className="character-spell-option" key={o.id}>
+                <label className="check" key={o.id}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(o.id)}
+                    disabled={
+                      !selected.includes(o.id) &&
+                      (selected.length >= choice.count || unavailable(o.id))
+                    }
+                    onChange={(e) =>
+                      set(
+                        e.target.checked
+                          ? [...selected, o.id]
+                          : selected.filter((id) => id !== o.id),
+                      )
+                    }
+                  />
+                  {name(o.id)}
+                </label>
+                {choice.kind === 'spell' && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    aria-label={'Ver detalhes de ' + name(o.id)}
+                    onClick={() => setPreviewSpell(o.id)}
+                  >
+                    Ver detalhes
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </>
+      )}
+      {preview && (
+        <section aria-label="Detalhes de magia">
+          <h4>{preview.name}</h4>
+          <p>
+            {preview.level === 0 ? 'Truque' : preview.level + 'º círculo'} ·{' '}
+            {preview.details}
+          </p>
+          <p>{preview.description}</p>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setPreviewSpell('')}
+          >
+            Fechar detalhes de magia
+          </button>
+        </section>
       )}
       {selected.map((id) =>
         featureDescription2014(id) ? (
@@ -238,8 +273,8 @@ export function Opcoes2014({
           <div role="region" aria-label="Revisar mudança de regras">
             <p>
               Nome, atributos e inventário serão preservados. As escolhas de
-              classe serão reiniciadas. A ficha salva só muda depois de clicar
-              em Salvar.
+              classe serão reiniciadas; uma cópia privada do rascunho anterior
+              será preservada. A ficha salva só muda depois de clicar em Salvar.
             </p>
             <button
               type="button"
@@ -248,6 +283,9 @@ export function Opcoes2014({
                 onChange(
                   change2014(activate2014(draft), {
                     classId: pendingClass || 'fighter',
+                    ...(pendingClass && pendingClass !== 'fighter'
+                      ? { hpRolls: undefined, decisions: [] }
+                      : {}),
                   }),
                 )
               }
@@ -297,9 +335,9 @@ export function Opcoes2014({
       {pendingClass && (
         <section aria-label="Confirmar classe">
           <p>
-            Trocar a classe reinicia escolhas de classe e recursos. Nome,
-            atributos, raça, origem e inventário são preservados; a ficha salva
-            só muda depois de Salvar.
+            Trocar a classe reinicia escolhas de classe, recursos e a progressão
+            de PV. Nome, atributos, raça, origem e inventário são preservados; a
+            ficha salva só muda depois de Salvar.
           </p>
           <button
             type="button"
@@ -684,6 +722,68 @@ export function Resumo2014({
           }}
         />
       </label>
+      <fieldset>
+        <legend>PV na progressão</legend>
+        <label>
+          Ganho de PV por nível
+          <select
+            value={draft.hpRolls ? 'rolled' : 'fixed'}
+            onChange={(e) =>
+              onChange(hpMode2014(draft, e.target.value === 'rolled'))
+            }
+          >
+            <option value="fixed">Média fixa do dado de vida</option>
+            <option value="rolled">Rolagens informadas</option>
+          </select>
+        </label>
+        {draft.hpRolls && (
+          <>
+            <p>
+              No primeiro nível, usa-se o máximo do dado. As médias abaixo são
+              provisórias: informe e confirme seus resultados físicos de cada
+              nível.
+            </p>
+            {draft.hpRolls.map((roll, i) => (
+              <div key={i}>
+                <label>
+                  PV rolados no nível {i + 2} (d{class2014(draft).data.hitDie})
+                  <input
+                    type="number"
+                    min={1}
+                    max={class2014(draft).data.hitDie}
+                    value={roll}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (
+                        Number.isSafeInteger(n) &&
+                        n >= 1 &&
+                        n <= class2014(draft).data.hitDie
+                      )
+                        onChange(hpRoll2014(draft, i + 2, n));
+                    }}
+                  />
+                </label>
+                {selected2014(draft, 'hp-roll-confirmed-' + (i + 2))[0] !==
+                  String(roll) && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() =>
+                      onChange(
+                        decide2014(draft, 'hp-roll-confirmed-' + (i + 2), [
+                          String(roll),
+                        ]),
+                      )
+                    }
+                  >
+                    Confirmar PV do nível {i + 2}
+                  </button>
+                )}
+              </div>
+            ))}
+          </>
+        )}
+      </fieldset>
       <details>
         <summary>Testes de resistência</summary>
         <dl>

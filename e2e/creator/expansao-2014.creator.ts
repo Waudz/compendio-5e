@@ -61,7 +61,9 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await nameField(page).fill('Maga 2014');
   await nameField(page).focus();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('combobox', { name: 'Classe', exact: true })).toBeFocused();
+  await expect(
+    page.getByRole('combobox', { name: 'Classe', exact: true }),
+  ).toBeFocused();
   await changeClass(page, 'wizard');
   await page
     .getByRole('combobox', { name: 'Raça', exact: true })
@@ -87,6 +89,20 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
     .getByRole('combobox', { name: 'Idiomas da raça', exact: true })
     .selectOption('draconic');
   await checks(page.getByRole('group', { name: /^Idiomas da origem/ }), 2);
+  const book = page.getByRole('group', { name: /^Grimório — seis/ });
+  await book
+    .getByRole('button', { name: /^Ver detalhes de/ })
+    .first()
+    .click();
+  await expect(
+    book.getByRole('region', { name: 'Detalhes de magia', exact: true }),
+  ).toBeVisible();
+  await expect(
+    book.getByRole('region', { name: 'Detalhes de magia', exact: true }),
+  ).toContainText('círculo');
+  await book
+    .getByRole('button', { name: 'Fechar detalhes de magia', exact: true })
+    .click();
   const used = new Set<string>();
   await checks(page.getByRole('group', { name: /^Grimório — seis/ }), 6, used);
   await checks(
@@ -129,6 +145,29 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
       .filter({ hasText: 'Equipamentos iniciais aplicados' }),
   ).toBeVisible();
   await showSection(page, 'Ficha');
+  await page
+    .getByRole('combobox', { name: 'Ganho de PV por nível', exact: true })
+    .selectOption('rolled');
+  for (const [level, roll] of [
+    [2, 4],
+    [3, 5],
+  ]) {
+    await page
+      .getByRole('spinbutton', {
+        name: `PV rolados no nível ${level} (d6)`,
+        exact: true,
+      })
+      .fill(String(roll));
+    await page
+      .getByRole('button', {
+        name: `Confirmar PV do nível ${level}`,
+        exact: true,
+      })
+      .click();
+  }
+  await expect(
+    page.getByRole('region', { name: 'Ficha calculada' }),
+  ).toContainText('PV máximo: 21');
   await expect(
     page.getByRole('region', { name: 'Ficha calculada' }),
   ).toContainText('Estado: escolhas concluídas');
@@ -163,6 +202,13 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await expect(
     page.getByRole('spinbutton', { name: 'Ouro', exact: true }),
   ).toHaveValue('15');
+  await showSection(page, 'Ficha');
+  await expect(
+    page.getByRole('spinbutton', {
+      name: 'PV rolados no nível 3 (d6)',
+      exact: true,
+    }),
+  ).toHaveValue('5');
   await showSection(page, 'Inventário');
   await expect(
     page.getByRole('region', { name: 'Inventário', exact: true }),
