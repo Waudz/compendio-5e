@@ -47,7 +47,7 @@ const preencher = async (nome: string) => {
   const proficiencias = opcoes.getByText(/Proficiências de Guerreiro — escolha/).closest("fieldset")!;
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
   fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
-  fireEvent.click(secoes().getByRole("button", { name: "Equipamento inicial" })); fireEvent.click(screen.getByRole("button", { name: "Confirmar equipamentos SRD 2014" }));
+  fireEvent.click(secoes().getByRole("button", { name: "Equipamento inicial" })); fireEvent.click(await screen.findByRole("button", { name: "Confirmar equipamentos SRD 2014" }));
 };
 const identidade = (publicar: boolean, titulo = "O Escudo") => {
   fireEvent.click(secoes().getByRole("button", { name: "Identidade pública" }));
