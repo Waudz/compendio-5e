@@ -1,7 +1,7 @@
 // Início da campanha: capa, nome e descrição, prévia do Diário e Aventureiros. É a aba `campanha:<id>` (mesma entidade de sempre).
 // Capa, Diário e Personagens ainda não têm módulo/persistência: cada seção recebe uma fonte opcional (ver inicio.ts) e,
 // sem ela, mostra um estado honesto "ainda não disponível". Nada aqui inventa dados nem cria um segundo Diário.
-import { Image as ImageIcon, ScrollText, Users } from "lucide-react";
+import { BookOpen, Image as ImageIcon, ScrollText, Users, LibraryBig } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { useAventureiros } from "./AventureirosContext";
@@ -142,6 +142,12 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
   return <div className="home" data-testid="campanha-inicio">
     <Capa campaignId={id} isMaster={isMaster}/>
     <NomeDescricao id={id} onOpen={onOpen}/>
+    {isMaster && <nav className="home-quicklinks" aria-label="Atalhos da campanha">
+      <button onClick={() => onOpen({ kind: "secao", ref: "enciclopedia" })}><BookOpen size={19} aria-hidden="true"/><span>Enciclopédia <small>Em desenvolvimento</small></span></button>
+      <button onClick={() => onOpen({ kind: "secao", ref: "compendio" })}><LibraryBig size={19} aria-hidden="true"/><span>Compêndio</span></button>
+      <button onClick={() => onOpen({ kind: "secao", ref: "diario" })}><ScrollText size={19} aria-hidden="true"/><span>Diário</span></button>
+      <button onClick={() => onOpen({ kind: "secao", ref: "personagens" })}><Users size={19} aria-hidden="true"/><span>Personagens da campanha</span></button>
+    </nav>
     <DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>
     <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/>
     <details className="home-manage" onToggle={e => setGerir((e.currentTarget as HTMLDetailsElement).open)}><summary>{isMaster ? "Gerenciar campanha" : "Participantes"}</summary>
