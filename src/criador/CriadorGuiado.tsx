@@ -87,7 +87,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const [secao, setSecao] = useState<Secao>("ficha");
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
-  const [escolhas, setEscolhas] = useState<Record<string, string>>({});
+  const [, setEscolhas] = useState<Record<string, string>>({});
   const [busca, setBusca] = useState(""), [excluindo, setExcluindo] = useState(false);
 
   const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentitySettings; publicar: boolean; revision: number | null; somenteFicha: boolean }) => {
