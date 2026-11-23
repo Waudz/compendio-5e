@@ -195,7 +195,7 @@ describe("menu de contexto 'Abrir em nova aba'", () => {
     const registros = registrosEmMemoria("mestre", me.id, [{ ...base, id: "d1", kind: "diary", title: "Sessão 1", content: [par("a")] }]);
     await renderApp({ api: apiC(), registros });
     await waitFor(() => expect(menu().getByRole("button", { name: "Diário" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Diário" }));
-    fireEvent.contextMenu(await screen.findByText("Sessão 1"));
+    fireEvent.contextMenu(await screen.findByRole("button", { name: /^Sessão 1\b/ }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Abrir em nova aba" }));
     await waitFor(() => expect(abas().some(t => t?.startsWith("Sessão 1"))).toBe(true));
   });
@@ -259,7 +259,7 @@ describe("sincronização entre grupos de abas (sem F5)", () => {
     const registros = diario();
     await renderApp({ api: apiC(), registros });
     await waitFor(() => expect(menu().getByRole("button", { name: "Diário" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Diário" }));
-    fireEvent.click(await screen.findByText("Sessão 1"));
+    fireEvent.click(await screen.findByRole("button", { name: /^Sessão 1\b/ }));
     await screen.findByLabelText("Título");
     fireEvent.change(await screen.findByLabelText("Texto do registro"), { target: { value: "minha edição" } });
     registros.dados[0] = { ...registros.dados[0], version: 5, content: [par("de outro aparelho")] };
