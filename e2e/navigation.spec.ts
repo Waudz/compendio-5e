@@ -63,3 +63,24 @@ test('mestre só descarta combate ao confirmar Finalizar; F5 mantém o combate a
   await navigate(page, 'Iniciativa');
   await expect(page.getByText('Nenhum combatente ainda', { exact: true })).toBeVisible();
 });
+
+test('finalizar combate preserva encontros preparados para reutilização', async ({ page }) => {
+  await openDemo(page);
+  await navigate(page, 'Encontros');
+  await page.getByRole('form', { name: 'Novo encontro' }).getByLabel('Nome do encontro').fill('Emboscada de teste');
+  await page.getByRole('button', { name: 'Criar encontro' }).click();
+  const encontro = page.getByRole('region', { name: 'Encontro Emboscada de teste' });
+  await encontro.getByRole('form', { name: 'Adicionar participante a Emboscada de teste' }).getByLabel('Nome').fill('Goblin');
+  await encontro.getByRole('button', { name: 'Adicionar', exact: true }).click();
+  await encontro.getByRole('button', { name: 'Enviar para a Iniciativa' }).click();
+  await navigate(page, 'Iniciativa');
+  await expect(page.getByText('Goblin', { exact: true })).toBeVisible();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Finalizar combate' }).click();
+  await expect(page.getByText('Nenhum combatente ainda', { exact: true })).toBeVisible();
+  await navigate(page, 'Encontros');
+  await expect(page.getByRole('heading', { name: 'Emboscada de teste' })).toBeVisible();
+  await page.reload();
+  await navigate(page, 'Encontros');
+  await expect(page.getByRole('heading', { name: 'Emboscada de teste' })).toBeVisible();
+});
