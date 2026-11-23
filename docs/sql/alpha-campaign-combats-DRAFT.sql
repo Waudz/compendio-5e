@@ -93,6 +93,11 @@ create policy campaign_combats_master_update on public.campaign_combats
   using ((select auth.uid()) is not null and public.is_master(campaign_id))
   with check ((select auth.uid()) is not null and public.is_master(campaign_id));
 
--- Nenhuma policy DELETE: preserva histórico contra exclusão direta via Data API.
--- O DELETE em cascata só ocorrerá se uma campanha inteira for excluída por operação autorizada.
+-- Finalizar combate descarta a linha ativa, sem afetar encontros salvos (tabela separada).
+-- A Data API limita DELETE ao mestre; o cliente exige version=esperada no WHERE.
+grant delete on table public.campaign_combats to authenticated;
+create policy campaign_combats_master_delete on public.campaign_combats
+  for delete to authenticated
+  using ((select auth.uid()) is not null and public.is_master(campaign_id));
+-- O DELETE em cascata também ocorrerá se a campanha inteira for excluída por operação autorizada.
 commit;

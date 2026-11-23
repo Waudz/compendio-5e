@@ -43,6 +43,24 @@ export function criarApiCombate(client: SupabaseClient) {
         return falha("indisponivel", "Não foi possível carregar o combate no servidor. Tente novamente.");
       }
     },
+    /** Finaliza e descarta somente o combate na versão confirmada; encontros são independentes.
+     * A ausência de linha confirma conflito/perda de permissão, nunca finalização bem-sucedida. */
+    async finalizar(campaignId: string, versaoEsperada: number): Promise<{ ok: true } | Exclude<ResultadoCombate, { ok: true }>> {
+      if (!Number.isSafeInteger(versaoEsperada) || versaoEsperada < 1)
+        return falha("invalido", "Versão esperada inválida para finalizar.");
+      try {
+        const { data, error: e } = await client.from("campaign_combats")
+          .delete().eq("campaign_id", campaignId).eq("version", versaoEsperada)
+          .select("version").maybeSingle();
+        if (e) return erro(e);
+        if (!data) return falha("conflito", "O combate foi alterado ou você perdeu o acesso. Recarregue antes de finalizar.");
+        if (data.version !== versaoEsperada)
+          return falha("invalido", "O servidor não confirmou a versão finalizada.");
+        return { ok: true };
+      } catch {
+        return falha("indisponivel", "Não foi possível confirmar a finalização no servidor.");
+      }
+    },
     /** Controle de concorrência: versão 0 cria, versões maiores atualizam apenas se não houve outra gravação.
      * Uma resposta sem linha NÃO é sucesso (RLS negada ou alteração concorrente). */
     async salvar(campaignId: string, estado: EstadoCombate, versaoEsperada: number): Promise<ResultadoCombate> {

@@ -74,9 +74,20 @@ describe("rascunho de combate — RLS real em PostgreSQL isolado", () => {
     expect((await como(mestreA, sql, [a, estado])).rows).toEqual([]);
     expect((await como(mestreA, "select state from public.campaign_combats where campaign_id=$1", [a])).rows).toEqual([{ state: novo }]);
   });
-  it("não permite trocar campanha, timestamps ou excluir via cliente", async () => {
-    for (const sql of ["update public.campaign_combats set campaign_id=$1", "update public.campaign_combats set created_at=now() where campaign_id=$1", "update public.campaign_combats set updated_at=now() where campaign_id=$1", "delete from public.campaign_combats where campaign_id=$1"])
+  it("não permite trocar campanha nem timestamps pelo cliente", async () => {
+    for (const sql of ["update public.campaign_combats set campaign_id=$1", "update public.campaign_combats set created_at=now() where campaign_id=$1", "update public.campaign_combats set updated_at=now() where campaign_id=$1"])
       expect((await como(mestreA, sql, [a])).error).toMatch(/permission denied/);
+  });
+  it("somente mestre descarta seu combate na versão esperada; outros não excluem", async () => {
+    for (const user of [jogadorA, mestreB, estranho]) {
+      expect((await como(user, "delete from public.campaign_combats where campaign_id=$1 and version=1 returning campaign_id", [a])).rows).toEqual([]);
+    }
+    expect((await como(mestreA, "delete from public.campaign_combats where campaign_id=$1 and version=2 returning campaign_id", [a])).rows).toEqual([]);
+    expect((await como(mestreA, "select version from public.campaign_combats where campaign_id=$1", [a])).rows).toEqual([{ version: 1 }]);
+    expect((await como(mestreA, "delete from public.campaign_combats where campaign_id=$1 and version=1 returning campaign_id", [a])).rows).toEqual([{ campaign_id: a }]);
+    expect((await como(mestreA, "select campaign_id from public.campaign_combats where campaign_id=$1", [a])).rows).toEqual([]);
+    expect((await como(mestreA, "select campaign_id from public.campaign_combats where campaign_id=$1", [b])).rows).toEqual([]);
+    expect((await como(mestreB, "select campaign_id from public.campaign_combats where campaign_id=$1", [b])).rows).toEqual([{ campaign_id: b }]);
   });
   it.each([{}, { combatentes: [], rodada: 1 }, { combatentes: [] }, { combatentes: [], rodada: null }, { combatentes: [], rodada: 0 }, { combatentes: [], rodada: 1.5 }])("nega envelope inválido %o", async valor => {
     expect((await como(mestreA, "update public.campaign_combats set state=$2,version=2 where campaign_id=$1", [a, valor])).error).toBeTruthy();
