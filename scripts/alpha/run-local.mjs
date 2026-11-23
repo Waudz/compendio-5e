@@ -75,7 +75,8 @@ try {
     checkpoint = 'second session stale save';
     const stale = await api('/rest/v1/rpc/save_guided_character', {token: second.access_token, method: 'POST', body: {p_id: character.character_id, p_expected_revision: character.revision, p_draft: draft}});
     checkpoint = 'stale revision HTTP status';
-    assert.equal(stale.status, 409, `Stale revision returned HTTP ${stale.status}; PostgREST code ${/^[A-Z0-9]{4,6}$/.test(stale.data?.code ?? '') ? stale.data.code : 'unknown'}`);
+    console.log(`INFO stale revision response: HTTP ${stale.status}, SQLSTATE ${/^[A-Z0-9]{4,6}$/.test(stale.data?.code ?? '') ? stale.data.code : 'unknown'}`);
+    assert.equal(stale.status, 409);
     checkpoint = 'foreign campaign sheet isolation';
     assert.deepEqual(await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token: o}), []);
     checkpoint = 'master sees updated character';
