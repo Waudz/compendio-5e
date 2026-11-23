@@ -4,7 +4,7 @@
 //    conflito de versão explícito, recuperação de falhas de conexão e retomada em outro aparelho (DEC-20261123-G/H). Combates antigos do navegador NÃO são importados
 //    nem apagados: ficam como backup local, com opção de baixar. A lógica de combate é neutra quanto ao sistema de RPG (`combate.ts`).
 import { ChevronLeft, ChevronRight, Copy, Dices, Download, LayoutGrid, List, Pencil, Plus, RotateCcw, Swords, Trash2 } from "lucide-react";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -14,8 +14,8 @@ import {
   adicionar, adicionarParticipante, alterarPv, alternarCondicao, chaveCombate, chaveEncontros, combateVazio, definirIniciativa, duplicarEncontro, enviarParaCombate, lerCombate, lerEncontros,
   novoId, ordenar, proximoTurno, reiniciarRodadas, remover, renomearEncontro, rolarIniciativa, turnoAnterior, type Encontro, type EstadoCombate, type Lado, type RefCombate,
 } from "./combate";
-import { criarApiEncontros } from "./encontrosRemoto";
-import { criarApiLinhaCombate, type ApiLinha } from "./linhaRemota";
+import { NuvemContext, useNuvem, type ApisNuvem } from "./nuvem";
+import { idsDePersonagens, statusDoCombatente } from "./statusCombate";
 import { useLinhaRemota, type SyncRemoto } from "./useLinhaRemota";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 
@@ -26,15 +26,8 @@ export const lerVisualizacaoCombate = (valor: string | null): VisualizacaoCombat
 type Estado<T> = { status: "carregando" } | { status: "erro"; mensagem?: string } | { status: "pronto"; valor: T; falhaGravacao?: boolean };
 type EstadoEscopado<T> = { chave: string | null; estado: Estado<T> };
 
-// ---------------------------------------------------------------- nuvem (opcional, explícita)
-export type ApisNuvem = { combate: ApiLinha<EstadoCombate>; encontros: ApiLinha<Encontro[]> };
-/** Permite injetar as APIs (testes e futuras integrações). Sem provedor, a nuvem só liga com VITE_COMBATE_REMOTO=1 e cliente Supabase configurado. */
-export const NuvemContext = createContext<ApisNuvem | null>(null);
-const nuvemHabilitada = () => import.meta.env.VITE_COMBATE_REMOTO === "1";
-function useNuvem(): ApisNuvem | null {
-  const injetada = useContext(NuvemContext), { client } = useAuth() as { client?: Parameters<typeof criarApiEncontros>[0] | null };
-  return useMemo(() => injetada ?? (nuvemHabilitada() && client ? { combate: criarApiLinhaCombate(client), encontros: criarApiEncontros(client) } : null), [injetada, client]);
-}
+// ---------------------------------------------------------------- nuvem (opcional, explícita): ver nuvem.tsx
+export { NuvemContext, type ApisNuvem };
 
 /** Lê o valor do armazenamento local (com estado de carregamento e de erro), grava a cada mudança e se mantém em dia com outras telas do mesmo aparelho. */
 function useArmazenado<T>(chave: string | null, ler: (bruto: string | null) => T) {
@@ -145,9 +138,9 @@ function SeletorMonstro({ rotulo, onEscolher }: { rotulo: string; onEscolher: (m
     </>}
   </details>;
 }
-function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onEscolher: (p: { id: string; nome: string }) => void }) {
+function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onEscolher: (p: { id: string; nome: string }, pv?: number) => void }) {
   const fonte = useAventureiros();
-  const [aberto, setAberto] = useState(false);
+  const [aberto, setAberto] = useState(false), [pvTexto, setPvTexto] = useState("");
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: { id: string; nome: string; classe: string }[] }>({ status: "carregando" });
   const carregar = useCallback(() => { if (!fonte) return; setDados({ status: "carregando" }); fonte.listar(campaignId).then(r => setDados(r.ok ? { status: "pronto", lista: r.data } : { status: "erro" }), () => setDados({ status: "erro" })); }, [fonte, campaignId]);
   useEffect(() => { if (aberto && dados.status === "carregando") carregar(); }, [aberto]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -157,7 +150,7 @@ function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onE
     {dados.status === "carregando" && aberto && <p className="muted" role="status">Carregando personagens…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar os personagens da campanha." onRetry={carregar}/>}
     {dados.status === "pronto" && (dados.lista.length === 0 ? <p className="muted">Esta campanha ainda não tem personagens vinculados.</p>
-      : <ul className="ini-achados">{dados.lista.map(p => <li key={p.id}><button type="button" className="btn-secondary" onClick={() => onEscolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><strong>{p.nome}</strong> <small>{p.classe}</small></button></li>)}</ul>)}
+      : <><label>PV máximo do personagem (opcional, para sincronizar com a ficha)<input inputMode="numeric" value={pvTexto} onChange={e => setPvTexto(e.target.value)}/></label><ul className="ini-achados">{dados.lista.map(p => <li key={p.id}><button type="button" className="btn-secondary" onClick={() => { const n = numero(pvTexto); onEscolher(p, n && n > 0 && Number.isInteger(n) ? n : undefined); }} aria-label={`Adicionar ${p.nome} (personagem)`}><strong>{p.nome}</strong> <small>{p.classe}</small></button></li>)}</ul></>)}
   </details>;
 }
 
@@ -190,6 +183,22 @@ export function IniciativaPanel() {
   const loja = useLojaCombate(userId, campaignId, podeGerenciar, nuvem);
   const { estado, aplicar } = loja;
   useUnsavedGuard("secao:iniciativa", loja.sujo, loja.salvar);
+  // PV e condições dos PERSONAGENS vão para a ficha pelo fluxo autorizado (função do banco que só o mestre chama); nada mais do combate sai daqui.
+  const statusApi = nuvem?.status, enviados = useRef(new Map<string, string>()), [avisoFicha, setAvisoFicha] = useState<string | null>(null);
+  useEffect(() => {
+    if (!statusApi || !loja.nuvem || estado.status !== "pronto") return;
+    const e = estado.valor, ids = idsDePersonagens(e), alvo = new Map(ids.map(id => [id, statusDoCombatente(e, id)!]));
+    for (const id of enviados.current.keys()) if (!alvo.has(id)) alvo.set(id, { hp: null, max: null, condicoes: [] });   // saiu do combate: a ficha deixa de mostrar
+    let cancelado = false;
+    void (async () => {
+      for (const [id, st] of alvo) {
+        const chave = JSON.stringify(st); if (enviados.current.get(id) === chave) continue;
+        const r = await statusApi.definir(id, st.hp, st.max, st.condicoes); if (cancelado) return;
+        if (r.ok) { if (ids.includes(id)) enviados.current.set(id, chave); else enviados.current.delete(id); setAvisoFicha(null); } else setAvisoFicha(r.mensagem);
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [estado, statusApi, loja.nuvem]);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   const [visualizacao, setVisualizacao] = useState<VisualizacaoCombate>("cartoes"), [erroFinalizar, setErroFinalizar] = useState<string | null>(null);
   const [mods, setMods] = useState<Record<string, number>>({});   // bônus de iniciativa por combatente (monstros: Destreza do catálogo)
@@ -216,11 +225,12 @@ export function IniciativaPanel() {
     setMods(x => ({ ...x, [id]: bonus }));
     aplicar(e => rolarIniciativa(adicionar(e, { id, nome: existentes || e.combatentes.some(c => c.nome === m.nome) ? `${m.nome} ${existentes + 1}` : m.nome, iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ref: { tipo: "monstro", id: m.id } }), id, bonus));
   };
-  const adicionarPersonagem = (p: { id: string; nome: string }) => aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ref: { tipo: "personagem", id: p.id } }));
+  const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number) => aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } }));
   const ordem = combate ? ordenar(combate.combatentes) : [];
   const finalizar = async () => {
     if (!window.confirm("Finalizar e descartar este combate? Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) return;
-    setErroFinalizar(await loja.finalizar());
+    const erro = await loja.finalizar(); setErroFinalizar(erro);
+    if (!erro && statusApi) { enviados.current.clear(); const l = await statusApi.limpar(campaignId); if (!l.ok) setAvisoFicha(l.mensagem); }
   };
   return <div className="content iniciativa">
     <div className="eyebrow">{(campanha ?? "").toLocaleUpperCase("pt-BR")} · COMBATE</div><h1>Iniciativa</h1>
@@ -228,6 +238,7 @@ export function IniciativaPanel() {
     {estado.status === "erro" && (nuvem ? <Aviso erro t={estado.mensagem ?? "Não foi possível carregar o combate no servidor."} onRetry={loja.tentar}/> : <ErroArmazenamento onTentar={loja.tentar} onDescartar={loja.descartar} o="o combate"/>)}
     {estado.status === "pronto" && !nuvem && estado.falhaGravacao && <Aviso erro t="Não foi possível salvar o combate. As alterações continuam nesta tela; tente salvar novamente antes de sair." onRetry={loja.tentar}/>}
     {erroFinalizar && <Aviso erro t={erroFinalizar}/>}
+    {avisoFicha && <Aviso erro t={`Ficha do jogador não atualizada: ${avisoFicha} O combate continua salvo.`}/>}
     {combate && <>
       <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()}/>
       {loja.nuvem && <BackupLocal chave={chaveCombate(userId, campaignId)} rotulo="combate"/>}

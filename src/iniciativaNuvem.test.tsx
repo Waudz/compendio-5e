@@ -8,6 +8,7 @@ let escopo: { user: { id: string } | null; active: { role: "mestre" | "jogador";
 vi.mock("./AuthContext", () => ({ useAuth: () => ({ user: escopo.user }) }));
 vi.mock("./CampaignsContext", () => ({ useCampaigns: () => ({ active: escopo.active }) }));
 import { AventureirosContext } from "./AventureirosContext";
+import type { ApiStatus } from "./statusCombate";
 import { EncontrosPanel, IniciativaPanel, NuvemContext } from "./Iniciativa";
 
 /** Servidor falso em memória (mesmo contrato do adaptador real): versão otimista por campanha. */
@@ -153,5 +154,58 @@ describe("Encontros na nuvem", () => {
     preencher("Nome do encontro", "A"); fireEvent.click(screen.getByRole("button", { name: /Criar encontro/ }));
     expect(await screen.findByText(/Sem conexão com o servidor/)).toBeTruthy();
     await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].nome).toBe("A"), { timeout: 4000 });
+  });
+});
+
+describe("sincronização de PV e condições com a ficha (fluxo autorizado)", () => {
+  function statusFalso() {
+    const chamadas: { id: string; hp: number | null; max: number | null; condicoes: string[] }[] = []; let limpos = 0, falhar = false;
+    const api: ApiStatus = {
+      async definir(id, hp, max, condicoes) { if (falhar) return { ok: false, mensagem: "Apenas o mestre da campanha pode atualizar a ficha." }; chamadas.push({ id, hp, max, condicoes: [...condicoes] }); return { ok: true }; },
+      async limpar() { limpos++; return { ok: true }; }, async ler() { return { ok: true, status: null }; }, assinar: () => () => {},
+    };
+    return { api, chamadas, limpos: () => limpos, falhar: (v: boolean) => { falhar = v; } };
+  }
+  const fonte = { listar: async () => ({ ok: true as const, data: [{ id: "pj1", nome: "Lydia Valenmoor", classe: "Guerreira", nivel: null }] }) };
+  const montarComStatus = (st: ReturnType<typeof statusFalso>, combate = servidor<EstadoCombate>(vazioCombate)) => {
+    render(<AventureirosContext.Provider value={fonte}><NuvemContext.Provider value={{ combate: combate.api, encontros: servidor<Encontro[]>([]).api, status: st.api }}><IniciativaPanel/></NuvemContext.Provider></AventureirosContext.Provider>);
+    return combate;
+  };
+  const adicionarLydia = async (pv = "12") => {
+    await screen.findByText("Nenhum combatente ainda");
+    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.change(await screen.findByLabelText(/PV máximo do personagem/), { target: { value: pv } });
+    fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
+  };
+  it("dano, cura e condição do personagem chegam à ficha; só PV, máximo e condições são enviados", async () => {
+    const st = statusFalso(); montarComStatus(st); await adicionarLydia();
+    await waitFor(() => expect(st.chamadas.at(-1)).toEqual({ id: "pj1", hp: 12, max: 12, condicoes: [] }));
+    fireEvent.change(screen.getByLabelText("Quantidade de dano ou cura de Lydia Valenmoor"), { target: { value: "5" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Lydia Valenmoor" }));
+    await waitFor(() => expect(st.chamadas.at(-1)).toMatchObject({ hp: 7, max: 12 }));
+    fireEvent.change(screen.getByLabelText("Adicionar condição a Lydia Valenmoor"), { target: { value: "Envenenado" } });
+    await waitFor(() => expect(st.chamadas.at(-1)).toEqual({ id: "pj1", hp: 7, max: 12, condicoes: ["Envenenado"] }));
+    for (const c of st.chamadas) expect(Object.keys(c).sort()).toEqual(["condicoes", "hp", "id", "max"]);   // nada de ordem, turno, rodada ou outros combatentes
+  });
+  it("monstros e combatentes genéricos NÃO geram status de ficha nem alteram o Bestiário", async () => {
+    const st = statusFalso(); montarComStatus(st); await screen.findByText("Nenhum combatente ainda");
+    preencher("Nome", "Orc"); preencher("PV (opcional)", "15"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    fireEvent.click(screen.getByText(/Adicionar do Bestiário/)); fireEvent.change(await screen.findByLabelText("Buscar monstro"), { target: { value: "goblin" } }); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Goblin do Bestiário" }));
+    fireEvent.change(screen.getByLabelText("Quantidade de dano ou cura de Goblin"), { target: { value: "3" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Goblin" }));
+    await waitFor(() => expect(screen.getByLabelText("PV de Goblin").textContent).toBe("PV 4/7"));
+    await new Promise(r => setTimeout(r, 80)); expect(st.chamadas).toEqual([]);
+    const { todosOsMonstros } = await import("./catalogue/contratos"); expect((await todosOsMonstros()).find(m => m.id === "goblin")?.pv).toBe(7);   // definição original intacta
+  });
+  it("remover o personagem do combate limpa o estado dele na ficha; finalizar limpa a campanha", async () => {
+    const st = statusFalso(); montarComStatus(st); await adicionarLydia("10");
+    await waitFor(() => expect(st.chamadas.at(-1)).toMatchObject({ hp: 10, max: 10 }));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Remover Lydia Valenmoor" }));
+    await waitFor(() => expect(st.chamadas.at(-1)).toEqual({ id: "pj1", hp: null, max: null, condicoes: [] }));
+    await adicionarLydia("10"); await waitFor(() => expect(screen.getByLabelText("PV de Lydia Valenmoor")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ })); await waitFor(() => expect(st.limpos()).toBe(1));
+  });
+  it("falha ao sincronizar a ficha avisa o mestre e não perde o combate", async () => {
+    const st = statusFalso(); st.falhar(true); const combate = montarComStatus(st); await adicionarLydia();
+    expect(await screen.findByText(/Ficha do jogador não atualizada/)).toBeTruthy();
+    await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes[0].nome).toBe("Lydia Valenmoor"));
   });
 });

@@ -67,7 +67,7 @@ describe("Diário (mestre)", () => {
   it("recusa data inválida e título vazio sem gravar", async () => {
     const registros = registrosEmMemoria("mestre", "u1", [reg({ id: "d1", kind: "diary", title: "X", content: [par("a")] })]);
     await renderApp({ api: apiC(mestre), registros });
-    await abrirSecao("Diário"); fireEvent.click(await screen.findByRole("button", { name: /^X\b/ })); await screen.findByLabelText("Dia");
+    await abrirSecao("Diário"); fireEvent.click(await screen.findByRole("button", { name: /^X/ })); await screen.findByLabelText("Dia");
     fireEvent.change(await screen.findByLabelText("Dia"), { target: { value: "45" } });
     fireEvent.change(screen.getByLabelText("Mês"), { target: { value: "1" } }); fireEvent.change(screen.getByLabelText("Ano"), { target: { value: "1491" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
@@ -81,7 +81,7 @@ describe("Diário (mestre)", () => {
   it("excluir pede confirmação e vai para a lixeira", async () => {
     const registros = registrosEmMemoria("mestre", "u1", [reg({ id: "d1", kind: "diary", title: "Apagar", content: [par("texto")] })]);
     await renderApp({ api: apiC(mestre), registros });
-    await abrirSecao("Diário"); fireEvent.click(await screen.findByRole("button", { name: /^Apagar\b/ })); await screen.findByRole("button", { name: "Excluir" });
+    await abrirSecao("Diário"); fireEvent.click(await screen.findByRole("button", { name: /^Apagar/ })); await screen.findByRole("button", { name: "Excluir" });
     fireEvent.click(await screen.findByRole("button", { name: "Excluir" }));
     expect(registros.dados).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }));

@@ -14,10 +14,11 @@
 | `0008` | **persistência segura das fichas**: políticas definitivas (INSERT/UPDATE exigem nota ativa), revisão e campos imutáveis por gatilho, vínculo composto com `notes`, **invariante da linha pública presa à existência da ficha** (gatilho em `notes`), schema `private` com 2 funções DEFINER booleanas, `create_guided_character`/`save_guided_character` (SECURITY INVOKER, meta estrito, título derivado), privilégios mínimos | **PROPOSTA — não aplicada** | exige revisão e autorização; testes em `supabase/character-sheets.test.ts` (PGlite); reversão em `supabase/rollback/0008_character_sheets_persistencia_down.sql` (não apaga dados) |
 | `0009` | **combate ativo por campanha** (`campaign_combats`, RLS só do mestre, versão otimista, finalizar = DELETE condicionado) | **PROPOSTA — não aplicada** (DEC-20261123-G/H) | schema de apoio `private_combates` (separado do `private` das fichas para que reverter a 0008 não dependa dela); reversão `rollback/0009_campaign_combats_down.sql`; **antiga reserva "0012"** |
 | `0010` | **encontros preparados** (`campaign_encounters`, mestre apenas, sem DELETE pela API) | **PROPOSTA — não aplicada** | depende da 0009; reversão `rollback/0010_campaign_encounters_down.sql` (reverter 0010 antes da 0009) |
-| `0011` | registros rápidos e pendências do Planejamento | reservada (não implementada) | depende da 0006; **antiga reserva "0007"** |
-| `0012` | vínculos entre páginas (`note_links`, derivada do conteúdo) | reservada (não implementada) | depende da 0005; **antiga reserva "0008"** |
-| `0013` | audiências de notas (compartilhamento granular, D3) | reservada (não implementada) | **antiga reserva "0009"** (e antes "0005"): reescreve a regra de leitura; manter a assinatura de `can_read_note` |
-| `0014`+ | reservas futuras | reservada (não implementada) | (encontros e combates passaram a ser 0009/0010); **antiga reserva "0010+"** |
+| `0011` | **status de combate na ficha** (`character_combat_status`, `set_combat_status`/`clear_combat_status`: o mestre grava, o dono lê só o seu, sem acesso ao combate) | **PROPOSTA — não aplicada** | depende da 0009 (`private_combates`) e de `character_sheets`; reversão `rollback/0011_character_combat_status_down.sql` |
+| `0012` | registros rápidos e pendências do Planejamento | reservada (não implementada) | depende da 0006; **antiga reserva "0007"** |
+| `0013` | vínculos entre páginas (`note_links`, derivada do conteúdo) | reservada (não implementada) | depende da 0005; **antiga reserva "0008"** |
+| `0014` | audiências de notas (compartilhamento granular, D3) | reservada (não implementada) | **antiga reserva "0009"** (e antes "0005"): reescreve a regra de leitura; manter a assinatura de `can_read_note` |
+| `0015`+ | reservas futuras | reservada (não implementada) | (encontros e combates passaram a ser 0009/0010); **antiga reserva "0010+"** |
 
 
 > A reserva anterior de "0005" para audiências/vínculos de notas (documentos de 19/11/2026) foi **substituída** pela numeração acima: o Planejamento não depende das audiências e é aplicado antes.
