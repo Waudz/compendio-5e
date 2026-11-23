@@ -224,7 +224,7 @@ describe("link interno de conteúdo (openContentLink)", () => {
     const st = memory(), s = scope("u1"), m = createModel(); openContentLink(m, doc("a"), "secao:personagens");
     saveLayout(m.toJson(), s, st);
     const env = JSON.parse(st.d.get(storageKey(s))!);
-    expect(env.layout.children[0].children.map((t: { id: string; pinned?: boolean; name?: string }) => [t.id, t.pinned === true, t.name])).toEqual([["secao:personagens", false, undefined], ["documento:a", true, undefined]]);
+    expect(env.layout.children.map((g: { children: { id: string; pinned?: boolean; name?: string }[] }) => g.children.map(t => [t.id, t.pinned === true, t.name]))).toEqual([[["secao:personagens", false, undefined]], [["documento:a", true, undefined]]]);
     env.layout.children[0].children.push({ id: "cena:futura-1", pinned: true });
     const ok = sanitizeLayout(env)!; expect(flat(createModel(ok))).toEqual(["secao:personagens", "documento:a"]);
     expect(isPinned(findTab(createModel(ok), "documento:a")!)).toBe(true);
