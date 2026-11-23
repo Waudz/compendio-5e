@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adicionar, alterarPv, combateVazio, definirIniciativa, enviarParaCombate, lerCombate, lerEncontros, ordenar, proximoTurno, remover } from "./combate";
+import { adicionar, alterarPv, combateVazio, definirIniciativa, enviarParaCombate, lerCombate, lerEncontros, ordenar, proximoTurno, remover, alternarCondicao, duplicarEncontro, renomearEncontro, rolarIniciativa, turnoAnterior , type Encontro } from "./combate";
 
 const base = () => combateVazio();
 const monta = () => { let e = base(); e = adicionar(e, { nome: "Goblin", iniciativa: 12, lado: "inimigo", pv: 7, pvMax: 7 }); e = adicionar(e, { nome: "Lydia", iniciativa: 18, lado: "aliado" }); e = adicionar(e, { nome: "Orc", iniciativa: 12, lado: "inimigo" }); return e; };
@@ -66,5 +66,41 @@ describe("remoção durante a ordem de iniciativa", () => {
       expect(r.turno).toBe(atual.id);
       expect(r.rodada).toBe(3);
     }
+  });
+});
+
+describe("combate: condições, referências, turno anterior, rolagem e encontros", () => {
+  const base = () => { let e = combateVazio(); e = adicionar(e, { nome: "Orc", iniciativa: 10, lado: "inimigo" }); e = adicionar(e, { nome: "Lydia", iniciativa: 15, lado: "aliado" }); return e; };
+  it("turno anterior recua dentro da rodada e, no primeiro, volta à rodada anterior (nunca abaixo de 1)", () => {
+    let e = base(); expect(turnoAnterior(e)).toEqual(e);   // rodada 1, primeiro: não há para onde voltar
+    e = proximoTurno(proximoTurno(e)); expect(e.rodada).toBe(2);
+    const t = turnoAnterior(e); expect(t.rodada).toBe(1); expect(t.combatentes.find(c => c.id === t.turno)?.nome).toBe("Orc");
+    expect(turnoAnterior(t).combatentes.find(c => c.id === turnoAnterior(t).turno)?.nome).toBe("Lydia");
+  });
+  it("alterna condições sem repetir, limita a 16 e ignora texto vazio ou longo", () => {
+    let e = base(); const id = e.combatentes[0].id;
+    e = alternarCondicao(e, id, "Cego"); e = alternarCondicao(e, id, "Cego"); expect(e.combatentes[0].condicoes).toBeUndefined();
+    e = alternarCondicao(e, id, "Caído"); expect(e.combatentes[0].condicoes).toEqual(["Caído"]);
+    expect(alternarCondicao(e, id, "  ")).toBe(e); expect(alternarCondicao(e, id, "x".repeat(41))).toBe(e);
+    for (let i = 0; i < 20; i++) e = alternarCondicao(e, id, `c${i}`); expect(e.combatentes[0].condicoes).toHaveLength(16);
+  });
+  it("rolar iniciativa usa d20 + bônus com aleatório injetável", () => {
+    const e = base(), id = e.combatentes[0].id;
+    expect(rolarIniciativa(e, id, 3, () => 0).combatentes.find(c => c.id === id)?.iniciativa).toBe(4);      // 1 + 3
+    expect(rolarIniciativa(e, id, -1, () => 0.999).combatentes.find(c => c.id === id)?.iniciativa).toBe(19); // 20 - 1
+  });
+  it("referências e condições sobrevivem à leitura segura e entradas inválidas são recusadas", () => {
+    let e = adicionar(combateVazio(), { nome: "Goblin", iniciativa: 1, lado: "inimigo", pv: 7, pvMax: 7, ref: { tipo: "monstro", id: "goblin" } });
+    e = alternarCondicao(e, e.combatentes[0].id, "Cego");
+    expect(lerCombate(JSON.stringify(e)).combatentes[0]).toMatchObject({ ref: { tipo: "monstro", id: "goblin" }, condicoes: ["Cego"] });
+    const mau = (c: object) => JSON.stringify({ ...e, combatentes: [{ ...e.combatentes[0], ...c }] });
+    for (const c of [{ ref: { tipo: "carro", id: "x" } }, { ref: { tipo: "monstro" } }, { condicoes: "Cego" }, { condicoes: [""] }, { condicoes: ["a", "a"] }]) expect(() => lerCombate(mau(c))).toThrow();
+  });
+  it("encontro duplicado é independente (novos ids), renomear valida e a referência vai para o combate", () => {
+    const enc: Encontro = { id: "e1", nome: "Emboscada", participantes: [{ id: "p1", nome: "Goblin", quantidade: 2, pv: 7, ref: { tipo: "monstro", id: "goblin" } }] };
+    const copia = duplicarEncontro(enc); expect(copia.nome).toBe("Emboscada (cópia)"); expect(copia.id).not.toBe(enc.id); expect(copia.participantes[0].id).not.toBe("p1"); expect(copia.participantes[0].ref).toEqual({ tipo: "monstro", id: "goblin" });
+    expect(renomearEncontro(enc, "  ")).toBe(enc); expect(renomearEncontro(enc, "Ruínas").nome).toBe("Ruínas");
+    expect(enviarParaCombate(combateVazio(), enc).combatentes.every(c => c.ref?.id === "goblin")).toBe(true);
+    expect(lerEncontros(JSON.stringify([enc]))[0].participantes[0].ref).toEqual({ tipo: "monstro", id: "goblin" });
   });
 });
