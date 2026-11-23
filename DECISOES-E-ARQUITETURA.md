@@ -259,3 +259,20 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Decisão:** snapshot SRD 5.1 próprio do módulo de personagens, IDs/versão novos, ativação explícita; motor existente e persistência/RPCs reaproveitados. Alternativa rejeitada: substituir silenciosamente o catálogo das fichas antigas ou copiar o aplicativo legado inteiro.
 - **Impacto:** sem migração de dados ou schema, sem publicações globais. Dados carregados sob demanda. Fonte/licenças, cobertura e pendências em docs/CRIADOR-2014-EXPANSAO.md.
 - **Verificação:** testes unitários e E2E dedicados; aprovação final vinculada ao SHA/CI do PR, não presumida por este documento.
+
+
+## Decisão — ciclo de vida do combate (23/11/2026)
+
+**Aprovado pelo usuário:** na versão atual, **somente um combate ativo por campanha** deve permanecer até o mestre clicar explicitamente em **Finalizar combate**. **Futuramente, permitir um segundo combate ativo**, mas isso está fora do escopo da Alpha/Beta inicial e não deve ser habilitado agora. Navegar para outra tela, recarregar (F5), fechar o navegador, abrir outra aba, sair da conta ou abrir a mesma campanha em outro dispositivo **não** finaliza nem reinicia o combate. Somente o mestre pode consultar ou alterar o combate; autorizações precisam ser verificadas no servidor, não apenas no menu.
+
+- Combates **novos** serão criados no Supabase com salvamento automático de cada alteração (PV, iniciativa, turnos, rodadas e participantes), com tratamento de concorrência entre abas/dispositivos e indicação clara de sincronização pendente/erro. Não anunciar como salvo antes da confirmação do servidor.
+- Combates **antigos locais** permanecem preservados como backup, sem importação automática e sem exclusão silenciosa. Não confundir o backup local com o combate remoto ativo.
+- **Finalizar combate** requer confirmação explícita; somente depois da confirmação de persistência no servidor ele deixa de ser o combate ativo. Falhas de rede, rejeição de permissão ou conflito não podem encerrar a sessão localmente por engano.
+- **Ao finalizar, o combate é descartado**, sem histórico de combates finalizados. Exigir confirmação antes do descarte; se a gravação falhar, manter o combate ativo. A finalização não pode excluir nem modificar encontros salvos.
+- **Encontros preparados/salvos permanecem guardados** para reutilização em combates futuros, mesmo depois de finalizar um combate. A exclusão de um encontro deve ser uma ação separada e explícita do mestre.
+- Os backups de combates antigos locais, preservados durante a migração inicial, não são apagados automaticamente pela finalização de um combate remoto.
+- Estado atual: iniciativa/encontros locais integrados na main; adaptador remoto não conectado; migração de combate não aplicada em produção. Esta seção é especificação, **não** funcionalidade entregue.
+
+### Premissa de dados da Alpha — confirmação do usuário (23/11/2026)
+
+O usuário informa que **não há dados reais de uso no novo site além do conteúdo importado do sistema anterior**. Não construir uma migração complexa de combates locais de usuários como bloqueador do lançamento. Para o novo fluxo, criar combates diretamente na nuvem; preservar os catálogos e demais dados importados do legado. Dados de teste só podem ser descartados após identificação inequívoca de que são sintéticos; não presumir que toda linha do Supabase é descartável, nem executar limpeza de produção sem verificação e autorização. A segurança/RLS e a persistência entre dispositivos continuam obrigatórias.
