@@ -197,8 +197,7 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
       exact: true,
     })
     .click();
-  await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
-  await page.getByRole('button', { name: 'Editar personagem', exact: true }).click();
+  // O demo reabre um rascunho local (aba criador), não a ficha persistida do servidor.
   await expect(nameField(page)).toHaveValue('Maga 2014');
   await expect(
     page.getByRole('combobox', { name: 'Classe', exact: true }),
