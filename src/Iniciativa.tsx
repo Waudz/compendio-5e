@@ -12,16 +12,19 @@ import {
 
 const EVENTO = "compendio5e:armazenamento";
 type Estado<T> = { status: "carregando" } | { status: "erro" } | { status: "pronto"; valor: T };
+type EstadoEscopado<T> = { chave: string | null; estado: Estado<T> };
 
 /** Lê o valor do armazenamento local (com estado de carregamento e de erro), grava a cada mudança e se mantém em dia com outras telas do mesmo aparelho. */
 function useArmazenado<T>(chave: string | null, ler: (bruto: string | null) => T) {
-  const [estado, setEstado] = useState<Estado<T>>({ status: "carregando" });
+  const [snapshot, setSnapshot] = useState<EstadoEscopado<T>>({ chave: null, estado: { status: "carregando" } });
+  const estado = snapshot.chave === chave ? snapshot.estado : { status: "carregando" as const };
+  const setEstado = useCallback((proximo: Estado<T>) => setSnapshot({ chave, estado: proximo }), [chave]);
   const [tentativa, setTentativa] = useState(0);
   const lerRef = useRef(ler); lerRef.current = ler;
   const carregar = useCallback(() => {
     if (!chave) return;
     try { setEstado({ status: "pronto", valor: lerRef.current(localStorage.getItem(chave)) }); } catch { setEstado({ status: "erro" }); }
-  }, [chave]);
+  }, [chave, setEstado]);
   useEffect(() => { setEstado({ status: "carregando" }); const t = setTimeout(carregar, 0); return () => clearTimeout(t); }, [carregar, tentativa]);
   useEffect(() => {
     const aoMudar = (e: Event) => { if ((e as CustomEvent<string>).detail === chave) carregar(); };
@@ -31,7 +34,7 @@ function useArmazenado<T>(chave: string | null, ler: (bruto: string | null) => T
     if (!chave) return;
     setEstado({ status: "pronto", valor });
     try { localStorage.setItem(chave, JSON.stringify(valor)); window.dispatchEvent(new CustomEvent(EVENTO, { detail: chave })); } catch { setEstado({ status: "erro" }); }
-  }, [chave]);
+  }, [chave, setEstado]);
   const descartar = useCallback(() => { if (chave) { try { localStorage.removeItem(chave); } catch { /* sem armazenamento */ } } setTentativa(n => n + 1); }, [chave]);
   return { estado, gravar, tentar: () => setTentativa(n => n + 1), descartar };
 }
