@@ -26,11 +26,11 @@
 
 1. Criar migração formal via CLI em ambiente descartável/de desenvolvimento e repetir testes JWT/RLS, inclusive acesso direto à API por jogador e usuário de outra campanha.
 2. Implementar acesso remoto **atrás de configuração explicitamente habilitada**, sem substituir `localStorage` silenciosamente. O usuário deve saber se está no modo local ou remoto.
-3. Garantir que um estado remoto existente nunca seja sobrescrito por um estado local. Na primeira sincronização, oferecer escolha explícita ao mestre e cópia de segurança; não apagar o local antes de verificar leitura de volta.
-4. Tratar versão obsoleta/conflito, offline, troca de campanha/conta, duas abas, dois aparelhos e sessão expirada.
+3. Iniciar novos combates remotos vazios por campanha. Não importar, apagar ou sobrescrever automaticamente combates antigos do navegador: permanecem como backup local, com acesso/exportação preservados.
+4. Salvar automaticamente cada mudança, serializar gravações concorrentes, tratar versão obsoleta/conflito, offline, troca de campanha/conta, duas abas, dois aparelhos e sessão expirada. Não apresentar alteração como persistida até confirmação do servidor.
 5. Só depois de revisão e autorização específica, aplicar migração no projeto hospedado; não habilitar gravação remota antes da RLS validada no ambiente de destino.
 
-**Decisão pendente do usuário:** importar rascunhos locais por confirmação, mantê-los separados, ou iniciar combates remotos novos. Até a decisão, preservar integralmente dados locais e não automatizar migração.
+**Decisão confirmada pelo usuário em 23/11/2026:** novos combates serão iniciados no servidor, sem importar rascunhos locais. Combates antigos devem continuar preservados como backup local e não podem ser apagados automaticamente. Toda alteração de PV, iniciativa, turno, rodada ou combatente deve disparar salvamento remoto automático com confirmação de sucesso, erro visível e proteção contra conflitos; não considerar uma gravação bem-sucedida antes da resposta do servidor.
 
 ## Critério para Beta fechada
 
