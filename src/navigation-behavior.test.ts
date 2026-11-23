@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createModel, findTab, groupCount, groups, isColumnsOnly } from "./workspace";
+import { createModel, findTab, groupCount, groups, isColumnsOnly, moveToNewColumn } from "./workspace";
 import { navigate, openContentLink } from "./navigation";
 
 const ids = (m: ReturnType<typeof createModel>) => groups(m).map(g => g.getChildren().map(t => t.getId()));
@@ -18,8 +18,11 @@ describe("navegação que preserva o espaço de trabalho", () => {
     expect(groupCount(m)).toBe(2);
     expect(ids(m)).toEqual([["secao:personagens"], ["item:espada"]]);
     openContentLink(m, { kind: "item", ref: "escudo" }, "secao:personagens");
+    expect(groupCount(m)).toBe(2);
+    expect(ids(m)[1]).toEqual(["item:espada", "item:escudo"]);
+    // Terceira coluna é uma decisão manual do usuário.
+    expect(moveToNewColumn(m, "item:escudo", "right")).toBe(true);
     expect(groupCount(m)).toBe(3);
-    expect(ids(m)[2]).toEqual(["item:escudo"]);
     openContentLink(m, { kind: "item", ref: "arco" }, "secao:personagens");
     expect(groupCount(m)).toBe(3);
     expect(ids(m)[2]).toEqual(["item:escudo", "item:arco"]);
