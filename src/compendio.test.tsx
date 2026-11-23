@@ -78,7 +78,7 @@ describe('Compêndio na navegação real', () => {
     await montar(); await abrirCompendio();
     pesquisar('espada longa'); fireEvent.click(cartao('Espada longa'));
     const detalhe = await screen.findByRole('article', { name: 'Detalhes de Espada longa' });
-    expect(abas()).toEqual(['Compêndio']);                                                       // detalhe em painel, sem abrir aba por padrão
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio']);                                                       // detalhe em painel, sem abrir aba por padrão
     const fatos = within(detalhe.querySelector('.item-fatos') as HTMLElement);
     expect(fatos.getByText('Dano').nextSibling?.textContent).toBe('1d8 cortante (1d10 com duas mãos)');
     expect(fatos.getByText('Custo').nextSibling?.textContent).toBe('15 po');
@@ -86,7 +86,7 @@ describe('Compêndio na navegação real', () => {
     expect(within(detalhe).getByText(/Atribuição/)).toBeTruthy();
     fireEvent.click(within(detalhe).getByRole('button', { name: /Abrir em nova aba/ }));
     expect(await screen.findByRole('heading', { name: 'Espada longa', level: 1 })).toBeTruthy();
-    expect(abas()).toEqual(['Compêndio', 'Espada longa']);
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio', 'Espada longa']);
   });
 
   it('pacote lista os componentes como links para os itens; clicar abre o item', async () => {
@@ -104,7 +104,7 @@ describe('Compêndio na navegação real', () => {
     localStorage.setItem(storageKey({ user: me.id, campaign: 'ca', device: 'navegador' }), JSON.stringify({ version: 2, layout: { type: 'row', children: [{ type: 'tabset', id: 'grupo-1', weight: 100, active: true, selected: 1, children: [{ type: 'tab', id: 'item:longsword' }, { type: 'tab', id: 'item:nao-existe' }] }] } }));
     await montar();
     expect(await screen.findByText(/Item não encontrado no catálogo desta revisão/)).toBeTruthy();
-    expect(abas()).toEqual(['Espada longa', 'Item nao-existe']);
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio', 'Espada longa', 'Item nao-existe']);
   });
 
   it('inclui o Compêndio na navegação do jogador e do mestre (sem expor nada além do catálogo público de itens)', async () => {
