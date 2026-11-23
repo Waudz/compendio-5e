@@ -110,7 +110,7 @@ export function IniciativaPanel() {
         <strong role="status">Rodada {combate.rodada}</strong>
         <button className="btn-secondary" onClick={() => muda(proximoTurno(combate))} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
         <button className="btn-secondary" onClick={() => muda(reiniciarRodadas(combate))} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
-        <button className="btn-secondary" onClick={() => { if (window.confirm("Remover todos os combatentes desta campanha?")) muda(combateVazio()); }} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Limpar combate</button>
+        <button className="btn-secondary" onClick={() => { if (window.confirm("Finalizar e descartar este combate? Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) muda(combateVazio()); }} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
