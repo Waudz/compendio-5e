@@ -103,3 +103,68 @@ describe("isolamento entre campanhas", () => {
     await screen.findByText("Nenhum combatente ainda");
   });
 });
+
+describe("falha de gravação sem perda da edição em tela", () => {
+  it("mantém combate editado e permite repetir a gravação após erro de quota", async () => {
+    render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
+    const gravacao = vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new DOMException("Quota", "QuotaExceededError"); });
+    preencher("Nome", "Goblin preservado");
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    expect(screen.getByText("Goblin preservado")).toBeTruthy();
+    const alerta = screen.getByRole("alert");
+    expect(alerta.textContent).toContain("Não foi possível salvar o combate");
+    expect(localStorage.getItem("compendio5e:iniciativa:u1:c1")).toBeNull();
+    gravacao.mockRestore();
+    fireEvent.click(within(alerta).getByRole("button", { name: "Tentar de novo" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(JSON.parse(localStorage.getItem("compendio5e:iniciativa:u1:c1")!).combatentes[0].nome).toBe("Goblin preservado");
+  });
+  it("mantém encontro editado e permite repetir a gravação", async () => {
+    render(<EncontrosPanel/>); await screen.findByText("Nenhum encontro preparado");
+    const gravacao = vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new Error("bloqueado"); });
+    preencher("Nome do encontro", "Ruínas preservadas");
+    fireEvent.click(screen.getByRole("button", { name: /Criar encontro/ }));
+    expect(screen.getByRole("region", { name: "Encontro Ruínas preservadas" })).toBeTruthy();
+    const alerta = screen.getByRole("alert");
+    gravacao.mockRestore();
+    fireEvent.click(within(alerta).getByRole("button", { name: "Tentar de novo" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(JSON.parse(localStorage.getItem("compendio5e:encontros:u1:c1")!)[0].nome).toBe("Ruínas preservadas");
+  });
+});
+
+describe("proteção de navegação com gravação pendente", () => {
+  it("registra alterações não salvas até a confirmação do armazenamento", async () => {
+    const { UnsavedContext } = await import("./unsaved");
+    const register = vi.fn();
+    const api = { register, isDirty: () => false, guard: (_ids: string[] | "all", proceed: () => void) => proceed(), confirmAll: async () => true };
+    render(<UnsavedContext.Provider value={api}><IniciativaPanel/></UnsavedContext.Provider>);
+    await screen.findByText("Nenhum combatente ainda");
+    vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new Error("quota"); });
+    preencher("Nome", "Combate pendente");
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    expect(register).toHaveBeenLastCalledWith("secao:iniciativa", expect.objectContaining({ dirty: true, save: expect.any(Function) }));
+    fireEvent.click(within(screen.getByRole("alert")).getByRole("button", { name: "Tentar de novo" }));
+    await waitFor(() => expect(register).toHaveBeenLastCalledWith("secao:iniciativa", expect.objectContaining({ dirty: false })));
+  });
+});
+
+
+describe("remoção do último turno na interface", () => {
+  it("passa ao primeiro da rodada seguinte e persiste sem repetir turno anterior", async () => {
+    const { unmount } = render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
+    preencher("Nome", "Primeiro"); preencher("Iniciativa", "20");
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    preencher("Nome", "Último"); preencher("Iniciativa", "10");
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Próximo turno" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remover Último" }));
+    expect(screen.getByText("Rodada 2")).toBeTruthy();
+    const linha = screen.getByText("Primeiro").closest("li")!;
+    expect(linha.getAttribute("aria-current")).toBe("true");
+    unmount(); render(<IniciativaPanel/>);
+    expect(await screen.findByText("Rodada 2")).toBeTruthy();
+    expect(screen.queryByText("Último")).toBeNull();
+    expect(screen.getByText("Primeiro").closest("li")!.getAttribute("aria-current")).toBe("true");
+  });
+});

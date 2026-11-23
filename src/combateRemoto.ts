@@ -16,6 +16,12 @@ const erro = (e: { code?: string; message?: string } | null): ResultadoCombate =
   return falha("indisponivel", "Não foi possível acessar o combate no servidor. Tente novamente.");
 };
 
+function validarResposta(data: { state: unknown; version: unknown }, esperada?: number): CombateRemoto {
+  if (typeof data.version !== "number" || !Number.isSafeInteger(data.version) || data.version < 1 || (esperada !== undefined && data.version !== esperada))
+    throw new Error("Versão de confirmação inválida");
+  return { estado: validarEstado(data.state), versao: data.version };
+}
+
 function validarEstado(valor: unknown): EstadoCombate {
   return lerCombate(JSON.stringify(valor));
 }
@@ -31,15 +37,16 @@ export function criarApiCombate(client: SupabaseClient) {
         if (!data) return { ok: true, data: { estado: combateVazio(), versao: 0 } };
         if (!Number.isSafeInteger(data.version) || data.version < 1)
           return falha("invalido", "Versão do combate inválida no servidor.");
-        return { ok: true, data: { estado: validarEstado(data.state), versao: data.version } };
+        try { return { ok: true, data: validarResposta(data) }; }
+        catch { return falha("invalido", "O servidor retornou um estado de combate inválido."); }
       } catch {
-        return falha("invalido", "O servidor retornou um estado de combate inválido.");
+        return falha("indisponivel", "Não foi possível carregar o combate no servidor. Tente novamente.");
       }
     },
     /** Controle de concorrência: versão 0 cria, versões maiores atualizam apenas se não houve outra gravação.
      * Uma resposta sem linha NÃO é sucesso (RLS negada ou alteração concorrente). */
     async salvar(campaignId: string, estado: EstadoCombate, versaoEsperada: number): Promise<ResultadoCombate> {
-      if (!Number.isSafeInteger(versaoEsperada) || versaoEsperada < 0)
+      if (!Number.isSafeInteger(versaoEsperada) || versaoEsperada < 0 || versaoEsperada >= Number.MAX_SAFE_INTEGER)
         return falha("invalido", "Versão esperada inválida.");
       let seguro: EstadoCombate;
       try { seguro = validarEstado(estado); }
@@ -52,7 +59,7 @@ export function criarApiCombate(client: SupabaseClient) {
           if (e?.code === "23505") return falha("conflito", "O combate foi criado em outra sessão. Recarregue.");
           if (e) return erro(e);
           if (!data) return falha("permissao", "O servidor não confirmou a gravação.");
-          return { ok: true, data: { estado: validarEstado(data.state), versao: data.version } };
+          return { ok: true, data: validarResposta(data, 1) };
         }
         const { data, error: e } = await client.from("campaign_combats")
           .update({ state: seguro, version: versaoEsperada + 1 })
@@ -60,7 +67,7 @@ export function criarApiCombate(client: SupabaseClient) {
           .select("state,version").maybeSingle();
         if (e) return erro(e);
         if (!data) return falha("conflito", "O combate mudou em outra sessão ou você perdeu o acesso. Recarregue antes de salvar.");
-        return { ok: true, data: { estado: validarEstado(data.state), versao: data.version } };
+        return { ok: true, data: validarResposta(data, versaoEsperada + 1) };
       } catch {
         return falha("indisponivel", "Não foi possível confirmar a gravação no servidor.");
       }
