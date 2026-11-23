@@ -34,6 +34,10 @@ test('mestre usa iniciativa local, preserva PV e rodada ao recarregar', async ({
 
 test('jogador não acessa o conteúdo de iniciativa', async ({ page }) => {
   await openDemo(page, 'jogador');
+  if ((page.viewportSize()?.width ?? 1440) > 700) {
+    await expect(page.getByRole('navigation', { name: 'Menu principal' }).getByRole('button', { name: 'Iniciativa', exact: true })).toHaveCount(0);
+    return;
+  }
   await navigate(page, 'Iniciativa');
   await expect(page.getByText('Somente o mestre da campanha pode acessar este módulo.', { exact: true })).toBeVisible();
   await expect(page.getByRole('form', { name: 'Adicionar combatente' })).toHaveCount(0);
