@@ -133,7 +133,6 @@ describe("Planejamento", () => {
     fireEvent.click(within(menu()).getByRole("button", { name: "Anotações" }));
     expect(tabs()).toContain("Anotações");
     expect(await screen.findByRole("heading", { name: "Anotações" })).toBeTruthy();   // sem API de registros neste teste: aviso honesto, sem dados
-    expect(screen.getByRole("heading", { name: "Anotações" })).toBeTruthy();
   });
   it("jogador também tem Anotações (privadas) e as demais ferramentas do mestre seguem ocultas", async () => {
     await montar([mA, mB], "cb");
