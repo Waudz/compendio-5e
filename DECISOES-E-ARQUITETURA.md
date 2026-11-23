@@ -267,3 +267,7 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 ### Validação da Alpha — 22/11/2026 (implementação em PR, não publicada)
 
 A branch `fix/alpha-validacao-combate` corrige o build do #106 e protege edições de combate/encontros após falha de gravação local, usando a proteção existente de alterações não salvas. Valores externos inválidos são rejeitados sem apagar o original; confirmações remotas validam versão. Mantida a decisão: localStorage é experimental e não é fonte de verdade da Beta. Evidências, auditoria remota e limites em [ALPHA-VALIDACAO-COMBATE.md](docs/ALPHA-VALIDACAO-COMBATE.md). Nenhuma nova decisão de produto; sem merge/deploy/migração.
+
+### Combate: ensaio de RLS — 22/11/2026 (rascunho não aplicado)
+
+`test/alpha-rls-combate` executa 31 testes PostgreSQL isolados sobre o rascunho de #106. Corrigidos CHECKs que aceitavam campos ausentes e versionamento não monotônico, com grants mínimos e timestamp no servidor. Ver [matriz de testes](docs/ALPHA-TESTES-RLS-COMBATE.md). Não representa autorização para migração, integração remota ou publicação; JSON validado no rascunho; testes hospedados e migração oficial ainda pendentes.
