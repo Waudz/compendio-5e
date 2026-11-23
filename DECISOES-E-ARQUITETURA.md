@@ -259,3 +259,7 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Decisão:** snapshot SRD 5.1 próprio do módulo de personagens, IDs/versão novos, ativação explícita; motor existente e persistência/RPCs reaproveitados. Alternativa rejeitada: substituir silenciosamente o catálogo das fichas antigas ou copiar o aplicativo legado inteiro.
 - **Impacto:** sem migração de dados ou schema, sem publicações globais. Dados carregados sob demanda. Fonte/licenças, cobertura e pendências em docs/CRIADOR-2014-EXPANSAO.md.
 - **Verificação:** testes unitários e E2E dedicados; aprovação final vinculada ao SHA/CI do PR, não presumida por este documento.
+
+### Validação da Alpha — 22/11/2026 (implementação em PR, não publicada)
+
+A branch `fix/alpha-validacao-combate` corrige o build do #106 e protege edições de combate/encontros após falha de gravação local, usando a proteção existente de alterações não salvas. Valores externos inválidos são rejeitados sem apagar o original; confirmações remotas validam versão. Mantida a decisão: localStorage é experimental e não é fonte de verdade da Beta. Evidências, auditoria remota e limites em [ALPHA-VALIDACAO-COMBATE.md](docs/ALPHA-VALIDACAO-COMBATE.md). Nenhuma nova decisão de produto; sem merge/deploy/migração.

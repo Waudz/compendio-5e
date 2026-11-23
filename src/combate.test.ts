@@ -36,3 +36,35 @@ describe("lógica da iniciativa", () => {
     expect(lerCombate(null)).toEqual(combateVazio()); expect(lerEncontros(null)).toEqual([]);
   });
 });
+
+describe("limites dos dados externos", () => {
+  it.each([1.5, 51, 1e100, 0, -1])("rejeita quantidade de encontro inválida %s sem expansão", quantidade => {
+    expect(() => lerEncontros(JSON.stringify([{ id: "e", nome: "Encontro", participantes: [{ id: "p", nome: "Goblin", quantidade }] }]))).toThrow();
+  });
+  it.each([{ pvMax: 1.5 }, { pvMax: 7, pv: 8 }, { pvMax: 7, pv: -1 }, { pv: 1 }, { pvMax: 7, pv: 1.5 }])("rejeita PV inválido sem corrigir silenciosamente: %o", dados => {
+    expect(() => lerCombate(JSON.stringify({ ...base(), combatentes: [{ id: "a", nome: "Goblin", iniciativa: 0, lado: "inimigo", ...dados }] }))).toThrow();
+  });
+  it("não cria IDs duplicados ou PV infinito pela API de domínio", () => {
+    const e = monta();
+    expect(adicionar(e, { id: e.combatentes[0].id, nome: "Duplicado", iniciativa: 1, lado: "inimigo" })).toBe(e);
+    expect(adicionar(e, { nome: "Inválido", iniciativa: 1, lado: "inimigo", pvMax: Infinity })).toBe(e);
+  });
+});
+
+describe("remoção durante a ordem de iniciativa", () => {
+  it.each([1, 4])("remover o último no turno avança ao primeiro e inicia rodada seguinte a %s", rodada => {
+    const e = monta();
+    const ultimo = e.combatentes[e.combatentes.length - 1];
+    const r = remover({ ...e, turno: ultimo.id, rodada }, ultimo.id);
+    expect(r.turno).toBe(e.combatentes[0].id);
+    expect(r.rodada).toBe(rodada + 1);
+  });
+  it("remover antes ou depois de quem está no turno não avança rodada nem troca seu ID", () => {
+    const e = monta(), atual = e.combatentes[1];
+    for (const c of [e.combatentes[0], e.combatentes[2]]) {
+      const r = remover({ ...e, turno: atual.id, rodada: 3 }, c.id);
+      expect(r.turno).toBe(atual.id);
+      expect(r.rodada).toBe(3);
+    }
+  });
+});

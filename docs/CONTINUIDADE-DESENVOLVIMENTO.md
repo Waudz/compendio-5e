@@ -325,3 +325,7 @@ Corrigidos (ver `CRIADOR-FICHA-INVENTARIO.md`): `meta` da nota presa à existên
 - **Estados:** carregando, vazio com orientação, erro de leitura com "Tentar de novo" e "descartar e recomeçar", sem campanha ativa. Trocar de aba não perde dados (grava a cada mudança).
 - **Pendente (fora do escopo):** monstros do bestiário nos encontros (depende do catálogo, PR #84), persistência na campanha/compartilhamento (depende de modelo no banco), visibilidade por jogador, loot, e integração com a ficha (PR #97). Não alterei arquivos do PR #97 (`Personagens.tsx`, `criador/*`).
 
+
+### Retomada autônoma — validação de combate (22/11/2026)
+
+Ver [ALPHA-VALIDACAO-COMBATE.md](ALPHA-VALIDACAO-COMBATE.md): correção do build do #106, preservação de edição após quota, testes do adaptador, validação de dados e atualização dos E2E. Branch `fix/alpha-validacao-combate` sobre #106; sem merge, publicação ou banco alterado. Histórico remoto da 0008 foi confirmado nesta leitura; os estados anteriores deste índice são históricos.
