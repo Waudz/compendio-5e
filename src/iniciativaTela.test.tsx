@@ -87,3 +87,19 @@ describe("acesso exclusivo do mestre", () => {
     await waitFor(() => expect(spy).not.toHaveBeenCalledWith("compendio5e:encontros:u1:c1"));
   });
 });
+
+
+describe("isolamento entre campanhas", () => {
+  it("não mostra o combate anterior nem por um render durante a troca de campanha", async () => {
+    const { rerender } = render(<IniciativaPanel/>);
+    await screen.findByText("Nenhum combatente ainda");
+    preencher("Nome", "Segredo da campanha A");
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    expect(screen.getByText("Segredo da campanha A")).toBeTruthy();
+    escopo.active = { role: "mestre", campaign: { id: "c2", name: "Outra mesa" } };
+    rerender(<IniciativaPanel/>);
+    expect(screen.queryByText("Segredo da campanha A")).toBeNull();
+    expect(screen.getByText("Carregando o combate…")).toBeTruthy();
+    await screen.findByText("Nenhum combatente ainda");
+  });
+});
