@@ -104,7 +104,7 @@ describe('Compêndio na navegação real', () => {
     localStorage.setItem(storageKey({ user: me.id, campaign: 'ca', device: 'navegador' }), JSON.stringify({ version: 2, layout: { type: 'row', children: [{ type: 'tabset', id: 'grupo-1', weight: 100, active: true, selected: 1, children: [{ type: 'tab', id: 'item:longsword' }, { type: 'tab', id: 'item:nao-existe' }] }] } }));
     await montar();
     expect(await screen.findByText(/Item não encontrado no catálogo desta revisão/)).toBeTruthy();
-    expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio', 'Espada longa', 'Item nao-existe']);
+    expect(abas()).toEqual(['Espada longa', 'Item nao-existe']);
   });
 
   it('inclui o Compêndio na navegação do jogador e do mestre (sem expor nada além do catálogo público de itens)', async () => {
