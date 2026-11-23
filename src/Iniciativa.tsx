@@ -111,7 +111,7 @@ function ModoArmazenamento({ nuvem, sync, mensagem, o, onTentar, onRecarregar }:
     {mensagem ?? "Outra sessão alterou os dados."} Suas últimas alterações não foram gravadas (uma cópia ficou neste aparelho). <button className="btn-link" onClick={onRecarregar}>Recarregar do servidor</button> (descarta o que não foi gravado).</div>;
   if (sync === "permissao") return <Aviso erro t={mensagem ?? "Sem permissão para gravar."}/>;
   if (sync === "falha") return <div className="notice err" role="alert" data-modo="nuvem" data-sync="falha">{mensagem ?? "Sem conexão com o servidor."} As alterações continuam nesta tela e serão enviadas assim que a conexão voltar. <button className="btn-link" onClick={onTentar}>Tentar agora</button></div>;
-  return <p className="muted ini-modo" role="status" data-modo="nuvem" data-sync={sync}>{sync === "salvando" ? "Salvando na nuvem…" : `Salvo na nuvem: ${o} aparecem em qualquer aparelho em que você entrar como mestre desta campanha.`}</p>;
+  return <p className="muted ini-modo" role="status" data-modo="nuvem" data-sync={sync}>{sync === "salvando" ? "Salvando na nuvem…" : `Salvo na nuvem (${o}): disponível em qualquer aparelho em que você entrar como mestre desta campanha.`}</p>;
 }
 function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }) {
   const [bruto, setBruto] = useState<string | null>(null);

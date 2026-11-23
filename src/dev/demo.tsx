@@ -1,6 +1,9 @@
 // MODO DE DEMONSTRAÇÃO LOCAL (somente `npm run dev`): permite ver e testar o aplicativo sem Supabase, como mestre ou jogador.
 // Abra http://localhost:5173/?demo=mestre ou ?demo=jogador. Os dados ficam no localStorage deste navegador e são compartilhados
 // entre os dois papéis (publique como mestre, confira como jogador). NÃO entra no build de produção (ver main.tsx).
+import { NuvemContext, type ApisNuvem } from "../Iniciativa";
+import type { ApiLinha } from "../linhaRemota";
+import type { Encontro, EstadoCombate } from "../combate";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import App from "../App";
 import { AuthGate } from "../AuthGate";
@@ -85,6 +88,22 @@ const capaDemo: CapaApi = {
   apagar: async () => ({ ok: true, data: true }),
 };
 
+/** Servidor FALSO do combate/encontros para o modo de demonstração (`?demo=mestre&nuvem=1`, só em `npm run dev`): guarda no localStorage do navegador com a mesma
+ *  semântica de versão do banco real. Serve para exercitar a interface do modo nuvem em E2E; NÃO prova nada sobre o Supabase. */
+function apiFalsa<T>(tabela: string, vazio: T): ApiLinha<T> {
+  const k = (id: string) => `demo-nuvem:${tabela}:${id}`;
+  const ler = (id: string): { valor: T; versao: number } | null => { try { const b = localStorage.getItem(k(id)); return b ? JSON.parse(b) : null; } catch { return null; } };
+  return {
+    async carregar(id) { return { ok: true, data: ler(id) ?? { valor: vazio, versao: 0 } }; },
+    async salvar(id, valor, esperada) {
+      if ((ler(id)?.versao ?? 0) !== esperada) return { ok: false, tipo: "conflito", mensagem: "Mudou em outra sessão." };
+      const nova = { valor, versao: esperada + 1 }; localStorage.setItem(k(id), JSON.stringify(nova)); return { ok: true, data: nova };
+    },
+    async finalizar(id, esperada) { if (ler(id)?.versao !== esperada) return { ok: false, tipo: "conflito", mensagem: "Mudou." }; localStorage.removeItem(k(id)); return { ok: true }; },
+  };
+}
+const nuvemDemo: ApisNuvem = { combate: apiFalsa<EstadoCombate>("combate", { combatentes: [], turno: null, rodada: 1 }), encontros: apiFalsa<Encontro[]>("encontros", []) };
+
 export function DemoRoot({ papel }: { papel: Role }) {
   const uid = `demo-${papel}`;
   const user = { id: uid, email: `${papel}@demo.local` } as User;
@@ -92,6 +111,8 @@ export function DemoRoot({ papel }: { papel: Role }) {
   const campanhas = criarCampanhas(papel), registros = criarRegistros(papel, uid);
   try { localStorage.setItem(`compendio5e:active-campaign:${uid}`, CAMP.id); } catch { /* sem armazenamento */ }
   return <AuthProvider client={client}><CampaignsProvider apiFactory={() => campanhas}><RegistrosProvider api={registros} capa={capaDemo}>
-    <AuthGate><App/></AuthGate>
+    {new URLSearchParams(window.location.search).get("nuvem") === "1"
+      ? <NuvemContext.Provider value={nuvemDemo}><AuthGate><App/></AuthGate></NuvemContext.Provider>
+      : <AuthGate><App/></AuthGate>}
   </RegistrosProvider></CampaignsProvider></AuthProvider>;
 }
