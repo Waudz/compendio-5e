@@ -59,14 +59,10 @@ describe("createAuthApi", () => {
     expect((await api.signIn("a@b.co", "x")).ok).toBe(true);
     expect(f.auth.signInWithPassword).toHaveBeenLastCalledWith({ email: "a@b.co", password: "x" });
   });
-  it("cadastro pede confirmação de e-mail e informa o redirecionamento", async () => {
-    const f = fakeClient(); const r = await createAuthApi(f.client).signUp("a@b.co", "12345678");
-    expect(r).toEqual({ ok: true, message: expect.stringMatching(/link de confirmação/) });
-    expect((f.auth.signUp.mock.calls as unknown as [{ options: { emailRedirectTo: string } }][])[0][0].options.emailRedirectTo).toMatch(/^http/);
-  });
-  it("cadastro de e-mail já existente (identities vazio) vira erro", async () => {
-    const f = fakeClient({ signUp: vi.fn(async () => ({ data: { user: { identities: [] }, session: null }, error: null })) });
-    expect(await createAuthApi(f.client).signUp("a@b.co", "12345678")).toEqual({ ok: false, error: expect.stringMatching(/já está cadastrado/) });
+  it("cadastro fechado recusa chamada direta sem acionar o SDK", async () => {
+    const f = fakeClient();
+    expect(await createAuthApi(f.client).signUp("a@b.co", "12345678")).toMatchObject({ ok: false, error: expect.stringMatching(/cadastro está fechado/) });
+    expect(f.auth.signUp).not.toHaveBeenCalled();
   });
   it("recuperação usa mensagem neutra; falha de rede vira erro amigável sem lançar", async () => {
     const f = fakeClient(); expect(await createAuthApi(f.client).requestReset("a@b.co")).toEqual({ ok: true, message: expect.stringMatching(/Se o e-mail estiver cadastrado/) });
@@ -109,24 +105,22 @@ describe("AuthProvider + AccountPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
     await waitFor(() => expect(f.auth.signInWithPassword).toHaveBeenCalledTimes(2));
   });
-  it("validação local impede chamada com e-mail inválido ou senha curta no cadastro", async () => {
+  it("não oferece cadastro e mantém validação de login", async () => {
     const f = fakeClient(); mount(f); await screen.findByRole("heading", { name: "Entrar" });
-    fireEvent.click(screen.getByRole("button", { name: "Criar conta" }));
-    fill("E-mail", "invalido"); fireEvent.click(screen.getAllByRole("button", { name: "Criar conta" })[0]);
+    expect(screen.queryByRole("button", { name: "Criar conta" })).toBeNull();
+    fill("E-mail", "invalido"); fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/e-mail válido/);
-    fill("E-mail", "a@b.co"); fill("Senha", "123"); fill("Repita a senha", "123");
-    fireEvent.click(screen.getAllByRole("button", { name: "Criar conta" })[0]);
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/pelo menos 8/));
+    expect(f.auth.signInWithPassword).not.toHaveBeenCalled();
     expect(f.auth.signUp).not.toHaveBeenCalled();
   });
-  it("cadastro mostra aviso de confirmação e oferece reenvio", async () => {
-    const f = fakeClient(); mount(f); await screen.findByRole("heading", { name: "Entrar" });
-    fireEvent.click(screen.getByRole("button", { name: "Criar conta" }));
-    fill("E-mail", "a@b.co"); fill("Senha", "12345678"); fill("Repita a senha", "12345678");
-    fireEvent.click(screen.getAllByRole("button", { name: "Criar conta" })[0]);
-    expect((await screen.findByRole("status")).textContent).toMatch(/link de confirmação/);
-    fireEvent.click(screen.getByRole("button", { name: "Reenviar e-mail de confirmação" }));
+  it("conta existente não confirmada continua podendo reenviar confirmação", async () => {
+    const f = fakeClient({ signInWithPassword: vi.fn(async () => ({ error: { code: "email_not_confirmed" } })) });
+    mount(f); await screen.findByRole("heading", { name: "Entrar" });
+    fill("E-mail", "a@b.co"); fill("Senha", "12345678");
+    fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reenviar e-mail de confirmação" }));
     await waitFor(() => expect(f.auth.resend).toHaveBeenCalled());
+    expect(f.auth.signUp).not.toHaveBeenCalled();
   });
   it("recuperar senha envia o pedido", async () => {
     const f = fakeClient(); mount(f); await screen.findByRole("heading", { name: "Entrar" });
@@ -162,4 +156,16 @@ describe("AuthProvider + AccountPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Conta" }));
     expect(document.querySelector(".flexlayout__tabset_tabbar_inner")?.textContent).toMatch(/Conta/);
   });
+  it.each(["SIGNED_IN", "SIGNED_OUT"])("resposta inicial atrasada não desfaz evento mais recente: %s", async event => {
+    type SessionResult = { data: { session: { user: User } | null }; error: null };
+    let resolve!: (value: SessionResult) => void;
+    const pending = new Promise<SessionResult>(r => { resolve = r; });
+    const f = fakeClient({ getSession: vi.fn(() => pending) });
+    mount(f);
+    await f.emit(event, event === "SIGNED_IN" ? { user } : null);
+    await act(async () => { resolve({ data: { session: event === "SIGNED_IN" ? null : { user } }, error: null }); await pending; });
+    if (event === "SIGNED_IN") expect(screen.getByText(user.email!)).toBeTruthy();
+    else expect(screen.getByRole("heading", { name: "Entrar" })).toBeTruthy();
+  });
+
 });
