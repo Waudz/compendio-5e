@@ -2,7 +2,7 @@
 // Fixação é propriedade da própria aba (`config.pinned`), não o atributo nativo do FlexLayout: o nativo agrupa as fixadas no
 // início, impede fechá-las pela interface e impede arrastá-las para fora do painel, o que contraria as decisões aprovadas.
 import { Actions, DockLocation, type Model, TabNode, TabSetNode } from "flexlayout-react";
-import { activeGroup, findTab, groupCount, groups, MAX_GROUPS, tabId, tabJson, type TabSpec } from "./workspace";
+import { activeGroup, findTab, groupCount, groups, tabId, tabJson, type TabSpec } from "./workspace";
 
 export type NavMode = "reuse" | "new" | "newPinned";
 export type NavResult = { action: "selected" | "replaced" | "created"; tabId: string };
@@ -66,7 +66,7 @@ export function closeTabs(m: Model, ids: string[]): void {
 }
 
 /** Links de conteúdo: focam o registro existente ou abrem na última coluna à direita.
- * Criam até três grupos; com três grupos, adicionam aba ao último. No celular, usam o grupo atual.
+ * Criam automaticamente no máximo dois grupos; o terceiro só é criado manualmente. No celular, usam o grupo atual.
  */
 export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, mobile = false): NavResult {
   void originTabId; // Mantido por compatibilidade com os chamadores.
@@ -74,12 +74,12 @@ export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, m
   const existing = findTab(m, id);
   if (existing) { focusExisting(m, existing, spec); return { action: "selected", tabId: id }; }
   // No desktop, consultas abrem sempre na coluna mais à direita, sem substituir a origem.
-  // Até três grupos: cria o grupo à direita quando há espaço, ou reutiliza o último.
+  // Apenas o segundo grupo é automático; o terceiro é sempre criado manualmente.
   // No celular não há colunas lado a lado: preserva as abas no grupo atual.
   const last = groups(m).at(-1);
   const target = mobile ? activeGroup(m) : last;
   if (!target) return { action: "selected", tabId: id };
-  const createRight = !mobile && groupCount(m) < MAX_GROUPS;
+  const createRight = !mobile && groupCount(m) < 2;
   m.doAction(Actions.addTab(tabJson({ ...spec, pinned: true }), target.getId(), createRight ? DockLocation.RIGHT : DockLocation.CENTER, -1, true));
   const created = findTab(m, id);
   const parent = created?.getParent();
