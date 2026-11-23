@@ -98,13 +98,18 @@ function ErroArmazenamento({ onTentar, onDescartar, o }: { onTentar: () => void;
 }
 
 /** Modo de armazenamento sempre visível (local ou nuvem) e estado da sincronização. */
-function ModoArmazenamento({ nuvem, sync, mensagem, o, onTentar, onRecarregar }: { nuvem: boolean; sync: SyncRemoto; mensagem: string | null; o: string; onTentar: () => void; onRecarregar: () => void }) {
+/** Baixa uma cópia (JSON) do que está na nuvem: é como os dados gravados só no servidor saem de lá (volta ao modo local, backup, mudança de projeto). */
+function baixarJson(dados: unknown, nome: string) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" })); const a = document.createElement("a"); a.href = url; a.download = `${nome}.json`; a.click(); URL.revokeObjectURL(url);
+}
+function ModoArmazenamento({ nuvem, sync, mensagem, o, onTentar, onRecarregar, dados, arquivo }: { nuvem: boolean; sync: SyncRemoto; mensagem: string | null; o: string; onTentar: () => void; onRecarregar: () => void; dados?: unknown; arquivo?: string }) {
+  const baixar = nuvem && dados !== undefined ? <button className="btn-link" onClick={() => baixarJson(dados, arquivo ?? "copia-nuvem")}><Download size={13} aria-hidden="true"/> Baixar cópia (JSON)</button> : null;
   if (!nuvem) return <p className="muted ini-modo" role="status" data-modo="local">Modo local: {o} ficam só neste aparelho e não aparecem em outros dispositivos.</p>;
   if (sync === "conflito") return <div className="notice err" role="alert" data-modo="nuvem" data-sync="conflito">
     {mensagem ?? "Outra sessão alterou os dados."} Suas últimas alterações não foram gravadas (uma cópia ficou neste aparelho). <button className="btn-link" onClick={onRecarregar}>Recarregar do servidor</button> (descarta o que não foi gravado).</div>;
   if (sync === "permissao") return <Aviso erro t={mensagem ?? "Sem permissão para gravar."}/>;
   if (sync === "falha") return <div className="notice err" role="alert" data-modo="nuvem" data-sync="falha">{mensagem ?? "Sem conexão com o servidor."} As alterações continuam nesta tela e serão enviadas assim que a conexão voltar. <button className="btn-link" onClick={onTentar}>Tentar agora</button></div>;
-  return <p className="muted ini-modo" role="status" data-modo="nuvem" data-sync={sync}>{sync === "salvando" ? "Salvando na nuvem…" : `Salvo na nuvem (${o}): disponível em qualquer aparelho em que você entrar como mestre desta campanha.`}</p>;
+  return <p className="muted ini-modo" role="status" data-modo="nuvem" data-sync={sync}>{sync === "salvando" ? "Salvando na nuvem…" : `Salvo na nuvem (${o}): disponível em qualquer aparelho em que você entrar como mestre desta campanha.`} {baixar}</p>;
 }
 function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }) {
   const [bruto, setBruto] = useState<string | null>(null);
@@ -240,7 +245,7 @@ export function IniciativaPanel() {
     {erroFinalizar && <Aviso erro t={erroFinalizar}/>}
     {avisoFicha && <Aviso erro t={`Ficha do jogador não atualizada: ${avisoFicha} O combate continua salvo.`}/>}
     {combate && <>
-      <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()}/>
+      <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()} dados={combate} arquivo="combate-nuvem"/>
       {loja.nuvem && <BackupLocal chave={chaveCombate(userId, campaignId)} rotulo="combate"/>}
       <form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
         <label>Nome<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={60}/></label>
@@ -336,7 +341,7 @@ export function EncontrosPanel() {
     {aviso && <div className="notice" role="status">{aviso}</div>}
     {estado.status === "pronto" && !nuvem && estado.falhaGravacao && <Aviso erro t="Não foi possível salvar os encontros. As alterações continuam nesta tela; tente salvar novamente antes de sair." onRetry={loja.tentar}/>}
     {lista && <>
-      <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="os encontros" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()}/>
+      <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="os encontros" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()} dados={lista} arquivo="encontros-nuvem"/>
       {loja.nuvem && <BackupLocal chave={chaveEncontros(userId, campaignId)} rotulo="encontros"/>}
       <form className="ini-form" aria-label="Novo encontro" onSubmit={e => { e.preventDefault(); if (nome.trim()) { const n = nome.trim(); aplicar(l => [...l, { id: novoId(), nome: n, participantes: [] }]); setNome(""); } }}>
         <label>Nome do encontro<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={80}/></label>

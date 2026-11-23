@@ -35,7 +35,7 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   return <div className="content">
     <div className="eyebrow">COMPÊNDIO 5e</div>
     <h1>{title}</h1>
-    <p>Este módulo ainda não foi desenvolvido.</p>
-    <div className="placeholder"><BookOpen size={30}/><strong>{title}</strong><span>Em desenvolvimento: nenhuma funcionalidade disponível aqui ainda.</span></div>
+    <p>Este módulo ainda não foi desenvolvido e <strong>não faz parte da Alpha</strong>.</p>
+    <div className="placeholder"><BookOpen size={30}/><strong>{title}</strong><span>Em desenvolvimento: nenhuma funcionalidade disponível aqui ainda.{id === "enciclopedia" ? " Para registros da campanha use o Diário; para suas próprias notas, Anotações." : id === "documentos" ? " Suas notas e planejamentos ficam em Anotações; os registros da campanha, no Diário." : ""}</span></div>
   </div>;
 }

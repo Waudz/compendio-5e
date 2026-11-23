@@ -107,6 +107,47 @@ try {
     assert.equal(saved.state.combatentes[0].pv, saved.state.rodada);
     assert.equal(saved.state.turno, 'fixture-enemy');
   });
+  const encontros = {encontros: [{id: 'e1', nome: 'Emboscada', participantes: [{id: 'p1', nome: 'Goblin', quantidade: 2, pv: 7, ref: {tipo: 'monstro', id: 'goblin'}}]}]};
+  await check('encounters: master saves and reloads; player, foreign master and anonymous see nothing and cannot write; nobody deletes via API', async () => {
+    await ok('/rest/v1/campaign_encounters', {token: m, method: 'POST', body: {campaign_id: a, state: encontros}});
+    assert.deepEqual((await ok(`/rest/v1/campaign_encounters?campaign_id=eq.${a}`, {token: m}))[0].state, encontros);
+    for (const token of [p, o, undefined]) {
+      const r = await api(`/rest/v1/campaign_encounters?campaign_id=eq.${a}`, {token});
+      assert.ok(r.ok ? r.data.length === 0 : [401, 403].includes(r.status));
+      const w = await api(`/rest/v1/campaign_encounters?campaign_id=eq.${a}&version=eq.1`, {token, method: 'PATCH', body: {state: {encontros: []}, version: 2}});
+      assert.ok(w.ok ? w.data.length === 0 : [401, 403].includes(w.status));
+    }
+    const del = await api(`/rest/v1/campaign_encounters?campaign_id=eq.${a}`, {token: m, method: 'DELETE'});
+    assert.ok([401, 403].includes(del.status), 'Data API must not delete encounters');
+    const invalid = await api(`/rest/v1/campaign_encounters?campaign_id=eq.${a}&version=eq.1`, {token: m, method: 'PATCH', body: {state: {encontros: [{id: 'x', nome: ' ', participantes: []}]}, version: 2}});
+    assert.equal(invalid.ok, false);
+    assert.equal((await ok(`/rest/v1/campaign_encounters?campaign_id=eq.${a}`, {token: m}))[0].version, 1);
+  });
+  await check('combat finalization removes only the active combat; encounters survive; a new combat starts at version 1', async () => {
+    const cur = await ok(`/rest/v1/campaign_combats?campaign_id=eq.${a}`, {token: m});
+    const stale = await api(`/rest/v1/campaign_combats?campaign_id=eq.${a}&version=eq.${cur[0].version + 5}`, {token: m, method: 'DELETE', });
+    assert.ok(stale.ok ? stale.data.length === 0 : false, 'Stale finalize must delete nothing');
+    for (const token of [p, o]) { const r = await api(`/rest/v1/campaign_combats?campaign_id=eq.${a}&version=eq.${cur[0].version}`, {token, method: 'DELETE'}); assert.ok(r.ok ? r.data.length === 0 : [401, 403].includes(r.status)); }
+    assert.equal((await ok(`/rest/v1/campaign_combats?campaign_id=eq.${a}&version=eq.${cur[0].version}`, {token: m, method: 'DELETE'})).length, 1);
+    assert.deepEqual(await ok(`/rest/v1/campaign_combats?campaign_id=eq.${a}`, {token: m}), []);
+    assert.equal((await ok(`/rest/v1/campaign_encounters?campaign_id=eq.${a}`, {token: m})).length, 1);
+    assert.equal((await ok('/rest/v1/campaign_combats', {token: m, method: 'POST', body: {campaign_id: a, state}}))[0].version, 1);
+  });
+  await check('combat status reaches the player sheet through the authorized flow only', async () => {
+    const id = character.character_id;
+    assert.ok(await rpc('set_combat_status', m, {p_character_id: id, p_current_hp: 7, p_max_hp: 12, p_conditions: ['Caído']}));
+    const mine = await ok(`/rest/v1/character_combat_status?character_id=eq.${id}`, {token: p});
+    assert.equal(mine.length, 1); assert.deepEqual(Object.keys(mine[0]).sort(), ['campaign_id', 'character_id', 'conditions', 'current_hp', 'max_hp', 'updated_at', 'version']);
+    assert.equal(mine[0].current_hp, 7); assert.deepEqual(mine[0].conditions, ['Caído']);
+    assert.deepEqual(await ok(`/rest/v1/campaign_combats?campaign_id=eq.${a}`, {token: p}), []);   // o jogador continua sem ver o combate
+    for (const token of [o, undefined]) { const r = await api(`/rest/v1/character_combat_status?character_id=eq.${id}`, {token}); assert.ok(r.ok ? r.data.length === 0 : [401, 403].includes(r.status)); }
+    for (const token of [p, o]) { const r = await api('/rest/v1/rpc/set_combat_status', {token, method: 'POST', body: {p_character_id: id, p_current_hp: 1, p_max_hp: 12, p_conditions: []}}); assert.equal(r.ok, false); }
+    for (const token of [m, p]) { const r = await api('/rest/v1/character_combat_status', {token, method: 'POST', body: {character_id: id, campaign_id: a, conditions: []}}); assert.equal(r.ok, false, 'Direct writes are closed'); }
+    const [sheet] = await ok(`/rest/v1/character_sheets?character_id=eq.${id}`, {token: p});
+    assert.equal(sheet.draft.nome, 'Updated', 'status does not touch the sheet');
+    assert.equal(await rpc('clear_combat_status', m, {p_campaign_id: a}), 1);
+    assert.deepEqual(await ok(`/rest/v1/character_combat_status?character_id=eq.${id}`, {token: p}), []);
+  });
   await check('password recovery remains available with signup disabled', async () => {
     await ok('/auth/v1/recover', {method: 'POST', body: {email: player.email}});
   });
