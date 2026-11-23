@@ -14,7 +14,8 @@ export const ordenar = (c: readonly Combatente[]): Combatente[] => [...c].sort((
 
 export function adicionar(e: EstadoCombate, c: Omit<Combatente, "id"> & { id?: string }): EstadoCombate {
   const nome = c.nome.trim(); if (!nome) return e;
-  const pvMax = c.pvMax !== undefined && c.pvMax > 0 ? Math.floor(c.pvMax) : undefined;
+  if ((c.pvMax !== undefined && (!Number.isSafeInteger(c.pvMax) || c.pvMax < 1)) || (c.pv !== undefined && !Number.isSafeInteger(c.pv)) || (c.id !== undefined && (!c.id.trim() || e.combatentes.some(x => x.id === c.id)))) return e;
+  const pvMax = c.pvMax;
   const novo: Combatente = { id: c.id ?? novoId(), nome, iniciativa: Number.isFinite(c.iniciativa) ? c.iniciativa : 0, lado: c.lado, ...(pvMax ? { pv: Math.min(Math.max(0, Math.floor(c.pv ?? pvMax)), pvMax), pvMax } : {}) };
   const primeiroAntes = ordenar(e.combatentes)[0]?.id, combatentes = ordenar([...e.combatentes, novo]);
   // antes de qualquer turno passar (rodada 1, ninguém avançou), o turno acompanha quem tem a maior iniciativa
@@ -48,7 +49,8 @@ export const reiniciarRodadas = (e: EstadoCombate): EstadoCombate => ({ ...e, ro
 // ---------------------------------------------------------------- encontros
 export function adicionarParticipante(enc: Encontro, p: { nome: string; quantidade: number; pv?: number }): Encontro {
   const nome = p.nome.trim(); if (!nome) return enc;
-  const quantidade = Math.min(50, Math.max(1, Math.floor(p.quantidade) || 1));
+  if (!Number.isSafeInteger(p.quantidade) || p.quantidade < 1 || p.quantidade > 50 || (p.pv !== undefined && (!Number.isSafeInteger(p.pv) || p.pv < 1))) return enc;
+  const quantidade = p.quantidade;
   return { ...enc, participantes: [...enc.participantes, { id: novoId(), nome, quantidade, ...(p.pv && p.pv > 0 ? { pv: Math.floor(p.pv) } : {}) }] };
 }
 /** Leva os participantes do encontro para o combate como inimigos, numerando quando há mais de um ("Goblin 1", "Goblin 2"). Iniciativa 0 até o mestre informar. */
@@ -64,10 +66,12 @@ const obj = (v: unknown): v is Record<string, unknown> => typeof v === "object" 
 export function lerCombate(bruto: string | null): EstadoCombate {
   if (bruto === null) return combateVazio();
   const v: unknown = JSON.parse(bruto);
-  if (!obj(v) || !Array.isArray(v.combatentes) || typeof v.rodada !== "number" || !Number.isInteger(v.rodada) || v.rodada < 1) throw new Error("estado de combate inválido");
+  if (!obj(v) || !Array.isArray(v.combatentes) || typeof v.rodada !== "number" || !Number.isSafeInteger(v.rodada) || v.rodada < 1) throw new Error("estado de combate inválido");
   const combatentes = v.combatentes.map((c): Combatente => {
-    if (!obj(c) || typeof c.id !== "string" || typeof c.nome !== "string" || !c.nome.trim() || typeof c.iniciativa !== "number" || !Number.isFinite(c.iniciativa) || typeof c.lado !== "string" || !lados.includes(c.lado)) throw new Error("combatente inválido");
-    const pvMax = typeof c.pvMax === "number" && c.pvMax > 0 ? c.pvMax : undefined;
+    if (!obj(c) || typeof c.id !== "string" || !c.id.trim() || typeof c.nome !== "string" || !c.nome.trim() || typeof c.iniciativa !== "number" || !Number.isFinite(c.iniciativa) || typeof c.lado !== "string" || !lados.includes(c.lado)) throw new Error("combatente inválido");
+    if (c.pvMax !== undefined && (typeof c.pvMax !== "number" || !Number.isSafeInteger(c.pvMax) || c.pvMax < 1)) throw new Error("PV máximo inválido");
+    if (c.pv !== undefined && (typeof c.pv !== "number" || !Number.isSafeInteger(c.pv) || c.pv < 0 || c.pvMax === undefined || c.pv > (c.pvMax as number))) throw new Error("PV inválido");
+    const pvMax = c.pvMax as number | undefined;
     return { id: c.id, nome: c.nome, iniciativa: c.iniciativa, lado: c.lado as Lado, ...(pvMax ? { pvMax, pv: typeof c.pv === "number" ? Math.min(pvMax, Math.max(0, c.pv)) : pvMax } : {}) };
   });
   if (new Set(combatentes.map(c => c.id)).size !== combatentes.length) throw new Error("ids repetidos");
@@ -81,8 +85,9 @@ export function lerEncontros(bruto: string | null): Encontro[] {
   return v.map((e): Encontro => {
     if (!obj(e) || typeof e.id !== "string" || typeof e.nome !== "string" || !Array.isArray(e.participantes)) throw new Error("encontro inválido");
     return { id: e.id, nome: e.nome, participantes: e.participantes.map((p): ParticipanteEncontro => {
-      if (!obj(p) || typeof p.id !== "string" || typeof p.nome !== "string" || typeof p.quantidade !== "number" || p.quantidade < 1) throw new Error("participante inválido");
-      return { id: p.id, nome: p.nome, quantidade: Math.floor(p.quantidade), ...(typeof p.pv === "number" && p.pv > 0 ? { pv: p.pv } : {}) };
+      if (!obj(p) || typeof p.id !== "string" || typeof p.nome !== "string" || typeof p.quantidade !== "number" || !Number.isSafeInteger(p.quantidade) || p.quantidade < 1 || p.quantidade > 50) throw new Error("participante inválido");
+      if (p.pv !== undefined && (typeof p.pv !== "number" || !Number.isSafeInteger(p.pv) || p.pv < 1)) throw new Error("PV inválido");
+      return { id: p.id, nome: p.nome, quantidade: p.quantidade, ...(typeof p.pv === "number" && p.pv > 0 ? { pv: p.pv } : {}) };
     }) };
   });
 }

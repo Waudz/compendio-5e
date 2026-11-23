@@ -36,3 +36,17 @@ describe("lógica da iniciativa", () => {
     expect(lerCombate(null)).toEqual(combateVazio()); expect(lerEncontros(null)).toEqual([]);
   });
 });
+
+describe("limites dos dados externos", () => {
+  it.each([1.5, 51, 1e100, 0, -1])("rejeita quantidade de encontro inválida %s sem expansão", quantidade => {
+    expect(() => lerEncontros(JSON.stringify([{ id: "e", nome: "Encontro", participantes: [{ id: "p", nome: "Goblin", quantidade }] }]))).toThrow();
+  });
+  it.each([{ pvMax: 1.5 }, { pvMax: 7, pv: 8 }, { pvMax: 7, pv: -1 }, { pv: 1 }, { pvMax: 7, pv: 1.5 }])("rejeita PV inválido sem corrigir silenciosamente: %o", dados => {
+    expect(() => lerCombate(JSON.stringify({ ...base(), combatentes: [{ id: "a", nome: "Goblin", iniciativa: 0, lado: "inimigo", ...dados }] }))).toThrow();
+  });
+  it("não cria IDs duplicados ou PV infinito pela API de domínio", () => {
+    const e = monta();
+    expect(adicionar(e, { id: e.combatentes[0].id, nome: "Duplicado", iniciativa: 1, lado: "inimigo" })).toBe(e);
+    expect(adicionar(e, { nome: "Inválido", iniciativa: 1, lado: "inimigo", pvMax: Infinity })).toBe(e);
+  });
+});

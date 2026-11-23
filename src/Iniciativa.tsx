@@ -5,13 +5,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
 import { Aviso } from "./Diario";
+import { useUnsavedGuard } from "./unsaved";
 import {
   adicionar, adicionarParticipante, alterarPv, chaveCombate, chaveEncontros, combateVazio, definirIniciativa, enviarParaCombate, lerCombate, lerEncontros, novoId, ordenar, proximoTurno,
   reiniciarRodadas, remover, type Encontro, type EstadoCombate, type Lado,
 } from "./combate";
 
 const EVENTO = "compendio5e:armazenamento";
-type Estado<T> = { status: "carregando" } | { status: "erro" } | { status: "pronto"; valor: T };
+type Estado<T> = { status: "carregando" } | { status: "erro" } | { status: "pronto"; valor: T; falhaGravacao?: boolean };
 type EstadoEscopado<T> = { chave: string | null; estado: Estado<T> };
 
 /** Lê o valor do armazenamento local (com estado de carregamento e de erro), grava a cada mudança e se mantém em dia com outras telas do mesmo aparelho. */
@@ -21,8 +22,9 @@ function useArmazenado<T>(chave: string | null, ler: (bruto: string | null) => T
   const setEstado = useCallback((proximo: Estado<T>) => setSnapshot({ chave, estado: proximo }), [chave]);
   const [tentativa, setTentativa] = useState(0);
   const lerRef = useRef(ler); lerRef.current = ler;
+  const pendente = useRef<{ chave: string; valor: T } | null>(null);
   const carregar = useCallback(() => {
-    if (!chave) return;
+    if (!chave || pendente.current?.chave === chave) return;
     try { setEstado({ status: "pronto", valor: lerRef.current(localStorage.getItem(chave)) }); } catch { setEstado({ status: "erro" }); }
   }, [chave, setEstado]);
   useEffect(() => { setEstado({ status: "carregando" }); const t = setTimeout(carregar, 0); return () => clearTimeout(t); }, [carregar, tentativa]);
@@ -31,12 +33,25 @@ function useArmazenado<T>(chave: string | null, ler: (bruto: string | null) => T
     window.addEventListener(EVENTO, aoMudar); return () => window.removeEventListener(EVENTO, aoMudar);
   }, [chave, carregar]);
   const gravar = useCallback((valor: T) => {
-    if (!chave) return;
-    setEstado({ status: "pronto", valor });
-    try { localStorage.setItem(chave, JSON.stringify(valor)); window.dispatchEvent(new CustomEvent(EVENTO, { detail: chave })); } catch { setEstado({ status: "erro" }); }
+    if (!chave) return false;
+    try {
+      localStorage.setItem(chave, JSON.stringify(valor));
+      pendente.current = null;
+      setEstado({ status: "pronto", valor });
+      window.dispatchEvent(new CustomEvent(EVENTO, { detail: chave }));
+      return true;
+    } catch {
+      pendente.current = { chave, valor };
+      setEstado({ status: "pronto", valor, falhaGravacao: true });
+      return false;
+    }
   }, [chave, setEstado]);
+  const salvarPendente = useCallback(() => pendente.current?.chave === chave ? gravar(pendente.current.valor) : true, [chave, gravar]);
   const descartar = useCallback(() => { if (chave) { try { localStorage.removeItem(chave); } catch { /* sem armazenamento */ } } setTentativa(n => n + 1); }, [chave]);
-  return { estado, gravar, tentar: () => setTentativa(n => n + 1), descartar };
+  return { estado, gravar, salvarPendente, tentar: () => {
+    if (pendente.current?.chave === chave) gravar(pendente.current.valor);
+    else setTentativa(n => n + 1);
+  }, descartar };
 }
 
 const rotuloLado: Record<Lado, string> = { aliado: "Aliado", inimigo: "Inimigo", neutro: "Neutro" };
@@ -64,7 +79,8 @@ function ErroArmazenamento({ onTentar, onDescartar, o }: { onTentar: () => void;
 // ---------------------------------------------------------------- Iniciativa
 export function IniciativaPanel() {
   const { userId, campaignId, campanha, podeGerenciar } = useEscopo();
-  const { estado, gravar, tentar, descartar } = useArmazenado<EstadoCombate>(podeGerenciar && userId && campaignId ? chaveCombate(userId, campaignId) : null, lerCombate);
+  const { estado, gravar, salvarPendente, tentar, descartar } = useArmazenado<EstadoCombate>(podeGerenciar && userId && campaignId ? chaveCombate(userId, campaignId) : null, lerCombate);
+  useUnsavedGuard("secao:iniciativa", estado.status === "pronto" && !!estado.falhaGravacao, salvarPendente);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   if (!userId || !campaignId) return <SemCampanha titulo="Iniciativa"/>;
   if (!podeGerenciar) return <AcessoRestrito titulo="Iniciativa"/>;
@@ -81,6 +97,7 @@ export function IniciativaPanel() {
     <div className="eyebrow">{(campanha ?? "").toLocaleUpperCase("pt-BR")} · COMBATE</div><h1>Iniciativa</h1>
     {estado.status === "carregando" && <div className="notice" role="status" aria-live="polite">Carregando o combate…</div>}
     {estado.status === "erro" && <ErroArmazenamento onTentar={tentar} onDescartar={descartar} o="o combate"/>}
+    {estado.status === "pronto" && estado.falhaGravacao && <Aviso erro t="Não foi possível salvar o combate. As alterações continuam nesta tela; tente salvar novamente antes de sair." onRetry={tentar}/>}
     {combate && <>
       <form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
         <label>Nome<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={60}/></label>
@@ -118,8 +135,9 @@ function Linha({ c, atual, combate, muda }: { c: EstadoCombate["combatentes"][nu
 
 // ---------------------------------------------------------------- Encontros
 export function EncontrosPanel() {
-  const { userId, campaignId, campanha } = useEscopo();
-  const { estado, gravar, tentar, descartar } = useArmazenado<Encontro[]>(podeGerenciar && userId && campaignId ? chaveEncontros(userId, campaignId) : null, lerEncontros);
+  const { userId, campaignId, campanha, podeGerenciar } = useEscopo();
+  const { estado, gravar, salvarPendente, tentar, descartar } = useArmazenado<Encontro[]>(podeGerenciar && userId && campaignId ? chaveEncontros(userId, campaignId) : null, lerEncontros);
+  useUnsavedGuard("secao:encontros", estado.status === "pronto" && !!estado.falhaGravacao, salvarPendente);
   const [nome, setNome] = useState(""), [aviso, setAviso] = useState<string | null>(null);
   if (!userId || !campaignId) return <SemCampanha titulo="Encontros"/>;
   if (!podeGerenciar) return <AcessoRestrito titulo="Encontros"/>;
@@ -137,6 +155,7 @@ export function EncontrosPanel() {
     {estado.status === "carregando" && <div className="notice" role="status" aria-live="polite">Carregando os encontros…</div>}
     {estado.status === "erro" && <ErroArmazenamento onTentar={tentar} onDescartar={descartar} o="os encontros"/>}
     {aviso && <div className="notice" role="status">{aviso}</div>}
+    {estado.status === "pronto" && estado.falhaGravacao && <Aviso erro t="Não foi possível salvar os encontros. As alterações continuam nesta tela; tente salvar novamente antes de sair." onRetry={tentar}/>}
     {lista && <>
       <form className="ini-form" aria-label="Novo encontro" onSubmit={e => { e.preventDefault(); if (nome.trim()) { gravar([...lista, { id: novoId(), nome: nome.trim(), participantes: [] }]); setNome(""); } }}>
         <label>Nome do encontro<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={80}/></label>
