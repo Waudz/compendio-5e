@@ -2,13 +2,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
-let escopo: { user: { id: string } | null; active: { campaign: { id: string; name: string } } | null } = { user: { id: "u1" }, active: { campaign: { id: "c1", name: "Véu Negro" } } };
+let escopo: { user: { id: string } | null; active: { role: "mestre" | "jogador"; campaign: { id: string; name: string } } | null } = { user: { id: "u1" }, active: { role: "mestre", campaign: { id: "c1", name: "Véu Negro" } } };
 vi.mock("./AuthContext", () => ({ useAuth: () => ({ user: escopo.user }) }));
 vi.mock("./CampaignsContext", () => ({ useCampaigns: () => ({ active: escopo.active }) }));
 import { EncontrosPanel, IniciativaPanel } from "./Iniciativa";
 
 const preencher = (rotulo: string, valor: string) => fireEvent.change(within(screen.getByRole("form", { name: /^(Adicionar combatente|Novo encontro)$/ })).getByLabelText(rotulo), { target: { value: valor } });
-beforeEach(() => { localStorage.clear(); escopo = { user: { id: "u1" }, active: { campaign: { id: "c1", name: "Véu Negro" } } }; });
+beforeEach(() => { localStorage.clear(); escopo = { user: { id: "u1" }, active: { role: "mestre", campaign: { id: "c1", name: "Véu Negro" } } }; });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("tela Iniciativa", () => {
@@ -63,5 +63,27 @@ describe("tela Encontros", () => {
     render(<EncontrosPanel/>); expect(await screen.findByRole("region", { name: "Encontro Ruínas" })).toBeTruthy(); cleanup();
     localStorage.setItem("compendio5e:encontros:u1:c1", "[1,2"); render(<EncontrosPanel/>);
     expect((await screen.findByRole("alert")).textContent).toMatch(/Não foi possível ler os encontros/);
+  });
+});
+
+
+describe("acesso exclusivo do mestre", () => {
+  it("não exibe iniciativa nem lê combate local para jogadores", async () => {
+    escopo.active = { role: "jogador", campaign: { id: "c1", name: "Véu Negro" } };
+    localStorage.setItem("compendio5e:iniciativa:u1:c1", JSON.stringify({ combatentes: [{ id: "segredo", nome: "Segredo do mestre", iniciativa: 20, lado: "inimigo" }], turno: "segredo", rodada: 1 }));
+    const spy = vi.spyOn(Storage.prototype, "getItem");
+    render(<IniciativaPanel/>);
+    expect(screen.getByText(/Somente o mestre da campanha/)).toBeTruthy();
+    expect(screen.queryByText("Segredo do mestre")).toBeNull();
+    await waitFor(() => expect(spy).not.toHaveBeenCalledWith("compendio5e:iniciativa:u1:c1"));
+  });
+  it("não exibe encontros preparados para jogadores", async () => {
+    escopo.active = { role: "jogador", campaign: { id: "c1", name: "Véu Negro" } };
+    localStorage.setItem("compendio5e:encontros:u1:c1", JSON.stringify([{ id: "e1", nome: "Plano secreto", participantes: [] }]));
+    const spy = vi.spyOn(Storage.prototype, "getItem");
+    render(<EncontrosPanel/>);
+    expect(screen.getByText(/Somente o mestre da campanha/)).toBeTruthy();
+    expect(screen.queryByText("Plano secreto")).toBeNull();
+    await waitFor(() => expect(spy).not.toHaveBeenCalledWith("compendio5e:encontros:u1:c1"));
   });
 });
