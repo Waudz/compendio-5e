@@ -68,7 +68,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     await montar(); await abrirPersonagens();
     expect(await screen.findByTestId('guiados-vazio')).toBeTruthy();
     await novoGuiado();
-    expect(abas()).toEqual(['Personagens', 'Novo personagem']);
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Personagens', 'Novo personagem']);
     expect(screen.getByTestId('aviso-armazenamento').textContent).toMatch(/experimental.*só neste navegador.*não é privado/s);
     expect(screen.getByRole('heading', { name: 'Novo personagem' })).toBeTruthy();
     expect(await screen.findByLabelText('Opções SRD 2014')).toBeTruthy();
@@ -222,7 +222,7 @@ describe('títulos das abas do criador', () => {
     armazenamentoLocalExperimental(me.id, 'ca').salvar({ schemaVersion: 1, savedAt: '2026-11-20T10:00:00Z', identity: defaultPublicIdentity(), draft: { id: 'p9', name: 'Thorin', ruleset: '5e-2014', catalogueVersion: 'v', baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 }, raceId: 'r', backgroundId: 'b', classId: 'c', level: 1, decisions: [], inventory: [], currentHp: 13, temporaryHp: 0, spentResources: {} } });
     localStorage.setItem(storageKey({ user: me.id, campaign: 'ca', device: 'navegador' }), JSON.stringify({ version: 2, layout: { type: 'row', children: [{ type: 'tabset', id: 'grupo-1', weight: 100, active: true, selected: 0, children: [{ type: 'tab', id: 'secao:personagens' }, { type: 'tab', id: 'criador:p9' }] }] } }));
     await montar();
-    await waitFor(() => expect(abas()).toEqual(['Personagens', 'Thorin']));   // a lista de Personagens (aba ativa) registra os nomes
+    await waitFor(() => expect(abas()).toEqual(['Mesa dos Dragões', 'Personagens', 'Thorin']));   // a lista de Personagens (aba ativa) registra os nomes
     expect(abas().join()).not.toMatch(/p9/);
   });
 });
