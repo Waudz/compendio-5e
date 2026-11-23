@@ -7,8 +7,10 @@ const config = JSON.parse(await readFile(process.env.ALPHA_STATUS_FILE, 'utf8'))
 const origin = localOrigin(config.API_URL);
 assert.ok(config.ANON_KEY && config.SERVICE_ROLE_KEY, 'Local CLI credentials required');
 let assertions = 0;
+let checkpoint = 'synthetic account setup';
 const checks = [];
 async function check(name, fn) {
+  checkpoint = name;
   await fn(); assertions++; checks.push(name); console.log(`PASS ${name}`);
 }
 async function api(path, {token, method = 'GET', body, admin = false} = {}) {
@@ -71,25 +73,29 @@ try {
     assert.deepEqual(await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token: o}), []);
     assert.equal((await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token: m}))[0].draft.nome, 'Updated');
   });
-  const state = {combatentes: [], turno: null, rodada: 1};
+  const state = {combatentes: [{id: 'fixture-enemy', nome: 'Fixture', lado: 'inimigo', iniciativa: 12, pvMax: 20, pv: 20}], turno: 'fixture-enemy', rodada: 1};
   await ok('/rest/v1/campaign_combats', {token: m, method: 'POST', body: {campaign_id: a, state}});
   await check('combat hidden via direct API from player, foreign master and anonymous', async () => {
     for (const token of [p, o, undefined]) {
       const r = await api(`/rest/v1/campaign_combats?campaign_id=eq.${a}`, {token});
       assert.ok(r.ok ? r.data.length === 0 : [401, 403].includes(r.status));
       const write = await api('/rest/v1/campaign_combats', {token, method: 'POST', body: {campaign_id: a, state}});
-      assert.equal(write.ok, false);
+      assert.ok([401, 403].includes(write.status), 'Unauthorized combat insert must be rejected by permission checks');
+      const update = await api(`/rest/v1/campaign_combats?campaign_id=eq.${a}&version=eq.1`, {token, method: 'PATCH', body: {state, version: 2}});
+      assert.ok(update.ok ? update.data.length === 0 : [401, 403].includes(update.status));
     }
     const write = await api(`/rest/v1/campaign_combats?campaign_id=eq.${a}&version=eq.1`, {token: o, method: 'PATCH', body: {state, version: 2}});
     assert.ok(write.ok ? write.data.length === 0 : write.status === 403);
   });
   await check('combat compare-and-swap preserves winning update across sessions', async () => {
     const path = `/rest/v1/campaign_combats?campaign_id=eq.${a}&version=eq.1`;
-    const results = await Promise.all([2, 3].map(rodada => ok(path, {token: m, method: 'PATCH', body: {state: {...state, rodada}, version: 2}})));
+    const results = await Promise.all([2, 3].map(rodada => ok(path, {token: m, method: 'PATCH', body: {state: {...state, rodada, combatentes: [{...state.combatentes[0], pv: rodada}]}, version: 2}})));
     assert.deepEqual(results.map(x => x.length).sort(), [0, 1]);
     const [saved] = await ok(`/rest/v1/campaign_combats?campaign_id=eq.${a}`, {token: m});
     assert.equal(saved.version, 2);
     assert.equal(saved.state.rodada, results.find(x => x.length)[0].state.rodada);
+    assert.equal(saved.state.combatentes[0].pv, saved.state.rodada);
+    assert.equal(saved.state.turno, 'fixture-enemy');
   });
   await check('password recovery remains available with signup disabled', async () => {
     await ok('/auth/v1/recover', {method: 'POST', body: {email: player.email}});
@@ -98,13 +104,21 @@ try {
     const expiry = JSON.parse(Buffer.from(p.split('.')[1], 'base64url').toString()).exp;
     assert.ok(expiry * 1000 - Date.now() < 70000, 'Disposable JWT expiry must be short');
     while (Date.now() <= (expiry + 2) * 1000) await new Promise(resolve => setTimeout(resolve, 1000));
-    assert.equal((await api('/rest/v1/campaigns?select=id', {token: p})).status, 401);
+    let expired = await api('/rest/v1/campaigns?select=id', {token: p});
+    // Some JWT verifiers allow a short clock-skew window. Bound the real check.
+    const deadline = Date.now() + 60000;
+    while (expired.status !== 401 && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      expired = await api('/rest/v1/campaigns?select=id', {token: p});
+    }
+    assert.equal(expired.status, 401);
     const refreshed = await ok('/auth/v1/token?grant_type=refresh_token', {method: 'POST', body: {refresh_token: player.refresh_token}});
     assert.equal((await ok(`/rest/v1/campaigns?id=eq.${a}`, {token: refreshed.access_token})).length, 1);
   });
   await writeFile('alpha-local-report.json', JSON.stringify({passed: assertions, checks, limitations: ['Recovery email and password-change flow not yet exercised', 'Browser, realtime subscription, network failure and UI migration remain pending', 'Encounters have no remote persistence yet']}, null, 2));
-} catch {
+} catch (error) {
+  if (/^API \/(auth|rest)\/v1\/[a-z_/]+ status \d+$/.test(error.message)) console.error(error.message);
   // Never print bodies, credentials, JWTs or fixture emails to CI logs/artifacts.
-  console.error(`FAIL isolated API validation after ${assertions} completed checks`);
+  console.error(`FAIL isolated API validation after ${assertions} completed checks; checkpoint: ${checkpoint}`);
   process.exitCode = 1;
 }

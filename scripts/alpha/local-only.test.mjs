@@ -9,3 +9,9 @@ test('routes cannot change origin or escape API prefixes', () => {
   for (const path of ['//evil.test', '/auth/v1/../admin', '/rest/v1/notes#x', 'https://example.com', '/rest/v1/notes\\evil']) assert.throws(() => route(path));
   assert.equal(route('/rest/v1/notes?id=eq.123'), '/rest/v1/notes?id=eq.123');
 });
+import {redact} from './start-diagnostics.mjs';
+test('startup diagnostics remove JWTs, key lines and connection passwords', () => {
+  const text = redact('ERROR: failed migration\nAPI key: private-value\neyJabc.def.ghi\npostgres://postgres:password@localhost/db\nsb_secret_abc123\npassword=hidden');
+  assert.match(text, /failed migration/);
+  for (const secret of ['private-value', 'eyJabc.def.ghi', 'postgres:password', 'abc123', 'hidden']) assert.ok(!text.includes(secret));
+});

@@ -63,3 +63,22 @@ políticas/avisos de segurança revisados em ambiente isolado, combate remoto co
 importação segura, encounters persistentes, testes de perda de conexão/realtime,
 validação conjunta de mestre/jogador e encerramento de cadastro em produção somente
 após autorização. Nenhum desses itens é declarado concluído por esta preparação.
+
+## Avisos observados (consulta somente leitura)
+
+Consulta aos advisors em 22/11/2026, sem aplicar correções em produção:
+
+| Aviso | Evidência | Tratamento seguro |
+| --- | --- | --- |
+| RLS sem políticas | Quatro tabelas da Enciclopédia | Manter fechadas; não criar política permissiva para remover o aviso. |
+| SECURITY DEFINER executável | Dez funções públicas | RPCs de campanha/convite exigem elevação intencional; revisar auxiliares e testar antes de mover/revogar. Troca automática por invoker pode causar recursão de RLS. |
+| Senhas vazadas | Proteção desabilitada | Configuração de Auth de produção pendente de autorização e verificação de disponibilidade/custo; não ativada. |
+| FK sem índice | Quatro relacionamentos | Preparar índices e medir em base isolada; não alterar produção nesta etapa. |
+| auth.uid por linha | Oito políticas | Avaliar subselect com plano e testes de equivalência antes de formalizar migração. |
+| Backups sem PK / índices sem uso | Duas tabelas de backup / seis índices | Preservar backups e índices; não excluir com base apenas em baixa utilização da Alpha. |
+
+Referências de correção: [RLS sem políticas](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy),
+[funções definer](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable),
+[segurança de senha](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection),
+[índices FK](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys),
+[plano de RLS](https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan).
