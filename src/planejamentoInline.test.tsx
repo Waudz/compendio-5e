@@ -260,6 +260,7 @@ describe("sincronização entre grupos de abas (sem F5)", () => {
     await renderApp({ api: apiC(), registros });
     await waitFor(() => expect(menu().getByRole("button", { name: "Diário" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Diário" }));
     fireEvent.click(await screen.findByText("Sessão 1"));
+    await screen.findByLabelText("Título");
     fireEvent.change(await screen.findByLabelText("Texto do registro"), { target: { value: "minha edição" } });
     registros.dados[0] = { ...registros.dados[0], version: 5, content: [par("de outro aparelho")] };
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
