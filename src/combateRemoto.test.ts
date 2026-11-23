@@ -22,6 +22,13 @@ describe("adaptador remoto de combate (sem conexão com produção)", () => {
     const negado = servidor({ data: null, error: { code: "42501" } });
     expect(await negado.api.carregar("a")).toMatchObject({ ok: false, tipo: "permissao" });
   });
+  it("diferencia falha de transporte de conteúdo remoto corrompido, sem simular combate vazio", async () => {
+    expect(await servidor(null, true).api.carregar("a")).toMatchObject({ ok: false, tipo: "indisponivel" });
+    expect(await servidor({ data: { version: 1, state: { rodada: -1 } }, error: null }).api.carregar("a"))
+      .toMatchObject({ ok: false, tipo: "invalido" });
+    expect(await servidor({ data: null, error: { message: "Failed to fetch" } }).api.carregar("a"))
+      .toMatchObject({ ok: false, tipo: "indisponivel" });
+  });
   it("cria na versão 1 e trata corrida entre criações como conflito", async () => {
     const s = servidor(linha());
     expect(await s.api.salvar("a", combateVazio(), 0)).toMatchObject({ ok: true, data: { versao: 1 } });

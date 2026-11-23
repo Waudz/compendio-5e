@@ -37,9 +37,10 @@ export function criarApiCombate(client: SupabaseClient) {
         if (!data) return { ok: true, data: { estado: combateVazio(), versao: 0 } };
         if (!Number.isSafeInteger(data.version) || data.version < 1)
           return falha("invalido", "Versão do combate inválida no servidor.");
-        return { ok: true, data: validarResposta(data) };
+        try { return { ok: true, data: validarResposta(data) }; }
+        catch { return falha("invalido", "O servidor retornou um estado de combate inválido."); }
       } catch {
-        return falha("invalido", "O servidor retornou um estado de combate inválido.");
+        return falha("indisponivel", "Não foi possível carregar o combate no servidor. Tente novamente.");
       }
     },
     /** Controle de concorrência: versão 0 cria, versões maiores atualizam apenas se não houve outra gravação.
