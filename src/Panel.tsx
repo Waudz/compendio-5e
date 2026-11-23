@@ -9,6 +9,7 @@ import { PersonagensPanel } from "./Personagens";
 import { FichaRoteada } from "./FichaRoteada";
 import { CompendioPanel, ItemPagina } from "./Compendio";
 import { CriadorGuiado } from "./criador/CriadorGuiado";
+import { EncontrosPanel, IniciativaPanel } from "./Iniciativa";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
@@ -28,6 +29,8 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "criador") return <CriadorGuiado id={id} onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "compendio") return <CompendioPanel onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "personagens") return <PersonagensPanel onOpenContent={onOpenContent}/>;
+  if (kind === "secao" && id === "iniciativa") return <IniciativaPanel/>;
+  if (kind === "secao" && id === "encontros") return <EncontrosPanel/>;
   const title = defaultTitle({ kind, ref: id });
   return <div className="content">
     <div className="eyebrow">COMPÊNDIO 5e</div>
