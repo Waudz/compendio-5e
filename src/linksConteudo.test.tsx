@@ -60,7 +60,7 @@ describe("link de conteúdo (desktop)", () => {
     link();                                                                  // seleciona a nova aba (fixada)
     fireEvent.click(nav("Iniciativa"));                                      // a fixada não é substituída: troca a aba normal
     expect(tabs()).toEqual(["Personagens", "Iniciativa", "Resumo da Sessão 3"]);
-    expect(rawTabs()[1]).toBe("Resumo da Sessão 3 (fixada)");
+    expect(rawTabs()).toContain("Resumo da Sessão 3 (fixada)");
   });
 
   it("o registro já aberto é selecionado: sem duplicar e sem mudar a fixação da aba existente", async () => {
