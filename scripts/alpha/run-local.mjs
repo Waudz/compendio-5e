@@ -64,13 +64,21 @@ try {
   const draft = {nome: 'Fixture', inventario: [{id: 'fixture-item', quantidade: 2}]};
   const [character] = await rpc('create_guided_character', p, {p_campaign_id: a, p_title: 'Fixture', p_meta: {}, p_publish: false, p_draft: draft});
   await check('character and inventory survive remote reload; second session cannot overwrite stale revision', async () => {
+    checkpoint = 'second session login';
     const second = await ok('/auth/v1/token?grant_type=password', {method: 'POST', body: {email: player.email, password}});
+    checkpoint = 'second session sheet reload';
     const [sheet] = await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token: second.access_token});
+    checkpoint = 'inventory reload assertion';
     assert.deepEqual(sheet.draft.inventario, draft.inventario);
+    checkpoint = 'first session save';
     await rpc('save_guided_character', p, {p_id: character.character_id, p_expected_revision: character.revision, p_draft: {...draft, nome: 'Updated'}});
+    checkpoint = 'second session stale save';
     const stale = await api('/rest/v1/rpc/save_guided_character', {token: second.access_token, method: 'POST', body: {p_id: character.character_id, p_expected_revision: character.revision, p_draft: draft}});
+    checkpoint = 'stale revision HTTP status';
     assert.equal(stale.status, 409);
+    checkpoint = 'foreign campaign sheet isolation';
     assert.deepEqual(await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token: o}), []);
+    checkpoint = 'master sees updated character';
     assert.equal((await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token: m}))[0].draft.nome, 'Updated');
   });
   const state = {combatentes: [{id: 'fixture-enemy', nome: 'Fixture', lado: 'inimigo', iniciativa: 12, pvMax: 20, pv: 20}], turno: 'fixture-enemy', rodada: 1};
