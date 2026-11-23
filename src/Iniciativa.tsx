@@ -41,11 +41,15 @@ const numero = (s: string) => (s.trim() === "" ? undefined : Number(s.replace(",
 
 function useEscopo() {
   const { user } = useAuth(), { active } = useCampaigns();
-  return { userId: user?.id ?? null, campaignId: active?.campaign.id ?? null, campanha: active?.campaign.name ?? null };
+  return { userId: user?.id ?? null, campaignId: active?.campaign.id ?? null, campanha: active?.campaign.name ?? null, podeGerenciar: active?.role === "mestre" };
 }
 function SemCampanha({ titulo }: { titulo: string }) {
   return <div className="content"><div className="eyebrow">COMPÊNDIO 5e</div><h1>{titulo}</h1>
     <div className="notice" role="status">Escolha ou entre em uma campanha para usar esta tela: os dados ficam separados por campanha.</div></div>;
+}
+function AcessoRestrito({ titulo }: { titulo: string }) {
+  return <div className="content"><div className="eyebrow">COMPÊNDIO 5e</div><h1>{titulo}</h1>
+    <div className="notice" role="status">Somente o mestre da campanha pode acessar este módulo.</div></div>;
 }
 function ErroArmazenamento({ onTentar, onDescartar, o }: { onTentar: () => void; onDescartar: () => void; o: string }) {
   return <>
@@ -56,10 +60,11 @@ function ErroArmazenamento({ onTentar, onDescartar, o }: { onTentar: () => void;
 
 // ---------------------------------------------------------------- Iniciativa
 export function IniciativaPanel() {
-  const { userId, campaignId, campanha } = useEscopo();
+  const { userId, campaignId, campanha, podeGerenciar } = useEscopo();
   const { estado, gravar, tentar, descartar } = useArmazenado<EstadoCombate>(userId && campaignId ? chaveCombate(userId, campaignId) : null, lerCombate);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   if (!userId || !campaignId) return <SemCampanha titulo="Iniciativa"/>;
+  if (!podeGerenciar) return <AcessoRestrito titulo="Iniciativa"/>;
   const combate = estado.status === "pronto" ? estado.valor : null;
   const muda = (e: EstadoCombate) => gravar(e);
   const submeter = (ev: React.FormEvent) => {
@@ -114,6 +119,7 @@ export function EncontrosPanel() {
   const { estado, gravar, tentar, descartar } = useArmazenado<Encontro[]>(userId && campaignId ? chaveEncontros(userId, campaignId) : null, lerEncontros);
   const [nome, setNome] = useState(""), [aviso, setAviso] = useState<string | null>(null);
   if (!userId || !campaignId) return <SemCampanha titulo="Encontros"/>;
+  if (!podeGerenciar) return <AcessoRestrito titulo="Encontros"/>;
   const lista = estado.status === "pronto" ? estado.valor : null;
   const enviar = (enc: Encontro) => {
     const k = chaveCombate(userId, campaignId);
