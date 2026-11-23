@@ -55,14 +55,14 @@ describe("celular: estrutura independente do FlexLayout", () => {
     await montar(jogador);
     fireEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
     const menu = within(screen.getByRole("dialog", { name: "Menu de navegação" }));
-    expect(menu.queryByRole("button", { name: "Iniciativa", exact: true })).toBeNull();
-    expect(menu.queryByRole("button", { name: "Encontros", exact: true })).toBeNull();
+    expect(menu.queryByRole("button", { name: "Iniciativa" })).toBeNull();
+    expect(menu.queryByRole("button", { name: "Encontros" })).toBeNull();
     cleanup();
     await montar(mestre);
     fireEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
     const menuMestre = within(screen.getByRole("dialog", { name: "Menu de navegação" }));
-    expect(menuMestre.getByRole("button", { name: "Iniciativa", exact: true })).toBeTruthy();
-    expect(menuMestre.getByRole("button", { name: "Encontros", exact: true })).toBeTruthy();
+    expect(menuMestre.getByRole("button", { name: "Iniciativa" })).toBeTruthy();
+    expect(menuMestre.getByRole("button", { name: "Encontros" })).toBeTruthy();
   });
   it("histórico: navegar empilha, Voltar desempilha e o botão fica desabilitado na tela inicial", async () => {
     await montar(mestre);
