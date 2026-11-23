@@ -329,3 +329,7 @@ Corrigidos (ver `CRIADOR-FICHA-INVENTARIO.md`): `meta` da nota presa à existên
 ### Retomada autônoma — validação de combate (22/11/2026)
 
 Ver [ALPHA-VALIDACAO-COMBATE.md](ALPHA-VALIDACAO-COMBATE.md): correção do build do #106, preservação de edição após quota, testes do adaptador, validação de dados e atualização dos E2E. Branch `fix/alpha-validacao-combate` sobre #106; sem merge, publicação ou banco alterado. Histórico remoto da 0008 foi confirmado nesta leitura; os estados anteriores deste índice são históricos.
+
+### PostgreSQL isolado — combate (22/11/2026)
+
+Branch `test/alpha-rls-combate` sobre #107: 31 testes de RLS/grants/versionamento do rascunho, sete falhas reproduzidas e corrigidas. [Matriz e limites](ALPHA-TESTES-RLS-COMBATE.md). Não é migração oficial; não houve conexão de escrita ao Supabase. JSON também validado no servidor no rascunho; próximo bloqueio: executar contrato via REST/JWT em desenvolvimento, gerar migração oficial com rollback e revisar antes de pedir autorização para produção.
