@@ -116,7 +116,7 @@ describe("fixar e desafixar", () => {
     fireEvent.contextMenu(tabEl("Encontros")); pick("Fechar outras abas normais");
     expect(tabs()).toEqual(["Iniciativa", "Encontros"]);
     fireEvent.contextMenu(tabEl("Iniciativa")); pick("Fechar aba");
-    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
+    expect(tabs()).toEqual(["Encontros"]);
   });
   it("a fixação é salva sem títulos e restaurada ao recarregar", async () => {
     const first = await renderApp();
