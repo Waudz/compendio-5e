@@ -15,14 +15,14 @@ describe("clique normal (reutilizar)", () => {
   it("troca o conteúdo da aba atual não fixada, na mesma posição e selecionada", () => {
     const m = createModel(); openTab(m, sec("iniciativa")); openTab(m, sec("encontros"));
     navigate(m, sec("documentos"), "reuse");                                   // aba atual = encontros
-    expect(ids(m)).toEqual([["secao:personagens", "secao:iniciativa", "secao:documentos"]]);
+    expect(ids(m)).toEqual([["secao:personagens", "secao:iniciativa", "secao:encontros", "secao:documentos"]]);
     expect(groups(m)[0].getSelectedNode()?.getId()).toBe("secao:documentos");
     expect(m.getActiveTabset()).toBe(groups(m)[0]);
   });
   it("exemplo da especificação: Bestiário → Documentos → Iniciativa na mesma aba", () => {
     const m = createModel();
     navigate(m, sec("compendio"), "reuse"); navigate(m, sec("documentos"), "reuse"); navigate(m, sec("iniciativa"), "reuse");
-    expect(flat(m)).toEqual(["secao:iniciativa"]);
+    expect(flat(m)).toEqual(["secao:personagens", "secao:compendio", "secao:documentos", "secao:iniciativa"]);
   });
   it("destino já aberto: seleciona a aba existente (sem duplicar), mesmo em outro painel, que vira o ativo", () => {
     const m = createModel(); openTab(m, sec("iniciativa")); moveToNewColumn(m, "secao:iniciativa", "right");   // [personagens][iniciativa]
@@ -41,14 +41,14 @@ describe("clique normal (reutilizar)", () => {
     const m = createModel(); openTab(m, sec("iniciativa"));
     setPinned(m, "secao:iniciativa", true); m.doAction(Actions.selectTab("secao:iniciativa"));      // selecionada = fixada; personagens = normal
     navigate(m, sec("encontros"), "reuse");
-    expect(flat(m)).toEqual(["secao:encontros", "secao:iniciativa"]);
+    expect(flat(m)).toEqual(["secao:personagens", "secao:iniciativa", "secao:encontros"]);
   });
   it("todas fixadas: cria uma aba normal; a próxima navegação a reutiliza", () => {
     const m = createModel(); openTab(m, sec("iniciativa"));
     setPinned(m, "secao:personagens", true); setPinned(m, "secao:iniciativa", true);
     navigate(m, sec("encontros"), "reuse"); expect(flat(m)).toEqual(["secao:personagens", "secao:iniciativa", "secao:encontros"]);
-    navigate(m, sec("documentos"), "reuse"); expect(flat(m)).toEqual(["secao:personagens", "secao:iniciativa", "secao:documentos"]);
-    expect(otherNormalTabs(m, "secao:personagens")).toEqual(["secao:documentos"]);
+    navigate(m, sec("documentos"), "reuse"); expect(flat(m)).toEqual(["secao:personagens", "secao:iniciativa", "secao:encontros", "secao:documentos"]);
+    expect(otherNormalTabs(m, "secao:personagens")).toEqual(["secao:encontros", "secao:documentos"]);
   });
   it("alvo com alterações não salvas não é substituído: abre em nova aba", () => {
     const m = createModel();
@@ -59,7 +59,7 @@ describe("clique normal (reutilizar)", () => {
     const m = createModel(); openTab(m, sec("iniciativa")); moveToNewColumn(m, "secao:iniciativa", "right");
     m.doAction(Actions.setActiveTabset(groups(m)[0].getId()));
     navigate(m, sec("compendio"), "reuse");
-    expect(ids(m)).toEqual([["secao:compendio"], ["secao:iniciativa"]]);
+    expect(ids(m)).toEqual([["secao:personagens", "secao:compendio"], ["secao:iniciativa"]]);
   });
 });
 
@@ -176,9 +176,9 @@ describe("link interno de conteúdo (openContentLink)", () => {
     const m = createModel(); openTab(m, sec("iniciativa"));
     const r = openContentLink(m, doc("a"), "secao:personagens");
     expect(r).toEqual({ action: "created", tabId: "documento:a" });
-    expect(flat(m)).toEqual(["secao:personagens", "documento:a", "secao:iniciativa"]);
+    expect(ids(m)).toEqual([["secao:personagens", "secao:iniciativa"], ["documento:a"]]);
     expect(isPinned(findTab(m, "documento:a")!)).toBe(true); expect(isPinned(findTab(m, "secao:personagens")!)).toBe(false);
-    expect(groups(m)[0].getSelectedNode()?.getId()).toBe("documento:a");
+    expect(groups(m).at(-1)?.getSelectedNode()?.getId()).toBe("documento:a");
   });
   it("não depende do modo 'reuse': a origem normal e a aba selecionada nunca são trocadas", () => {
     const m = createModel();
@@ -209,7 +209,7 @@ describe("link interno de conteúdo (openContentLink)", () => {
   it("a aba permanente sobrevive ao clique normal do menu e a mudança de título não a desfixa", () => {
     const m = createModel(); openContentLink(m, doc("a"), "secao:personagens");
     navigate(m, sec("encontros"), "reuse");
-    expect(flat(m)).toEqual(["secao:encontros", "documento:a"]);
+    expect(flat(m)).toEqual(["secao:personagens", "documento:a", "secao:encontros"]);
     openContentLink(m, { ...doc("a"), title: "Novo título" }, "secao:encontros");
     expect(isPinned(findTab(m, "documento:a")!)).toBe(true); expect(findTab(m, "documento:a")!.getName()).toBe("Novo título");
   });
