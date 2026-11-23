@@ -50,47 +50,47 @@ const middleClick = (el: Element) => { fireEvent.mouseDown(el, { button: 1 }); a
 describe("menu lateral: gestos (desktop)", () => {
   it("clique normal reutiliza a aba atual; seleciona se o destino já está aberto", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa"));
-    expect(tabs()).toEqual(["Iniciativa"]);
-    fireEvent.click(nav("Encontros"));
-    expect(tabs()).toEqual(["Encontros"]);
-    fireEvent.click(nav("Iniciativa"), { ctrlKey: true });
-    fireEvent.click(nav("Encontros"));                                           // já aberto: seleciona (não duplica nem substitui)
-    expect(tabs()).toEqual(["Encontros", "Iniciativa"]);
+    fireEvent.click(nav("Enciclopédia"));
+    expect(tabs()).toEqual(["Enciclopédia"]);
+    fireEvent.click(nav("Diário"));
+    expect(tabs()).toEqual(["Diário"]);
+    fireEvent.click(nav("Enciclopédia"), { ctrlKey: true });
+    fireEvent.click(nav("Diário"));                                           // já aberto: seleciona (não duplica nem substitui)
+    expect(tabs()).toEqual(["Diário", "Enciclopédia"]);
   });
   it("Ctrl+clique, Cmd+clique e botão do meio abrem nova aba interna", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa"), { ctrlKey: true });
-    fireEvent.click(nav("Encontros"), { metaKey: true });
+    fireEvent.click(nav("Enciclopédia"), { ctrlKey: true });
+    fireEvent.click(nav("Diário"), { metaKey: true });
     middleClick(nav("Documentos"));
-    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros", "Documentos"]);
+    expect(tabs()).toEqual(["Personagens", "Enciclopédia", "Diário", "Documentos"]);
   });
   it("o botão do meio não dispara autoscroll (mousedown cancelado) e Ctrl+clique não segue link nenhum", async () => {
     await renderApp();
-    const prevented = !fireEvent.mouseDown(nav("Iniciativa"), { button: 1 });
+    const prevented = !fireEvent.mouseDown(nav("Enciclopédia"), { button: 1 });
     expect(prevented).toBe(true);
     expect(window.location.pathname).toBe("/");
   });
   it("botão direito: três opções; cada uma faz o que diz", async () => {
     await renderApp();
-    fireEvent.contextMenu(nav("Iniciativa"));
+    fireEvent.contextMenu(nav("Enciclopédia"));
     expect(menuItems()).toEqual(["Abrir nesta aba", "Abrir em nova aba", "Abrir em nova aba fixada"]);
-    pick("Abrir nesta aba"); expect(tabs()).toEqual(["Iniciativa"]);
-    fireEvent.contextMenu(nav("Encontros")); pick("Abrir em nova aba"); expect(tabs()).toEqual(["Iniciativa", "Encontros"]);
+    pick("Abrir nesta aba"); expect(tabs()).toEqual(["Enciclopédia"]);
+    fireEvent.contextMenu(nav("Diário")); pick("Abrir em nova aba"); expect(tabs()).toEqual(["Enciclopédia", "Diário"]);
     fireEvent.contextMenu(nav("Documentos")); pick("Abrir em nova aba fixada");
-    expect(rawTabs()).toEqual(["Iniciativa", "Encontros", "Documentos (fixada)"]);
-    expect(saved().layout.children[0].children.map((t: { id: string; pinned?: boolean }) => [t.id, !!t.pinned])).toEqual([["secao:iniciativa", false], ["secao:encontros", false], ["secao:documentos", true]]);
+    expect(rawTabs()).toEqual(["Enciclopédia", "Diário", "Documentos (fixada)"]);
+    expect(saved().layout.children[0].children.map((t: { id: string; pinned?: boolean }) => [t.id, !!t.pinned])).toEqual([["secao:enciclopedia", false], ["secao:diario", false], ["secao:documentos", true]]);
   });
   it("o menu fecha com Esc e ao clicar fora, e nunca sai da tela", async () => {
     await renderApp();
-    fireEvent.contextMenu(nav("Iniciativa"), { clientX: 5000, clientY: 5000 });
+    fireEvent.contextMenu(nav("Enciclopédia"), { clientX: 5000, clientY: 5000 });
     const m = screen.getByRole("menu"); expect(parseInt(m.style.left, 10)).toBeLessThanOrEqual(window.innerWidth); expect(parseInt(m.style.top, 10)).toBeLessThanOrEqual(window.innerHeight);
     fireEvent.keyDown(window, { key: "Escape" }); expect(screen.queryByRole("menu")).toBeNull();
-    fireEvent.contextMenu(nav("Iniciativa")); fireEvent.pointerDown(document.body); expect(screen.queryByRole("menu")).toBeNull();
+    fireEvent.contextMenu(nav("Enciclopédia")); fireEvent.pointerDown(document.body); expect(screen.queryByRole("menu")).toBeNull();
   });
   it("menu pelo teclado (contextmenu sem coordenadas) abre junto do item", async () => {
     await renderApp();
-    fireEvent.contextMenu(nav("Iniciativa"), { clientX: 0, clientY: 0 });
+    fireEvent.contextMenu(nav("Enciclopédia"), { clientX: 0, clientY: 0 });
     expect(screen.getByRole("menu")).toBeTruthy();
   });
 });
@@ -101,22 +101,22 @@ describe("fixar e desafixar", () => {
     fireEvent.contextMenu(tabEl("Personagens")); pick("Fixar aba");
     expect(rawTabs()).toEqual(["Personagens (fixada)"]);
     expect(document.querySelector(".pin-icon")).toBeTruthy();
-    fireEvent.click(nav("Iniciativa"));                                          // fixada: não substitui, cria aba normal
-    expect(tabs()).toEqual(["Personagens", "Iniciativa"]);
-    fireEvent.click(nav("Encontros"));                                           // a normal é reutilizada
-    expect(tabs()).toEqual(["Personagens", "Encontros"]);
+    fireEvent.click(nav("Enciclopédia"));                                          // fixada: não substitui, cria aba normal
+    expect(tabs()).toEqual(["Personagens", "Enciclopédia"]);
+    fireEvent.click(nav("Diário"));                                           // a normal é reutilizada
+    expect(tabs()).toEqual(["Personagens", "Diário"]);
     fireEvent.contextMenu(tabEl("Personagens")); expect(menuItems()[0]).toBe("Desafixar aba"); pick("Desafixar aba");
-    expect(rawTabs()).toEqual(["Personagens", "Encontros"]);
+    expect(rawTabs()).toEqual(["Personagens", "Diário"]);
     expect(saved().layout.children[0].children.some((t: { pinned?: boolean }) => t.pinned)).toBe(false);
   });
   it("fixada pode ser fechada manualmente; 'fechar outras abas normais' preserva as fixadas", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa"), { ctrlKey: true }); fireEvent.click(nav("Encontros"), { ctrlKey: true }); fireEvent.click(nav("Documentos"), { ctrlKey: true });
-    fireEvent.contextMenu(tabEl("Iniciativa")); pick("Fixar aba");
-    fireEvent.contextMenu(tabEl("Encontros")); pick("Fechar outras abas normais");
-    expect(tabs()).toEqual(["Iniciativa", "Encontros"]);
-    fireEvent.contextMenu(tabEl("Iniciativa")); pick("Fechar aba");
-    expect(tabs()).toEqual(["Encontros"]);
+    fireEvent.click(nav("Enciclopédia"), { ctrlKey: true }); fireEvent.click(nav("Diário"), { ctrlKey: true }); fireEvent.click(nav("Documentos"), { ctrlKey: true });
+    fireEvent.contextMenu(tabEl("Enciclopédia")); pick("Fixar aba");
+    fireEvent.contextMenu(tabEl("Diário")); pick("Fechar outras abas normais");
+    expect(tabs()).toEqual(["Enciclopédia", "Diário"]);
+    fireEvent.contextMenu(tabEl("Enciclopédia")); pick("Fechar aba");
+    expect(tabs()).toEqual(["Diário"]);
   });
   it("a fixação é salva sem títulos e restaurada ao recarregar", async () => {
     const first = await renderApp();
@@ -147,9 +147,9 @@ describe("alterações não salvas", () => {
   it("clique normal não substitui a aba com alterações: abre outra aba", async () => {
     await renderApp(); await abrirDoc("d1");
     fireEvent.change(screen.getByLabelText("Texto d1"), { target: { value: "rascunho" } });
-    fireEvent.click(nav("Iniciativa"));
+    fireEvent.click(nav("Enciclopédia"));
     // a aba com alterações é tratada como a fixada: não é substituída; reutiliza-se outra aba normal e limpa
-    expect(tabs()).toEqual(["Iniciativa", "Resumo da Sessão 3"]);
+    expect(tabs()).toEqual(["Enciclopédia", "Resumo da Sessão 3"]);
     fireEvent.click(tabEl("Resumo da Sessão 3"));
     expect((screen.getByLabelText("Texto d1") as HTMLTextAreaElement).value).toBe("rascunho");
   });

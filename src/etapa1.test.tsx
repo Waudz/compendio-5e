@@ -121,7 +121,7 @@ describe("isolamento dos dados locais entre contas", () => {
 
   it("troca direta (A -> B sem SIGNED_OUT): remonta o app e apaga os dados locais de A", async () => {
     const { auth } = await renderApp();
-    fireEvent.click(nav("Encontros"));
+    fireEvent.click(nav("Diário"));
     fireEvent.click(screen.getByRole("button", { name: "Recolher menu" }));                // estado de interface da conta A
     expect(localStorage.getItem(layoutKey(me.id))).not.toBeNull();
     await auth.emit("SIGNED_IN", { user: other });
