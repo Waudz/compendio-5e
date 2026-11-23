@@ -4,8 +4,8 @@ import { criarApiCombate } from "./combateRemoto";
 import { combateVazio } from "./combate";
 
 function servidor(resposta: unknown, rejeitar = false) {
-  const query = { select: vi.fn(), eq: vi.fn(), insert: vi.fn(), update: vi.fn(), maybeSingle: vi.fn() };
-  for (const metodo of [query.select, query.eq, query.insert, query.update]) metodo.mockReturnValue(query);
+  const query = { select: vi.fn(), eq: vi.fn(), insert: vi.fn(), update: vi.fn(), delete: vi.fn(), maybeSingle: vi.fn() };
+  for (const metodo of [query.select, query.eq, query.insert, query.update, query.delete]) metodo.mockReturnValue(query);
   if (rejeitar) query.maybeSingle.mockRejectedValue(new Error("rede"));
   else query.maybeSingle.mockResolvedValue(resposta);
   const from = vi.fn(() => query);
@@ -50,6 +50,22 @@ describe("adaptador remoto de combate (sem conexão com produção)", () => {
     const s = servidor(linha(version));
     expect(await s.api.carregar("a")).toMatchObject({ ok: false, tipo: "invalido" });
     expect(await s.api.salvar("a", combateVazio(), 0)).toMatchObject({ ok: false });
+  });
+  it("finaliza somente na campanha e versão esperadas, exigindo confirmação do servidor", async () => {
+    const s = servidor({ data: { version: 3 }, error: null });
+    expect(await s.api.finalizar("campanha-a", 3)).toEqual({ ok: true });
+    expect(s.query.delete).toHaveBeenCalledOnce();
+    expect(s.query.eq.mock.calls).toEqual([["campaign_id", "campanha-a"], ["version", 3]]);
+  });
+  it("não considera finalizado quando a linha não existe, a rede falha ou a RLS nega", async () => {
+    expect(await servidor({ data: null, error: null }).api.finalizar("a", 2)).toMatchObject({ ok: false, tipo: "conflito" });
+    expect(await servidor(null, true).api.finalizar("a", 2)).toMatchObject({ ok: false, tipo: "indisponivel" });
+    expect(await servidor({ data: null, error: { code: "42501" } }).api.finalizar("a", 2)).toMatchObject({ ok: false, tipo: "permissao" });
+  });
+  it("não envia exclusão com versão inválida", async () => {
+    const s = servidor({ data: { version: 1 }, error: null });
+    for (const versao of [0, -1, NaN, 1.5]) expect(await s.api.finalizar("a", versao)).toMatchObject({ ok: false, tipo: "invalido" });
+    expect(s.from).not.toHaveBeenCalled();
   });
   it("não confirma versão diferente da gravação", async () => {
     expect(await servidor(linha(1)).api.salvar("a", combateVazio(), 7)).toMatchObject({ ok: false });
