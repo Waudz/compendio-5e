@@ -109,8 +109,8 @@ function Workspace({ userId }: { userId: string }) {
     }
     return prepareMove(model, a);   // recusa/ajusta movimentos (divisão com aba única)
   }, [model, unsaved.api]);
-  // Navegação: clique normal reutiliza a aba atual (se não fixada e sem alterações); "nova aba" preserva as existentes.
-  // Duas portas, nunca confundidas: openMenu (menu lateral, ações administrativas: reutiliza) e openContentLink (links de conteúdo: aba permanente).
+  // Navegação: o menu seleciona uma aba existente ou cria outra, sem substituir conteúdo aberto.
+  // Duas portas: openMenu preserva as abas; openContentLink abre consulta no grupo mais à direita (até dois grupos automáticos).
   const openMenu = useCallback((s: TabSpec, mode: NavMode = "new") => { navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api]);
   const openContentLink = useCallback((s: TabSpec, originTabId?: string) => { openContent(model, s, originTabId, mobile); onModelChange(model); }, [model, onModelChange, mobile]);
   // O histórico do navegador acompanha a seleção, não recria nem apaga abas.
