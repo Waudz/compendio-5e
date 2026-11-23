@@ -61,7 +61,7 @@ function ErroArmazenamento({ onTentar, onDescartar, o }: { onTentar: () => void;
 // ---------------------------------------------------------------- Iniciativa
 export function IniciativaPanel() {
   const { userId, campaignId, campanha, podeGerenciar } = useEscopo();
-  const { estado, gravar, tentar, descartar } = useArmazenado<EstadoCombate>(userId && campaignId ? chaveCombate(userId, campaignId) : null, lerCombate);
+  const { estado, gravar, tentar, descartar } = useArmazenado<EstadoCombate>(podeGerenciar && userId && campaignId ? chaveCombate(userId, campaignId) : null, lerCombate);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   if (!userId || !campaignId) return <SemCampanha titulo="Iniciativa"/>;
   if (!podeGerenciar) return <AcessoRestrito titulo="Iniciativa"/>;
@@ -116,7 +116,7 @@ function Linha({ c, atual, combate, muda }: { c: EstadoCombate["combatentes"][nu
 // ---------------------------------------------------------------- Encontros
 export function EncontrosPanel() {
   const { userId, campaignId, campanha } = useEscopo();
-  const { estado, gravar, tentar, descartar } = useArmazenado<Encontro[]>(userId && campaignId ? chaveEncontros(userId, campaignId) : null, lerEncontros);
+  const { estado, gravar, tentar, descartar } = useArmazenado<Encontro[]>(podeGerenciar && userId && campaignId ? chaveEncontros(userId, campaignId) : null, lerEncontros);
   const [nome, setNome] = useState(""), [aviso, setAviso] = useState<string | null>(null);
   if (!userId || !campaignId) return <SemCampanha titulo="Encontros"/>;
   if (!podeGerenciar) return <AcessoRestrito titulo="Encontros"/>;
