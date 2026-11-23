@@ -187,9 +187,8 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await expectNoHorizontalOverflow(page);
   await expectCreatorInsideViewport(page);
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: 'Salvar', exact: true }),
-  ).toBeDisabled();
+  await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Editar personagem', exact: true })).toBeVisible();
   await page.reload();
   await navigate(page, 'Personagens');
   await page
@@ -198,6 +197,8 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
       exact: true,
     })
     .click();
+  await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
+  await page.getByRole('button', { name: 'Editar personagem', exact: true }).click();
   await expect(nameField(page)).toHaveValue('Maga 2014');
   await expect(
     page.getByRole('combobox', { name: 'Classe', exact: true }),
