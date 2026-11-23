@@ -43,7 +43,13 @@ async function abrirExistente() {
   const menu = within(await screen.findByRole('navigation', { name: 'Menu principal' }));
   fireEvent.click(menu.getByRole('button', { name: 'Personagens' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Abrir ficha guiada Lira' }));
-  const nome = await screen.findByLabelText('Nome do personagem') as HTMLInputElement;
+  const nome = await waitFor(() => {
+    const campo = screen.queryByLabelText('Nome do personagem') as HTMLInputElement | null;
+    if (campo) return campo;
+    const editar = screen.queryByRole('button', { name: 'Editar personagem' });
+    if (editar) fireEvent.click(editar);
+    return screen.getByLabelText('Nome do personagem') as HTMLInputElement;
+  });
   await screen.findByRole('combobox', { name: 'Classe' });
   return { banco, api, nome, id: criado.data.id };
 }

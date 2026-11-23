@@ -34,3 +34,9 @@ Resultado: **3 aprovados, 0 falhas**, um arquivo; 7,30 s no Windows. `--configLo
 ## Trabalho paralelo / PR #97
 
 Sem dependência de código não integrado: casos executáveis sobre a main. O HEAD #97 consultado foi `0338919e8ef95ce2b866ff782ee0dcdb17008442`. A nova ficha em modo leitura, o botão Editar personagem e a preservação de edições feitas *durante* uma gravação são trabalho do #97 e não são apresentados como testados aqui. Quando esse fluxo entrar na main, o helper de abertura deste teste precisará passar pelo botão de edição, se o contrato visual mudar. As asserções de persistência/identidade não dependem desses detalhes de navegação. Nenhum arquivo da implementação do #97 ou do Claude foi modificado.
+
+## Compatibilidade com a ficha de leitura do PR #97 — 22/11/2026
+
+A validação conjunta com #97 reproduziu três falhas: o helper aguardava diretamente o campo de nome, mas a ficha salva abria corretamente em leitura. O helper agora aguarda o campo ou aciona Editar personagem quando disponível. Nenhuma asserção de confirmação de gravação, cancelamento de classe, identidade ou instâncias de inventário foi removida.
+
+Verificação em duas bases: os três testes passam na branch original do #102 e os mesmos três passam na integração com #97, #103–#109 e #110–#112. Build da branch original aprovado. Sem alteração de implementação, dados reais ou banco. CI do novo HEAD ainda deve ser conferido.
