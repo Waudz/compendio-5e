@@ -66,7 +66,7 @@ describe("ocultar no celular (App)", () => {
   it("foco em controle traz os controles de volta", async () => {
     await montar(); const el = scroller(); scrollTo(el, 120); scrollTo(el, 300);
     expect(app().classList.contains("chrome-hidden")).toBe(true);
-    act(() => { fireEvent.focusIn(screen.getAllByRole("button", { name: "Iniciativa" })[0]); });
+    act(() => { fireEvent.focusIn(screen.getAllByRole("button", { name: "Anotações" })[0]); });
     expect(app().classList.contains("chrome-hidden")).toBe(false);
   });
 

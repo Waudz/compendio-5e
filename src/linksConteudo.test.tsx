@@ -58,8 +58,8 @@ describe("link de conteúdo (desktop)", () => {
   it("o clique normal do menu depois do link reutiliza a aba normal e preserva a permanente", async () => {
     await renderApp();
     link();                                                                  // seleciona a nova aba (fixada)
-    fireEvent.click(nav("Iniciativa"));                                      // a fixada não é substituída: troca a aba normal
-    expect(tabs()).toEqual(["Iniciativa", "Resumo da Sessão 3"]);
+    fireEvent.click(nav("Enciclopédia"));                                      // a fixada não é substituída: troca a aba normal
+    expect(tabs()).toEqual(["Enciclopédia", "Resumo da Sessão 3"]);
     expect(rawTabs()[1]).toBe("Resumo da Sessão 3 (fixada)");
   });
 
@@ -88,13 +88,13 @@ describe("link de conteúdo (desktop)", () => {
 
   it("com dois painéis, abre no painel da aba de origem e não mexe no outro", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa"), { ctrlKey: true });
-    fireEvent.contextMenu(tabEl("Iniciativa")); pick("Abrir em nova coluna à direita");
-    expect(saved().layout.children.map((g: { children: { id: string }[] }) => g.children.map(t => t.id))).toEqual([["secao:personagens"], ["secao:iniciativa"]]);
-    link("link d1", 1);                                                     // botão do painel da direita (origem: Iniciativa)
+    fireEvent.click(nav("Enciclopédia"), { ctrlKey: true });
+    fireEvent.contextMenu(tabEl("Enciclopédia")); pick("Abrir em nova coluna à direita");
+    expect(saved().layout.children.map((g: { children: { id: string }[] }) => g.children.map(t => t.id))).toEqual([["secao:personagens"], ["secao:enciclopedia"]]);
+    link("link d1", 1);                                                     // botão do painel da direita (origem: Enciclopédia)
     const groups = saved().layout.children as { children: { id: string; pinned?: boolean }[] }[];
     expect(groups[0].children.map(t => t.id)).toEqual(["secao:personagens"]);
-    expect(groups[1].children.map(t => t.id)).toEqual(["secao:iniciativa", "documento:d1"]);
+    expect(groups[1].children.map(t => t.id)).toEqual(["secao:enciclopedia", "documento:d1"]);
     expect(groups[1].children[1].pinned).toBe(true);
     link("link d1", 0);                                                     // do outro painel: seleciona a existente, não cria cópia
     expect(JSON.stringify(saved().layout)).toMatch(/documento:d1/); expect((JSON.stringify(saved().layout).match(/documento:d1/g) ?? []).length).toBe(1);
@@ -102,13 +102,13 @@ describe("link de conteúdo (desktop)", () => {
 
   it("com três painéis o registro continua único e vai para o painel de quem clicou", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa"), { ctrlKey: true }); fireEvent.click(nav("Encontros"), { ctrlKey: true });
-    fireEvent.contextMenu(tabEl("Iniciativa")); pick("Abrir em nova coluna à direita");
-    fireEvent.contextMenu(tabEl("Encontros")); pick("Abrir em nova coluna à direita");
+    fireEvent.click(nav("Enciclopédia"), { ctrlKey: true }); fireEvent.click(nav("Diário"), { ctrlKey: true });
+    fireEvent.contextMenu(tabEl("Enciclopédia")); pick("Abrir em nova coluna à direita");
+    fireEvent.contextMenu(tabEl("Diário")); pick("Abrir em nova coluna à direita");
     expect(saved().layout.children).toHaveLength(3);
     link("link d2", 2);
     const groups = saved().layout.children as { children: { id: string }[] }[];
-    expect(groups.map(g => g.children.map(t => t.id))).toEqual([["secao:personagens"], ["secao:iniciativa"], ["secao:encontros", "documento:d2"]]);
+    expect(groups.map(g => g.children.map(t => t.id))).toEqual([["secao:personagens"], ["secao:enciclopedia"], ["secao:diario", "documento:d2"]]);
   });
 
   it("a marca de permanente é salva sem títulos e restaurada ao recarregar", async () => {

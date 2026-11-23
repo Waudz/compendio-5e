@@ -26,8 +26,8 @@ const saved = () => JSON.parse(localStorage.getItem(key)!);
 describe("workspace (interface)", () => {
   it("Ctrl+clique abre seções em novas abas, sem substituir e sem duplicar", async () => {
     await renderApp();
-    more("Iniciativa"); more("Encontros"); more("Iniciativa");
-    expect(tabNames()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
+    more("Enciclopédia"); more("Diário"); more("Enciclopédia");
+    expect(tabNames()).toEqual(["Personagens", "Enciclopédia", "Diário"]);
   });
 
   it("abre ficha por link de conteúdo (id ficha:ID, aba permanente, sem duplicar) e persiste o layout", async () => {
@@ -59,8 +59,8 @@ describe("workspace (interface)", () => {
 
   it("menu de contexto: mover para nova coluna e fechar aba", async () => {
     await renderApp();
-    more("Iniciativa");
-    const tab = screen.getByText("Iniciativa", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" });
+    more("Enciclopédia");
+    const tab = screen.getByText("Enciclopédia", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" });
     fireEvent.contextMenu(tab);
     const menu = screen.getByRole("menu");
     expect(within(menu).getAllByRole("menuitem").map(i => i.textContent)).toEqual([
@@ -68,7 +68,7 @@ describe("workspace (interface)", () => {
     fireEvent.click(within(menu).getByRole("menuitem", { name: "Abrir em nova coluna à direita" }));
     expect(screen.queryByRole("menu")).toBeNull();
     expect(saved().layout.children).toHaveLength(2);
-    fireEvent.contextMenu(screen.getByText("Iniciativa", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" }));
+    fireEvent.contextMenu(screen.getByText("Enciclopédia", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Fechar coluna" }));
     expect(saved().layout.children).toHaveLength(1);
     expect(tabNames()).toEqual(["Personagens"]);
@@ -82,8 +82,8 @@ describe("workspace (interface)", () => {
     fireEvent.click(item);
     const groupsSaved = () => saved().layout.children as { children: { id: string }[] }[];
     expect(groupsSaved().map(g => g.children.length).sort()).toEqual([0, 1]);   // painel vazio persistido
-    fireEvent.click(nav("Iniciativa"));                                           // o painel vazio é o ativo: recebe a seção
-    expect(groupsSaved().map(g => g.children.map(t => t.id))).toEqual([["secao:iniciativa"], ["secao:personagens"]]);
+    fireEvent.click(nav("Enciclopédia"));                                           // o painel vazio é o ativo: recebe a seção
+    expect(groupsSaved().map(g => g.children.map(t => t.id))).toEqual([["secao:enciclopedia"], ["secao:personagens"]]);
   });
 
   it("menu de contexto fecha com Escape", async () => {
@@ -109,10 +109,10 @@ describe("workspace (interface)", () => {
     expect(screen.queryByRole("tablist")).toBeNull();                                            // sem abas nem colunas no celular
     expect(document.querySelector(".mobile-simple")).toBeTruthy();
     fireEvent.click(within(screen.getByRole("navigation", { name: "Navegação mobile" })).getByRole("button", { name: "Menu" }));
-    fireEvent.click(within(await screen.findByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: "Iniciativa" }));
-    expect(await screen.findByRole("heading", { name: "Iniciativa" })).toBeTruthy();
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: "Enciclopédia" }));
+    expect(await screen.findByRole("heading", { name: "Enciclopedia" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Voltar" }));                             // histórico próprio (botão Voltar)
-    await waitFor(() => expect(screen.queryByRole("heading", { name: "Iniciativa" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Enciclopedia" })).toBeNull());
     expect((screen.getByRole("button", { name: "Voltar" }) as HTMLButtonElement).disabled).toBe(true);   // voltou à tela inicial
     expect(screen.queryByRole("tablist")).toBeNull();
   });

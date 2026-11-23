@@ -1,5 +1,8 @@
 # Compêndio 5e 2.0
 
+Correção de navegação da Alpha em revisão: [atalhos de Iniciativa/Encontros exclusivos do mestre](docs/ALPHA-MENU-MESTRE.md). Sem publicação nesta etapa.
+
+
 ## Atualização normativa — 22/11/2026
 
 Consultar [DEC-20261122-A a F](DECISOES-E-ARQUITETURA.md#decisões-vigentes--22112026-dec-20261122-a-a-f). As decisões novas substituem as propostas históricas incompatíveis neste arquivo: campanha obrigatória, beta fechado, sem biblioteca pessoal ou loot distribuído, inventário com pesquisa e criação rápida, preservação do Assimilação e PWA posterior. Não tratar como implementado.
