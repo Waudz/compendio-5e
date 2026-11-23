@@ -17,7 +17,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     <div className="notice err" role="alert">O login não está configurado neste ambiente (faltam <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>). O aplicativo exige conta e não abre sem ele.</div></div></Screen>;
   if (status === "loading") return <Screen><p role="status">Carregando sessão…</p></Screen>;
   if (status === "signedOut") return <Screen>
-    {hasInvite && <div className="notice ok" role="status">Você recebeu um convite de campanha. Entre ou crie uma conta; o convite será mantido e aceito em seguida.</div>}
+    {hasInvite && <div className="notice ok" role="status">Você recebeu um convite de campanha. Entre com sua conta autorizada; o convite será mantido e aceito em seguida. Um convite de campanha não cria uma conta.</div>}
     <AuthForms/></Screen>;
   if (recovery) return <Screen><div className="auth"><h1>Definir nova senha</h1><NewPasswordForm primary/></div></Screen>;
   return <>{children}</>;
