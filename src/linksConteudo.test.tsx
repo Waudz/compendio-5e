@@ -59,7 +59,7 @@ describe("link de conteúdo (desktop)", () => {
     await renderApp();
     link();                                                                  // seleciona a nova aba (fixada)
     fireEvent.click(nav("Iniciativa"));                                      // a fixada não é substituída: troca a aba normal
-    expect(tabs()).toEqual(["Iniciativa", "Resumo da Sessão 3"]);
+    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Resumo da Sessão 3"]);
     expect(rawTabs()[1]).toBe("Resumo da Sessão 3 (fixada)");
   });
 
@@ -81,7 +81,7 @@ describe("link de conteúdo (desktop)", () => {
     fireEvent.click(tabEl("Personagens"));
     link("link d2");
     expect(screen.queryByRole("alertdialog")).toBeNull();
-    expect(tabs()).toEqual(["Personagens", "Outro doc", "Resumo da Sessão 3"]);   // ao lado da origem
+    expect(tabs()).toEqual(["Personagens", "Resumo da Sessão 3", "Outro doc"]);   // ao lado da origem
     fireEvent.click(tabEl("Resumo da Sessão 3"));
     expect((screen.getByLabelText("Texto d1") as HTMLTextAreaElement).value).toBe("rascunho");
   });
@@ -114,7 +114,7 @@ describe("link de conteúdo (desktop)", () => {
   it("a marca de permanente é salva sem títulos e restaurada ao recarregar", async () => {
     const first = await renderApp();
     link();
-    expect(saved().layout.children[0].children.find((t: { id: string }) => t.id === "documento:d1").pinned).toBe(true);
+    expect(saved().layout.children[1].children.find((t: { id: string }) => t.id === "documento:d1").pinned).toBe(true);
     expect(localStorage.getItem(key)).not.toMatch(/"name"|Resumo/);
     first.unmount();
     await renderApp();
