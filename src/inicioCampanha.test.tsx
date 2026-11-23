@@ -167,8 +167,10 @@ describe("ordem do menu por papel", () => {
     expect(nomes(desktopSections("mestre"))).toEqual(["Anotações", "Diário", "Iniciativa", "Encontros", "Personagens", "Enciclopédia", "Documentos", "Compêndio"]));
   it("jogador: Personagens, Diário, Enciclopédia, Documentos, Compêndio", () =>
     expect(nomes(desktopSections("jogador"))).toEqual(["Anotações", "Personagens", "Diário", "Enciclopédia", "Documentos", "Compêndio"]));
-  it("sem campanha ativa mantém as seções comuns; Planejamento nunca aparece para quem não é mestre", () => {
-    expect(nomes(desktopSections(null))).toContain("Iniciativa"); expect(nomes(visibleSections(false))).toContain("Anotações");
+  it("sem campanha ativa mantém seções comuns sem iniciativa e encontros", () => {
+    expect(nomes(desktopSections(null))).not.toContain("Iniciativa");
+    expect(nomes(desktopSections(null))).not.toContain("Encontros");
+    expect(nomes(visibleSections(false))).toContain("Anotações");
   });
 });
 

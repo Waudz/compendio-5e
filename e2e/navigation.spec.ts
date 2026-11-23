@@ -32,13 +32,11 @@ test('mestre usa iniciativa local, preserva PV e rodada ao recarregar', async ({
   await expect(page.getByText('Rodada 2', { exact: true })).toBeVisible();
 });
 
-test('jogador não acessa o conteúdo de iniciativa', async ({ page }) => {
+test('jogador não recebe atalhos para iniciativa e encontros', async ({ page }) => {
   await openDemo(page, 'jogador');
-  if ((page.viewportSize()?.width ?? 1440) > 700) {
-    await expect(page.getByRole('navigation', { name: 'Menu principal' }).getByRole('button', { name: 'Iniciativa', exact: true })).toHaveCount(0);
-    return;
-  }
-  await navigate(page, 'Iniciativa');
-  await expect(page.getByText('Somente o mestre da campanha pode acessar este módulo.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('form', { name: 'Adicionar combatente' })).toHaveCount(0);
+  const mobile = (page.viewportSize()?.width ?? 1440) <= 700;
+  if (mobile) await page.getByRole('button', { name: 'Abrir menu', exact: true }).click();
+  const menu = mobile ? page.getByRole('dialog', { name: 'Menu de navegação' }) : page.getByRole('navigation', { name: 'Menu principal' });
+  await expect(menu.getByRole('button', { name: 'Iniciativa', exact: true })).toHaveCount(0);
+  await expect(menu.getByRole('button', { name: 'Encontros', exact: true })).toHaveCount(0);
 });
