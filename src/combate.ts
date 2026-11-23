@@ -25,8 +25,10 @@ export function adicionar(e: EstadoCombate, c: Omit<Combatente, "id"> & { id?: s
 export function remover(e: EstadoCombate, id: string): EstadoCombate {
   const ordem = ordenar(e.combatentes), i = ordem.findIndex(c => c.id === id); if (i < 0) return e;
   const resto = ordem.filter(c => c.id !== id);
-  const turno = e.turno !== id ? e.turno : resto.length ? resto[Math.min(i, resto.length - 1)].id : null;   // removido o do turno: passa ao próximo da ordem
-  return { ...e, combatentes: resto, turno };
+  const turno = e.turno !== id ? e.turno : resto.length ? resto[i % resto.length].id : null;
+  // Retirar o último no turno consome esse turno e volta ao primeiro da próxima rodada.
+  const voltaAoInicio = e.turno === id && resto.length > 0 && i === ordem.length - 1;
+  return { ...e, combatentes: resto, turno, rodada: e.rodada + (voltaAoInicio ? 1 : 0) };
 }
 export function definirIniciativa(e: EstadoCombate, id: string, valor: number): EstadoCombate {
   if (!Number.isFinite(valor)) return e;

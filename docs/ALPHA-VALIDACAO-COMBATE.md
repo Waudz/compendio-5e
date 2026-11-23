@@ -29,3 +29,9 @@ Referências: [RLS sem política](https://supabase.com/docs/guides/database/data
 ## Próxima etapa
 
 Testar o SQL de combate em PostgreSQL isolado, incluindo RLS entre mestre/jogador/campanhas, grants, versão e conteúdo obrigatório. Não ativar o adaptador nem importar armazenamento local até estratégia de recuperação e migração revisadas e autorizadas. Validação manual em celular real e bloqueio de cadastros no servidor continuam pendentes.
+
+## Continuação — remoção de quem está no último turno (22/11/2026)
+
+Reproduzido defeito funcional: remover o último combatente da ordem durante seu turno selecionava o anterior e não avançava a rodada. Corrigida a transição para o primeiro restante da próxima rodada. Remover antes/depois do combatente atual preserva seu ID e a rodada; remover o único mantém turno nulo.
+
+Dois testes de domínio falharam antes da correção. Adicionados três testes de domínio e um de interface com remontagem para comprovar turno/rodada persistidos, sem repetir o turno anterior. Os 51 testes focados de combate/adaptador/tela passaram; build aprovado. Aguardar suíte completa e CI do novo HEAD do #107. Mudança em código experimental, sem merge/deploy, conexão de escrita ao Supabase ou alteração de combates reais.

@@ -50,3 +50,21 @@ describe("limites dos dados externos", () => {
     expect(adicionar(e, { nome: "Inválido", iniciativa: 1, lado: "inimigo", pvMax: Infinity })).toBe(e);
   });
 });
+
+describe("remoção durante a ordem de iniciativa", () => {
+  it.each([1, 4])("remover o último no turno avança ao primeiro e inicia rodada seguinte a %s", rodada => {
+    const e = monta();
+    const ultimo = e.combatentes[e.combatentes.length - 1];
+    const r = remover({ ...e, turno: ultimo.id, rodada }, ultimo.id);
+    expect(r.turno).toBe(e.combatentes[0].id);
+    expect(r.rodada).toBe(rodada + 1);
+  });
+  it("remover antes ou depois de quem está no turno não avança rodada nem troca seu ID", () => {
+    const e = monta(), atual = e.combatentes[1];
+    for (const c of [e.combatentes[0], e.combatentes[2]]) {
+      const r = remover({ ...e, turno: atual.id, rodada: 3 }, c.id);
+      expect(r.turno).toBe(atual.id);
+      expect(r.rodada).toBe(3);
+    }
+  });
+});

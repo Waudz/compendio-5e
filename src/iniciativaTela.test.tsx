@@ -148,3 +148,23 @@ describe("proteção de navegação com gravação pendente", () => {
     await waitFor(() => expect(register).toHaveBeenLastCalledWith("secao:iniciativa", expect.objectContaining({ dirty: false })));
   });
 });
+
+
+describe("remoção do último turno na interface", () => {
+  it("passa ao primeiro da rodada seguinte e persiste sem repetir turno anterior", async () => {
+    const { unmount } = render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
+    preencher("Nome", "Primeiro"); preencher("Iniciativa", "20");
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    preencher("Nome", "Último"); preencher("Iniciativa", "10");
+    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Próximo turno" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remover Último" }));
+    expect(screen.getByText("Rodada 2")).toBeTruthy();
+    const linha = screen.getByText("Primeiro").closest("li")!;
+    expect(linha.getAttribute("aria-current")).toBe("true");
+    unmount(); render(<IniciativaPanel/>);
+    expect(await screen.findByText("Rodada 2")).toBeTruthy();
+    expect(screen.queryByText("Último")).toBeNull();
+    expect(screen.getByText("Primeiro").closest("li")!.getAttribute("aria-current")).toBe("true");
+  });
+});
