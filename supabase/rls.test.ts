@@ -229,7 +229,7 @@ describe("auditoria estrutural", () => {
   });
   it("RLS está ativa em todas as tabelas do schema public", async () => {
     const r = await db.query<{ relname: string; relrowsecurity: boolean }>("select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'");
-    expect(r.rows.length).toBe(7);   // + character_sheets (0007)
+    expect(r.rows.length).toBe(9);   // + character_sheets (0007), campaign_combats (0009), campaign_encounters (0010)
     expect(r.rows.filter(t => !t.relrowsecurity)).toEqual([]);
   });
 });

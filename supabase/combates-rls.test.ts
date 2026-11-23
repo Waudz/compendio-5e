@@ -36,7 +36,7 @@ beforeAll(async () => {
   for (let i = 1; i <= 4; i++) await db.query("insert into auth.users values ($1,$2)", [uid(i), `teste${i}@example.invalid`]);
   await db.query("insert into public.campaigns(id,name,created_by) values ($1,'A',$2),($3,'B',$4)", [a, mestreA, b, mestreB]);
   await db.query("insert into public.campaign_members(campaign_id,user_id,role) values ($1,$2,'mestre'),($1,$3,'jogador'),($4,$5,'mestre')", [a, mestreA, jogadorA, b, mestreB]);
-  await db.exec(readFileSync(join(__dirname, "../docs/sql/alpha-campaign-combats-DRAFT.sql"), "utf8"));
+  await db.exec(readFileSync(join(__dirname, "migrations/0009_campaign_combats.sql"), "utf8"));
 });
 beforeEach(async () => {
   await db.exec("truncate public.campaign_combats"); // apenas PGlite descartável
