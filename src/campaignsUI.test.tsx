@@ -255,18 +255,18 @@ describe("convites por link", () => {
     expect(screen.queryByText("Mesa do Caio")).toBeNull();
   });
 
-  it("e-mails de confirmação e de recuperação preservam o convite no redirecionamento", async () => {
+  it("cadastro fechado e recuperação preservam o convite sem criar contas", async () => {
     withInvite();
     const { createAuthApi } = await import("./auth");
     const signUp = vi.fn(async () => ({ data: { user: { identities: [{}] }, session: null }, error: null }));
     const resetPasswordForEmail = vi.fn(async () => ({ data: {}, error: null }));
     const api = createAuthApi({ auth: { signUp, resetPasswordForEmail } } as unknown as SupabaseClient);
     await api.signUp("a@b.co", "12345678"); await api.requestReset("a@b.co");
-    expect((signUp.mock.calls[0] as unknown as [{ options: { emailRedirectTo: string } }])[0].options.emailRedirectTo).toMatch(/\?convite=ABCDEFGHIJKL$/);
+    expect(signUp).not.toHaveBeenCalled();
     expect((resetPasswordForEmail.mock.calls[0] as unknown as [string, { redirectTo: string }])[1].redirectTo).toMatch(/\?convite=ABCDEFGHIJKL$/);
     withInvite("x; drop table");   // valor inválido nunca é propagado
-    await api.signUp("a@b.co", "12345678");
-    expect((signUp.mock.calls[1] as unknown as [{ options: { emailRedirectTo: string } }])[0].options.emailRedirectTo).not.toMatch(/convite/);
+    await api.requestReset("a@b.co");
+    expect((resetPasswordForEmail.mock.calls[1] as unknown as [string, { redirectTo: string }])[1].redirectTo).not.toMatch(/convite/);
   });
 });
 
