@@ -16,7 +16,9 @@ create table public.campaign_combats (
 
 alter table public.campaign_combats enable row level security;
 revoke all on table public.campaign_combats from public, anon, authenticated;
-grant select, insert, update on table public.campaign_combats to authenticated;
+grant select, insert on table public.campaign_combats to authenticated;
+-- Impede que clientes alterem campaign_id ou timestamps via UPDATE.
+grant update (state, version) on table public.campaign_combats to authenticated;
 
 create policy campaign_combats_master_select on public.campaign_combats
   for select to authenticated using ((select auth.uid()) is not null and public.is_master(campaign_id));
