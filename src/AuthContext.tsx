@@ -23,6 +23,7 @@ export function AuthProvider({ client = supabase, children }: { client?: Supabas
   useEffect(() => {
     if (!client) return;
     let alive = true;
+    let authEventReceived = false;
     const apply = (u: User | null) => {
       // Saída (ou troca direta de conta): tudo que era local da conta anterior é apagado do aparelho.
       if (lastUserId.current && lastUserId.current !== (u?.id ?? null)) clearUserLocalData(lastUserId.current);
@@ -30,12 +31,14 @@ export function AuthProvider({ client = supabase, children }: { client?: Supabas
       setUser(u); setStatus(u ? "authenticated" : "signedOut");
     };
     client.auth.getSession().then(({ data, error }) => {
-      if (!alive) return;
+      if (!alive || authEventReceived) return;
       if (error) setLoadError(traduzirErro(error));
       apply(data?.session?.user ?? null);
-    }).catch(e => { if (alive) { setLoadError(traduzirErro(e)); apply(null); } });
+    }).catch(e => { if (alive && !authEventReceived) { setLoadError(traduzirErro(e)); apply(null); } });
     const { data } = client.auth.onAuthStateChange((event, session) => {
       if (!alive) return;
+      authEventReceived = true;
+      setLoadError(null);
       if (event === "PASSWORD_RECOVERY") setRecovery(true);
       if (event === "SIGNED_OUT") setRecovery(false);
       apply(session?.user ?? null);
