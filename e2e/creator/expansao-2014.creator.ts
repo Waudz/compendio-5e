@@ -121,13 +121,13 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await checks(page.getByRole('group', { name: /^Magias preparadas/ }), 6);
   await page
     .getByRole('button', {
-      name: 'Aplicar equipamento da origem e 15 po',
+      name: 'Adicionar itens da origem e 15 PO ao inventário',
       exact: true,
     })
     .click();
   await page
     .getByRole('button', {
-      name: 'Aplicar equipamento da origem e 15 po',
+      name: 'Atualizar símbolo sagrado da origem',
       exact: true,
     })
     .click();

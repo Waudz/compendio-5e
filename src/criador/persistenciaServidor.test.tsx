@@ -40,13 +40,15 @@ const montar = async (user: User = me, layoutNovo = true) => {
 };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole("button", { name: "Personagens" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Personagens" })); };
 const nomeInput = async () => {
-  const campo = screen.queryByLabelText("Nome do personagem") as HTMLInputElement | null;
-  if (campo) return campo;
-  // Uma ficha salva pode abrir em leitura. Não confundir com um novo personagem
-  // que ainda está carregando ou com uma falha de acesso ao servidor.
-  const editar = screen.queryByRole("button", { name: "Editar personagem" });
-  if (editar) fireEvent.click(editar);
-  return screen.findByLabelText("Nome do personagem") as Promise<HTMLInputElement>;
+  // Aguarda tanto o carregamento quanto a leitura da ficha salva; a opção Editar
+  // pode surgir depois do primeiro render e deve ser acionada quando disponível.
+  return waitFor(() => {
+    const campo = screen.queryByLabelText("Nome do personagem") as HTMLInputElement | null;
+    if (campo) return campo;
+    const editar = screen.queryByRole("button", { name: "Editar personagem" });
+    if (editar) fireEvent.click(editar);
+    return screen.getByLabelText("Nome do personagem") as HTMLInputElement;
+  });
 };
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar personagem/ })); return nomeInput(); };
 const preencher = async (nome: string) => {
