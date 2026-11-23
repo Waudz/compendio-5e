@@ -272,3 +272,7 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Encontros preparados/salvos permanecem guardados** para reutilização em combates futuros, mesmo depois de finalizar um combate. A exclusão de um encontro deve ser uma ação separada e explícita do mestre.
 - Os backups de combates antigos locais, preservados durante a migração inicial, não são apagados automaticamente pela finalização de um combate remoto.
 - Estado atual: iniciativa/encontros locais integrados na main; adaptador remoto não conectado; migração de combate não aplicada em produção. Esta seção é especificação, **não** funcionalidade entregue.
+
+### Premissa de dados da Alpha — confirmação do usuário (23/11/2026)
+
+O usuário informa que **não há dados reais de uso no novo site além do conteúdo importado do sistema anterior**. Não construir uma migração complexa de combates locais de usuários como bloqueador do lançamento. Para o novo fluxo, criar combates diretamente na nuvem; preservar os catálogos e demais dados importados do legado. Dados de teste só podem ser descartados após identificação inequívoca de que são sintéticos; não presumir que toda linha do Supabase é descartável, nem executar limpeza de produção sem verificação e autorização. A segurança/RLS e a persistência entre dispositivos continuam obrigatórias.
