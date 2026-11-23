@@ -14,6 +14,7 @@ export function traduzirErro(e: unknown): string {
   if (code === "invalid_credentials" || msg.includes("invalid login")) return "E-mail ou senha incorretos.";
   if (code === "email_not_confirmed" || msg.includes("not confirmed")) return "Confirme seu e-mail antes de entrar. Verifique a caixa de entrada.";
   if (code === "user_already_exists" || msg.includes("already registered")) return "Este e-mail já está cadastrado. Tente entrar ou recuperar a senha.";
+  if (code === "signup_disabled") return "O cadastro está fechado. O acesso é liberado pela administração.";
   if (code === "weak_password") return "Senha fraca. Use uma senha mais longa e variada.";
   if (code === "same_password") return "A nova senha deve ser diferente da atual.";
   if (code === "over_request_rate_limit" || code === "over_email_send_rate_limit" || err?.status === 429) return "Muitas tentativas. Aguarde um pouco e tente de novo.";
@@ -46,13 +47,8 @@ export function createAuthApi(client: SupabaseClient): AuthApi {
       const { error } = await auth.signInWithPassword({ email: email.trim(), password });
       return error ? { ok: false, error: traduzirErro(error) } : { ok: true };
     }),
-    signUp: (email, password) => guard(async () => {
-      const { data, error } = await auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: redirect() } });
-      if (error) return { ok: false, error: traduzirErro(error) };
-      // E-mail já confirmado: o Supabase devolve usuário "ofuscado" sem identidades.
-      if (data.user && data.user.identities?.length === 0) return { ok: false, error: traduzirErro({ code: "user_already_exists" }) };
-      return { ok: true, message: data.session ? "Conta criada." : "Conta criada. Enviamos um link de confirmação para o seu e-mail." };
-    }),
+    // Mantido no contrato para clientes antigos; não cria contas nesta Alpha fechada.
+    signUp: async () => ({ ok: false, error: "O cadastro está fechado. O acesso é liberado pela administração." }),
     signOut: () => guard(async () => {
       const { error } = await auth.signOut();
       return error ? { ok: false, error: traduzirErro(error) } : { ok: true };

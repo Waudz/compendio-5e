@@ -16,6 +16,10 @@ Consultar [DEC-20261122-A a F](../DECISOES-E-ARQUITETURA.md#decisões-vigentes--
 5. Inspecionar os arquivos e testes envolvidos na tarefa; executar build, testes e E2E quando disponíveis. Registrar o que **foi executado** e o que **não foi**.
 6. Desenvolver uma fatia vertical pequena, atualizar registro de decisões e status, atualizar README e registrar commits, limitações e próximo passo. **Não mesclar PR, publicar ou aplicar migração sem autorização explícita.**
 
+## Retomada de autenticação — 22/11/2026
+
+[Cliente de acesso fechado e ordem da sessão](ALPHA-ACESSO-FECHADO.md): branch `fix/alpha-acesso-fechado`, base main `ebab8d4`. Signup removido da interface e bloqueado no adaptador; login/recuperação preservados; resposta inicial atrasada não desfaz eventos atuais de sessão. Configuração de produção não alterada.
+
 ## Hierarquia da documentação (evitar fontes de verdade concorrentes)
 
 | Assunto | Fonte normativa | Demais documentos |
