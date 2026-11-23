@@ -259,3 +259,14 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Decisão:** snapshot SRD 5.1 próprio do módulo de personagens, IDs/versão novos, ativação explícita; motor existente e persistência/RPCs reaproveitados. Alternativa rejeitada: substituir silenciosamente o catálogo das fichas antigas ou copiar o aplicativo legado inteiro.
 - **Impacto:** sem migração de dados ou schema, sem publicações globais. Dados carregados sob demanda. Fonte/licenças, cobertura e pendências em docs/CRIADOR-2014-EXPANSAO.md.
 - **Verificação:** testes unitários e E2E dedicados; aprovação final vinculada ao SHA/CI do PR, não presumida por este documento.
+
+
+## Decisão — ciclo de vida do combate (23/11/2026)
+
+**Aprovado pelo usuário:** um combate ativo por campanha deve permanecer até o mestre clicar explicitamente em **Finalizar combate**. Navegar para outra tela, recarregar (F5), fechar o navegador, abrir outra aba, sair da conta ou abrir a mesma campanha em outro dispositivo **não** finaliza nem reinicia o combate. Somente o mestre pode consultar ou alterar o combate; autorizações precisam ser verificadas no servidor, não apenas no menu.
+
+- Combates **novos** serão criados no Supabase com salvamento automático de cada alteração (PV, iniciativa, turnos, rodadas e participantes), com tratamento de concorrência entre abas/dispositivos e indicação clara de sincronização pendente/erro. Não anunciar como salvo antes da confirmação do servidor.
+- Combates **antigos locais** permanecem preservados como backup, sem importação automática e sem exclusão silenciosa. Não confundir o backup local com o combate remoto ativo.
+- **Finalizar combate** requer confirmação explícita; somente depois da confirmação de persistência no servidor ele deixa de ser o combate ativo. Falhas de rede, rejeição de permissão ou conflito não podem encerrar a sessão localmente por engano.
+- O destino do combate finalizado (arquivamento histórico ou descarte definitivo) **não foi decidido**. Não implementar exclusão irreversível ou histórico como se fossem decisões aprovadas.
+- Estado atual: iniciativa/encontros locais integrados na main; adaptador remoto não conectado; migração de combate não aplicada em produção. Esta seção é especificação, **não** funcionalidade entregue.
