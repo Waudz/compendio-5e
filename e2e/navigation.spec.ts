@@ -42,3 +42,24 @@ test('jogador não acessa o conteúdo de iniciativa', async ({ page }) => {
   await expect(page.getByText('Somente o mestre da campanha pode acessar este módulo.', { exact: true })).toBeVisible();
   await expect(page.getByRole('form', { name: 'Adicionar combatente' })).toHaveCount(0);
 });
+
+test('mestre só descarta combate ao confirmar Finalizar; F5 mantém o combate até lá', async ({ page }) => {
+  await openDemo(page);
+  await navigate(page, 'Iniciativa');
+  await page.getByLabel('Nome', { exact: true }).fill('Sentinela');
+  await page.getByRole('button', { name: 'Adicionar', exact: true }).click();
+  await page.reload();
+  await navigate(page, 'Iniciativa');
+  await expect(page.getByText('Sentinela', { exact: true })).toBeVisible();
+
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.getByRole('button', { name: 'Finalizar combate', exact: true }).click();
+  await expect(page.getByText('Sentinela', { exact: true })).toBeVisible();
+
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Finalizar combate', exact: true }).click();
+  await expect(page.getByText('Nenhum combatente ainda', { exact: true })).toBeVisible();
+  await page.reload();
+  await navigate(page, 'Iniciativa');
+  await expect(page.getByText('Nenhum combatente ainda', { exact: true })).toBeVisible();
+});
