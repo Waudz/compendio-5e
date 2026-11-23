@@ -8,6 +8,10 @@ test('only the exact isolated loopback origin is accepted', () => {
 test('routes cannot change origin or escape API prefixes', () => {
   for (const path of ['//evil.test', '/auth/v1/../admin', '/rest/v1/notes#x', 'https://example.com', '/rest/v1/notes\\evil']) assert.throws(() => route(path));
   assert.equal(route('/rest/v1/notes?id=eq.123'), '/rest/v1/notes?id=eq.123');
+  assert.equal(route('/auth/v1/admin/users'), '/auth/v1/admin/users');
+  assert.equal(route('/auth/v1/token?grant_type=password'), '/auth/v1/token?grant_type=password');
+  assert.equal(route('/rest/v1/rpc/create_campaign'), '/rest/v1/rpc/create_campaign');
+  for (const path of ['/auth/v1/admin/../users', '/auth/v1/admin//users', '/auth/v1/admin/%2e%2e/users', '/auth/v1/admin/users?next=https://evil.test']) assert.throws(() => route(path));
 });
 import {redact} from './start-diagnostics.mjs';
 test('startup diagnostics remove JWTs, key lines and connection passwords', () => {
