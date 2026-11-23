@@ -684,3 +684,14 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .iniciativa .ini-cartao{border:1px solid var(--line,#8884);border-radius:8px;padding:10px 12px;margin:10px 0}.iniciativa .ini-cartao h2{margin:0 0 6px;font-size:16px}
 .iniciativa .vazio{display:grid;gap:6px;justify-items:center;text-align:center;padding:18px}
 @media (max-width:700px){.iniciativa .ini-form label{flex:1 1 140px}.iniciativa .ini-item{grid-template-columns:1fr}}
+
+/* Alternância de visualização do combate: mesma lógica e mesmos controles, densidades distintas. */
+.iniciativa .ini-visualizacao{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.iniciativa .ini-visualizacao button{display:inline-flex;align-items:center;gap:6px}
+.iniciativa .ini-visualizacao .selecionado{outline:2px solid currentColor;outline-offset:-2px}
+.iniciativa .ini-lista-cartoes{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+.iniciativa .ini-lista-compacta{gap:3px}
+.iniciativa .ini-lista-compacta .ini-item{grid-template-columns:minmax(100px,1fr) auto minmax(140px,1.2fr) auto;gap:6px;padding:5px 8px}
+.iniciativa .ini-lista-compacta .ini-pv{grid-column:auto}
+.iniciativa .ini-lista-compacta .ini-nome small{display:block}
+@media(max-width:900px){.iniciativa .ini-lista-compacta .ini-item{grid-template-columns:minmax(0,1fr) auto}.iniciativa .ini-lista-compacta .ini-pv{grid-column:1 / -1}}
