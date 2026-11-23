@@ -1,6 +1,6 @@
 // Iniciativa e Encontros: telas funcionais (antes só havia o aviso "em desenvolvimento"). Sem dados fictícios: tudo é digitado por quem usa e fica guardado só neste aparelho,
 // por usuário e campanha (`compendio5e:iniciativa:<usuário>:<campanha>`), então trocar de aba ou recarregar não perde nada. A lógica é neutra quanto ao sistema de RPG.
-import { ChevronRight, Plus, RotateCcw, Swords, Trash2 } from "lucide-react";
+import { ChevronRight, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -12,6 +12,9 @@ import {
 } from "./combate";
 
 const EVENTO = "compendio5e:armazenamento";
+export type VisualizacaoCombate = "cartoes" | "lista";
+export const chaveVisualizacaoCombate = (userId: string) => `compendio5e:visualizacao-combate:${userId}`;
+export const lerVisualizacaoCombate = (valor: string | null): VisualizacaoCombate => valor === "lista" ? "lista" : "cartoes";
 type Estado<T> = { status: "carregando" } | { status: "erro" } | { status: "pronto"; valor: T; falhaGravacao?: boolean };
 type EstadoEscopado<T> = { chave: string | null; estado: Estado<T> };
 
@@ -82,6 +85,15 @@ export function IniciativaPanel() {
   const { estado, gravar, salvarPendente, tentar, descartar } = useArmazenado<EstadoCombate>(podeGerenciar && userId && campaignId ? chaveCombate(userId, campaignId) : null, lerCombate);
   useUnsavedGuard("secao:iniciativa", estado.status === "pronto" && !!estado.falhaGravacao, salvarPendente);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
+  const [visualizacao, setVisualizacao] = useState<VisualizacaoCombate>("cartoes");
+  useEffect(() => {
+    try { setVisualizacao(lerVisualizacaoCombate(localStorage.getItem(chaveVisualizacaoCombate(userId ?? "")))); }
+    catch { setVisualizacao("cartoes"); }
+  }, [userId]);
+  const alterarVisualizacao = (proxima: VisualizacaoCombate) => {
+    setVisualizacao(proxima);
+    if (userId) try { localStorage.setItem(chaveVisualizacaoCombate(userId), proxima); } catch { /* preferência em memória */ }
+  };
   if (!userId || !campaignId) return <SemCampanha titulo="Iniciativa"/>;
   if (!podeGerenciar) return <AcessoRestrito titulo="Iniciativa"/>;
   const combate = estado.status === "pronto" ? estado.valor : null;
@@ -112,9 +124,13 @@ export function IniciativaPanel() {
         <button className="btn-secondary" onClick={() => muda(reiniciarRodadas(combate))} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
         <button className="btn-secondary" onClick={() => { if (window.confirm("Finalizar e descartar este combate? Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) muda(combateVazio()); }} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
       </div>
+      <div className="ini-visualizacao" role="group" aria-label="Visualização dos combatentes">
+        <button type="button" className={visualizacao === "cartoes" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "cartoes"} onClick={() => alterarVisualizacao("cartoes")}><LayoutGrid size={15} aria-hidden="true"/> Cartões</button>
+        <button type="button" className={visualizacao === "lista" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "lista"} onClick={() => alterarVisualizacao("lista")}><List size={15} aria-hidden="true"/> Lista compacta</button>
+      </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
-        : <ol className="ini-lista" aria-label="Ordem de iniciativa">{ordem.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} muda={muda} combate={combate}/>)}</ol>}
+        : <ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label="Ordem de iniciativa">{ordem.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} muda={muda} combate={combate}/>)}</ol>}
     </>}
   </div>;
 }
