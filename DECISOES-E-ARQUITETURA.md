@@ -263,7 +263,7 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 
 ## Decisão — ciclo de vida do combate (23/11/2026)
 
-**Aprovado pelo usuário:** um combate ativo por campanha deve permanecer até o mestre clicar explicitamente em **Finalizar combate**. Navegar para outra tela, recarregar (F5), fechar o navegador, abrir outra aba, sair da conta ou abrir a mesma campanha em outro dispositivo **não** finaliza nem reinicia o combate. Somente o mestre pode consultar ou alterar o combate; autorizações precisam ser verificadas no servidor, não apenas no menu.
+**Aprovado pelo usuário:** na versão atual, **somente um combate ativo por campanha** deve permanecer até o mestre clicar explicitamente em **Finalizar combate**. **Futuramente, permitir um segundo combate ativo**, mas isso está fora do escopo da Alpha/Beta inicial e não deve ser habilitado agora. Navegar para outra tela, recarregar (F5), fechar o navegador, abrir outra aba, sair da conta ou abrir a mesma campanha em outro dispositivo **não** finaliza nem reinicia o combate. Somente o mestre pode consultar ou alterar o combate; autorizações precisam ser verificadas no servidor, não apenas no menu.
 
 - Combates **novos** serão criados no Supabase com salvamento automático de cada alteração (PV, iniciativa, turnos, rodadas e participantes), com tratamento de concorrência entre abas/dispositivos e indicação clara de sincronização pendente/erro. Não anunciar como salvo antes da confirmação do servidor.
 - Combates **antigos locais** permanecem preservados como backup, sem importação automática e sem exclusão silenciosa. Não confundir o backup local com o combate remoto ativo.
