@@ -121,13 +121,13 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await checks(page.getByRole('group', { name: /^Magias preparadas/ }), 6);
   await page
     .getByRole('button', {
-      name: 'Aplicar equipamento da origem e 15 po',
+      name: 'Adicionar itens da origem e 15 PO ao inventário',
       exact: true,
     })
     .click();
   await page
     .getByRole('button', {
-      name: 'Aplicar equipamento da origem e 15 po',
+      name: 'Atualizar símbolo sagrado da origem',
       exact: true,
     })
     .click();
@@ -187,9 +187,8 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await expectNoHorizontalOverflow(page);
   await expectCreatorInsideViewport(page);
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-  await expect(
-    page.getByRole('button', { name: 'Salvar', exact: true }),
-  ).toBeDisabled();
+  await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Editar personagem', exact: true })).toBeVisible();
   await page.reload();
   await navigate(page, 'Personagens');
   await page
@@ -198,6 +197,7 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
       exact: true,
     })
     .click();
+  // O demo reabre um rascunho local (aba criador), não a ficha persistida do servidor.
   await expect(nameField(page)).toHaveValue('Maga 2014');
   await expect(
     page.getByRole('combobox', { name: 'Classe', exact: true }),

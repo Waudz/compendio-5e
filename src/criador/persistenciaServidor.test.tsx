@@ -39,7 +39,17 @@ const montar = async (user: User = me, layoutNovo = true) => {
   return renderApp({ user, api: apiC(papelDe(user)), registros: registrosEmMemoria(papelDe(user), user.id, [], registros as never), fichas: fichasEmMemoria(user.id, banco) });
 };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole("button", { name: "Personagens" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Personagens" })); };
-const nomeInput = () => screen.findByLabelText("Nome do personagem") as Promise<HTMLInputElement>;
+const nomeInput = async () => {
+  // Aguarda tanto o carregamento quanto a leitura da ficha salva; a opção Editar
+  // pode surgir depois do primeiro render e deve ser acionada quando disponível.
+  return waitFor(() => {
+    const campo = screen.queryByLabelText("Nome do personagem") as HTMLInputElement | null;
+    if (campo) return campo;
+    const editar = screen.queryByRole("button", { name: "Editar personagem" });
+    if (editar) fireEvent.click(editar);
+    return screen.getByLabelText("Nome do personagem") as HTMLInputElement;
+  });
+};
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar personagem/ })); return nomeInput(); };
 const preencher = async (nome: string) => {
   fireEvent.change(await nomeInput(), { target: { value: nome } });
@@ -65,7 +75,7 @@ const identidade = (publicar: boolean, titulo = "O Escudo") => {
   fireEvent.click(screen.getByRole("button", { name: "Salvar identidade pública" }));
   if (publicar) fireEvent.click(screen.getByLabelText("Publicar identidade na campanha"));
 };
-const salvar = async (revisao: number) => { fireEvent.click(screen.getByRole("button", { name: "Salvar" })); expect(await screen.findByText(new RegExp(`salvo na campanha \\(revisão ${revisao}\\)`))).toBeTruthy(); };
+const salvar = async (revisao: number) => { fireEvent.click(screen.getByRole("button", { name: "Salvar" })); expect(await screen.findByText(new RegExp(`salvo na campanha \\(revisão ${revisao}\\)`))).toBeTruthy(); const editar = screen.queryByRole("button", { name: "Editar personagem" }); if (editar) fireEvent.click(editar); };
 /** Cria e salva um personagem como `user` pela interface. */
 async function criarPersonagem(nome = "Thorin", publicar = false, user: User = me) {
   await montar(user); await abrirPersonagens(); await novoGuiado(); await preencher(nome); identidade(publicar); await salvar(1);
@@ -254,7 +264,7 @@ describe("falhas de rede e recuperação", () => {
     cleanup(); await montar(); await abrirPersonagens();
     const botao = await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" });
     banco.rede.caida = true; fireEvent.click(botao);
-    expect(await screen.findByText(/Não foi possível abrir este personagem: Sem conexão/)).toBeTruthy();
+    expect(await screen.findByText(/Não foi possível verificar a ficha/)).toBeTruthy();
     banco.rede.caida = false; fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
     expect((await nomeInput()).value).toBe("Thorin");
   });

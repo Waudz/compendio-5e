@@ -30,7 +30,7 @@ test('equipamentos: prévia, confirmação e inventário com escolhas alternativ
 
 test('inventário: adicionar item, alterar quantidade, consultar no Compêndio e remover', async ({ page }, info) => {
   await startCreator(page); await chooseFighter(page); await showSection(page, 'Inventário');
-  await page.getByRole('searchbox', { name: 'Buscar item para adicionar', exact: true }).fill('adaga');
+  await page.getByRole('combobox', { name: 'Buscar item para adicionar', exact: true }).fill('adaga');
   await page.getByRole('button', { name: 'Adicionar Adaga', exact: true }).click();
   const row = page.getByRole('region', { name: 'Inventário', exact: true }).getByRole('listitem')
     .filter({ has: page.getByRole('button', { name: 'Consultar no Compêndio: Adaga', exact: true }) });
@@ -83,7 +83,7 @@ test('teclado: ordem do formulário e ativação das seções sem mouse', async 
   await page.keyboard.press('Tab');
   await expect(page.getByRole('combobox', { name: 'Raça', exact: true })).toBeFocused();
   await keyboardActivate(page, sections(page).getByRole('button', { name: 'Inventário', exact: true }));
-  const search = page.getByRole('searchbox', { name: 'Buscar item para adicionar', exact: true });
+  const search = page.getByRole('combobox', { name: 'Buscar item para adicionar', exact: true });
   await search.focus(); await page.keyboard.type('adaga'); await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Adicionar Adaga', exact: true })).toBeFocused();
   await page.keyboard.press('Enter');

@@ -238,7 +238,10 @@ export function Opcoes2014({
 }) {
   const [confirm, setConfirm] = useState(false);
   const [pendingClass, setPendingClass] = useState('');
-  const [symbol, setSymbol] = useState('amulet');
+  const [symbol, setSymbol] = useState(() => {
+    const itemId = draft.inventory.find(i => i.id === 'background-acolyte:symbol')?.itemId;
+    return ['amulet', 'emblem', 'reliquary'].find(id => canonicalItem2014('srd51:item/' + id) === itemId) ?? 'amulet';
+  });
   const [error, setError] = useState('');
   if (!modern2014(draft))
     return (
@@ -322,8 +325,8 @@ export function Opcoes2014({
       <label>
         Classe
         <select
-          value={draft.classId}
-          onChange={(e) => setPendingClass(e.target.value)}
+          value={pendingClass || draft.classId}
+          onChange={(e) => setPendingClass(e.target.value === draft.classId ? '' : e.target.value)}
         >
           {classes2014.map((c) => (
             <option key={c.id} value={shortId(c.id)}>
@@ -332,8 +335,13 @@ export function Opcoes2014({
           ))}
         </select>
       </label>
-      {pendingClass && (
-        <section aria-label="Confirmar classe">
+      {pendingClass && pendingClass !== draft.classId && (
+        <section aria-label="Confirmar classe" role="region">
+          <p>
+            Você está mudando de <strong>{label2014(draft.classId)}</strong> para{' '}
+            <strong>{label2014(pendingClass)}</strong>. A mudança só será aplicada
+            ao confirmar.
+          </p>
           <p>
             Trocar a classe reinicia escolhas de classe, recursos e a progressão
             de PV. Nome, atributos, raça, origem e inventário são preservados; a
@@ -417,18 +425,33 @@ export function Opcoes2014({
             ))}
           </select>
         </label>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => onChange(grantBackground2014(draft, symbol))}
-        >
-          Aplicar equipamento da origem e 15 po
-        </button>
-        <p>
-          Inclui símbolo sagrado, livro de orações, cinco varetas de incenso,
-          vestes sacerdotais, roupas comuns e 15 po. A aplicação é única, sem
-          duplicar o inventário.
-        </p>
+        <ul aria-label="Itens concedidos pela origem">
+          <li>{itemName(canonicalItem2014('srd51:item/' + symbol))} ×1</li>
+          <li>Livro de orações ×1</li>
+          <li>Vareta de incenso ×5</li>
+          <li>Vestes sacerdotais ×1</li>
+          <li>Roupas comuns ×1</li>
+          <li>15 peças de ouro (PO)</li>
+        </ul>
+        <div style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              try {
+                onChange(grantBackground2014(draft, symbol));
+                setError('Equipamento da origem atualizado. Confira o inventário.');
+              } catch (e) {
+                setError(e instanceof Error ? e.message : 'Não foi possível atualizar a origem.');
+              }
+            }}
+          >
+            {selected2014(draft, 'background-equipment').includes('accepted')
+              ? 'Atualizar símbolo sagrado da origem'
+              : 'Adicionar itens da origem e 15 PO ao inventário'}
+          </button>
+        </div>
+        <p>Ao atualizar o símbolo, os demais itens e as 15 PO não são adicionados novamente.</p>
       </section>
       <p className="notice">
         A origem concede perícias e idiomas; perícias repetidas exigem uma

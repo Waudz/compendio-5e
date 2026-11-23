@@ -94,7 +94,7 @@ function SecaoGuiados({ cid, userId, publicos, versao, onOpenContent }: { cid: s
     {fichas && !meus && !erro && <p className="muted" role="status">Carregando fichas…</p>}
     {fichas && meus && meus.length === 0 && publicas.length === 0 && <p className="muted" data-testid="guiados-vazio">Nenhum personagem guiado na campanha ainda.</p>}
     {fichas && meus && meus.length > 0 && <><h3>Fichas na campanha</h3><ul className="home-party" aria-label="Fichas na campanha">{meus.map(m => <li key={m.id}>
-      {item({ kind: "criador", ref: m.id, title: m.nome }, `Abrir ficha guiada ${m.nome}`, m.nome, `${rotuloClasse(m.classId)}${m.nivel != null ? ` · nível ${m.nivel}` : ""} · ${m.ownerId === userId ? "sua ficha" : "ficha de outro participante"}`)}</li>)}</ul></>}
+      {item({ kind: "ficha", ref: m.id, title: m.nome }, `Abrir ficha guiada ${m.nome}`, m.nome, `${rotuloClasse(m.classId)}${m.nivel != null ? ` · nível ${m.nivel}` : ""} · ${m.ownerId === userId ? "sua ficha" : "ficha de outro participante"}`)}</li>)}</ul></>}
     {publicas.length > 0 && <><h3>Identidades públicas</h3><ul className="home-party" aria-label="Identidades públicas">{publicas.map(r => { const c = cartaoPublico(r.meta); return <li key={r.id}>
       {item({ kind: "ficha", ref: r.id, title: r.title }, `Abrir identidade pública de ${r.title}`, r.title, [c?.race, c?.characterClass].filter(Boolean).join(" · ") || "Identidade pública")}</li>; })}</ul></>}
     {!fichas && (locais.length === 0 ? <p className="muted" data-testid="guiados-vazio">Nenhum personagem guiado neste navegador.</p>
@@ -160,7 +160,7 @@ export function FichaPagina({ id, onOpenContent }: { id: string; onOpenContent?:
   if (reg === undefined) return <div className="content"><p className="muted" role="status">Carregando…</p></div>;
   if (reg === null) return <div className="content"><h1>Personagem</h1><Aviso t="Personagem não encontrado, excluído ou sem permissão para vê-lo."/></div>;
 
-  if (ehGuiado(reg.meta)) return dono ? <CriadorGuiado id={reg.id} onOpenContent={onOpenContent ?? (() => {})}/> : <CartaoPublicoGuiado reg={reg}/>;   // ficha guiada: editor do dono; os demais só o cartão público
+  if (ehGuiado(reg.meta)) return dono ? <CriadorGuiado id={reg.id} onOpenContent={onOpenContent ?? (() => {})} initialView/> : <CartaoPublicoGuiado reg={reg}/>;   // ficha guiada: editor do dono; os demais só o cartão público
   if (!dono) {
     const p = lerPerfil(reg.meta);
     return <div className="content ficha" {...gesto}><div className="eyebrow">PERSONAGEM</div>

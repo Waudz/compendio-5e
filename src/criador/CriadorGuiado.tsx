@@ -64,18 +64,22 @@ const escolhasDoInventario = (d: CharacterDraft): Record<string, string> => Obje
 const gruposCompletos = (d: CharacterDraft) => modern2014(d) ? d.decisions.some(c => c.id === 'equipment-accepted' && c.optionIds.includes('yes')) && d.decisions.some(c => c.id === 'background-equipment' && c.optionIds.includes('accepted')) : Object.entries(fighterEquipmentOptions2014).every(([g, opcoes]) => opcoes.some(o => o.components.every(c =>
   d.inventory.some(e => e.id === PREFIXO(g) + o.id + ":" + c.itemId && e.itemId === c.itemId && e.quantity === c.quantity))));
 
-export function CriadorGuiado({ id, onOpenContent }: { id: string; onOpenContent: (s: TabSpec) => void }) {
+export function CriadorGuiado({ id, onOpenContent, initialView = false }: { id: string; onOpenContent: (s: TabSpec) => void; initialView?: boolean }) {
   const { user } = useAuth(), { active } = useCampaigns(), fichas = useFichas();
   const aviso = (t: string) => <div className="content"><h1>Personagem</h1><Aviso t={t}/></div>;
-  const store = useMemo<ArmazenamentoCriador | null>(() => { try { return user && active ? armazenamentoLocalExperimental(user.id, active.campaign.id) : null; } catch { return null; } }, [user, active]);
-  const repo = useMemo<RepositorioPersonagem | null>(() => !user || !active || !store ? null : fichas ? repositorioServidor(fichas, active.campaign.id, user.id) : repositorioLocal(store), [user, active, store, fichas]);
+  // Usar identificadores estáveis: contextos podem emitir novos objetos para a
+  // mesma conta/campanha e recriar o repositório, recarregando a ficha por cima
+  // das escolhas ainda não salvas.
+  const userId = user?.id, campaignId = active?.campaign.id;
+  const store = useMemo<ArmazenamentoCriador | null>(() => { try { return userId && campaignId ? armazenamentoLocalExperimental(userId, campaignId) : null; } catch { return null; } }, [userId, campaignId]);
+  const repo = useMemo<RepositorioPersonagem | null>(() => !userId || !campaignId || !store ? null : fichas ? repositorioServidor(fichas, campaignId, userId) : repositorioLocal(store), [userId, campaignId, store, fichas]);
   if (!user) return aviso("Conta necessária para usar o criador de personagens.");
   if (!active) return aviso("Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral.");
   if (!store || !repo) return aviso("Não foi possível preparar o armazenamento deste usuário e campanha.");
-  return <Editor key={`${active.campaign.id}:${id}`} id={id} repo={repo} store={store} userId={user.id} campaignId={active.campaign.id} campanha={active.campaign.name} onOpenContent={onOpenContent}/>;
+  return <Editor key={`${active.campaign.id}:${id}`} id={id} repo={repo} store={store} userId={user.id} campaignId={active.campaign.id} campanha={active.campaign.name} onOpenContent={onOpenContent} initialView={initialView}/>;
 }
 
-function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }: { id: string; repo: RepositorioPersonagem; store: ArmazenamentoCriador; userId: string; campaignId: string; campanha: string; onOpenContent: (s: TabSpec) => void }) {
+function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, initialView }: { id: string; repo: RepositorioPersonagem; store: ArmazenamentoCriador; userId: string; campaignId: string; campanha: string; onOpenContent: (s: TabSpec) => void; initialView: boolean }) {
   const servidor = repo.tipo === "servidor";
   const [carga, setCarga] = useState<"carregando" | "pronto" | { erro: string }>("carregando"), [tentativa, setTentativa] = useState(0);
   const [draft, setDraft] = useState<CharacterDraft>(() => novoRascunho(id));
@@ -90,6 +94,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
   const [salvando, setSalvando] = useState(false), [conflito, setConflito] = useState(false), [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
   const [secao, setSecao] = useState<Secao>("ficha");
+  const [visualizando, setVisualizando] = useState(initialView);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
@@ -141,13 +146,17 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
     try {
       const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: { name: draft.name, surname: "", race: modern2014(draft) ? label2014(draft.raceId) : "Anão", characterClass: modern2014(draft) ? label2014(draft.classId) : "Guerreiro" } });
       const gravado = { ...draft, id: r.id };
-      setDraft(gravado); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
+      // A resposta confirma o snapshot enviado, não alterações feitas enquanto
+      // a requisição estava em andamento. Preservar o estado mais recente da UI.
+      setDraft(atual => ({ ...atual, id: r.id })); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
       setSalvo(JSON.stringify({ draft: gravado, identity, publicar }));
       limparRecuperacao(userId, campaignId, id);
       if (servidor && ehPersonagemNovo(id)) gravarMapaAba(userId, campaignId, id, r.id);
       registrarTitulo(id, draft.name.trim()); registrarTitulo(r.id, draft.name.trim()); avisarRegistros();
       const incompleto = sheet.pending.length || !gruposCompletos(draft);
       setMsg({ ok: true, t: servidor ? `${incompleto ? "Rascunho incompleto" : "Personagem"} salvo na campanha (revisão ${r.revision}).` : `${incompleto ? "Rascunho incompleto salvo" : "Personagem salvo"} neste navegador (armazenamento experimental).` });
+      if (!incompleto) { setVisualizando(true); setSecao("ficha"); }
+
       return true;
     } catch (e) {
       const texto = e instanceof Error ? e.message : "Não foi possível salvar.";
@@ -157,7 +166,21 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
       return false;
     } finally { setSalvando(false); }
   }, [salvando, sheet, draft, identity, publicar, repo, idReal, existe, revisao, somenteFicha, servidor, userId, campaignId, id]);
+  // Proteção local contínua do rascunho: a aba pode ser desmontada ao alternar
+  // para outro conteúdo sem que o usuário pressione Salvar. Nunca enviamos
+  // essas alterações automaticamente ao servidor: restauração é explícita.
+  // Uma recuperação anterior tem prioridade e não pode ser sobrescrita pela
+  // versão recém-carregada do banco antes de o usuário decidir restaurá-la.
+  useEffect(() => {
+    if (!servidor || carga !== "pronto" || !sujo || recuperacao || salvando) return;
+    gravarRecuperacao(userId, campaignId, id, {
+      estado: { draft, identity, publicar }, baseRevisao: revisao,
+      motivo: "Rascunho não salvo recuperado deste navegador", em: new Date().toISOString(),
+    });
+  }, [servidor, carga, sujo, recuperacao, salvando, userId, campaignId, id, draft, identity, publicar, revisao]);
+
   useUnsavedGuard(`criador:${id}`, sujo, salvar);
+  const estatisticas = useMemo(() => { if (!sheet || !modern2014(draft) || !regras2014) return null; try { return regras2014.statistics2014(draft); } catch { return null; } }, [sheet, draft]);
 
   /** Conflito de revisão: carrega a versão atual do servidor. As alterações não enviadas ficam na cópia de recuperação (restauráveis). */
   const recarregarServidor = async () => {
@@ -219,6 +242,24 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
   const escolhasDoNivel = (modern2014(draft) ? [] : fighter2014Advancements).flatMap(a => a.level <= draft.level ? a.choices ?? [] : []);
   const sec = (s: Secao, rotulo: string) => <button type="button" className={secao === s ? "active" : ""} aria-current={secao === s ? "true" : undefined} onClick={() => setSecao(s)}>{rotulo}</button>;
 
+  // Ficha pronta em leitura, independente das etapas do criador. Os mesmos
+  // dados derivados do motor alimentam a edição e a visualização.
+  if (visualizando && carga === "pronto" && existe && sheet) return <div className="content ficha auth wide" data-testid="ficha-guiada-leitura">
+    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
+    <div className="row-between"><h1>{draft.name || "Personagem sem nome"}</h1>
+      <button type="button" className="btn-primary" onClick={() => setVisualizando(false)}>Editar personagem</button></div>
+    <p>{modern2014(draft) ? label2014(draft.raceId) : "Anão"} · {modern2014(draft) ? label2014(draft.classId) : "Guerreiro"} · Nível {draft.level}</p>
+    {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => setVisualizando(false)}>Revisar recuperação no editor</button></div>}
+    <nav className="ficha-subnav" aria-label="Seções da ficha"><button type="button" className={secao === "ficha" ? "active" : ""} onClick={() => setSecao("ficha")}>Ficha</button><button type="button" className={secao === "inventario" ? "active" : ""} onClick={() => setSecao("inventario")}>Inventário</button></nav>
+    {secao === "ficha" && <>
+      <section className="criador-ficha" aria-label="Atributos e combate"><h2>Atributos e combate</h2><div className="criador-atributos">{ABILITY_ORDER.map(a => <div key={a}><strong>{rotuloAtributo(a)}</strong><p>{sheet.abilities[a]}</p></div>)}</div><p><strong>PV:</strong> {draft.currentHp} / {sheet.maxHp}{draft.temporaryHp ? ` · ${draft.temporaryHp} temporários` : ""}</p>{estatisticas && <div className="criador-ficha"><p><strong>CA:</strong> {estatisticas.ac} · <strong>Iniciativa:</strong> {estatisticas.initiative >= 0 ? "+" : ""}{estatisticas.initiative} · <strong>Proficiência:</strong> +{estatisticas.prof}</p><p><strong>Deslocamento:</strong> {estatisticas.speed.toLocaleString("pt-BR")} m · <strong>Percepção passiva:</strong> {estatisticas.passivePerception}</p>{estatisticas.ambiguousArmor && <p role="note">Há mais de uma armadura equipada; revise o equipamento.</p>}{estatisticas.armorWithoutProficiency && <p role="note">Há armadura equipada sem proficiência.</p>}</div>}</section>
+      {estatisticas && <section aria-label="Salvaguardas e ataques"><h2>Salvaguardas</h2><p>{ABILITY_ORDER.map(a => `${rotuloAtributo(a)} ${estatisticas.saves[a] >= 0 ? "+" : ""}${estatisticas.saves[a]}`).join(" · ")}</p><h2>Ataques equipados</h2>{estatisticas.attacks.length ? <ul>{estatisticas.attacks.map((a,i) => <li key={a.id + i}>{a.name} · ataque {a.bonus >= 0 ? "+" : ""}{a.bonus} · dano {a.damage} {a.damageBonus >= 0 ? "+" : ""}{a.damageBonus}</li>)}</ul> : <p>Nenhuma arma equipada.</p>}{estatisticas.spellDc != null && <p><strong>CD das magias:</strong> {estatisticas.spellDc} · <strong>Ataque mágico:</strong> {estatisticas.spellAttack}</p>}</section>}
+      <section aria-label="Perícias e características"><h2>Perícias</h2>{estatisticas ? <ul>{Object.entries(estatisticas.skills).map(([id,bonus]) => <li key={id}>{rotuloPericia(id)} {bonus >= 0 ? "+" : ""}{bonus}{sheet.skills.includes(id) ? " · proficiente" : ""}</li>)}</ul> : <p>{sheet.skills.map(rotuloPericia).join(", ") || "Nenhuma"}</p>}<h2>Características</h2>{sheet.features.length ? <ul>{sheet.features.map((f,i) => <li key={f + i}><strong>{modern2014(draft) ? label2014(f) : rotuloOpcao(f)}</strong>{modern2014(draft) && featureDescription2014(f) && <p>{featureDescription2014(f)}</p>}</li>)}</ul> : <p>Nenhuma</p>}<h2>Recursos</h2><p>{Object.entries(sheet.resources).map(([k,v]) => `${rotuloOpcao(k)}: ${v.remaining}/${v.maximum}`).join(" · ") || "Nenhum"}</p><h2>Idiomas</h2><p>{sheet.languages.join(", ") || "Nenhum registrado"}</p></section>
+      {sheet.pending.length > 0 && <p className="notice" role="note">Ficha com escolhas pendentes. Use Editar personagem para concluir.</p>}
+    </>}
+    {secao === "inventario" && <section aria-label="Inventário do personagem"><h2>Inventário</h2><p><strong>Moedas:</strong> {draft.currency?.gp ?? 0} PO · {draft.currency?.sp ?? 0} PP · {draft.currency?.cp ?? 0} PC</p>{sheet.inventory.length ? <ul>{sheet.inventory.map(i => <li key={i.id}><strong>{nomeDaInstancia(i)}</strong> ×{i.quantity}{i.equipped ? " · equipado" : ""}{i.origin === "starting" ? " · equipamento inicial" : ""}{srdItem(i.itemId) && <button type="button" className="btn-secondary" aria-label={`Consultar ${nomeDaInstancia(i)} no Compêndio`} onClick={() => onOpenContent(itemSpec(i.itemId, nomeDaInstancia(i)))}>Consultar</button>}</li>)}</ul> : <p>Inventário vazio.</p>}</section>}
+  </div>;
+
   return <div className="content ficha auth wide criador">
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · CRIADOR GUIADO · {modern2014(draft) ? label2014(draft.classId).toLocaleUpperCase("pt-BR") : "GUERREIRO"} (SRD 2014)</div>
     <div className="row-between"><h1>{draft.name.trim() || "Novo personagem"}</h1>
@@ -242,8 +283,10 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
         {metodo === "point-buy" && <p className="muted">Pontos gastos: {pointBuySpent(draft.baseAbilities)} / {POINT_BUY_BUDGET}</p>}
         {metodo === "preserved" && <p role="note">Os atributos desta ficha foram preservados. Selecione outro método somente se deseja redistribuí-los; nada será salvo automaticamente.</p>}{metodo === "manual" && <p>Role 4d6, descarte o menor dado e informe a soma dos três restantes em cada atributo, antes dos bônus raciais.</p>}
         <div className="criador-atributos">{ABILITY_ORDER.map(a => <label key={a}>{rotuloAtributo(a)}
+          {metodo === "point-buy" && <button type="button" className="btn-secondary" aria-label={"− Diminuir " + rotuloAtributo(a)} disabled={draft.baseAbilities[a] <= 8} onClick={() => alterarAtributo(a, draft.baseAbilities[a] - 1)}>−</button>}
           {metodo === "manual" ? <input type="number" aria-label={"Atributo " + a} min={3} max={18} value={draft.baseAbilities[a]} onChange={e => alterarAtributo(a, Number(e.target.value))}/> : <select disabled={metodo === "preserved"} aria-label={"Atributo " + a} value={draft.baseAbilities[a]} onChange={e => alterarAtributo(a, Number(e.target.value))}>
-            {(metodo === "preserved" ? [draft.baseAbilities[a]] : metodo === "standard-array" ? [15, 14, 13, 12, 10, 8] : [8, 9, 10, 11, 12, 13, 14, 15]).map(v => <option key={v} value={v}>{v}</option>)}</select>}</label>)}</div>
+            {(metodo === "preserved" ? [draft.baseAbilities[a]] : metodo === "standard-array" ? [15, 14, 13, 12, 10, 8] : [8, 9, 10, 11, 12, 13, 14, 15]).map(v => <option key={v} value={v}>{v}</option>)}</select>}
+          {metodo === "point-buy" && <button type="button" className="btn-secondary" aria-label={"+ Aumentar " + rotuloAtributo(a)} disabled={draft.baseAbilities[a] >= 15 || pointBuySpent({ ...draft.baseAbilities, [a]: draft.baseAbilities[a] + 1 }) > POINT_BUY_BUDGET} onClick={() => alterarAtributo(a, draft.baseAbilities[a] + 1)}>+</button>}</label>)}</div>
         {erroAtrib && <p role="alert" className="notice err">{erroAtrib}</p>}
       </fieldset>
       <label>Nível<select aria-label="Nível" value={draft.level} onChange={e => alterarNivel(Number(e.target.value))}>{(modern2014(draft) ? Array.from({ length: 20 }, (_, i) => i + 1) : [1, 2, 3, 4, 5, 6]).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
@@ -292,9 +335,14 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent }
           {def && <button type="button" className="btn-secondary" aria-label={`Consultar no Compêndio: ${nomeDaInstancia(item)}`} onClick={() => onOpenContent(itemSpec(item.itemId, nomeDaInstancia(item)))}>Consultar no Compêndio</button>}
           <button type="button" className="btn-secondary" aria-label={`+1: adicionar quantidade de ${nomeDaInstancia(item)}`} onClick={() => mudar(changeInventoryInstanceQuantity(draft, item.id, 1))}>+1</button>
           <button type="button" className="btn-secondary" aria-label={`−1: remover quantidade de ${nomeDaInstancia(item)}`} onClick={() => mudar(changeInventoryInstanceQuantity(draft, item.id, -1))}>−1</button></span></li>; })}</ul>
-      <label>Adicionar item do catálogo<input type="search" aria-label="Buscar item para adicionar" value={busca} placeholder="Digite ao menos 2 letras" onChange={e => setBusca(e.target.value)}/></label>
-      {busca.trim().length >= 2 && resultadosBusca.length === 0 && <p className="muted">Nenhum item mundano encontrado.</p>}
-      <ul>{resultadosBusca.map(l => <li key={l.key}><span>{l.name}</span><button type="button" className="btn-secondary" aria-label={`Adicionar ${l.name}`} onClick={() => { mudar(addInventoryInstance(draft, { id: crypto.randomUUID(), itemId: l.ref.id, quantity: 1, equipped: false, origin: "acquired" })); setBusca(""); }}><Plus size={14} aria-hidden="true"/> Adicionar</button></li>)}</ul>
+      <div style={{ position: "relative", maxWidth: 520 }}>
+        <label htmlFor="criador-busca-item">Adicionar item do catálogo</label>
+        <input id="criador-busca-item" type="search" role="combobox" aria-autocomplete="list" aria-expanded={resultadosBusca.length > 0} aria-controls="criador-sugestoes-item" aria-label="Buscar item para adicionar" value={busca} placeholder="Digite ao menos 2 letras" onChange={e => setBusca(e.target.value)}/>
+        {busca.trim().length >= 2 && <div id="criador-sugestoes-item" role="listbox" aria-label="Resultados da pesquisa de itens" style={{ position: "absolute", zIndex: 20, top: "100%", left: 0, right: 0, maxHeight: 260, overflowY: "auto", background: "var(--surface, #20242b)", border: "1px solid var(--border, #626b78)", borderRadius: 8, padding: 8, boxShadow: "0 8px 20px #0005" }}>
+          {resultadosBusca.length === 0 && <p className="muted" role="status">Nenhum item mundano encontrado.</p>}
+          {resultadosBusca.map(l => <div role="option" aria-selected={false} key={l.key} className="row-between" style={{ gap: 8, padding: "6px 0" }}><span>{l.name}</span><button type="button" className="btn-secondary" aria-label={`Adicionar ${l.name}`} onClick={() => { mudar(addInventoryInstance(draft, { id: crypto.randomUUID(), itemId: l.ref.id, quantity: 1, equipped: false, origin: "acquired" })); setBusca(""); }}><Plus size={14} aria-hidden="true"/> Adicionar</button></div>)}
+        </div>}
+      </div>
     </section>}
 
     {secao === "identidade" && <div className="criador-sec">
