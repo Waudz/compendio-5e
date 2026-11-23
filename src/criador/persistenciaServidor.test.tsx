@@ -42,8 +42,10 @@ const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRo
 const nomeInput = async () => {
   const campo = screen.queryByLabelText("Nome do personagem") as HTMLInputElement | null;
   if (campo) return campo;
-  const editar = await screen.findByRole("button", { name: "Editar personagem" });
-  fireEvent.click(editar);
+  // Uma ficha salva pode abrir em leitura. Não confundir com um novo personagem
+  // que ainda está carregando ou com uma falha de acesso ao servidor.
+  const editar = screen.queryByRole("button", { name: "Editar personagem" });
+  if (editar) fireEvent.click(editar);
   return screen.findByLabelText("Nome do personagem") as Promise<HTMLInputElement>;
 };
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar personagem/ })); return nomeInput(); };
