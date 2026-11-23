@@ -73,6 +73,8 @@ function Workspace({ userId }: { userId: string }) {
   const chromeHidden = useChromeHidden(mobile);
   const good = useRef(model.toJson());
   const handled = useRef<Event | null>(null);
+  const historySelection = useRef<string | null>(null);
+  const restoringHistory = useRef(false);
   const refresh = useCallback(() => redraw(n => n + 1), []);
   const labelRef = useRef<(id: string) => string>(id => id);
   const unsaved = useUnsavedRegistry(id => labelRef.current(id));   // alterações não salvas por aba (editores registram)
@@ -88,8 +90,15 @@ function Workspace({ userId }: { userId: string }) {
     if (normalizeEmptyPanels(m)) return;   // painel que recebeu aba deixa de ser "vazio intencional"; a ação de correção volta aqui
     const json = m.toJson();
     if (!isColumnsOnly(json)) { const restored = createModel(good.current); modelRef.current = restored; setModel(restored); return; }
-    good.current = json; saveLayout(json, scopeRef.current); refresh();
-  }, [refresh]);
+    good.current = json; saveLayout(json, scopeRef.current);
+    const selected = m.getActiveTabset()?.getSelectedNode();
+    const selectedId = selected instanceof TabNode ? selected.getId() : null;
+    if (selectedId && selectedId !== historySelection.current) {
+      historySelection.current = selectedId;
+      if (!restoringHistory.current) window.history.pushState({ ...window.history.state, compendioTab: selectedId, compendioScope: scopeKey }, "");
+    }
+    refresh();
+  }, [refresh, scopeKey]);
   // Fechar aba/coluna pelos botões do FlexLayout também respeita alterações não salvas.
   const onAction = useCallback((a: Action) => {
     if (!allowedActions.has(a.type)) return undefined;
@@ -102,8 +111,30 @@ function Workspace({ userId }: { userId: string }) {
   }, [model, unsaved.api]);
   // Navegação: clique normal reutiliza a aba atual (se não fixada e sem alterações); "nova aba" preserva as existentes.
   // Duas portas, nunca confundidas: openMenu (menu lateral, ações administrativas: reutiliza) e openContentLink (links de conteúdo: aba permanente).
-  const openMenu = useCallback((s: TabSpec, mode: NavMode = "reuse") => { navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api]);
-  const openContentLink = useCallback((s: TabSpec, originTabId?: string) => { openContent(model, s, originTabId); onModelChange(model); }, [model, onModelChange]);
+  const openMenu = useCallback((s: TabSpec, mode: NavMode = "new") => { navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api]);
+  const openContentLink = useCallback((s: TabSpec, originTabId?: string) => { openContent(model, s, originTabId, mobile); onModelChange(model); }, [model, onModelChange, mobile]);
+  // O histórico do navegador acompanha a seleção, não recria nem apaga abas.
+  useEffect(() => {
+    const selected = modelRef.current.getActiveTabset()?.getSelectedNode();
+    const initial = selected instanceof TabNode ? selected.getId() : null;
+    historySelection.current = initial;
+    if (initial) window.history.replaceState({ ...window.history.state, compendioTab: initial, compendioScope: scopeKey }, "");
+    const onPop = (event: PopStateEvent) => {
+      const state = event.state as { compendioTab?: string; compendioScope?: string } | null;
+      if (state?.compendioScope !== scopeKey || !state.compendioTab) return;
+      const target = findTab(modelRef.current, state.compendioTab);
+      if (!target) return;
+      restoringHistory.current = true;
+      modelRef.current.doAction(Actions.selectTab(target.getId()));
+      const group = target.getParent();
+      if (group instanceof TabSetNode) modelRef.current.doAction(Actions.setActiveTabset(group.getId()));
+      historySelection.current = target.getId();
+      restoringHistory.current = false;
+      onModelChange(modelRef.current);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [scopeKey, modelKey]);
   const inviteOpenedScope = useRef<string | null>(null);
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has("convite") || status === "loading") return;
