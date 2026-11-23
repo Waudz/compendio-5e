@@ -259,3 +259,12 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 - **Decisão:** snapshot SRD 5.1 próprio do módulo de personagens, IDs/versão novos, ativação explícita; motor existente e persistência/RPCs reaproveitados. Alternativa rejeitada: substituir silenciosamente o catálogo das fichas antigas ou copiar o aplicativo legado inteiro.
 - **Impacto:** sem migração de dados ou schema, sem publicações globais. Dados carregados sob demanda. Fonte/licenças, cobertura e pendências em docs/CRIADOR-2014-EXPANSAO.md.
 - **Verificação:** testes unitários e E2E dedicados; aprovação final vinculada ao SHA/CI do PR, não presumida por este documento.
+
+
+## DEC-20261123-G — Combates novos na nuvem e preservação dos antigos
+
+**Aprovada pelo usuário em 23/11/2026.** Quando o combate remoto for habilitado, cada campanha iniciará um novo estado no Supabase. Combates anteriores guardados no navegador **não serão importados automaticamente**, nem apagados: permanecem como backup local acessível/exportável. O aplicativo não pode substituir silenciosamente o armazenamento existente nem sobrescrever um estado remoto. Esta decisão substitui a proposta de importação por confirmação no planejamento anterior.
+
+## DEC-20261123-H — Salvamento automático de combate
+
+**Aprovada pelo usuário em 23/11/2026.** Toda alteração de combate (PV, iniciativa, ordem, turno, rodada, participantes) deve ser enviada automaticamente ao servidor, com confirmação de gravação, feedback de falha e recuperação segura. Controlar concorrência por versão e serialização das alterações; não descartar operações pendentes nem afirmar sucesso antes de confirmação. Não expor combate a jogadores, inclusive pela API; apenas mestre da campanha autorizado por RLS. A habilitação depende de migração revisada, ambiente isolado verde e validação no destino. Nenhuma alteração no Supabase de produção foi autorizada.
