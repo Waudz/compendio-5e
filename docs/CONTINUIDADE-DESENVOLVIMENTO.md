@@ -29,6 +29,10 @@ Consultar [DEC-20261122-A a F](../DECISOES-E-ARQUITETURA.md#decisões-vigentes--
 
 **Não apagar documentação histórica sem avaliar referências.** Marcar decisões antigas como **SUBSTITUÍDAS** e apontar para a decisão vigente. Se documentos divergem, não escolher silenciosamente: verificar data, autoridade, implementação e registrar reconciliação.
 
+## Recuperação de campanhas em revisão — 22/11/2026
+
+[Exceções, nova tentativa e preservação da campanha](ALPHA-CAMPANHAS-RECUPERACAO.md): branch `fix/alpha-carregamento-campanhas`, baseada na main. Sem alteração de dados remotos.
+
 ## Registro consolidado de decisões vigentes
 
 | ID | Decisão | Estado | Detalhes/limites |
