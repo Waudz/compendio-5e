@@ -1,3 +1,5 @@
+> Retomada de 22/11/2026: consultar [critérios verificáveis da Alpha](ALPHA-CATALOGO-CAMPANHA.md). Percentuais históricos abaixo não são critérios de conclusão nem evidência de publicação.
+
 > **Guia para novas conversas:** [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md). Atualizar estimativas apenas com justificativa; registrar evidência de testes, CI e diferença entre branch e produção. Nunca transformar percentuais estimados em declaração de prontidão.
 
 # Estado verificável das funcionalidades — Compêndio 5e 2.0

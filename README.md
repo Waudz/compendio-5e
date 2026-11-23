@@ -142,3 +142,5 @@ O **Compêndio** (menu → Compêndio) reúne 578 itens, 319 magias e 323 monstr
 ## Criador e fichas 2014 — expansão em revisão
 
 As fichas preservam suas regras antigas. Dentro do criador, a atualização explícita oferece opções SRD 2014 de classe, raça, origem, magias e equipamento, reutilizando a persistência existente por campanha. Não equivale ao PHB completo. [Cobertura, fontes, auditoria, testes e limites](docs/CRIADOR-2014-EXPANSAO.md).
+
+Compêndio da Alpha em revisão: [campanha obrigatória e critérios verificáveis de conclusão](docs/ALPHA-CATALOGO-CAMPANHA.md). Sem publicação ou alteração de dados existentes.

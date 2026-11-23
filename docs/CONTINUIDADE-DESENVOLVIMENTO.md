@@ -25,7 +25,7 @@ Consultar [DEC-20261122-A a F](../DECISOES-E-ARQUITETURA.md#decisões-vigentes--
 | Implementação de criador/ficha/inventário | `docs/CRIADOR-FICHA-INVENTARIO.md` | `docs/AUDITORIA-CATALOGO-PERSONAGEM-2014.md` valida conteúdo |
 | Fontes e migração de dados | `docs/PLANO-REAPROVEITAMENTO-LEGADO.md` | Catálogo auditado antes de publicar |
 | Navegação, notas, RLS | `docs/NAVEGACAO-ABAS.md`, `docs/NOTAS-PERMISSOES.md` | Ver migrações e código |
-| Estado real | **Código, branch, CI, banco e site publicados** | Textos de status podem ficar desatualizados |
+| Estado real | **Código, branch, CI, banco e site publicados** | [Critérios verificáveis da Alpha](ALPHA-CATALOGO-CAMPANHA.md); textos históricos podem ficar desatualizados |
 
 **Não apagar documentação histórica sem avaliar referências.** Marcar decisões antigas como **SUBSTITUÍDAS** e apontar para a decisão vigente. Se documentos divergem, não escolher silenciosamente: verificar data, autoridade, implementação e registrar reconciliação.
 

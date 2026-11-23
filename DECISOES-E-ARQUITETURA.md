@@ -15,6 +15,8 @@
 - **E — Assimilação:** aplicativo separado permanece funcional; preservar contas, mesas, fichas e histórico da one-shot; só correções críticas até integração futura. Não alterar seu banco nem migrar agora.
 - **F — PWA:** etapa posterior ao núcleo funcional, antes da abertura pública. Auditar e reaproveitar base validada do Assimilação sem alterá-lo: instalação iOS/Android, standalone, áreas seguras, ícone/splash, sessão offline, cache/versionamento sem perda de dados, gestos e testes reais. Push posteriormente.
 
+Requisito de campanha no Compêndio e critérios verificáveis desta retomada: [Alpha — catálogo e campanha](docs/ALPHA-CATALOGO-CAMPANHA.md), implementação em revisão, sem publicação.
+
 **Divisão de trabalho:** Codex: criador/ficha; Claude: catálogo; ChatGPT: campanhas/auth e integração. Branches separadas; validar CI e autorizar merge/deploy/migração. PR #82 integrado (f258172), validação e E2E verdes no HEAD do PR; publicação ainda não confirmada neste registro. Prioridade: campanha atual, onboarding, beta fechado, criador/catálogo, combate, integração, PWA. Alternativas descartadas: seletor global, ficha pessoal independente e distribuição de loot. Motivação: reduzir atrito observado em sessão real e evitar arquitetura acoplada a D&D. Testes das novas decisões ainda pendentes.
 
 
