@@ -39,7 +39,9 @@ export function CampaignsProvider({ children, apiFactory }: { children: ReactNod
     if (!api) return;
     const ticket = ++request.current;
     setSnapshot(prev => ({ api, memberships: prev?.api === api ? prev.memberships : [], loading: true, error: null }));
-    const r = await api.list();
+    let r: Awaited<ReturnType<CampaignApi["list"]>>;
+    try { r = await api.list(); }
+    catch { r = { ok: false, error: "Não foi possível carregar suas campanhas. Verifique a conexão e tente novamente." }; }
     if (ticket !== request.current || liveApi.current !== api) return;
     if (r.ok) validated.current = { api, ids: new Set(r.data.map(m => m.campaign.id)) };
     setSnapshot(prev => ({ api, memberships: r.ok ? r.data : prev?.api === api ? prev.memberships : [], loading: false, error: r.ok ? null : r.error }));
