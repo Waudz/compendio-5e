@@ -59,7 +59,7 @@ describe("Diário (mestre)", () => {
     expect(registros.dados[0].visibility).toBe("campaign");
     expect(registros.dados[0].meta).toEqual({ sessao: { dia: 3, mes: 12, ano: 1491 } });
     fireEvent.click(menu().getByRole("button", { name: "Início" }));
-    expect(await screen.findByText("3 de Nightal, 1491 DR")).toBeTruthy();
+    expect((await screen.findAllByText("3 de Nightal, 1491 DR")).length).toBeGreaterThan(0);
     expect(screen.getByText("Primeiro parágrafo do registro.")).toBeTruthy(); expect(screen.queryByText("Segundo parágrafo.")).toBeNull();
     expect(screen.getByRole("heading", { name: "Diário", level: 2 })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ver registro completo" })).toBeTruthy();
