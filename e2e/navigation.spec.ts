@@ -19,7 +19,7 @@ test('mestre usa iniciativa local, preserva PV e rodada ao recarregar', async ({
   await navigate(page, 'Iniciativa');
   await expect(page.getByRole('heading', { name: 'Iniciativa', exact: true })).toBeVisible();
   await page.getByLabel('Nome', { exact: true }).fill('Goblin de teste');
-  await page.getByLabel('Iniciativa', { exact: true }).fill('12');
+  await page.getByRole('textbox', { name: 'Iniciativa', exact: true }).fill('12');
   await page.getByLabel('PV (opcional)', { exact: true }).fill('7');
   await page.getByRole('button', { name: 'Adicionar', exact: true }).click();
   await page.getByLabel('Quantidade de dano ou cura de Goblin de teste').fill('3');
