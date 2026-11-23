@@ -2,7 +2,7 @@
 // Fixação é propriedade da própria aba (`config.pinned`), não o atributo nativo do FlexLayout: o nativo agrupa as fixadas no
 // início, impede fechá-las pela interface e impede arrastá-las para fora do painel, o que contraria as decisões aprovadas.
 import { Actions, DockLocation, type Model, TabNode, TabSetNode } from "flexlayout-react";
-import { activeGroup, findTab, tabId, tabJson, type TabSpec } from "./workspace";
+import { activeGroup, findTab, groupCount, groups, MAX_GROUPS, tabId, tabJson, type TabSpec } from "./workspace";
 
 export type NavMode = "reuse" | "new" | "newPinned";
 export type NavResult = { action: "selected" | "replaced" | "created"; tabId: string };
@@ -54,16 +54,6 @@ export function navigate(m: Model, spec: TabSpec, mode: NavMode = "reuse", isDir
   if (!group) return { action: "selected", tabId: id };
   const pinned = mode === "newPinned";
   const json = tabJson({ ...spec, pinned });
-  if (mode === "reuse") {
-    const tabs = tabsOf(group), selected = group.getSelectedNode();
-    const eligible = (t: TabNode) => !isPinned(t) && !isDirty(t.getId());
-    const target = selected instanceof TabNode && eligible(selected) ? selected : [...tabs].reverse().find(eligible);
-    if (target) {
-      const index = tabs.indexOf(target);
-      m.doAction(Actions.group([Actions.addTab(json, group.getId(), DockLocation.CENTER, index, true), Actions.deleteTab(target.getId()), Actions.setActiveTabset(group.getId())]));
-      return { action: "replaced", tabId: id };
-    }
-  }
   m.doAction(Actions.addTab(json, group.getId(), DockLocation.CENTER, -1, true));
   m.doAction(Actions.setActiveTabset(group.getId()));
   return { action: "created", tabId: id };
@@ -87,16 +77,21 @@ export function closeTabs(m: Model, ids: string[]): void {
  *     no painel da aba de origem (ou no painel ativo, se a origem não for informada). A aba de origem fica intacta.
  * Independe da quantidade de painéis. Alterações não salvas não entram em jogo: nada é fechado nem trocado.
  */
-export function openContentLink(m: Model, spec: TabSpec, originTabId?: string): NavResult {
+export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, mobile = false): NavResult {
+  void originTabId; // Mantido por compatibilidade com os chamadores.
   const id = tabId(spec);
   const existing = findTab(m, id);
   if (existing) { focusExisting(m, existing, spec); return { action: "selected", tabId: id }; }
-  const origin = originTabId ? findTab(m, originTabId) : undefined;
-  const parent = origin?.getParent();
-  const group = parent instanceof TabSetNode ? parent : activeGroup(m);
-  if (!group) return { action: "selected", tabId: id };
-  const index = origin && parent === group ? tabsOf(group).indexOf(origin) + 1 : -1;
-  m.doAction(Actions.addTab(tabJson({ ...spec, pinned: true }), group.getId(), DockLocation.CENTER, index, true));
-  m.doAction(Actions.setActiveTabset(group.getId()));
+  // No desktop, consultas abrem sempre na coluna mais à direita, sem substituir a origem.
+  // Até três grupos: cria o grupo à direita quando há espaço, ou reutiliza o último.
+  // No celular não há colunas lado a lado: preserva as abas no grupo atual.
+  const last = groups(m).at(-1);
+  const target = mobile ? activeGroup(m) : last;
+  if (!target) return { action: "selected", tabId: id };
+  const createRight = !mobile && groupCount(m) < MAX_GROUPS;
+  m.doAction(Actions.addTab(tabJson({ ...spec, pinned: true }), target.getId(), createRight ? DockLocation.RIGHT : DockLocation.CENTER, -1, true));
+  const created = findTab(m, id);
+  const parent = created?.getParent();
+  if (parent instanceof TabSetNode) m.doAction(Actions.setActiveTabset(parent.getId()));
   return { action: "created", tabId: id };
 }
