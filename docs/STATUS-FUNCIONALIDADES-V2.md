@@ -1,3 +1,5 @@
+> **Atualização mais recente (23/11/2026):** consulte [Estado da Alpha após integração do combate](ALPHA-STATUS-20261123.md). As porcentagens e o placeholder de iniciativa abaixo são registros históricos de 20/11, não representam a `main` atual.
+
 > **Guia para novas conversas:** [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md). Atualizar estimativas apenas com justificativa; registrar evidência de testes, CI e diferença entre branch e produção. Nunca transformar percentuais estimados em declaração de prontidão.
 
 # Estado verificável das funcionalidades — Compêndio 5e 2.0
