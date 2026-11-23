@@ -59,7 +59,7 @@ describe("link de conteúdo (desktop)", () => {
     await renderApp();
     link();                                                                  // seleciona a nova aba (fixada)
     fireEvent.click(nav("Iniciativa"));                                      // a fixada não é substituída: troca a aba normal
-    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Resumo da Sessão 3"]);
+    expect(tabs()).toEqual(["Personagens", "Resumo da Sessão 3", "Iniciativa"]);
     expect(rawTabs()).toContain("Resumo da Sessão 3 (fixada)");
   });
 
