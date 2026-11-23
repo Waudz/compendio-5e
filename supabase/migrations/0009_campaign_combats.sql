@@ -11,7 +11,7 @@ begin;
 create schema if not exists private_combates;
 create function private_combates.valid_campaign_combat_state(s jsonb) returns boolean
 language plpgsql immutable security invoker set search_path = '' as $$
-declare c jsonb; ids text[] := '{}'; ident text; pv numeric; maximo numeric;
+declare c jsonb; cond jsonb; ids text[] := '{}'; ident text; pv numeric; maximo numeric;
 begin
   if s is null or jsonb_typeof(s) <> 'object' or octet_length(s::text) > 1048576 then return false; end if;
   if jsonb_typeof(s -> 'combatentes') is distinct from 'array' then return false; end if;
@@ -35,6 +35,16 @@ begin
       if not (c ? 'pvMax') or jsonb_typeof(c -> 'pv') is distinct from 'number' then return false; end if;
       pv := (c ->> 'pv')::numeric;
       if pv < 0 or pv > maximo or trunc(pv) <> pv then return false; end if;
+    end if;
+    if c ? 'condicoes' then   -- condições: lista de textos curtos (a lista de cada sistema fica na interface)
+      if jsonb_typeof(c -> 'condicoes') is distinct from 'array' or jsonb_array_length(c -> 'condicoes') > 16 then return false; end if;
+      for cond in select value from jsonb_array_elements(c -> 'condicoes') loop
+        if jsonb_typeof(cond) is distinct from 'string' or char_length(btrim(cond #>> '{}')) = 0 or char_length(cond #>> '{}') > 40 then return false; end if;
+      end loop;
+    end if;
+    if c ? 'ref' then   -- referência a monstro do catálogo ou personagem da campanha
+      if jsonb_typeof(c -> 'ref') <> 'object' or (c -> 'ref' ->> 'tipo') is null or (c -> 'ref' ->> 'tipo') not in ('monstro', 'personagem')
+         or jsonb_typeof(c -> 'ref' -> 'id') is distinct from 'string' or char_length(btrim(c -> 'ref' ->> 'id')) = 0 or char_length(c -> 'ref' ->> 'id') > 128 then return false; end if;
     end if;
   end loop;
   if cardinality(ids) = 0 then return s -> 'turno' = 'null'::jsonb; end if;

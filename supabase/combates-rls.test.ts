@@ -142,4 +142,11 @@ describe("rascunho de combate — RLS real em PostgreSQL isolado", () => {
     ]) expect((await como(mestreA, "update public.campaign_combats set state=$2,version=2 where campaign_id=$1", [a, novo])).error).toBeTruthy();
   });
 
+  it("valida condições e referência do combatente no servidor", async () => {
+    const c = { id: "x", nome: "Goblin", lado: "inimigo", iniciativa: 1 };
+    for (const ruim of [{ ...c, condicoes: "cego" }, { ...c, condicoes: [""] }, { ...c, condicoes: [1] }, { ...c, condicoes: Array.from({ length: 17 }, (_, i) => `c${i}`) }, { ...c, ref: { tipo: "carro", id: "x" } }, { ...c, ref: { tipo: "monstro" } }])
+      expect((await como(mestreA, "update public.campaign_combats set state=$2,version=2 where campaign_id=$1", [a, { ...estado, combatentes: [ruim], turno: "x" }])).error, JSON.stringify(ruim)).toBeTruthy();
+    const bom = { ...c, condicoes: ["Cego", "Caído"], ref: { tipo: "monstro", id: "goblin" } };
+    expect((await como(mestreA, "update public.campaign_combats set state=$2,version=2 where campaign_id=$1 returning version", [a, { ...estado, combatentes: [bom], turno: "x" }])).rows).toEqual([{ version: 2 }]);
+  });
 });
