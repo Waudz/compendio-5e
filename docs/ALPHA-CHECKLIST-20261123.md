@@ -1,70 +1,90 @@
 # Alpha 2.0 — checklist, procedimento de publicação e roteiro de testes (23/11/2026)
 
-> Fonte de verdade: código da branch `alpha/estabilizacao-20261123` (base `main` `5d53953` + PRs #130 e #131 integrados) e os resultados abaixo. Onde este documento contradiz documentos anteriores, valem as decisões mais recentes (DEC-20261123-G/H) e o código.
+> Fonte de verdade: código da branch `alpha/estabilizacao-20261123` (base `main` `5d53953` + PRs #130 e #131 integrados) e os resultados desta página. Onde contradiz documentos anteriores, valem as decisões mais recentes (DEC-20261123-G/H e as de 23/11 abaixo) e o código.
 > **Nada foi aplicado ao Supabase hospedado, nada foi publicado e nada foi mesclado na `main`.**
+
+## 0. Achados que exigem a sua decisão ou autorização (leia primeiro)
+
+1. **O cadastro público está ABERTO no servidor.** Leitura somente de `GET /auth/v1/settings` do projeto `compendio-5e` (chave publicável do próprio site): `disable_signup: false`, confirmação de e-mail ligada. Só o *cliente* esconde o cadastro; qualquer pessoa pode chamar `/auth/v1/signup` direto e, com a conta, criar campanhas (`create_campaign`). **Antes de convidar testadores:** Supabase → Authentication → Sign In/Providers → desligar "Allow new users to sign up" (contas já existentes e a recuperação de senha continuam funcionando — o harness isolado confirma isso). Não alterei nada em produção.
+2. **O banco hospedado está atrás do repositório.** Sondagem somente leitura (HTTP anônimo, sem credenciais privadas): existem `campaigns`, `campaign_members`, `notes`, `character_sheets`; **não existem** `create_guided_character` (0008) nem `save_note_content` (0005) — ou seja, **a persistência de personagens no servidor (criador → ficha) não funciona em produção até a 0008 ser aplicada** — e nenhuma tabela das 0009–0011. **Discrepância a esclarecer:** a 0007 (marcada como aplicada) usa `notes.kind`, criada pela 0005, mas a função da 0005 não aparece. Antes de aplicar qualquer coisa, consultar `select version, name from supabase_migrations.schema_migrations order by 1;` e comparar com o livro-razão (`supabase/migrations/LEIA-ME.md`).
+3. **Desligar `VITE_COMBATE_REMOTO` não é rollback completo** quanto aos dados: o que foi gravado só na nuvem fica nas tabelas. Recuperação: botão **"Baixar cópia (JSON)"** na Iniciativa e nos Encontros (modo nuvem) e, para o conjunto, `select campaign_id, state, version from public.campaign_combats;` / `campaign_encounters` / `character_combat_status` no SQL Editor (exportar CSV/JSON) **antes** de qualquer reversão. Ver §7.
+4. Aplicar as migrações **0008 → 0009 → 0010 → 0011** (e a 0005/0006 se o registro mostrar que faltam) exige a sua autorização expressa.
 
 ## 1. Estado real (auditado no código e executado)
 
 | Área | Estado | Evidência | Limite |
 |---|---|---|---|
-| Login, senha, sessão, cadastro fechado | Implementado e testado com contas simuladas | `auth.test.tsx`, `etapa1.test.tsx`; `persistSession`/`autoRefreshToken` ligados em `src/supabase.ts`; `signUp` recusado no cliente | **Cadastro fechado só no cliente**: conferir/desabilitar no servidor (Auth) com autorização; login/recuperação reais por e-mail não foram exercitados nesta sessão |
-| Campanhas, convites, campanha ativa | Implementado e testado (simulado) | `campaignsUI.test.tsx`, PRs #114/#115 na main | Fluxo com contas e convites reais no projeto hospedado ainda precisa de teste manual (roteiro §6) |
-| Criador / fichas / inventário | Integrado: 12 classes (1 subclasse SRD cada), 9 opções raciais, 319 magias, equipamento inicial por classe, point buy/matriz, rascunhos e `character_sheets` (0007/0008, aplicadas) | `src/criador/*.test.*`, `docs/CRIADOR-2014-EXPANSAO.md` | **Antecedente: só Acólito + origem personalizada** (SRD); demais subclasses/antecedentes dependem de fonte autorizada; não é a progressão completa de todas as opções do 1.0 |
-| Compêndio (itens 578, magias 319, monstros 323) | Integrado e restrito por campanha; Bestiário só para o mestre na Iniciativa/Encontros | PR #84/#116; testes do catálogo | Traduções de monstros por IA sem revisão humana |
-| Iniciativa e Encontros — **modo local** | Funciona, só mestre, por usuário e campanha | `iniciativaTela.test.tsx`, E2E | Fica no navegador |
-| Iniciativa e Encontros — **modo nuvem** | **Implementado e testado em ambiente isolado; desligado por padrão** (`VITE_COMBATE_REMOTO=1` liga) | `useLinhaRemota.test.tsx` (9), `iniciativaNuvem.test.tsx` (11), `supabase/combates-rls.test.ts`, `encontros-rls.test.ts`, `combates-reversao.test.ts`, E2E `combate-nuvem.spec.ts` | **Depende das migrações 0009 e 0010 aplicadas no projeto hospedado (não aplicadas).** O E2E usa servidor falso; não prova o Supabase real |
-| Diário / Anotações / Enciclopédia | Existem; Diário e Anotações com persistência/permissões nos PRs anteriores | testes existentes | **Não reauditados nesta sessão**; Enciclopédia continua com fundação e SQL em rascunho (sem políticas aplicadas) — não é critério da Alpha mínima |
-| Navegação por abas (PR #130) | Integrada | `navigation-behavior.test.ts` e suíte de navegação | Voltar/Avançar do navegador **dentro do app** não foi tratado nesta sessão (ver §5) |
-| PV do jogador na ficha a partir do combate | **Não implementado** | — | Exige fluxo autorizado de ficha (RPC); decisão de produto/segurança pendente (§5) |
+| Login, senha, sessão | Implementado e testado com contas simuladas; `persistSession`/`autoRefreshToken` ligados | `auth.test.tsx`, `etapa1.test.tsx`; harness isolado (CI) cobre JWT curto expirado + refresh e recuperação | Cadastro **aberto no servidor** (§0.1); e-mails reais não exercitados |
+| Campanhas, convites, campanha ativa | Implementado e testado (simulado) | `campaignsUI.test.tsx`; harness isolado cobre criação, convite, papel de jogador e isolamento entre campanhas | Teste manual com contas reais (§6) |
+| Criador / fichas / inventário | Integrado: 12 classes (1 subclasse SRD cada), 9 opções raciais, 319 magias, equipamento inicial, point buy/matriz, rascunhos | `src/criador/*.test.*` (369 testes focados) | Antecedente: só Acólito + origem personalizada (decisão: suficiente para a Alpha). **Persistência no servidor depende da 0008 (§0.2)** |
+| Compêndio (578 itens, 319 magias, 323 monstros) | Integrado; Bestiário só no combate do mestre | testes do catálogo | Traduções de monstros por IA, sem revisão humana |
+| Iniciativa e Encontros — modo local | Funciona, só mestre | `iniciativaTela.test.tsx`, E2E | Fica no navegador |
+| Iniciativa e Encontros — **modo nuvem** | Implementado; **desligado por padrão** | hook (9), UI (15), RLS combates (33) / encontros / reversão em PGlite, E2E `combate-nuvem` (desktop+celular), harness real no CI | Depende das migrações 0009/0010 no banco hospedado |
+| **PV e condições → ficha do jogador** | **Implementado** (migração 0011): o mestre grava por `set_combat_status`; o dono lê só o status da própria ficha (Realtime + polling); sem acesso a ordem, turno, rodada ou outros combatentes; monstros/genéricos não geram status e o Bestiário não é alterado | `supabase/combate-status.test.ts` (17), `iniciativaNuvem.test.tsx`, `estadoCombateFicha.test.tsx`; harness real (CI) | Depende da 0011; o PV *da ficha* (`draft.currentHp`) continua sendo o que o dono registra — o painel "Estado em combate" mostra o do combate, sem sobrescrever a ficha (evita conflito de revisão) |
+| Voltar/Avançar do navegador | **Verificado**: desktop (Voltar e Avançar entre abas) e celular (Voltar) | `e2e/historico.spec.ts` (Chrome local) | Celular não oferece Avançar por desenho |
+| Diário / Anotações | Funcionam: criar, editar, publicar, excluir→lixeira, conflito de edição sem perder texto; privacidade de notas inclusive perante o mestre | `diarioPlanejamento.test.tsx` e `planejamentoInline.test.tsx` (54, verdes após correção); harness real: nota privada invisível ao mestre, compartilhar é explícito | Sem teste manual hospedado |
+| **Enciclopédia e Documentos** | **Não implementadas** (seções com aviso claro "não faz parte da Alpha"); fundação/SQL da Enciclopédia só em rascunho | — | Fora do escopo da Alpha (decisão de congelamento) |
+| Navegação por abas (PR #130) | Integrada; **4 testes do PR corrigidos** (expectativa com caractere de controle no lugar de limite de palavra; passavam na `main` e quebravam no PR) | `navigation-behavior.test.ts` + suíte | — |
 
-## 2. Combate e encontros — o que foi feito nesta sessão
+## 2. Combate, encontros e ficha — o que existe
 
-- **Migração `0009_campaign_combats.sql`** (promove o rascunho): uma linha por campanha, mestre-only (RLS via `public.is_master`), versão otimista, `DELETE` condicionado à versão para finalizar; valida estado, condições e referências no servidor. Rollback: `supabase/rollback/0009_campaign_combats_down.sql`.
-- **Migração `0010_campaign_encounters.sql`**: encontros preparados, mestre-only, **sem DELETE pela Data API** (finalizar um combate nunca apaga encontros). Rollback: `0010_campaign_encounters_down.sql` (reverter **0010 antes da 0009**).
-- Schema de apoio próprio `private_combates` (não `private`, para que reverter a 0008 não dependa dessas funções). Livro-razão `supabase/migrations/LEIA-ME.md` renumerado (reservas futuras passaram para 0011+).
-- **Hook `useLinhaRemota`**: uma gravação por vez e em ordem, confirmação antes de dizer "salvo", nova tentativa automática com recuo, conflito explícito (nada é sobrescrito; cópia local em `…:nao-sincronizado`), recarga ao voltar à janela (outro aparelho), aviso ao sair com pendências, finalização que só confirma com o servidor.
-- **Interface**: modo local/nuvem sempre visível; combate antigo do navegador **não importado nem apagado** (backup com botão de baixar); turno anterior; rolagem de iniciativa (1d20 + Destreza para monstros do Bestiário); condições; monstros do Bestiário e personagens da campanha por referência estável (`ref`); encontros: criar, renomear, duplicar, excluir, quantidade, adicionar do Bestiário, enviar ao combate preservando o encontro.
-- **Segurança**: jogador não vê o módulo (cliente) e nem a API recebe chamada dele (teste); no banco, RLS nega jogador, mestre de outra campanha, sem vínculo e `anon` (PGlite com `auth.uid()` simulado — **não** valida a configuração hospedada).
+- **0009** `campaign_combats` (um por campanha, mestre-only, versão otimista, finalizar = DELETE condicionado); **0010** `campaign_encounters` (mestre-only, **sem DELETE pela API**: finalizar nunca apaga encontros); **0011** `character_combat_status` + `set_combat_status`/`clear_combat_status`. Schema de apoio `private_combates` (não acopla a reversão da 0008). Rollbacks em `supabase/rollback/` (reverter **0011 → 0010 → 0009**).
+- **Hook `useLinhaRemota`**: uma gravação por vez e em ordem, "salvo" só com confirmação do servidor, nova tentativa automática com recuo, conflito explícito (nada é sobrescrito; cópia local `…:nao-sincronizado`), recarga ao voltar à janela, aviso ao sair com pendências, finalização que só confirma com o servidor.
+- **Interface**: modo local/nuvem sempre visível; combate antigo do navegador **não importado nem apagado** (backup com download); turno anterior; rolagem (1d20 + Destreza do monstro); condições; monstros e personagens por referência estável (`ref`); encontros: criar, renomear, duplicar, excluir, quantidades, Bestiário; enviar ao combate preserva o encontro; **Baixar cópia (JSON)** da nuvem.
+- **Qualidade**: guardas do construtor de monstros que estavam **vazias** (caractere de controle no lugar de `\b`) foram consertadas; cinco detalhes de CA que passavam em inglês foram traduzidos.
 
 ## 3. Resultados de verificação
 
-Ver a seção "Resultados" no final deste arquivo (preenchida com a última execução local).
+Ver "Resultados" no final.
 
-## 4. Migrações necessárias para ativar o modo nuvem
+## 4. Migrações e ordem (compatibilidade auditada)
 
-1. `0009_campaign_combats.sql` e 2. `0010_campaign_encounters.sql`, nessa ordem, no projeto Supabase **`compendio-5e`** (nunca no `rastreador-dnd`/Assimilação).
-Nenhuma altera dados existentes (só criam tabelas/funções novas).
+Ordem de aplicação sobre o estado remoto provável: **(0005, 0006 se faltarem) → 0008 → 0009 → 0010 → 0011**. `supabase/estado-remoto.test.ts` aplica 0008–0011 sobre um banco 0001–0007 **com dados** (campanhas, membros, notas) e confere que nada se perde e que a RLS fica ligada; reaplicar 0009–0011 falha sem duplicar. Nenhuma migração desta fase altera dados existentes.
 
-## 5. Limitações conhecidas da Alpha (não escondidas)
+## 5. Limitações conhecidas da Alpha
 
-- Modo nuvem **desligado** até a autorização das migrações; sem ele, combate/encontros ficam no aparelho.
-- PV/condições do combate **não** atualizam a ficha do jogador (fluxo autorizado de ficha não implementado; sem expor o combate ao jogador). Decisão pendente.
-- Voltar/Avançar do navegador dentro do app: não implementado/auditado.
-- Notas, Diário publicado, Enciclopédia e a revisão de segurança hospedada não foram reauditados aqui.
-- Cadastro fechado no servidor, e-mails de convite/recuperação e RLS/Data API do projeto hospedado precisam de verificação manual com autorização.
-- Criador: uma subclasse por classe e um antecedente SRD; sem suplementos.
-- Traduções dos monstros/itens/magias não revisadas por humanos.
-- Playwright rodou no Chrome local (sem ffmpeg/Chromium do Playwright); responsividade completa em 8 larguras e acessibilidade (axe) estão nas configs `test:quality`/`test:creator`.
+- Modo nuvem **desligado** até a autorização; sem ele, combate/encontros ficam no aparelho.
+- O harness com **Supabase real (CLI + Docker) roda só no GitHub Actions** (`Alpha Supabase isolado`): **não havia Docker nesta máquina**. Os checks novos (encontros, finalização, status da ficha, cadastro fechado no stack local) estão no `scripts/alpha/run-local.mjs`, com sintaxe validada, mas **não executados localmente**. O E2E de navegador contra o Supabase real (login por UI, criar campanha, convidar, criar personagem, combate) **não foi escrito** — escrevê-lo às cegas sem poder rodá-lo arriscaria um CI quebrado; o fluxo equivalente no nível da API está no harness e o fluxo de tela, no E2E de demonstração (servidor falso).
+- Realtime do status da ficha depende da publicação `supabase_realtime` do projeto; há polling de 15 s como reserva.
+- Enciclopédia e Documentos: não implementados.
+- Traduções de monstros/itens/magias por IA, sem revisão humana.
+- Revisão de segurança do projeto hospedado (Data API, Auth, buckets) permanece manual.
 
-## 6. Roteiro de testes manuais (com o modo nuvem após a autorização)
+## 6. Roteiro de testes manuais (após as autorizações)
 
-1. Entrar como mestre → criar campanha → convidar jogador por link → sair; entrar como jogador com a conta autorizada pelo convite → confirmar que cadastro livre está fechado.
-2. Fechar o navegador, reabrir: continua logado; abrir outro aparelho: mesma campanha ativa.
-3. Jogador: criar personagem (classe, raça, antecedente, atributos, perícias, equipamento), salvar rascunho, fechar, retomar, finalizar; conferir ficha e inventário (adicionar/remover/equipar).
-4. Mestre: abrir o personagem do jogador; Compêndio → Monstros → ver detalhe e links para magias.
-5. Mestre: Encontros → criar, adicionar monstros do Bestiário e quantidades, duplicar, renomear; recarregar (F5) e abrir em outro aparelho: continua salvo.
-6. Mestre: Iniciativa → enviar o encontro, adicionar o personagem do jogador, rolar iniciativa, avançar/voltar turnos e rodadas, dano/cura, condições; ver "Salvo na nuvem"; F5; outro aparelho; desligar a rede (aviso e nova tentativa) e religar.
-7. Dois aparelhos editando ao mesmo tempo: o segundo recebe o aviso de conflito e escolhe recarregar.
-8. Finalizar o combate; os encontros continuam; iniciar outro combate.
-9. Jogador: não vê Iniciativa/Encontros no menu; pela API (token do jogador) `campaign_combats` e `campaign_encounters` devolvem vazio/negado.
-10. Celular: repetir 3, 5 e 6 em tela estreita (sem corte de botões, sem rolagem horizontal).
+1. (Servidor) Desligar cadastro público; confirmar `GET /auth/v1/settings` com `disable_signup: true`; tentar cadastrar por fora do app → recusado.
+2. Entrar como mestre → criar campanha → convidar jogador → sair; entrar como jogador (conta já existente) pelo convite. F5; fechar/reabrir o navegador (continua logado); outro aparelho.
+3. Jogador: criar personagem (classe, raça, antecedente, atributos, perícias, equipamento), salvar rascunho, fechar, retomar, finalizar; ficha e inventário (adicionar/remover/equipar).
+4. Mestre: abrir o personagem; Compêndio → Monstros → detalhe e links para magias.
+5. Mestre: Encontros → criar, Bestiário, quantidades, duplicar, renomear; F5 e outro aparelho.
+6. Mestre: Iniciativa → enviar o encontro, adicionar o personagem do jogador **com PV máximo**, rolar, turnos/rodadas, dano/cura/condições; "Salvo na nuvem"; F5; outro aparelho; cortar a rede (aviso e nova tentativa) e religar.
+7. Jogador, na própria ficha: "Estado em combate" mostra PV e condições em segundos, **sem** ordem/turno/rodada/outros.
+8. Dois aparelhos do mestre editando ao mesmo tempo: conflito → "Recarregar do servidor".
+9. Finalizar o combate: a ficha deixa de mostrar o estado; os encontros continuam; novo combate começa limpo.
+10. Jogador: sem Iniciativa/Encontros no menu; chamadas diretas à API de `campaign_combats`, `campaign_encounters` devolvem vazio/negado.
+11. Voltar/Avançar do navegador; celular: repetir 3, 5, 6 e 7 em tela estreita.
 
-## 7. Publicação (somente com autorização expressa) e reversão
+## 7. Publicação e reversão (somente com autorização expressa)
 
-**Antes:** merge do PR da Alpha na `main` (só após revisão); backup do projeto Supabase (snapshot) e conferência do projeto-alvo (`compendio-5e`).
-**Publicar:** (1) aplicar `0009` e `0010` por Supabase CLI/SQL Editor no `compendio-5e`; (2) rodar `supabase/combates-rls.test.ts`/`encontros-rls.test.ts` contra uma cópia/branch de desenvolvimento antes; (3) configurar `VITE_COMBATE_REMOTO=1` no ambiente de build do GitHub Pages; (4) gerar o build e publicar o site; (5) executar o roteiro §6.
-**Reverter:** (a) remover `VITE_COMBATE_REMOTO` e republicar (volta ao modo local; nada se perde nos aparelhos); (b) se necessário, `rollback/0010_campaign_encounters_down.sql` e depois `0009_campaign_combats_down.sql` (apagam os dados dessas duas tabelas: exportar antes). Nenhuma tabela existente é tocada.
+**Antes:** snapshot/backup do projeto `compendio-5e` (nunca `rastreador-dnd`); `select … from supabase_migrations.schema_migrations`; rodar os testes de RLS contra uma cópia/branch de desenvolvimento.
+**Publicar:** (1) desligar cadastro público; (2) aplicar as migrações pendentes na ordem (§4); (3) `VITE_COMBATE_REMOTO=1` no build do GitHub Pages; (4) build e publicação; (5) roteiro §6.
+**Reverter o modo nuvem sem perder dados:** (a) pedir a cada mestre "Baixar cópia (JSON)" em Iniciativa e Encontros **ou** exportar as tabelas por SQL (`campaign_combats`, `campaign_encounters`, `character_combat_status`); (b) remover `VITE_COMBATE_REMOTO` e republicar (a interface volta ao modo local; **o conteúdo gravado só na nuvem não aparece no modo local**, por isso a cópia do passo a); (c) só então, se necessário, reverter o banco: `0011` → `0010` → `0009` (apagam o conteúdo dessas tabelas; nenhuma tabela anterior é tocada). Importar a cópia de volta ao modo local é manual (não há importação automática por decisão).
 
-## 8. Backlog da Beta (adiado, não implementar na Alpha)
+## 8. Backlog da Beta (adiado)
 
-PV de jogadores sincronizado com a ficha por fluxo autorizado; Voltar/Avançar do navegador no app; outras subclasses e antecedentes; revisão humana das traduções; automação de regras e conjuração em combate; sistemas além de D&D 5e 2014; Realtime (atualização ao vivo entre aparelhos sem recarregar); exportar/importar combates e encontros; Enciclopédia completa com visibilidade por campanha.
+Importar cópia JSON no modo local; Realtime também para combate/encontros entre aparelhos do mestre; Enciclopédia e Documentos; outras subclasses e antecedentes; revisão humana das traduções; automação de regras/conjuração em combate; E2E de navegador contra o Supabase real; novos sistemas de RPG; sincronizar o PV da ficha (`draft.currentHp`) ao finalizar o combate (opção do mestre).
+
+## Resultados (execução local em 23/11/2026, Windows, Chrome instalado)
+
+| Verificação | Resultado |
+|---|---|
+| `tsc -b` e `tsc -p e2e/tsconfig.json` | passaram |
+| `npm run build` (produção) | passou |
+| Vitest completo | **118 arquivos, 1473 testes, todos passaram** (inclui 252+ de SQL/RLS em PGlite: combates, encontros, status, reversão, compatibilidade das migrações pendentes) |
+| `node --test scripts/alpha/local-only.test.mjs` (barreiras contra produção) | 3/3 |
+| Playwright (Chrome local, desktop 1440 e celular 390, 15 specs) | **30 passaram**, 0 falhas: navegação, iniciativa local, combate na nuvem (servidor falso), Voltar/Avançar, criador, fichas, inventário, Compêndio |
+| Harness Supabase **real** (CLI + Docker) | **não executado localmente** (sem Docker); roda no GitHub Actions (`Alpha Supabase isolado`); novos checks adicionados e com sintaxe validada |
+| E2E de navegador contra Supabase real | não existe (ver §5) |
+| `playwright.quality`/`creator` (8 larguras, axe) | a configuração `creator` foi executada em partes na rodada anterior desta frente; a suíte `quality` completa **não foi reexecutada** nesta sessão |
+
+CI do GitHub: **não verificado** (branch ainda sem PR no momento deste registro).
