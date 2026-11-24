@@ -783,3 +783,17 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .iniciativa .enc-estado[data-estado="concluido"]{opacity:.7}
 .iniciativa .enc-estado-bloco{border-top:1px solid var(--line,#8884);margin-top:10px;padding-top:4px}
 .iniciativa .enc-atual{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:3px}.iniciativa .enc-atual li[data-situacao="derrotada"]{opacity:.65;text-decoration:line-through}
+
+/* Encontros: loot e recipientes */
+.iniciativa .enc-loot{border-top:1px solid var(--line,#8884);margin-top:10px;padding-top:4px}
+.iniciativa .enc-bloco,.iniciativa .loot-recipiente,.iniciativa .loot-grupo,.iniciativa .loot-adicionar{margin:6px 0}
+.iniciativa .enc-bloco>summary,.iniciativa .loot-recipiente>summary,.iniciativa .loot-grupo>summary,.iniciativa .loot-adicionar>summary,.iniciativa .enc-loot-criatura>summary{cursor:pointer;font-weight:600}
+.iniciativa .enc-loot-criatura{grid-column:1 / -1;font-size:14px}
+.iniciativa .loot-lista{list-style:none;margin:6px 0;padding:0;display:grid;gap:6px}
+.iniciativa .loot-lista>li{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between;border:1px solid var(--line,#8884);border-radius:8px;padding:6px 8px}
+.iniciativa .loot-nome{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere;flex:1 1 200px}
+.iniciativa .loot-acoes{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.iniciativa .loot-qtd{width:52px;text-align:center}
+.iniciativa .loot-linha[data-estado="distribuido"]{opacity:.65}
+.iniciativa .enc-estado[data-loot="coletado"],.iniciativa .enc-estado[data-loot="encontrado"]{border-color:var(--accent,#c0392b)}
+.iniciativa .loot-andamento h4{margin:10px 0 4px;font-size:14px}

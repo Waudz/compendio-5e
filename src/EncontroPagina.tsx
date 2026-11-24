@@ -4,7 +4,9 @@ import { useState } from "react";
 import { adicionarParticipante, definirDescricao, editarParticipante, removerParticipante, renomearEncontro, type Encontro, type ParticipanteEncontro, type RefCombate } from "./combate";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { RetratoQuadrado } from "./RetratoCombate";
-import { ROTULO_ESTADO, concluirEncontro, estadoDe, iniciarSemCombate, pendencias, podeRestaurar, reabrirEncontro, restaurarOriginal } from "./estadoEncontro";
+import { ROTULO_ESTADO, avisoEntregas, concluirEncontro, estadoDe, iniciarSemCombate, normalizarLoot, pendencias, podeRestaurar, reabrirEncontro, restaurarOriginal } from "./estadoEncontro";
+import { LootEditor } from "./LootEditor";
+import { LootEncontro } from "./LootEncontro";
 import { SeletorEncontro } from "./SeletorEncontro";
 import { SeletorMonstro, numero } from "./CombateCompartilhado";
 
@@ -44,6 +46,8 @@ function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; 
       <button className="btn-secondary ini-icone" onClick={() => mudarQtd(p.quantidade + 1)} aria-label={`Aumentar quantidade de ${p.nome}`} title="Mais um"><Plus size={14} aria-hidden="true"/></button></div>
     <button className="btn-secondary ini-icone" onClick={abrir} aria-label={`Editar criatura ${p.nome}`} title="Editar"><Pencil size={14} aria-hidden="true"/></button>
     <button className="btn-secondary ini-icone" onClick={() => salvar(removerParticipante(enc, p.id))} aria-label={`Remover ${p.nome} de ${enc.nome}`} title="Remover"><Trash2 size={14} aria-hidden="true"/></button>
+    <details className="enc-loot-criatura"><summary>Loot de cada {p.nome} <small className="muted">({p.loot?.length ?? 0})</small></summary>
+      <LootEditor rotulo={`loot de ${p.nome}`} itens={p.loot ?? []} onChange={loot => salvar({ ...enc, participantes: enc.participantes.map(x => { if (x.id !== p.id) return x; const { loot: _l, ...resto } = x; void _l; return loot.length ? { ...resto, loot } : resto; }) })}/></details>
   </li>;
 }
 
@@ -51,7 +55,7 @@ function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; 
 function EstadoEncontro({ enc, salvar, sincronizar, duplicarAtual }: { enc: Encontro; salvar: (e: Encontro) => void; sincronizar: () => void; duplicarAtual: () => void }) {
   const estado = estadoDe(enc), emCombate = estado === "em_combate", pend = pendencias(enc);
   const concluir = () => { if (pend.length && !window.confirm(`Ainda há pendências (${pend.join("; ")}). Concluir mesmo assim?`)) return; salvar(concluirEncontro(enc)); };
-  const restaurar = () => { if (window.confirm(`Restaurar "${enc.nome}" à configuração original? O estado atual (sobreviventes, PV e andamento) será descartado. Itens já entregues a personagens não são desfeitos.`)) salvar(restaurarOriginal(enc)); };
+  const restaurar = () => { if (window.confirm(`Restaurar "${enc.nome}" à configuração original? O estado atual (sobreviventes, PV, andamento e loot) será descartado.${avisoEntregas(enc) || " Itens já entregues a personagens não são desfeitos."}`)) salvar(restaurarOriginal(enc)); };
   return <section className="enc-estado-bloco" aria-label="Estado do encontro">
     <h3>Estado <span className="enc-estado" data-estado={estado}>{ROTULO_ESTADO[estado]}</span></h3>
     <p className="muted">A configuração original (criaturas abaixo) não muda durante o jogo. O que acontece fica no estado atual.</p>
@@ -69,7 +73,8 @@ function EstadoEncontro({ enc, salvar, sincronizar, duplicarAtual }: { enc: Enco
   </section>;
 }
 
-export function EncontroPagina({ enc, salvar, voltar, enviar, sincronizar, duplicarAtual }: { enc: Encontro; salvar: (e: Encontro) => void; voltar: () => void; enviar: (e: Encontro) => void; sincronizar: () => void; duplicarAtual: () => void }) {
+export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincronizar, duplicarAtual }: { enc: Encontro; salvar: (e: Encontro) => void; voltar: () => void; enviar: (e: Encontro) => void; sincronizar: () => void; duplicarAtual: () => void }) {
+  const salvar = (e: Encontro) => salvarBruto(normalizarLoot(e));   // mantém o loot do estado atual em dia com a configuração
   const [renomeando, setRenomeando] = useState(false), [novoNome, setNovoNome] = useState(enc.nome);
   const [nome, setNome] = useState(""), [qtd, setQtd] = useState("1"), [pv, setPv] = useState(""), [ca, setCa] = useState("");
   const adicionarMonstro = (m: Monstro) => salvar(adicionarParticipante(enc, { nome: m.nome, quantidade: 1, pv: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } as RefCombate }));
@@ -95,6 +100,7 @@ export function EncontroPagina({ enc, salvar, voltar, enviar, sincronizar, dupli
       <label>CA (opcional)<input inputMode="numeric" value={ca} onChange={e => setCa(e.target.value)}/></label>
       <button type="submit" className="btn-secondary"><Plus size={15} aria-hidden="true"/> Adicionar</button>
     </form>
+    <LootEncontro enc={enc} salvar={salvar}/>
     <SeletorEncontro rotulo="Enviar só parte para a Iniciativa" encontros={[enc]} onEnviar={enviar}/>
   </section>;
 }
