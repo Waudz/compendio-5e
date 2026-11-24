@@ -114,7 +114,7 @@ export function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }
 
 // ---------------------------------------------------------------- seletores de conteúdo canônico (sem bancos paralelos)
 export const modAtributo = (v: number) => Math.floor((v - 10) / 2);
-export function SeletorMonstro({ rotulo, onEscolher, buscaControlada }: { rotulo: string; onEscolher: (m: Monstro) => void; buscaControlada?: string }) {
+export function SeletorMonstro({ rotulo, onEscolher, buscaControlada, ocultarVazio = false }: { ocultarVazio?: boolean; rotulo: string; onEscolher: (m: Monstro) => void; buscaControlada?: string }) {
   const [buscaLocal, setBusca] = useState("");
   const busca = buscaControlada ?? buscaLocal;
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: readonly Monstro[] }>({ status: "carregando" });
@@ -125,6 +125,7 @@ export function SeletorMonstro({ rotulo, onEscolher, buscaControlada }: { rotulo
     const q = sem(busca.trim());
     return dados.lista.filter(m => sem(m.nome).includes(q) || sem(m.en).includes(q)).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).slice(0, 8);
   }, [dados, busca, buscaControlada]);
+  if (ocultarVazio && dados.status === "pronto" && !achados.length) return null;
   return <section className="ini-seletor" aria-label={rotulo}>
     <strong>{rotulo}</strong>
     {dados.status === "carregando" && <p className="muted" role="status">Carregando o Bestiário…</p>}
@@ -134,7 +135,7 @@ export function SeletorMonstro({ rotulo, onEscolher, buscaControlada }: { rotulo
     </>}
   </section>;
 }
-export function SeletorPersonagem({ campaignId, onEscolher, buscaControlada }: { campaignId: string; buscaControlada?: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
+export function SeletorPersonagem({ campaignId, onEscolher, buscaControlada, ocultarVazio = false }: { ocultarVazio?: boolean; campaignId: string; buscaControlada?: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
   const fonte = useAventureiros(), fichas = useFichas();
   const [buscaLocal, setBusca] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
   const busca = buscaControlada ?? buscaLocal;
@@ -152,6 +153,7 @@ export function SeletorPersonagem({ campaignId, onEscolher, buscaControlada }: {
     if (r.ok) { onEscolher(p, r.dados.max, r.dados.atual); return; }
     setAviso(`Não foi possível adicionar ${p.nome}: ${r.erro}`);
   };
+  if (ocultarVazio && dados.status === "pronto" && !dados.lista.some(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca)))) return null;
   return <section className="ini-seletor" aria-label="Adicionar personagem da campanha">
     <strong>Adicionar personagem da campanha</strong>
     {dados.status === "carregando" && <p className="muted" role="status">Carregando personagens…</p>}
