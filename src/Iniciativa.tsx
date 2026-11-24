@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, Dices, LayoutGrid, List, Minus, Plus, Rotate
 import { useEffect, useRef, useState } from "react";
 import { Aviso } from "./Diario";
 import { useUnsavedGuard } from "./unsaved";
-import { adicionar, alterarPv, alternarCondicao, chaveCombate, combateVazio, definirIniciativa, enviarParaCombate, lerCombate, novoId, ordenar, proximoTurno, reiniciarRodadas, remover, turnoAnterior, type EstadoCombate, type Lado } from "./combate";
+import { adicionar, nomeCombatenteDisponivel, alterarPv, alternarCondicao, chaveCombate, combateVazio, definirIniciativa, enviarParaCombate, lerCombate, novoId, ordenar, proximoTurno, reiniciarRodadas, remover, turnoAnterior, type EstadoCombate, type Lado } from "./combate";
 import { useNuvem, type ApisNuvem } from "./nuvem";
 import { gravarPvFicha } from "./pvFicha";
 import { useFichas } from "./RegistrosContext";
@@ -87,13 +87,24 @@ export function IniciativaPanel() {
   };
   const adicionarMonstro = (m: Monstro) => {
     const id = novoId(), bonus = modAtributo(m.atributos.dex);
-    const existentes = (combate?.combatentes ?? []).filter(c => c.ref?.tipo === "monstro" && c.ref.id === m.id).length;
     const r = rolarD20(bonus);
     setMods(x => ({ ...x, [id]: bonus })); setRolagens(x => ({ ...x, [id]: r }));
-    aplicar(e => definirIniciativa(adicionar(e, { id, nome: existentes || e.combatentes.some(c => c.nome === m.nome) ? `${m.nome} ${existentes + 1}` : m.nome, iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ref: { tipo: "monstro", id: m.id } }), id, r.total));
+    aplicar(e => definirIniciativa(adicionar(e, { id, nome: nomeCombatenteDisponivel(e, m.nome), iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ref: { tipo: "monstro", id: m.id } }), id, r.total));
   };
   const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } }));
   const ordem = combate ? ordenar(combate.combatentes) : [];
+  const removerCombatente: Aplicar = fn => {
+    if (!combate) return false;
+    const proximo = fn(combate);
+    const saiu = combate.combatentes.filter(c => !proximo.combatentes.some(x => x.id === c.id) && c.encontro);
+    if (saiu.length && encontros.status !== "pronto") return false;
+    const ok = aplicar(fn);
+    if (ok && saiu.length) lojaEnc.aplicar(l => l.map(enc => {
+      if (!saiu.some(c => c.encontro?.encontroId === enc.id)) return enc;
+      return sincronizarComCombate(sincronizarComCombate(enc, combate), proximo);
+    }));
+    return ok;
+  };
   const finalizar = async () => {
     if (!window.confirm("Finalizar e descartar este combate? Os PV finais dos personagens serão gravados nas fichas. Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) return;
     // PV finais dos personagens vão para a ficha (só currentHp, sobre a ficha mais recente e com controle de revisão). Se algum falhar, o mestre decide: nada se perde em silêncio.
@@ -146,12 +157,12 @@ export function IniciativaPanel() {
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
-        : <ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label="Ordem de iniciativa">{ordem.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol>}
+        : <ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label="Ordem de iniciativa">{ordem.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={removerCombatente} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol>}
     </>}
   </div>;
 }
 type Aplicar = (fn: (e: EstadoCombate) => EstadoCombate) => boolean;
-function Linha({ c, atual, aplicar, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
+function Linha({ c, atual, aplicar, aoRemover, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; aoRemover: Aplicar; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
   const [valor, setValor] = useState("1");
   const acao = (sinal: 1 | -1) => { const n = numero(valor); if (n && n > 0) { aplicar(e => alterarPv(e, c.id, sinal * n)); setValor("1"); } };
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
@@ -176,6 +187,6 @@ function Linha({ c, atual, aplicar, bonus, retrato, rolagem, aoRolar }: { c: Est
       <select aria-label={`Adicionar condição a ${c.nome}`} value="" onChange={e => { if (e.target.value) aplicar(x => alternarCondicao(x, c.id, e.target.value)); }}>
         <option value="">+ condição</option>{CONDICOES_5E.filter(k => !(c.condicoes ?? []).includes(k)).map(k => <option key={k} value={k}>{k}</option>)}</select>
     </div>
-    <button className="btn-secondary ini-icone ini-remover" onClick={() => aplicar(e => remover(e, c.id))} aria-label={`Remover ${c.nome}`}><Trash2 size={15} aria-hidden="true"/></button>
+    <button className="btn-secondary ini-icone ini-remover" onClick={() => aoRemover(e => remover(e, c.id))} aria-label={`Remover ${c.nome}`}><Trash2 size={15} aria-hidden="true"/></button>
   </li>;
 }
