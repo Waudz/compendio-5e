@@ -106,10 +106,12 @@ export function ModoArmazenamento({ nuvem, sync, mensagem, o, onTentar, onRecarr
 }
 export function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }) {
   const [bruto, setBruto] = useState<string | null>(null);
-  useEffect(() => { try { setBruto(localStorage.getItem(chave)); } catch { setBruto(null); } }, [chave]);
-  if (!bruto) return null;
+  const [dispensado, setDispensado] = useState(false);
+  useEffect(() => { try { setBruto(localStorage.getItem(chave)); setDispensado(localStorage.getItem(`${chave}:aviso-backup-dispensado`) === "1"); } catch { setBruto(null); setDispensado(false); } }, [chave]);
+  const dispensar = () => { try { localStorage.setItem(`${chave}:aviso-backup-dispensado`, "1"); } catch { /* mantém a preferência nesta sessão */ } setDispensado(true); };
+  if (!bruto || dispensado) return null;
   const baixar = () => { const url = URL.createObjectURL(new Blob([bruto], { type: "application/json" })); const a = document.createElement("a"); a.href = url; a.download = `${rotulo}-backup-local.json`; a.click(); URL.revokeObjectURL(url); };
-  return <p className="muted" role="note">Há {rotulo} guardado neste aparelho (de antes da nuvem). Ele <strong>não foi importado nem apagado</strong>. <button className="btn-link" onClick={baixar}><Download size={13} aria-hidden="true"/> Baixar backup</button></p>;
+  return <p className="muted" role="note">Há {rotulo} guardado neste aparelho (de antes da nuvem). Ele <strong>não foi importado nem apagado</strong>. <button className="btn-link" onClick={baixar}><Download size={13} aria-hidden="true"/> Baixar backup</button> <button className="btn-link" onClick={dispensar}>Dispensar aviso</button></p>;
 }
 
 // ---------------------------------------------------------------- seletores de conteúdo canônico (sem bancos paralelos)
