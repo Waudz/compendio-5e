@@ -878,3 +878,14 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .ini-acoes-turno{grid-column:1/-1;display:flex;gap:6px;min-width:0}
 .iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:1 1 0;width:auto}
 @container ini (max-width:900px){.iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:0 0 36px;width:36px;height:36px}}
+
+/* Refinamento: cabeçalho compacto, retratos maiores e ações imóveis. */
+.faixa-turnos{height:108px;padding:5px 0}
+.faixa-trilha .faixa-personagem{flex-basis:88px;font-size:12px;gap:2px}
+.faixa-trilha .faixa-personagem.ativo{scale:1.13}
+.faixa-trilha .faixa-personagem.ativo .retrato-q{box-shadow:0 0 12px color-mix(in srgb,var(--accent) 45%,transparent)}
+.iniciativa .ini-turnos-topo .ini-controles-turno{display:flex;gap:12px;max-width:780px;align-items:center}
+.ini-controles-turno .ini-acoes-turno{flex:1;min-width:0}
+.iniciativa .ini-resultados-unicos{max-height:min(260px,40vh);overflow-y:auto}
+.ini-resultados-unicos .ini-seletor{padding:3px 6px}
+@container ini (max-width:900px){.iniciativa .ini-turnos-topo .ini-controles-turno{gap:8px}.ini-controles-turno .ini-rodada{font-size:14px}}
