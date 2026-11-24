@@ -15,6 +15,8 @@ import {
   novoId, ordenar, proximoTurno, reiniciarRodadas, remover, renomearEncontro, rolarIniciativa, turnoAnterior, type Encontro, type EstadoCombate, type Lado, type RefCombate,
 } from "./combate";
 import { NuvemContext, useNuvem, type ApisNuvem } from "./nuvem";
+import { gravarPvFicha, lerPvFicha } from "./pvFicha";
+import { useFichas } from "./RegistrosContext";
 import { idsDePersonagens, statusDoCombatente } from "./statusCombate";
 import { useLinhaRemota, type SyncRemoto } from "./useLinhaRemota";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
@@ -143,19 +145,34 @@ function SeletorMonstro({ rotulo, onEscolher }: { rotulo: string; onEscolher: (m
     </>}
   </details>;
 }
-function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onEscolher: (p: { id: string; nome: string }, pv?: number) => void }) {
-  const fonte = useAventureiros();
-  const [aberto, setAberto] = useState(false), [pvTexto, setPvTexto] = useState("");
+function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
+  const fonte = useAventureiros(), fichas = useFichas();
+  const [aberto, setAberto] = useState(false), [pvTexto, setPvTexto] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: { id: string; nome: string; classe: string }[] }>({ status: "carregando" });
   const carregar = useCallback(() => { if (!fonte) return; setDados({ status: "carregando" }); fonte.listar(campaignId).then(r => setDados(r.ok ? { status: "pronto", lista: r.data } : { status: "erro" }), () => setDados({ status: "erro" })); }, [fonte, campaignId]);
   useEffect(() => { if (aberto && dados.status === "carregando") carregar(); }, [aberto]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!fonte) return null;
+  /** Lê PV atuais e máximos da ficha (automático). Sem ficha legível, usa o PV máximo digitado, se houver, e avisa. */
+  const escolher = async (p: { id: string; nome: string }) => {
+    setAviso(null);
+    const manual = numero(pvTexto), pvManual = manual && manual > 0 && Number.isInteger(manual) ? manual : undefined;
+    if (!fichas) { onEscolher(p, pvManual); return; }
+    setLendo(p.id);
+    const r = await lerPvFicha(fichas, p.id);
+    setLendo(null);
+    if (r.ok) { onEscolher(p, r.dados.max, r.dados.atual); return; }
+    onEscolher(p, pvManual);
+    setAviso(`${p.nome} foi adicionado, mas os PV não vieram da ficha: ${r.erro}${pvManual ? " Foi usado o PV máximo digitado." : " Informe o PV máximo abaixo e adicione de novo, ou ajuste no combate."}`);
+  };
   return <details className="ini-seletor" open={aberto} onToggle={e => setAberto((e.target as HTMLDetailsElement).open)}>
     <summary>Adicionar personagem da campanha</summary>
     {dados.status === "carregando" && aberto && <p className="muted" role="status">Carregando personagens…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar os personagens da campanha." onRetry={carregar}/>}
     {dados.status === "pronto" && (dados.lista.length === 0 ? <p className="muted">Esta campanha ainda não tem personagens vinculados.</p>
-      : <><label>PV máximo do personagem (opcional, para sincronizar com a ficha)<input inputMode="numeric" value={pvTexto} onChange={e => setPvTexto(e.target.value)}/></label><ul className="ini-achados">{dados.lista.map(p => <li key={p.id}><button type="button" className="btn-secondary" onClick={() => { const n = numero(pvTexto); onEscolher(p, n && n > 0 && Number.isInteger(n) ? n : undefined); }} aria-label={`Adicionar ${p.nome} (personagem)`}><strong>{p.nome}</strong> <small>{p.classe}</small></button></li>)}</ul></>)}
+      : <><p className="muted">Os PV atuais e máximos vêm da ficha do personagem.</p>
+        <label>PV máximo manual (usado só se a ficha não puder ser lida)<input inputMode="numeric" value={pvTexto} onChange={e => setPvTexto(e.target.value)}/></label>
+        {aviso && <Aviso erro t={aviso}/>}
+        <ul className="ini-achados">{dados.lista.map(p => <li key={p.id}><button type="button" className="btn-secondary" disabled={lendo !== null} onClick={() => void escolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><strong>{p.nome}</strong> <small>{p.classe}</small>{lendo === p.id && <small role="status"> lendo a ficha…</small>}</button></li>)}</ul></>)}
   </details>;
 }
 
@@ -184,7 +201,7 @@ function useLojaCombate(userId: string | null, campaignId: string | null, podeGe
 
 export function IniciativaPanel() {
   const { userId, campaignId, campanha, podeGerenciar } = useEscopo();
-  const nuvem = useNuvem();
+  const nuvem = useNuvem(), fichas = useFichas();
   const loja = useLojaCombate(userId, campaignId, podeGerenciar, nuvem);
   const { estado, aplicar } = loja;
   useUnsavedGuard("secao:iniciativa", loja.sujo, loja.salvar);
@@ -230,10 +247,20 @@ export function IniciativaPanel() {
     setMods(x => ({ ...x, [id]: bonus }));
     aplicar(e => rolarIniciativa(adicionar(e, { id, nome: existentes || e.combatentes.some(c => c.nome === m.nome) ? `${m.nome} ${existentes + 1}` : m.nome, iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ref: { tipo: "monstro", id: m.id } }), id, bonus));
   };
-  const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number) => aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } }));
+  const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } }));
   const ordem = combate ? ordenar(combate.combatentes) : [];
   const finalizar = async () => {
-    if (!window.confirm("Finalizar e descartar este combate? Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) return;
+    if (!window.confirm("Finalizar e descartar este combate? Os PV finais dos personagens serão gravados nas fichas. Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) return;
+    // PV finais dos personagens vão para a ficha (só currentHp, sobre a ficha mais recente e com controle de revisão). Se algum falhar, o mestre decide: nada se perde em silêncio.
+    if (fichas && combate) {
+      const falhas: string[] = [];
+      for (const c of combate.combatentes) {
+        if (c.ref?.tipo !== "personagem" || !c.pvMax) continue;
+        const g = await gravarPvFicha(fichas, c.ref.id, c.pv ?? c.pvMax);
+        if (!g.ok && !g.semFicha) falhas.push(`${c.nome} (${g.erro})`);
+      }
+      if (falhas.length && !window.confirm(`Não foi possível gravar os PV finais nas fichas de: ${falhas.join("; ")}.\n\nCancelar mantém o combate aberto para tentar de novo. Finalizar mesmo assim descarta esses PV.`)) { setErroFinalizar("Combate mantido aberto: os PV finais não foram gravados em todas as fichas. Tente finalizar novamente."); return; }
+    }
     const erro = await loja.finalizar(); setErroFinalizar(erro);
     if (!erro && statusApi) { enviados.current.clear(); const l = await statusApi.limpar(campaignId); if (!l.ok) setAvisoFicha(l.mensagem); }
   };

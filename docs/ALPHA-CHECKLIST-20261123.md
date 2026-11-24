@@ -10,6 +10,27 @@
 3. **Desligar `VITE_COMBATE_REMOTO` não é rollback completo** quanto aos dados: o que foi gravado só na nuvem fica nas tabelas. Recuperação: botão **"Baixar cópia (JSON)"** na Iniciativa e nos Encontros (modo nuvem) e, para o conjunto, `select campaign_id, state, version from public.campaign_combats;` / `campaign_encounters` / `character_combat_status` no SQL Editor (exportar CSV/JSON) **antes** de qualquer reversão. Ver §7.
 4. Aplicar as migrações **0008 → 0009 → 0010 → 0011** (e a 0005/0006 se o registro mostrar que faltam) exige a sua autorização expressa.
 
+## 0.1 Fechamento da Alpha (24/11/2026): integração combate x ficha
+
+Feito nesta etapa (sem nova migração; 0009–0011 já aplicadas ao Supabase 2.0, nada reaplicado; o Compêndio 1.0 não foi tocado):
+
+| Requisito | Como ficou | Onde |
+|---|---|---|
+| PV e condições em tempo real | Cada alteração no combate (dano, cura, condição, entrada/saída de personagem) é enviada por `set_combat_status`; o jogador lê só o status da própria ficha (Realtime + polling de 15 s). Já existia; agora o modo nuvem vai LIGADO no build publicado (`VITE_COMBATE_REMOTO=1` em `pages.yml`). | `Iniciativa.tsx`, `statusCombate.ts`, `EstadoCombateFicha.tsx` |
+| PV após finalizar o combate | **Novo.** Ao finalizar, o PV final de cada personagem é gravado em `currentHp` da ficha (mestre pode salvar a ficha pela `save_guided_character`, política da 0008). Se alguma gravação falhar, o mestre escolhe: cancelar (o combate continua aberto, nada se perde) ou finalizar descartando esses PV. | `pvFicha.ts` (`gravarPvFicha`), `Iniciativa.tsx` |
+| PV atuais e máximos ao adicionar à iniciativa | **Novo.** Ao escolher o personagem, a ficha é lida e entram PV atuais e PV máximo (calculado pelas mesmas regras da ficha). Sem ficha guiada legível: entra sem PV, com aviso, usando o PV máximo manual se houver. | `pvFicha.ts` (`lerPvFicha`), `SeletorPersonagem` |
+| Proteção contra sobrescrita da ficha | Só `currentHp` é alterado, sempre sobre a versão mais recente lida e com a revisão esperada; em conflito (dono salvou no meio) relê e reaplica só os PV, até 3 vezes, e desiste sem sobrescrever. `set_combat_status` nunca escreve na ficha. Monstros e combatentes avulsos nunca tocam em ficha. | `pvFicha.ts`, `pvFicha.test.ts`, `iniciativaFicha.test.tsx` |
+| Iniciativa e combate só do mestre | Interface (`AcessoRestrito`, menu sem Iniciativa/Encontros para jogador, nenhuma chamada de API) e banco (RLS exclusiva do mestre nas 0009/0010). | `iniciativaNuvem.test.tsx`, `supabase/combate-*.test.ts` |
+
+Pendências para versões posteriores (não bloqueiam a Alpha):
+
+- Os PV vão para a ficha **ao finalizar**; durante o combate a ficha do jogador mostra o "Estado em combate", mas o `currentHp` da ficha só muda no fim. Se o navegador do mestre fechar sem finalizar, o combate continua salvo (nuvem) e os PV ainda não estão na ficha.
+- Condições e PV temporários **não** são gravados na ficha ao finalizar (só PV atuais).
+- A gravação final é sequencial por personagem; muitos personagens com rede lenta demoram alguns segundos.
+- O jogador com a ficha aberta durante o fim do combate vê a revisão nova só ao recarregar a ficha (se ele salvar com a revisão antiga, o servidor recusa e nada é sobrescrito).
+- O cadastro público do Supabase continua aberto no servidor (§0.1); fechar antes de convidar testadores.
+- Testes de integração que carregam o catálogo (Bestiário) podem estourar o limite de tempo em máquinas lentas; reexecutar o arquivo isolado resolve.
+
 ## 1. Estado real (auditado no código e executado)
 
 | Área | Estado | Evidência | Limite |

@@ -33,7 +33,7 @@ export function EstadoCombateFicha({ characterId }: { characterId: string }) {
     {status && <>
       {status.hp !== null && <p><strong>PV em combate:</strong> <span data-testid="pv-combate">{status.hp}/{status.max}</span>{status.hp === 0 ? " · caído" : ""}</p>}
       {status.condicoes.length > 0 && <p><strong>Condições:</strong> {status.condicoes.map(c => <span key={c} className="ini-chip">{c}</span>)}</p>}
-      <p className="muted">Informado pelo mestre{status.atualizadoEm ? ` em ${new Date(status.atualizadoEm).toLocaleString("pt-BR")}` : ""}. Seus PV na ficha continuam sendo os que você registrou.</p>
+      <p className="muted">Informado pelo mestre{status.atualizadoEm ? ` em ${new Date(status.atualizadoEm).toLocaleString("pt-BR")}` : ""}. Ao finalizar o combate, o mestre grava os PV finais na sua ficha.</p>
     </>}
   </section>;
 }

@@ -41,6 +41,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://gwcttjlxzelzjhbuitmi.supabase.co
           VITE_SUPABASE_ANON_KEY: sb_publishable_Xq4BrPx_YkYGki7Ti2XUzA_ocr-zTWn
+          # Combate e encontros na nuvem + PV/condições na ficha (migrações 0009-0011 já aplicadas ao Supabase 2.0). Remover esta linha volta ao modo local.
+          VITE_COMBATE_REMOTO: '1'
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v5
         with:

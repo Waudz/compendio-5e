@@ -173,7 +173,7 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
   };
   const adicionarLydia = async (pv = "12") => {
     await screen.findByText("Nenhum combatente ainda");
-    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.change(await screen.findByLabelText(/PV máximo do personagem/), { target: { value: pv } });
+    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.change(await screen.findByLabelText(/PV máximo manual/), { target: { value: pv } });
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
   };
   it("dano, cura e condição do personagem chegam à ficha; só PV, máximo e condições são enviados", async () => {
