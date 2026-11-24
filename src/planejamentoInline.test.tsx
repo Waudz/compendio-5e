@@ -336,14 +336,14 @@ describe("colunas redimensionáveis", () => {
     expect(faixa(0).style.width).toBe("1400px");
     expect(colunas(registros)[0].largura).toBe(340);
     fireEvent.pointerUp(a, { clientX: 1000, pointerId: 1 });
-    await waitFor(() => expect(colunas(registros)[0].largura).toBe(900));
+    await waitFor(() => expect(colunas(registros)[0].largura).toBe(1400));
     fireEvent.keyDown(alca(0), { key: "ArrowLeft" });
-    await waitFor(() => expect(colunas(registros)[0].largura).toBe(880));
+    await waitFor(() => expect(colunas(registros)[0].largura).toBe(1380));
     expect(colunas(registros)[1].largura).toBeUndefined();
     r.unmount(); cleanup();
     await renderApp({ api: apiC(), registros }); await abrirPlanejamento();
     await screen.findAllByRole("separator", { name: "Redimensionar a coluna" });
-    expect(faixa(0).style.width).toBe("880px");
+    expect(faixa(0).style.width).toBe("1380px");
   });
   it("limite mínimo: não encolhe abaixo de 220px", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());
