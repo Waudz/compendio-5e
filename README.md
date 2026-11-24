@@ -21,6 +21,10 @@ O PR #139 revisa a Iniciativa exclusiva do mestre: faixa de turnos centralizada,
 
 O loot registra preparação e andamento; marcar como distribuído **não entrega automaticamente** itens à ficha. Monstros sem imagem usam o placeholder. Campos novos são opcionais, sem migração. A validação usa dados sintéticos locais e PostgreSQL isolado, sem alterar campanhas reais; limites e resultados em [continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md) e [DEC-023](DECISOES-E-ARQUITETURA.md#dec-023--identidade-individual-e-interface-de-iniciativaencontros-24112026-138139). Confirmar CI/merge do PR antes de considerar esta revisão publicada.
 
+## Refinamentos da Iniciativa — PR #140
+
+Faixa ampliada a 80 px (ativo 96 px) em painel amplo, com centralização adaptada ao workspace e controles estáveis. Busca por categoria sob demanda; PV dos personagens sempre da ficha. Salvamento automático, recuperação e erros preservados, com menos indicadores rotineiros. Loot de recipientes visível e verificado por origem/quantidade. Publicação condicionada aos três workflows verdes no HEAD final; evidências e limites em [continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Configurações da iniciativa e etapa de Personagens/Fichas/Inventário ficam para depois.
+
 ## Desenvolvimento
 
 ```bash

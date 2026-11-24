@@ -1,3 +1,4 @@
+import { expectFaixaGeometry, expectTurnControls } from './faixa-geometry';
 import { test, expect, navigate, campaignName, expectNoHorizontalOverflow } from './fixtures';
 
 test('cinco goblins: líder individual, envio 4+1 e reinserção ferida persistente', async ({ page }, info) => {
@@ -50,7 +51,18 @@ test('cinco goblins: líder individual, envio 4+1 e reinserção ferida persiste
   await page.getByRole('button', { name: 'Próximo turno', exact: true }).click();
   await expect(combatentes.locator('.ini-nome strong')).toHaveText(nomes);
   await expectNoHorizontalOverflow(page);
-  await expect(page.locator('[data-sync="salvo"]', { hasText: 'o combate' })).toBeVisible();
+  await expect(page.locator('[data-sync="salvo"]', { hasText: 'o combate' })).toHaveCount(0);
+  // Confirma a persistência em outra página antes de recarregar a original.
+  await expect(async () => {
+    const outra = await page.context().newPage();
+    try {
+      await outra.goto('?demo=mestre&nuvem=1');
+      await navigate(outra, 'Iniciativa');
+      await expect(outra.getByRole('group', { name: 'Combatentes' }).locator('.ini-item')).toHaveCount(5);
+      await expect(outra.getByLabel('PV de Goblin 2', { exact: true })).toHaveText('PV 4/7');
+      await expect(outra.getByLabel('PV de Líder goblin', { exact: true })).toHaveText('PV 20/20');
+    } finally { await outra.close(); }
+  }).toPass({ timeout: 20000 });
   await page.reload(); await navigate(page, 'Iniciativa');
   await expect(page.getByRole('group', { name: 'Combatentes' }).locator('.ini-item')).toHaveCount(5);
   await expect(page.getByLabel('PV de Goblin 2', { exact: true })).toHaveText('PV 4/7');
@@ -76,6 +88,7 @@ test('iniciativa permanece utilizável em três painéis e abre ficha completa',
   await page.getByRole('tab', { name: /^Goblin/ }).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
   await expect(page.getByRole('tabpanel')).toHaveCount(3);
+  await expectFaixaGeometry(page); await expectTurnControls(page);
   const quantidade = page.getByLabel('Quantidade de dano ou cura de Goblin', { exact: true });
   await quantidade.fill('2'); await page.getByRole('button', { name: 'Causar dano a Goblin', exact: true }).click();
   await expect(page.getByLabel('PV de Goblin', { exact: true })).toHaveText('PV 5/7');

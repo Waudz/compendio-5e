@@ -41,7 +41,18 @@ test('mestre: encontro → combate → turnos, dano, condição → recarregar �
   await page.getByRole('button', { name: 'Causar dano a Goblin', exact: true }).click();
   await page.getByLabel('Adicionar condição a Goblin', { exact: true }).selectOption('Caído');
   await expect(page.getByLabel('PV de Goblin', { exact: true })).toHaveText('PV 4/7');
-  await expect(page.locator('[data-sync="salvo"]', { hasText: 'o combate' })).toBeVisible();
+  await expect(page.locator('[data-sync="salvo"]', { hasText: 'o combate' })).toHaveCount(0);
+  // Confirma a persistência em outra página antes de recarregar a original.
+  await expect(async () => {
+    const outra = await page.context().newPage();
+    try {
+      await outra.goto('?demo=mestre&nuvem=1');
+      await navigate(outra, 'Iniciativa');
+      await expect(outra.getByLabel('PV de Goblin', { exact: true })).toHaveText('PV 4/7');
+      await expect(outra.getByRole('button', { name: 'Remover condição Caído de Goblin' })).toBeVisible();
+      await expect(outra.getByText('Rodada 2', { exact: true })).toBeVisible();
+    } finally { await outra.close(); }
+  }).toPass({ timeout: 20000 });
   await expectNoHorizontalOverflow(page);
   // 3. F5 e "outro aparelho" (outra aba do mesmo navegador, sem estado local de tela)
   await page.reload(); await navigate(page, 'Iniciativa');

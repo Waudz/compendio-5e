@@ -114,17 +114,18 @@ export function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }
 
 // ---------------------------------------------------------------- seletores de conteúdo canônico (sem bancos paralelos)
 export const modAtributo = (v: number) => Math.floor((v - 10) / 2);
-export function SeletorMonstro({ rotulo, onEscolher, buscaControlada }: { rotulo: string; onEscolher: (m: Monstro) => void; buscaControlada?: string }) {
+export function SeletorMonstro({ rotulo, onEscolher, buscaControlada, ocultarVazio = false }: { ocultarVazio?: boolean; rotulo: string; onEscolher: (m: Monstro) => void; buscaControlada?: string }) {
   const [buscaLocal, setBusca] = useState("");
   const busca = buscaControlada ?? buscaLocal;
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: readonly Monstro[] }>({ status: "carregando" });
   const carregar = useCallback(() => { setDados({ status: "carregando" }); import("./catalogue/contratos").then(c => c.todosOsMonstros()).then(lista => setDados({ status: "pronto", lista }), () => setDados({ status: "erro" })); }, []);
   useEffect(() => { carregar(); }, [carregar]);
   const achados = useMemo(() => {
-    if (dados.status !== "pronto" || busca.trim().length < 2) return [];
+    if (dados.status !== "pronto" || (buscaControlada === undefined && busca.trim().length < 2)) return [];
     const q = sem(busca.trim());
-    return dados.lista.filter(m => sem(m.nome).includes(q) || sem(m.en).includes(q)).slice(0, 8);
-  }, [dados, busca]);
+    return dados.lista.filter(m => sem(m.nome).includes(q) || sem(m.en).includes(q)).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).slice(0, 8);
+  }, [dados, busca, buscaControlada]);
+  if (ocultarVazio && dados.status === "pronto" && !achados.length) return null;
   return <section className="ini-seletor" aria-label={rotulo}>
     <strong>{rotulo}</strong>
     {dados.status === "carregando" && <p className="muted" role="status">Carregando o Bestiário…</p>}
@@ -134,33 +135,31 @@ export function SeletorMonstro({ rotulo, onEscolher, buscaControlada }: { rotulo
     </>}
   </section>;
 }
-export function SeletorPersonagem({ campaignId, onEscolher, buscaControlada }: { campaignId: string; buscaControlada?: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
+export function SeletorPersonagem({ campaignId, onEscolher, buscaControlada, ocultarVazio = false }: { ocultarVazio?: boolean; campaignId: string; buscaControlada?: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
   const fonte = useAventureiros(), fichas = useFichas();
-  const [buscaLocal, setBusca] = useState(""), [pvTexto, setPvTexto] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
+  const [buscaLocal, setBusca] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
   const busca = buscaControlada ?? buscaLocal;
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: { id: string; nome: string; classe: string; retratoUrl?: string | null }[] }>({ status: "carregando" });
   const carregar = useCallback(() => { if (!fonte) return; setDados({ status: "carregando" }); fonte.listar(campaignId).then(r => setDados(r.ok ? { status: "pronto", lista: r.data } : { status: "erro" }), () => setDados({ status: "erro" })); }, [fonte, campaignId]);
   useEffect(() => { carregar(); }, [carregar]);
   if (!fonte) return <p className="muted">Não foi possível acessar os personagens da campanha.</p>;
-  /** Lê PV atuais e máximos da ficha (automático). Sem ficha legível, usa o PV máximo digitado, se houver, e avisa. */
+  /** A ficha é a única fonte dos PV. */
   const escolher = async (p: { id: string; nome: string }) => {
     setAviso(null);
-    const manual = numero(pvTexto), pvManual = manual && manual > 0 && Number.isInteger(manual) ? manual : undefined;
-    if (!fichas) { onEscolher(p, pvManual); return; }
+    if (!fichas) { setAviso("Ficha indisponível. Não foi possível adicionar o personagem."); return; }
     setLendo(p.id);
     const r = await lerPvFicha(fichas, p.id);
     setLendo(null);
     if (r.ok) { onEscolher(p, r.dados.max, r.dados.atual); return; }
-    onEscolher(p, pvManual);
-    setAviso(`${p.nome} foi adicionado, mas os PV não vieram da ficha: ${r.erro}${pvManual ? " Foi usado o PV máximo digitado." : " Informe o PV máximo abaixo e adicione de novo, ou ajuste no combate."}`);
+    setAviso(`Não foi possível adicionar ${p.nome}: ${r.erro}`);
   };
+  if (ocultarVazio && dados.status === "pronto" && !dados.lista.some(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca)))) return null;
   return <section className="ini-seletor" aria-label="Adicionar personagem da campanha">
     <strong>Adicionar personagem da campanha</strong>
     {dados.status === "carregando" && <p className="muted" role="status">Carregando personagens…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar os personagens da campanha." onRetry={carregar}/>}
     {dados.status === "pronto" && (dados.lista.length === 0 ? <p className="muted">Esta campanha ainda não tem personagens vinculados.</p>
-      : <><p className="muted">Os PV atuais e máximos vêm da ficha do personagem.</p>
-        <details><summary>PV manual se a ficha estiver indisponível</summary><label>PV máximo manual (usado só se a ficha não puder ser lida)<input inputMode="numeric" value={pvTexto} onChange={e => setPvTexto(e.target.value)}/></label></details>
+      : <>
         {aviso && <Aviso erro t={aviso}/>}
         <PesquisaCatalogo somenteResultados={buscaControlada !== undefined} rotulo="Buscar personagem" valor={busca} onChange={setBusca} minimo={0} vazio={!dados.lista.some(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca)))} resultados={dados.lista.filter(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca))).map(p => <li key={p.id}><button type="button" className="btn-secondary" disabled={lendo !== null} onClick={() => void escolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="personagem" src={p.retratoUrl} tamanho={36}/><span><strong>{p.nome}</strong><small>{p.classe}</small>{lendo === p.id && <small role="status">lendo a ficha…</small>}</span></span></button></li>)}/></>)}
   </section>;

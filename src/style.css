@@ -191,7 +191,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .home-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text-2)}
 .home-form input,.home-form textarea{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 11px;font:inherit;font-size:14px}
 .home-sec h2{display:flex;align-items:center;gap:7px;font-size:15px;margin:0 0 10px}
-.home-diario-entry h3{margin:0 0 2px;font-size:16px}.home-diario-entry time{display:block;font-size:12px;margin-bottom:6px}
+.home-diario-entry h3{margin:0 0 2px;font-size:16px}.home-diario-entry time{display:block;font-size:12px}
 .home-diario-entry p{max-width:70ch;margin:0 0 6px}
 .home-party{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
 .home-char{width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
@@ -878,3 +878,38 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .ini-acoes-turno{grid-column:1/-1;display:flex;gap:6px;min-width:0}
 .iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:1 1 0;width:auto}
 @container ini (max-width:900px){.iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:0 0 36px;width:36px;height:36px}}
+
+/* Refinamento: cabeçalho compacto, retratos maiores e ações imóveis. */
+.faixa-turnos{height:108px;padding:5px 0}
+.faixa-trilha .faixa-personagem{flex-basis:88px;font-size:12px;gap:2px}
+.faixa-trilha .faixa-personagem.ativo{scale:1.13}
+.faixa-trilha .faixa-personagem.ativo .retrato-q{box-shadow:0 0 12px color-mix(in srgb,var(--accent) 45%,transparent)}
+.iniciativa .ini-turnos-topo .ini-controles-turno{display:flex;gap:12px;max-width:780px;align-items:center}
+.ini-controles-turno .ini-acoes-turno{flex:1;min-width:0}
+.iniciativa .ini-resultados-unicos{max-height:min(260px,40vh);overflow-y:auto}
+.ini-resultados-unicos .ini-seletor{padding:3px 6px}
+@container ini (max-width:900px){.iniciativa .ini-turnos-topo .ini-controles-turno{gap:8px}.ini-controles-turno .ini-rodada{font-size:14px}}
+
+/* A mesma medida rege o cartão e o deslocamento da trilha em qualquer painel. */
+.faixa-turnos{--faixa-passo:88px;--faixa-retrato:60px;height:116px;padding:2px 0}
+.faixa-trilha .faixa-personagem{flex:0 0 var(--faixa-passo);font-size:14px;gap:2px;grid-template-rows:calc(var(--faixa-retrato) * 1.2) 16px 20px;align-items:center}
+.faixa-trilha .faixa-personagem small{font-size:12px;line-height:16px;max-width:calc(var(--faixa-passo) - 8px)}
+.faixa-trilha .faixa-personagem .retrato-q{width:var(--faixa-retrato)!important;height:var(--faixa-retrato)!important;transition:scale .25s ease}
+.faixa-trilha .faixa-personagem.ativo{scale:1}
+.faixa-trilha .faixa-personagem.ativo .retrato-q{scale:1.2;outline-color:#58a6ff;box-shadow:0 0 12px #58a6ff80}
+.faixa-trilha .faixa-personagem.passado{opacity:.6}
+@container ini (min-width:760px){
+ .faixa-turnos{--faixa-passo:112px;--faixa-retrato:80px;height:140px;padding:2px 0}
+}
+@media(prefers-reduced-motion:reduce){.faixa-trilha .faixa-personagem .retrato-q{transition:none}}
+/* Espaço para o contorno ativo e para os rótulos, inclusive no painel mínimo. */
+.faixa-turnos{height:124px;padding:4px 0}
+.faixa-trilha .faixa-personagem{gap:4px}
+@container ini (min-width:760px){.faixa-turnos{height:148px}}
+.iniciativa .ini-turnos-topo .ini-controles-turno{flex-wrap:wrap}
+.iniciativa .ini-controles-turno .ini-acoes-turno{min-width:162px}
+.iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:1 1 auto;font-size:14px;padding:8px}
+@container ini (max-width:900px){
+ .iniciativa .ini-barra.ini-controles-turno .ini-rodada{font-size:14px;min-width:6em}
+ .iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:0 0 36px;font-size:0}
+}

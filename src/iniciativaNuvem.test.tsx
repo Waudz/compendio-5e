@@ -37,12 +37,12 @@ beforeEach(() => { localStorage.clear(); escopo = { user: { id: "u1" }, active: 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("Iniciativa na nuvem", () => {
-  it("mostra o modo 'nuvem', salva cada alteração no servidor e retoma o combate ao reabrir (outro aparelho)", async () => {
+  it("oculta o indicador rotineiro de nuvem, salva cada alteração no servidor e retoma o combate ao reabrir (outro aparelho)", async () => {
     const { combate, unmount } = montar(<IniciativaPanel/>);
-    await screen.findByText("Nenhum combatente ainda"); expect(document.querySelector("[data-modo='nuvem']")).toBeTruthy();
+    await screen.findByText("Nenhum combatente ainda"); expect(document.querySelector("[data-modo='nuvem']")).toBeNull();
     preencher("Nome", "Goblin"); preencher("Iniciativa", "12"); preencher("PV (opcional)", "7"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     preencher("Nome", "Lydia"); preencher("Iniciativa", "18"); preencher("Lado", "aliado"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
-    await waitFor(() => expect(document.querySelector("[data-sync='salvo']")).toBeTruthy());
+    await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes).toHaveLength(2));
     expect(combate.s.linhas.get("c1")?.valor.combatentes.map(c => c.nome)).toEqual(["Lydia", "Goblin"]);
     fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ })); fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ }));
     fireEvent.change(screen.getByLabelText("Quantidade de dano ou cura de Goblin"), { target: { value: "3" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Goblin" }));
@@ -55,10 +55,10 @@ describe("Iniciativa na nuvem", () => {
   it("não usa o armazenamento local como fonte de verdade e não apaga o combate antigo do navegador (backup com opção de baixar)", async () => {
     const antigo = JSON.stringify({ combatentes: [{ id: "x", nome: "Antigo", iniciativa: 1, lado: "inimigo" }], turno: "x", rodada: 5 });
     localStorage.setItem("compendio5e:iniciativa:u1:c1", antigo);
-    montar(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
+    const { combate } = montar(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
     expect(screen.queryByText("Antigo")).toBeNull(); expect(screen.getByText(/não foi importado nem apagado/)).toBeTruthy(); expect(screen.getByRole("button", { name: /Baixar backup/ })).toBeTruthy();
     preencher("Nome", "Novo"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
-    await waitFor(() => expect(document.querySelector("[data-sync='salvo']")).toBeTruthy());
+    await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes.map(c => c.nome)).toEqual(["Novo"]));
     expect(localStorage.getItem("compendio5e:iniciativa:u1:c1")).toBe(antigo);
   });
   it("queda de conexão: mantém na tela, avisa e grava sozinho quando volta", async () => {
@@ -105,7 +105,7 @@ describe("Iniciativa na nuvem", () => {
   it("adiciona monstro do Bestiário com PV e referência estável, e personagem da campanha", async () => {
     const combate = servidor<EstadoCombate>(vazioCombate);
     const fonte = { listar: async () => ({ ok: true as const, data: [{ id: "pj1", nome: "Lydia Valenmoor", classe: "Guerreira", nivel: null }] }) };
-    render(<AventureirosContext.Provider value={fonte}><NuvemContext.Provider value={{ combate: combate.api, encontros: servidor<Encontro[]>([]).api }}><IniciativaPanel/></NuvemContext.Provider></AventureirosContext.Provider>);
+    render(<AventureirosContext.Provider value={fonte}><NuvemContext.Provider value={{ combate: combate.api, encontros: servidor<Encontro[]>([]).api }}><RegistrosProvider api={null} fichas={fichasTeste()}><IniciativaPanel/></RegistrosProvider></NuvemContext.Provider></AventureirosContext.Provider>);
     await screen.findByText("Nenhum combatente ainda");
     abrirBusca("Bestiário"); fireEvent.change(await screen.findByLabelText(/Buscar (monstro|combatentes)/), { target: { value: "goblin" } });
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Goblin do Bestiário" }));
@@ -186,12 +186,12 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
   }
   const fonte = { listar: async () => ({ ok: true as const, data: [{ id: "pj1", nome: "Lydia Valenmoor", classe: "Guerreira", nivel: null }] }) };
   const montarComStatus = (st: ReturnType<typeof statusFalso>, combate = servidor<EstadoCombate>(vazioCombate)) => {
-    render(<AventureirosContext.Provider value={fonte}><NuvemContext.Provider value={{ combate: combate.api, encontros: servidor<Encontro[]>([]).api, status: st.api }}><IniciativaPanel/></NuvemContext.Provider></AventureirosContext.Provider>);
+    render(<AventureirosContext.Provider value={fonte}><NuvemContext.Provider value={{ combate: combate.api, encontros: servidor<Encontro[]>([]).api, status: st.api }}><RegistrosProvider api={null} fichas={fichasTeste()}><IniciativaPanel/></RegistrosProvider></NuvemContext.Provider></AventureirosContext.Provider>);
     return combate;
   };
-  const adicionarLydia = async (pv = "12") => {
+  const adicionarLydia = async () => {
     await screen.findByText("Nenhum combatente ainda");
-    abrirBusca("Personagens"); fireEvent.focus(await screen.findByLabelText("Buscar combatentes")); fireEvent.change(await screen.findByLabelText(/PV máximo manual/), { target: { value: pv } });
+    abrirBusca("Personagens"); fireEvent.focus(await screen.findByLabelText("Buscar combatentes")); expect(screen.queryByLabelText(/PV máximo manual/)).toBeNull();
     fireEvent.focus(await screen.findByLabelText("Buscar combatentes"));
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
   };
@@ -214,12 +214,12 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
     const { todosOsMonstros } = await import("./catalogue/contratos"); expect((await todosOsMonstros()).find(m => m.id === "goblin")?.pv).toBe(7);   // definição original intacta
   });
   it("remover o personagem do combate limpa o estado dele na ficha; finalizar limpa a campanha", async () => {
-    const st = statusFalso(); montarComStatus(st); await adicionarLydia("10");
-    await waitFor(() => expect(st.chamadas.at(-1)).toMatchObject({ hp: 10, max: 10 }));
+    const st = statusFalso(); montarComStatus(st); await adicionarLydia();
+    await waitFor(() => expect(st.chamadas.at(-1)).toMatchObject({ hp: 12, max: 12 }));
     vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Remover Lydia Valenmoor" }));
     await waitFor(() => expect(st.chamadas.at(-1)).toEqual({ id: "pj1", hp: null, max: null, condicoes: [] }));
-    await adicionarLydia("10"); await waitFor(() => expect(screen.getByLabelText("PV de Lydia Valenmoor")).toBeTruthy());
+    await adicionarLydia(); await waitFor(() => expect(screen.getByLabelText("PV de Lydia Valenmoor")).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ })); await waitFor(() => expect(st.limpos()).toBe(1));
   });
   it("falha ao sincronizar a ficha avisa o mestre e não perde o combate", async () => {
@@ -228,3 +228,12 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
     await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes[0].nome).toBe("Lydia Valenmoor"));
   });
 });
+
+import { VERSION_2014 } from "./criador/regras-2014";
+import { fichasEmMemoria, novoBancoFichas } from "./fichasMemoria";
+import { RegistrosProvider } from "./RegistrosContext";
+function fichasTeste() {
+ const banco = novoBancoFichas(); banco.campanhas = { c1: { mestre: "u1", jogadores: ["u2"] } };
+ banco.fichas.push({ id: "pj1", campaignId: "c1", ownerId: "u2", revision: 1, updatedAt: "", draft: { id: "pj1", name: "Lydia", catalogueVersion: VERSION_2014, ruleset: "5e-2014", classId: "fighter", raceId: "human", backgroundId: "acolyte", level: 1, baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 }, decisions: [], inventory: [], currentHp: 12, temporaryHp: 0, spentResources: {} } });
+ return fichasEmMemoria("u1", banco);
+}

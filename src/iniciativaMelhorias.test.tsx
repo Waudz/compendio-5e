@@ -43,7 +43,7 @@ describe("seleção parcial de encontro: domínio", () => {
 describe("tela da Iniciativa", () => {
   it("retrato padronizado: placeholder para quem não tem imagem; imagem da ficha para personagem; falha de imagem volta ao placeholder", async () => {
     const fonte = { listar: async () => ({ ok: true as const, data: [{ id: "pj1", nome: "Lydia", classe: "Clériga", nivel: null, retratoUrl: "https://exemplo.test/lydia.png" }] }) };
-    render(<AventureirosContext.Provider value={fonte}><IniciativaPanel/></AventureirosContext.Provider>);
+    render(<AventureirosContext.Provider value={fonte}><RegistrosProvider api={null} fichas={fichasTeste()}><IniciativaPanel/></RegistrosProvider></AventureirosContext.Provider>);
     await screen.findByText("Nenhum combatente ainda");
     adicionarAvulso("Goblin avulso");
     expect(await within(screen.getByRole("group", { name: "Combatentes" })).findAllByTestId("retrato-placeholder")).toHaveLength(1);
@@ -65,11 +65,11 @@ describe("tela da Iniciativa", () => {
     render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
     adicionarAvulso("Lydia", "18"); adicionarAvulso("Goblin", "12");
     expect(screen.getByText("Rodada 1").className).toContain("ini-rodada");
-    expect(screen.getByText("Turno atual: Lydia")).toBeTruthy();
+    expect(document.querySelector('.faixa-personagem[aria-current="step"][title="Lydia"]')).toBeTruthy();
     const itens = within(screen.getByRole("group", { name: "Combatentes" })).getAllByRole("listitem");
     expect(itens[0].getAttribute("aria-current")).toBe("true"); expect(itens[0].className).toContain("atual"); expect(itens[1].getAttribute("aria-current")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ }));
-    expect(screen.getByText("Turno atual: Goblin")).toBeTruthy();
+    expect(document.querySelector('.faixa-personagem[aria-current="step"][title="Goblin"]')).toBeTruthy();
     expect(within(screen.getByRole("group", { name: "Combatentes" })).getAllByRole("listitem")[1].getAttribute("aria-current")).toBe("true");
   });
   it("controles compactos de dano e cura continuam acessíveis e a barra de PV acompanha (baixa fica sinalizada)", async () => {
@@ -133,6 +133,15 @@ describe("preferências e controles independentes", () => {
     expect(campo.value).toBe("1"); expect(screen.getByLabelText("PV de Teste").textContent).toBe("PV 14/20");
     fireEvent.change(campo, { target: { value: "3" } }); fireEvent.click(screen.getByRole("button", { name: "Curar Teste" }));
     expect(campo.value).toBe("1"); expect(screen.getByLabelText("PV de Teste").textContent).toBe("PV 17/20");
-    expect(screen.getByText("Turno atual: Teste")).toBeTruthy(); expect(screen.getByText("Rodada 1")).toBeTruthy();
+    expect(document.querySelector('.faixa-personagem[aria-current="step"][title="Teste"]')).toBeTruthy(); expect(screen.getByText("Rodada 1")).toBeTruthy();
   });
 });
+
+import { VERSION_2014 } from "./criador/regras-2014";
+import { fichasEmMemoria, novoBancoFichas } from "./fichasMemoria";
+import { RegistrosProvider } from "./RegistrosContext";
+function fichasTeste() {
+ const banco = novoBancoFichas(); banco.campanhas = { c1: { mestre: "u1", jogadores: ["u2"] } };
+ banco.fichas.push({ id: "pj1", campaignId: "c1", ownerId: "u2", revision: 1, updatedAt: "", draft: { id: "pj1", name: "Lydia", catalogueVersion: VERSION_2014, ruleset: "5e-2014", classId: "fighter", raceId: "human", backgroundId: "acolyte", level: 1, baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 }, decisions: [], inventory: [], currentHp: 12, temporaryHp: 0, spentResources: {} } });
+ return fichasEmMemoria("u1", banco);
+}

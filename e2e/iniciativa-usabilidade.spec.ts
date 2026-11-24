@@ -1,3 +1,4 @@
+import { expectFaixaGeometry, expectTurnControls } from './faixa-geometry';
 import { test, expect, openDemo, navigate, expectNoHorizontalOverflow } from './fixtures';
 
 test('próximo turno conserva posição com nomes longos; busca única inclui personagens reais do demo', async ({ page }, info) => {
@@ -43,7 +44,12 @@ test('loot de criatura e baú aparece sem expandir; escolha abre janela contextu
  dialogo = page.getByRole('dialog', { name: 'Escolher loot de Baú dourado' });
  await dialogo.getByLabel('Tipo de item em Baú dourado').selectOption('moeda'); await dialogo.getByLabel('Quantidade a adicionar em Baú dourado').fill('25');
  await dialogo.getByRole('button', { name: 'Incluir moeda', exact: true }).click(); await dialogo.getByRole('button', { name: 'Concluir seleção', exact: true }).click();
- await expect(enc.getByRole('heading', { name: /Baú dourado/ })).toBeVisible(); await expect(enc.getByText('peças de ouro', { exact: true })).toBeVisible();
+ const bau = enc.getByRole('region', { name: 'Recipiente Baú dourado', exact: true });
+ await expect(bau.getByRole('heading', { name: /Baú dourado/ })).toBeVisible();
+ await expect(bau.getByText('peças de ouro', { exact: true })).toBeVisible();
+ await expect(bau.getByLabel('Quantidade de peças de ouro em Baú dourado', { exact: true })).toHaveValue('25');
+ await expect(bau.getByRole('listitem')).toHaveCount(1);
+ await expect(bau.getByRole('dialog')).not.toBeVisible();
  await expect(enc.locator('.loot-recipiente details')).toHaveCount(0); await expectNoHorizontalOverflow(page);
  await page.screenshot({ path: info.outputPath('loot-visivel.png') });
 });
@@ -51,11 +57,15 @@ test('loot de criatura e baú aparece sem expandir; escolha abre janela contextu
 test('faixa fixa cobre as bordas e usa controles compactos em meia tela', async ({ page }, info) => {
  test.skip((page.viewportSize()?.width ?? 0) < 1024, 'Divisão real no desktop.');
  await openDemo(page); await navigate(page, 'Iniciativa');
- await page.getByLabel('Buscar combatentes').fill('goblin');
- for (let i = 0; i < 8; i++) await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
+ for (let i = 0; i < 8; i++) {
+   await page.getByLabel('Buscar combatentes').fill('goblin');
+   await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
+ }
+ await expect(page.getByRole('group', { name: 'Combatentes' }).locator('.ini-item')).toHaveCount(8);
  await page.getByLabel('Buscar combatentes').press('Escape');
  await page.getByRole('tab', { name: /^Iniciativa/ }).click({ button: 'right' });
  await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
+ await expectFaixaGeometry(page); await expectTurnControls(page);
  const conteudo = page.locator('.content.iniciativa'); await conteudo.hover(); await page.mouse.wheel(0, 950);
  const faixa = conteudo.locator('.ini-turnos-topo');
  await expect.poll(async () => {
@@ -68,4 +78,27 @@ test('faixa fixa cobre as bordas e usa controles compactos em meia tela', async 
  expect((await faixa.boundingBox())!.height).toBeLessThanOrEqual(230);
  for (const botao of await faixa.getByRole('button').all()) expect((await botao.boundingBox())!.width).toBeLessThanOrEqual(38);
  await expectNoHorizontalOverflow(page); await page.screenshot({ path: info.outputPath('faixa-opaca.png') });
+});
+
+
+test('retratos ampliados ficam separados e turno centralizado ao avançar e voltar', async ({ page }, info) => {
+ await openDemo(page); await navigate(page, 'Iniciativa');
+ for (let i = 0; i < 5; i++) {
+   await page.getByLabel('Buscar combatentes').fill('goblin');
+   await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
+ }
+ await page.getByLabel('Buscar combatentes').press('Escape');
+ await expectFaixaGeometry(page); await expectTurnControls(page);
+ await page.screenshot({ path: info.outputPath('retratos-ampliados.png') });
+ const next = page.getByRole('button', { name: 'Próximo turno', exact: true });
+ const before = (await next.boundingBox())!;
+ for (let i = 0; i < 5; i++) {
+   await next.click(); await expectFaixaGeometry(page); await expectTurnControls(page);
+   const after = (await next.boundingBox())!;
+   expect(Math.abs(after.x - before.x)).toBeLessThan(1);
+   expect(Math.abs(after.y - before.y)).toBeLessThan(1);
+ }
+ await page.getByRole('button', { name: 'Turno anterior', exact: true }).click();
+ await expectFaixaGeometry(page); await expectTurnControls(page);
+ await page.screenshot({ path: info.outputPath('retratos-retorno.png') });
 });

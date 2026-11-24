@@ -95,7 +95,7 @@ export function IniciativaPanel() {
     setMods(x => ({ ...x, [id]: bonus })); setRolagens(x => ({ ...x, [id]: r }));
     aplicar(e => definirIniciativa(adicionar(e, { id, nome: nomeCombatenteDisponivel(e, m.nome), iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } }), id, r.total));
   };
-  const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } }));
+  const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => { if (pvMax === undefined || pvAtual === undefined) return; aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } })); };
   const ordem = combate ? ordenar(combate.combatentes) : [];
   const removerCombatente: Aplicar = fn => {
     if (!combate) return false;
@@ -136,11 +136,11 @@ export function IniciativaPanel() {
     {erroFinalizar && <Aviso erro t={erroFinalizar}/>}
     {avisoFicha && <Aviso erro t={`Ficha do jogador não atualizada: ${avisoFicha} O combate continua salvo.`}/>}
     {combate && <>
-      <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()} dados={combate} arquivo="combate-nuvem"/>
+      {(!loja.nuvem || loja.sync === "falha" || loja.sync === "conflito" || loja.sync === "permissao") && <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()}/>}
       {loja.nuvem && <BackupLocal chave={chaveCombate(userId, campaignId)} rotulo="combate"/>}
       <div className="ini-turnos-topo"><FaixaTurnos ordem={ordem} turno={combate.turno} retratos={retratos}/>
       <div className="ini-barra ini-controles-turno">
-        <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" title={ordem.find(c => c.id === combate.turno)?.nome} aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
+        <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong>
         <div className="ini-acoes-turno"><button className="btn-secondary" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
         <button className="btn-secondary" title="Próximo turno" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
         <button className="btn-secondary" title="Reiniciar rodadas" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
