@@ -290,7 +290,7 @@ it("aba restaurada usa o nome visível como nome acessível sem persistir títul
   expect(screen.getByRole("button", { name: "CAMPANHA ATIVA Mesa dos Dragões" })).toBeTruthy();
   fireEvent.click(menu().getByRole("button", { name: "Diário" }));
   expect(localStorage.getItem(key)).not.toContain("Mesa dos Dragões");
-  expect(JSON.parse(localStorage.getItem(key)!).layout.children[0].children[0].id).toBe("secao:diario");
+  expect(JSON.parse(localStorage.getItem(key)!).layout.children[0].children.map((t: { id: string }) => t.id)).toContain("secao:diario");
 });
 
 it("renomear campanha atualiza também o nome acessível da aba", async () => {

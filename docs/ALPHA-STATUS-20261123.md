@@ -1,5 +1,7 @@
 # Estado da Alpha após integração do combate — 23/11/2026
 
+> **Atualizado:** este quadro é anterior à branch `alpha/estabilizacao-20261123`. O estado vigente (combate remoto implementado e testado em ambiente isolado, status na ficha, migrações 0009–0011, achados sobre cadastro e banco hospedado) está em [ALPHA-CHECKLIST-20261123.md](ALPHA-CHECKLIST-20261123.md).
+
 > Fonte de verdade: código na `main`, resultados do GitHub Actions e estado efetivo do banco. Este documento complementa o histórico em `STATUS-FUNCIONALIDADES-V2.md`, cujas porcentagens de 20/11 não representam a versão atual.
 
 ## Evidências integradas

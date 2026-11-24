@@ -36,7 +36,7 @@ beforeAll(async () => {
   for (let i = 1; i <= 4; i++) await db.query("insert into auth.users values ($1,$2)", [uid(i), `teste${i}@example.invalid`]);
   await db.query("insert into public.campaigns(id,name,created_by) values ($1,'A',$2),($3,'B',$4)", [a, mestreA, b, mestreB]);
   await db.query("insert into public.campaign_members(campaign_id,user_id,role) values ($1,$2,'mestre'),($1,$3,'jogador'),($4,$5,'mestre')", [a, mestreA, jogadorA, b, mestreB]);
-  await db.exec(readFileSync(join(__dirname, "../docs/sql/alpha-campaign-combats-DRAFT.sql"), "utf8"));
+  await db.exec(readFileSync(join(__dirname, "migrations/0009_campaign_combats.sql"), "utf8"));
 });
 beforeEach(async () => {
   await db.exec("truncate public.campaign_combats"); // apenas PGlite descartável
@@ -142,4 +142,11 @@ describe("rascunho de combate — RLS real em PostgreSQL isolado", () => {
     ]) expect((await como(mestreA, "update public.campaign_combats set state=$2,version=2 where campaign_id=$1", [a, novo])).error).toBeTruthy();
   });
 
+  it("valida condições e referência do combatente no servidor", async () => {
+    const c = { id: "x", nome: "Goblin", lado: "inimigo", iniciativa: 1 };
+    for (const ruim of [{ ...c, condicoes: "cego" }, { ...c, condicoes: [""] }, { ...c, condicoes: [1] }, { ...c, condicoes: Array.from({ length: 17 }, (_, i) => `c${i}`) }, { ...c, ref: { tipo: "carro", id: "x" } }, { ...c, ref: { tipo: "monstro" } }])
+      expect((await como(mestreA, "update public.campaign_combats set state=$2,version=2 where campaign_id=$1", [a, { ...estado, combatentes: [ruim], turno: "x" }])).error, JSON.stringify(ruim)).toBeTruthy();
+    const bom = { ...c, condicoes: ["Cego", "Caído"], ref: { tipo: "monstro", id: "goblin" } };
+    expect((await como(mestreA, "update public.campaign_combats set state=$2,version=2 where campaign_id=$1 returning version", [a, { ...estado, combatentes: [bom], turno: "x" }])).rows).toEqual([{ version: 2 }]);
+  });
 });

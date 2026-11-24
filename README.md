@@ -9,6 +9,10 @@ Ferramenta gratuita de apoio à mesa de D&D 5e (regras de 2014), para mestre e j
 
 Site publicado: https://waudz.github.io/compendio-5e/ (exige login).
 
+## Alpha 2.0 — estado em 23/11/2026
+
+**Leia primeiro:** [docs/ALPHA-CHECKLIST-20261123.md](docs/ALPHA-CHECKLIST-20261123.md) (estado real, achados, roteiro de testes, publicação e reversão). Em resumo: criador/ficha/inventário, Compêndio, Diário e Anotações, Iniciativa e Encontros (local ou **nuvem**, esta atrás de `VITE_COMBATE_REMOTO=1`), e PV/condições do combate na ficha do jogador estão implementados e testados em ambiente isolado. **Pendem autorizações suas:** desligar o cadastro público no servidor (hoje aberto), aplicar as migrações 0008–0011 no Supabase `compendio-5e` e publicar. Enciclopédia e Documentos não fazem parte da Alpha. Traduções de monstros são de IA, sem revisão humana.
+
 ## Desenvolvimento
 
 ```bash

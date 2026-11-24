@@ -1,3 +1,5 @@
+-- SUPERADO: este rascunho virou a migração oficial `supabase/migrations/0009_campaign_combats.sql` (ainda não aplicada ao banco hospedado).
+-- Mantido apenas como referência histórica; não executar.
 -- RASCUNHO PARA REVISÃO: NÃO EXECUTAR EM PRODUÇÃO SEM APROVAÇÃO.
 -- Converter em migração oficial usando Supabase CLI em ambiente de desenvolvimento.
 -- Usa public.is_master(uuid), já existente e auditada no projeto compendio-5e.

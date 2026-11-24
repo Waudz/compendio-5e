@@ -19,17 +19,16 @@ describe("numeração das migrações", () => {
       expect(readdirSync(rb).some(r => r.startsWith(n + "_") && r.endsWith("_down.sql")), `rollback da ${n}`).toBe(true);
     }
   });
-  it("o livro-razão lista todas as migrações existentes e marca a 0005 como proposta não aplicada", () => {
+  it("o livro-razão lista todas as migrações existentes e distingue migrações confirmadas e pendentes", () => {
     const l = readFileSync(join(dir, "LEIA-ME.md"), "utf8");
     for (const f of migrations) expect(l, f).toContain("`" + f.slice(0, 4) + "`");
-    expect(l).toMatch(/\| `0005` \|[^\n]*PROPOSTA — não aplicada/);
-    expect(l).toMatch(/\| `0006` \|[^\n]*PROPOSTA — não aplicada/);
-    for (const n of ["0001", "0002", "0003", "0004"]) expect(l).toMatch(new RegExp(`\\| \`${n}\` \\|[^\\n]*\\*\\*aplicada\\*\\*`));
+    for (const n of ["0005", "0006", "0008", "0009", "0010", "0011"]) expect(l).toMatch(new RegExp(`\\| \`${n}\` \\|[^\\n]*aplicada — confirmada no remoto`));
+    for (const n of ["0001", "0002", "0003", "0004", "0007"]) expect(l).toMatch(new RegExp(`\\| \`${n}\` \\|[^\\n]*\\*\\*aplicada\\*\\*`));
   });
   it("migração proposta declara no cabeçalho que não foi aplicada, e nenhum arquivo do repositório contém credenciais de banco", () => {
     expect(readFileSync(join(dir, "0005_notas_conteudo.sql"), "utf8").split("\n")[0]).toMatch(/NÃO APLICADA/);
     for (const f of migrations) expect(readFileSync(join(dir, f), "utf8"), f).not.toMatch(/postgres(ql)?:\/\/[^\s]*:[^\s]*@|service_role_key|sb_secret_/i);
     expect(readFileSync(join(dir, "0006_registros_capa_personagens.sql"), "utf8").split("\n")[0]).toMatch(/NÃO APLICADA/);
-    expect(existsSync(join(root, "supabase", "migrations", "0007_x.sql"))).toBe(false);   // 0007 a 0010 ainda não existem
+    expect(existsSync(join(root, "supabase", "migrations", "0007_x.sql"))).toBe(false);   // não aceitar arquivo fictício
   });
 });

@@ -36,11 +36,11 @@ describe("workspace (interface)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Abrir Ficha: Lydia" }));          // link de conteúdo: nova aba permanente, origem preservada
     expect(tabNames()).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
     more("Personagens");
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir Ficha: Lydia" }));          // já aberta: seleciona, não duplica
+    fireEvent.click((await screen.findAllByRole("button", { name: "Abrir Ficha: Lydia" }))[0]);          // já aberta: seleciona, não duplica
     expect(tabNames()).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
-    const tabsSaved = saved().layout.children[0].children as { id: string; pinned?: boolean }[];
-    expect(tabsSaved.map(t => t.id)).toEqual(["secao:personagens", "ficha:lydia"]);
-    expect(tabsSaved.map(t => t.pinned === true)).toEqual([false, true]);
+    const tabsSaved = saved().layout.children.flatMap((g: { children: { id: string; pinned?: boolean }[] }) => g.children);
+    expect(tabsSaved.map((t: { id: string }) => t.id)).toEqual(["secao:personagens", "ficha:lydia"]);
+    expect(tabsSaved.map((t: { pinned?: boolean }) => t.pinned === true)).toEqual([false, true]);
   });
 
   it("restaura as abas salvas ao montar de novo", async () => {

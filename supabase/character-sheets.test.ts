@@ -506,6 +506,7 @@ describe("reversões", () => {
     const criado = await as2(U.bia, "select * from public.create_guided_character($1, 'X', '{}'::jsonb, false, $2::jsonb)", [c, JSON.stringify(draft())]);
     expect(criado.error).toBeUndefined();
     const down = (f: string) => readFileSync(join(__dirname, "rollback", f), "utf8");
+    for (const f of ["0011_character_combat_status_down.sql", "0010_campaign_encounters_down.sql", "0009_campaign_combats_down.sql"]) await t.exec(down(f));   // as mais novas primeiro
     await t.exec(down("0008_character_sheets_persistencia_down.sql"));
     expect((await t.query("select count(*)::int as n from public.character_sheets")).rows[0]).toEqual({ n: 1 });               // dados preservados
     expect((await as2(U.bia, "select * from public.character_sheets")).error).toMatch(/permission denied/);                    // fechado de novo

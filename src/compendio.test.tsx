@@ -78,7 +78,7 @@ describe('Compêndio na navegação real', () => {
     await montar(); await abrirCompendio();
     pesquisar('espada longa'); fireEvent.click(cartao('Espada longa'));
     const detalhe = await screen.findByRole('article', { name: 'Detalhes de Espada longa' });
-    expect(abas()).toEqual(['Compêndio']);                                                       // detalhe em painel, sem abrir aba por padrão
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio']);                                                       // detalhe em painel, sem abrir aba por padrão
     const fatos = within(detalhe.querySelector('.item-fatos') as HTMLElement);
     expect(fatos.getByText('Dano').nextSibling?.textContent).toBe('1d8 cortante (1d10 com duas mãos)');
     expect(fatos.getByText('Custo').nextSibling?.textContent).toBe('15 po');
@@ -86,7 +86,7 @@ describe('Compêndio na navegação real', () => {
     expect(within(detalhe).getByText(/Atribuição/)).toBeTruthy();
     fireEvent.click(within(detalhe).getByRole('button', { name: /Abrir em nova aba/ }));
     expect(await screen.findByRole('heading', { name: 'Espada longa', level: 1 })).toBeTruthy();
-    expect(abas()).toEqual(['Compêndio', 'Espada longa']);
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio', 'Espada longa']);
   });
 
   it('pacote lista os componentes como links para os itens; clicar abre o item', async () => {

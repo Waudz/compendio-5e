@@ -29,10 +29,7 @@ jobs:
           echo "ALPHA_STATUS_FILE=$alpha_workdir/status.json" >> "$GITHUB_ENV"
           npx --yes --package=supabase@3.2.0 supabase init --workdir "$alpha_workdir"
           python3 scripts/alpha/prepare-local.py "$alpha_workdir"
-          npx --yes --package=supabase@3.2.0 supabase migration new alpha_combat_fixture --workdir "$alpha_workdir"
-          combat_fixture=$(find "$alpha_workdir/supabase/migrations" -name '*_alpha_combat_fixture.sql')
-          test -n "$combat_fixture"
-          cp docs/sql/alpha-campaign-combats-DRAFT.sql "$combat_fixture"
+          # as migrações 0009–0011 (combate, encontros, status das fichas) já vêm de supabase/migrations: nada de fixture separada
       - name: Iniciar Auth, PostgREST e PostgreSQL locais
         shell: bash
         run: |

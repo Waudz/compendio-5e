@@ -193,7 +193,7 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await navigate(page, 'Personagens');
   await page
     .getByRole('button', {
-      name: 'Abrir personagem guiado Maga 2014',
+      name: /^Maga 2014/,
       exact: true,
     })
     .click();
@@ -304,7 +304,7 @@ test('atributos rolados/antigos reabrem intactos e não passam por compra de pon
   await navigate(page, 'Personagens');
   await page
     .getByRole('button', {
-      name: 'Abrir personagem guiado Rolagens antigas',
+      name: /^Rolagens antigas/,
       exact: true,
     })
     .click();

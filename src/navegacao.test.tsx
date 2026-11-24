@@ -51,12 +51,12 @@ describe("menu lateral: gestos (desktop)", () => {
   it("clique normal reutiliza a aba atual; seleciona se o destino já está aberto", async () => {
     await renderApp();
     fireEvent.click(nav("Iniciativa"));
-    expect(tabs()).toEqual(["Iniciativa"]);
+    expect(tabs()).toEqual(["Personagens", "Iniciativa"]);
     fireEvent.click(nav("Encontros"));
-    expect(tabs()).toEqual(["Encontros"]);
+    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
     fireEvent.click(nav("Iniciativa"), { ctrlKey: true });
     fireEvent.click(nav("Encontros"));                                           // já aberto: seleciona (não duplica nem substitui)
-    expect(tabs()).toEqual(["Encontros", "Iniciativa"]);
+    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
   });
   it("Ctrl+clique, Cmd+clique e botão do meio abrem nova aba interna", async () => {
     await renderApp();
@@ -75,11 +75,11 @@ describe("menu lateral: gestos (desktop)", () => {
     await renderApp();
     fireEvent.contextMenu(nav("Iniciativa"));
     expect(menuItems()).toEqual(["Abrir nesta aba", "Abrir em nova aba", "Abrir em nova aba fixada"]);
-    pick("Abrir nesta aba"); expect(tabs()).toEqual(["Iniciativa"]);
-    fireEvent.contextMenu(nav("Encontros")); pick("Abrir em nova aba"); expect(tabs()).toEqual(["Iniciativa", "Encontros"]);
+    pick("Abrir nesta aba"); expect(tabs()).toEqual(["Personagens", "Iniciativa"]);
+    fireEvent.contextMenu(nav("Encontros")); pick("Abrir em nova aba"); expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
     fireEvent.contextMenu(nav("Documentos")); pick("Abrir em nova aba fixada");
-    expect(rawTabs()).toEqual(["Iniciativa", "Encontros", "Documentos (fixada)"]);
-    expect(saved().layout.children[0].children.map((t: { id: string; pinned?: boolean }) => [t.id, !!t.pinned])).toEqual([["secao:iniciativa", false], ["secao:encontros", false], ["secao:documentos", true]]);
+    expect(rawTabs()).toEqual(["Personagens", "Iniciativa", "Encontros", "Documentos (fixada)"]);
+    expect(saved().layout.children[0].children.map((t: { id: string; pinned?: boolean }) => [t.id, !!t.pinned])).toEqual([["secao:personagens", false], ["secao:iniciativa", false], ["secao:encontros", false], ["secao:documentos", true]]);
   });
   it("o menu fecha com Esc e ao clicar fora, e nunca sai da tela", async () => {
     await renderApp();
@@ -104,9 +104,9 @@ describe("fixar e desafixar", () => {
     fireEvent.click(nav("Iniciativa"));                                          // fixada: não substitui, cria aba normal
     expect(tabs()).toEqual(["Personagens", "Iniciativa"]);
     fireEvent.click(nav("Encontros"));                                           // a normal é reutilizada
-    expect(tabs()).toEqual(["Personagens", "Encontros"]);
+    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
     fireEvent.contextMenu(tabEl("Personagens")); expect(menuItems()[0]).toBe("Desafixar aba"); pick("Desafixar aba");
-    expect(rawTabs()).toEqual(["Personagens", "Encontros"]);
+    expect(rawTabs()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
     expect(saved().layout.children[0].children.some((t: { pinned?: boolean }) => t.pinned)).toBe(false);
   });
   it("fixada pode ser fechada manualmente; 'fechar outras abas normais' preserva as fixadas", async () => {
@@ -149,7 +149,7 @@ describe("alterações não salvas", () => {
     fireEvent.change(screen.getByLabelText("Texto d1"), { target: { value: "rascunho" } });
     fireEvent.click(nav("Iniciativa"));
     // a aba com alterações é tratada como a fixada: não é substituída; reutiliza-se outra aba normal e limpa
-    expect(tabs()).toEqual(["Iniciativa", "Resumo da Sessão 3"]);
+    expect(tabs()).toEqual(["Personagens", "Resumo da Sessão 3", "Iniciativa"]);
     fireEvent.click(tabEl("Resumo da Sessão 3"));
     expect((screen.getByLabelText("Texto d1") as HTMLTextAreaElement).value).toBe("rascunho");
   });

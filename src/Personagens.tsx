@@ -46,7 +46,7 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
     {!lista && !erro && <p className="muted" role="status">Carregando personagens…</p>}
     {lista && lista.filter(r => !ehGuiado(r.meta)).length === 0 && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}
     <ul className="home-party">{lista?.filter(r => !ehGuiado(r.meta)).map(r => { const p = lerPerfil(r.meta); return <li key={r.id}>
-      <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: r.id, title: r.title })} onContextMenu={e => aoClicarDireito(e, { kind: "ficha", ref: r.id, title: r.title })} aria-label={`Abrir ficha de ${r.title}`}>
+      <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: r.id, title: r.title })} onContextMenu={e => aoClicarDireito(e, { kind: "ficha", ref: r.id, title: r.title })} title={`Abrir ficha de ${r.title}`}>
         <Retrato caminho={p.retrato} nome={r.title}/>
         <span><strong>{r.title}</strong><small>{p.classe || "Sem classe"} · nível {p.nivel}{r.ownerId === user?.id ? " · seu" : ""}{r.visibility === "private" ? " · privado" : ""}</small></span></button></li>; })}</ul>
   </div>;
@@ -82,7 +82,7 @@ function SecaoGuiados({ cid, userId, publicos, versao, onOpenContent }: { cid: s
     finally { setEnviando(null); }
   };
   const descartar = (g: ResumoPersonagemGuiado) => { if (!userId) return; try { armazenamentoLocalExperimental(userId, cid).excluir(g.id); } catch { /* ignora */ } setDescartando(null); avisarRegistros(); setTentativa(n => n + 1); setAviso({ ok: true, t: `Rascunho “${g.nome}” removido deste navegador.` }); };
-  const item = (spec: TabSpec, rotulo: string, nome: string, detalhe: string) => <button className="home-char" onClick={() => onOpenContent(spec)} onContextMenu={e => aoClicarDireito(e, spec)} aria-label={rotulo}>
+  const item = (spec: TabSpec, rotulo: string, nome: string, detalhe: string) => <button className="home-char" onClick={() => onOpenContent(spec)} onContextMenu={e => aoClicarDireito(e, spec)} title={rotulo}>
     <Retrato caminho={null} nome={nome}/><span><strong>{nome}</strong><small>{detalhe}</small></span></button>;
 
   return <section className="personagens-guiados" aria-label="Criador guiado">

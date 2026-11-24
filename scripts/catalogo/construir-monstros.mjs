@@ -83,9 +83,11 @@ function defesa(en) {
   return s;
 }
 const falhasCA = new Set();
+/** Detalhes de CA que o tradutor do 1.0 deixava em inglês (a guarda abaixo falha o build se surgir outro). */
+const CA_DETALHE_PT = { '15 with _mage armor_': '15 com _armadura arcana_', '16 with _barkskin_': '16 com _pele-casca_', 'patchwork armor': 'armadura de retalhos', 'armor scraps': 'restos de armadura', splint: 'cota de talas' };
 function caDetalhe(en) {
-  const s = T.tr(String(en));
-  if (/(armor|leather|mail|shield|natural|hide|plate|studded|scale|half|chain|splint|breastplate|ring|padded|mage|barkskin|unarmored|ac)/i.test(s)) falhasCA.add(`"${en}" → "${s}"`);
+  const s = CA_DETALHE_PT[String(en)] ?? T.tr(String(en));
+  if (/\b(armor|leather|mail|shield|hide|plate|studded|scale|half|splint|breastplate|padded|barkskin|unarmored|with|and)\b/i.test(s)) falhasCA.add(`"${en}" → "${s}"`);
   return s;
 }
 const falhasIdiomas = new Set();

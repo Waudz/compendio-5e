@@ -150,7 +150,7 @@ describe('conjuração dos monstros: tradução e ligação com o catálogo de m
     expect(t.t).toMatch(/^A criatura é um conjurador de 18º nível\./);
     expect(t.t).toContain('Truques (à vontade): raio de fogo, luz, mãos mágicas');
     expect(t.magias!.map(x => x.id)).toEqual(expect.arrayContaining(['disguise-self', 'invisibility', 'time-stop', 'mind-blank', 'fire-bolt']));
-    expect(t.t).not.toMatch(/(the|slots?|at will|spells prepared)/i);
+    expect(t.t).not.toMatch(/\b(the|slots?|at will|spells prepared)\b/i);
   });
   it('Mefite de Gelo: conjuração de uma magia só, sem componentes materiais', () => {
     const t = monstro('ice-mephit').tracos.find(x => /Innate Spellcasting/.test(x.en))!;
