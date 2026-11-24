@@ -1,8 +1,8 @@
 // Diário: lista de registros de sessão (mestre: rascunhos e publicados; jogador: só publicados) e página de cada registro.
 // A mesma página (`RegistroPagina`) edita as cenas do Planejamento. O Diário é redigido manualmente pelo mestre; nada é resumido nem publicado sozinho.
-import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useAbrirEmAba } from "./abrirEmAba";
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { OrigemAbaContext, useAbrirEmAba } from "./abrirEmAba";
 import { ConflitoAviso } from "./ConflitoAviso";
 import { useCampaigns } from "./CampaignsContext";
 import { EditorLazy } from "./EditorLazy";
@@ -10,13 +10,15 @@ import { HARPTOS_MESES, formatarDataHarptos, previaTexto, resumirTexto, type Blo
 import { dataSessao, ordenarDiario, publicado, validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
 import { avisarRegistros, novaOrigem, publicarExclusao, publicarRegistro, registrarTitulo, useSincronia, useVersaoRegistros } from "./registrosStore";
-import { useUnsavedGuard } from "./unsaved";
+import { useUnsaved, useUnsavedGuard } from "./unsaved";
 import type { TabSpec } from "./workspace";
 
 export const Aviso = ({ t, erro, onRetry }: { t: string; erro?: boolean; onRetry?: () => void }) =>
   <div className={erro ? "notice err" : "notice"} role={erro ? "alert" : "status"}>{t}{onRetry && <> <button className="btn-link" onClick={onRetry}>Tentar de novo</button></>}</div>;
 
-export function DiarioPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
+export function DiarioPanel(_props: { onOpenContent: (s: TabSpec) => void }) {
+  const [aberto, setAberto] = useState<{id:string; campanha:string} | null>(null);
+  const aba = useContext(OrigemAbaContext), unsaved = useUnsaved();
   const api = useRegistros(), { active } = useCampaigns(), v = useVersaoRegistros();
   const [lista, setLista] = useState<Registro[] | null>(null), [erro, setErro] = useState<string | null>(null), [busy, setBusy] = useState(false), [tentativa, setTentativa] = useState(0);
   const cid = active?.campaign.id, mestre = active?.role === "mestre", { aoClicarDireito } = useAbrirEmAba();
@@ -32,8 +34,9 @@ export function DiarioPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => 
     const r = await api.create({ kind: "diary", campaignId: cid, title: "Nova sessão", visibility: "private", meta: {} });
     setBusy(false);
     if (!r.ok) { setErro(r.error); return; }
-    avisarRegistros(); onOpenContent({ kind: "documento", ref: r.data.id, title: r.data.title });
+    avisarRegistros(); setAberto({id:r.data.id,campanha:cid});
   };
+  if (aberto && aberto.campanha === cid) return <div className="diario-editor-inline"><button className="btn-link diario-voltar" onClick={()=>unsaved.guard([aba ?? `documento:${aberto.id}`],()=>setAberto(null))}><ArrowLeft size={16}/> Voltar ao Diário</button><RegistroPagina key={aberto.id} id={aberto.id} tabId={aba ?? undefined}/></div>;
   return <div className="content diario">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>Diário</h1>{mestre && <button className="btn-primary" onClick={novo} disabled={busy}><Plus size={15} aria-hidden="true"/> Novo registro</button>}</div>
@@ -42,7 +45,7 @@ export function DiarioPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => 
     {lista && lista.length === 0 && <p className="muted" data-testid="diario-lista-vazia">{mestre ? "Nenhum registro ainda. Crie o primeiro registro de sessão." : "O mestre ainda não publicou registros."}</p>}
     <ul className="registro-lista">{lista?.map(r => {
       const d = formatarDataHarptos(dataSessao(r)), t = previaTexto(r.content, 500, "\n");
-      return <li key={r.id}><button className="registro-item" onClick={() => onOpenContent({ kind: "documento", ref: r.id, title: r.title })} onContextMenu={e => aoClicarDireito(e, { kind: "documento", ref: r.id, title: r.title })}>
+      return <li key={r.id}><button className="registro-item" onClick={() => setAberto({id:r.id,campanha:cid!})} onContextMenu={e => aoClicarDireito(e, { kind: "documento", ref: r.id, title: r.title })}>
         <strong>{r.title}</strong>
         <span className="muted">{d ?? "Sem data de sessão"}{mestre && <span className={publicado(r) ? "badge on" : "badge"}>{publicado(r) ? "Publicado" : "Rascunho"}</span>}</span>
         {t && <span className="registro-previa">{resumirTexto(t, 200)}</span>}</button></li>;
@@ -54,7 +57,7 @@ const num = (s: string) => (s.trim() === "" ? NaN : Number(s));
 const dataTxt = (r: Registro) => { const d = dataSessao(r); return d ? `${d.dia}|${d.mes}|${d.ano}` : "||"; };
 
 /** Página de um registro (aba `documento:<id>`): diário ou cena. Mestre edita; jogador só lê o diário publicado. */
-export function RegistroPagina({ id }: { id: string }) {
+export function RegistroPagina({ id, tabId }: { id: string; tabId?: string }) {
   const api = useRegistros(), { active } = useCampaigns();
   const origem = useRef(novaOrigem()).current;
   const [reg, setReg] = useState<Registro | null | undefined>(undefined), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
@@ -74,7 +77,7 @@ export function RegistroPagina({ id }: { id: string }) {
 
   const diario = reg?.kind === "diary";
   const sujo = !!reg && mestre && (editou || titulo !== reg.title || `${dia}|${mes}|${ano}` !== dataTxt(reg));
-  useUnsavedGuard(`documento:${id}`, sujo);
+  useUnsavedGuard(tabId ?? `documento:${id}`, sujo);
   const sinc = useSincronia({ id, versao: reg?.version ?? 0, sujo, origem,
     aoRemoto: r => { aplicar(r); setChaveEditor(k => k + 1); },       // sem alterações locais: troca pelo dado salvo em outro lugar, sem F5
     aoExcluido: () => setReg(null),
