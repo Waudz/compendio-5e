@@ -52,6 +52,7 @@ function Capa({ campaignId, isMaster, editing, name, onEdit }: { campaignId: str
     if (!api || !(previewUrl || url)) return;
     setBusy(true); setMsg(null);
     try {
+      if (preview && zoom === 1 && x === 50 && y === 50) { const r = await api.definir(campaignId, preview); if (r.ok) { setUrl(r.data); setPreview(null); } else setMsg(r.error); return; }
       const img = new Image(); img.crossOrigin = "anonymous"; img.src = (previewUrl || url)!; await img.decode();
       const canvas = document.createElement("canvas"); canvas.width = 1920; canvas.height = 540;
       const escala = Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight) * zoom;
@@ -64,12 +65,13 @@ function Capa({ campaignId, isMaster, editing, name, onEdit }: { campaignId: str
       if (r.ok) { setUrl(r.data); setPreview(null); setZoom(1); setX(50); setY(50); } else setMsg(r.error);
     } catch { setMsg("Não foi possível ajustar a capa. A imagem anterior foi mantida."); } finally { setBusy(false); }
   };
+  useEffect(() => { if (!editing) { setPreview(null); setZoom(1); setX(50); setY(50); } }, [editing]);
   const remover = async () => { if (!api) return; setPreview(null); setBusy(true); setMsg(null); const r = await api.remover(campaignId); setBusy(false); if (r.ok) setUrl(null); else setMsg(r.error); };
   return <section className="home-cover-wrap" aria-label="Capa da campanha" data-testid="inicio-capa">
     <div className="home-cover">{(editing && previewUrl || url) ? <img src={(editing && previewUrl || url)!} alt="Capa da campanha" style={editing ? {objectPosition:`${x}% ${y}%`,transform:`scale(${zoom})`,transformOrigin:`${x}% ${y}%`} : undefined}/> : <div className="home-cover-empty"><ImageIcon size={26} aria-hidden="true"/><span>{pronto ? "Sem capa" : "Carregando…"}</span></div>}<h1 className="home-name">{name}</h1>{isMaster && <button type="button" className="home-edit" aria-label="Editar informações" title="Editar campanha" aria-expanded={editing} onClick={onEdit}><Pencil size={18}/></button>}</div>
     {isMaster && editing && api && <div className="home-cover-actions row">
       <label className="btn-secondary file-btn">{url ? "Substituir capa" : "Adicionar capa"}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={busy} onChange={e => { void escolher(e.target.files?.[0]); e.target.value = ""; }}/></label>
-      {url && <button className="btn-secondary" disabled={busy} onClick={() => void remover()}>Remover capa</button>}
+      {url && <button className="btn-secondary" disabled={busy} onClick={() => { if (window.confirm("Remover a capa da campanha?")) void remover(); }}>Remover capa</button>}
       {(url || previewUrl) && <div className="home-crop"><label>Zoom<input type="range" min="1" max="3" step=".05" value={zoom} onChange={e=>setZoom(+e.target.value)}/></label><label>Horizontal<input type="range" min="0" max="100" value={x} onChange={e=>setX(+e.target.value)}/></label><label>Vertical<input type="range" min="0" max="100" value={y} onChange={e=>setY(+e.target.value)}/></label><button className="btn-secondary" disabled={busy} onClick={()=>void salvarCapa()}>Salvar enquadramento</button><button className="btn-secondary" disabled={busy} onClick={()=>{setPreview(null);setZoom(1);setX(50);setY(50)}}>Restaurar prévia</button><small>O enquadramento salvo substitui a imagem da capa.</small></div>}{busy && <span className="muted" role="status">Enviando…</span>}</div>}
     {msg && <div className="notice err" role="alert">{msg}</div>}
   </section>;
@@ -153,14 +155,13 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
   const fonteAv = useMemo(() => fonteCtx ?? (regApi ? fontePersonagens(regApi, capaApi) : null), [fonteCtx, regApi, capaApi]);
   const diarioFonte = useMemo(() => diario ?? (regApi ? fonteDiario(regApi) : undefined), [diario, regApi]);
   const [editing, setEditing] = useState(false);
-  const [gerir, setGerir] = useState(false);   // participantes/convites só são carregados quando a seção é aberta (evita consultas à toa)
   if (!api) return <div className="auth"><h1>Campanha</h1><div className="notice" role="status">Conta necessária para usar campanhas.</div></div>;
   if (!mem) return <div className="auth"><h1>Campanha</h1><div className="notice" role="status">Você não participa desta campanha (ou ela foi removida).</div></div>;
   const isMaster = mem.role === "mestre";
   return <div className="home" data-testid="campanha-inicio">
     <Capa campaignId={id} isMaster={isMaster} name={mem.campaign.name} editing={editing} onEdit={() => setEditing(true)}/>
     <NomeDescricao id={id} onOpen={onOpen} editing={editing} setEditing={setEditing}/>
-    {isMaster && editing && <section className="home-sec"><CampaignPanel id={id} onOpen={onOpen} embedded/></section>}
+    {isMaster && editing && <section className="home-sec home-edit-panel"><CampaignPanel id={id} onOpen={onOpen} embedded/></section>}
     {isMaster && <nav className="home-shortcuts" aria-label="Atalhos da campanha">
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"planejamento"})}><NotebookPen size={19} aria-hidden="true"/> Anotações</button>
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"enciclopedia"})}><BookOpen size={19} aria-hidden="true"/> Enciclopédia</button>
@@ -169,8 +170,7 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"diario"})}><Library size={19} aria-hidden="true"/> Diário</button>
     </nav>}
     <div className="home-columns"><DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>
-    <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/></div>
-    {!isMaster && <details className="home-manage" onToggle={e => setGerir((e.currentTarget as HTMLDetailsElement).open)}><summary>{isMaster ? "Gerenciar campanha" : "Participantes"}</summary>
-      {gerir && <CampaignPanel id={id} onOpen={onOpen} embedded/>}</details>}
+    <div className="home-people"><Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/>{!editing && <CampaignPanel id={id} onOpen={onOpen} embedded readOnly={isMaster}/> }</div></div>
+
   </div>;
 }
