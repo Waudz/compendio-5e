@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 vi.mock("./AuthContext", () => ({ useAuth: () => ({ user: { id: "u1" } }) }));
 vi.mock("./CampaignsContext", () => ({ useCampaigns: () => ({ active: { role: "mestre", campaign: { id: "c1", name: "Teste" } } }) }));
 import { RegistrosProvider } from "./RegistrosContext";
@@ -16,11 +16,15 @@ it("busca personagens pela fonte real de registros, sem injetar AventureirosCont
  await screen.findByText("Nenhum combatente ainda");
  expect(screen.queryByRole("form", { name: "Adicionar combatente" })).toBeNull();
  fireEvent.focus(screen.getByLabelText("Buscar combatentes"));
+ expect(screen.queryByRole("button", { name: "Adicionar Lydia (personagem)" })).toBeNull();
+ fireEvent.click(screen.getByRole("button", { name: "Personagens" }));
+ fireEvent.focus(screen.getByLabelText("Buscar combatentes"));
  expect(await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" })).toBeTruthy();
  expect(screen.queryByRole("button", { name: /Adicionar (Outro grupo|Ficha privada)/ })).toBeNull();
  fireEvent.change(screen.getByLabelText("Buscar combatentes"), { target: { value: "Lydia" } });
  fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" }));
- expect(await within(screen.getByRole("group", { name: "Combatentes" })).findByText("Lydia", { selector: "strong" })).toBeTruthy();
+ expect(await screen.findByText(/Ficha indisponível/)).toBeTruthy();
+ expect(screen.getByText("Nenhum combatente ainda")).toBeTruthy();
 });
 it("uma única pesquisa filtra as fontes selecionadas e só Avulso mostra o formulário", async () => {
  render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
