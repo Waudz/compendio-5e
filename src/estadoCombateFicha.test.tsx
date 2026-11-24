@@ -26,6 +26,18 @@ describe("Estado em combate na ficha do jogador", () => {
     const b = nuvem({ characterId: "pj1", hp: null, max: null, condicoes: [], versao: 1 }); render(b.ui()); await waitFor(() => expect(b.s.lidas).toBe(1)); expect(screen.queryByRole("region", { name: "Estado em combate" })).toBeNull(); cleanup();
     render(<EstadoCombateFicha characterId="pj1"/>); expect(screen.queryByRole("region", { name: "Estado em combate" })).toBeNull();
   });
+  it("ignora uma leitura antiga que termina depois da atualização", async () => {
+    const { s, ui } = nuvem({ characterId: "pj1", hp: 12, max: 12, condicoes: [], versao: 1 });
+    render(ui());
+    await screen.findByTestId("pv-combate");
+    await act(async () => {
+      s.atual = { characterId: "pj1", hp: 9, max: 12, condicoes: [], versao: 2 };
+      s.aoMudar();
+      s.atual = { characterId: "pj1", hp: 3, max: 12, condicoes: [], versao: 3 };
+      s.aoMudar();
+    });
+    await waitFor(() => expect(screen.getByTestId("pv-combate").textContent).toBe("3/12"));
+  });
   it("atualiza em tempo real quando o servidor avisa que o status mudou", async () => {
     const { s, ui } = nuvem({ characterId: "pj1", hp: 12, max: 12, condicoes: [], versao: 1 }); render(ui());
     expect((await screen.findByTestId("pv-combate")).textContent).toBe("12/12");
