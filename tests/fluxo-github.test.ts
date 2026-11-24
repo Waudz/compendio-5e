@@ -10,8 +10,9 @@ const pages = read(".github/workflows/pages.yml"), validar = read(".github/workf
 const job = (txt: string, name: string) => { const m = txt.match(new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [\\w-]+:\\n|(?![\\s\\S]))`, "m")); return m ? m[1] : ""; };
 
 describe("publicação só depois da validação", () => {
-  it("o job de deploy tem needs: validar e o job validar reutiliza validar.yml", () => {
-    expect(job(pages, "deploy")).toMatch(/^    needs: validar$/m);
+  it("o deploy depende da compilação que depende da validação e o job validar reutiliza validar.yml", () => {
+    expect(job(pages, "deploy")).toMatch(/^    needs: compilar$/m);
+    expect(job(pages, "compilar")).toMatch(/^    needs: validar$/m);
     expect(job(pages, "validar")).toMatch(/uses: \.\/\.github\/workflows\/validar\.yml/);
   });
   it("validar.yml é reutilizável e roda em pull_request; build e testes são obrigatórios nele", () => {
