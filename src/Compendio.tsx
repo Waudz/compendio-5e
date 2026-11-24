@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { todosOsMonstros } from "./catalogue/contratos";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { DetalheMonstro } from "./compendio/DetalheMonstro";
 // Compêndio: ponto de entrada da seção (painel do catálogo) e da página de item (aba `item:<id>`, aberta pelo inventário do criador e pelos pacotes).
@@ -48,7 +47,7 @@ export function ItemPagina({ id, onOpenContent }: { id: string; onOpenContent: (
 
 function MonstroPagina({ id }: { id: string }) {
   const [dados, setDados] = useState<{ id: string; monstro?: Monstro; erro?: boolean } | null>(null);
-  useEffect(() => { let vivo = true; todosOsMonstros().then(lista => { if (vivo) setDados({ id, monstro: lista.find(m => m.id === id) }); }, () => { if (vivo) setDados({ id, erro: true }); }); return () => { vivo = false; }; }, [id]);
+  useEffect(() => { let vivo = true; import("./catalogue/contratos").then(c => c.todosOsMonstros()).then(lista => { if (vivo) setDados({ id, monstro: lista.find(m => m.id === id) }); }, () => { if (vivo) setDados({ id, erro: true }); }); return () => { vivo = false; }; }, [id]);
   if (!dados || dados.id !== id) return <p role="status">Carregando ficha…</p>;
   return <div className="content">{dados.monstro ? <><h1>{dados.monstro.nome}</h1><DetalheMonstro monstro={dados.monstro}/></> : <Aviso erro t={dados.erro ? "Não foi possível carregar a ficha." : "Criatura não encontrada."}/>}</div>;
 }

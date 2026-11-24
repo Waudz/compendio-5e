@@ -345,3 +345,10 @@ Sem escrita em Supabase hospedado, sem alteração do legado e sem migrações. 
 Compatibilidade SQL adicional: 24 testes de `supabase/encontros-rls.test.ts` aprovados, incluindo leitura/gravação do líder com PV feridos e bloqueio de jogador, outro mestre e usuário estranho nos campos novos. Nenhum SQL hospedado executado.
 
 Resultado final local: 1.534 testes aprovados, nenhum falho ou pendente; build (TypeScript + Vite) e tipos E2E aprovados. E2E principal: 66 aprovados/2 saltos previstos; reconferência visual final: 6 aprovados/2 saltos. Criador: 95/96 na rodada completa e o único timeout de 30 s (Maga, 1024 px) passou isolado com um worker, sem mudar código ou aumentar limites. Qualidade nas larguras 320/1440: 23 aprovados/7 saltos previstos por papel/largura. Avisos de tamanho dos chunks e anotações de tree shaking de Zod preexistentes continuam não bloqueantes. CI do commit original `bb634d0` foi conferido: validação e E2E falhavam; stack Supabase isolada estava aprovada. Revalidar todos no SHA desta correção antes do merge.
+
+
+### Correção após CI do `e69dadf`
+
+O CI identificou uma falha de importação de `catalogueCampaignGate.test.tsx`: as 1.534 asserções anteriores passaram, mas a contagem de asserções sozinha não revelava esse arquivo que não carregou. O teste usa mock parcial do catálogo e a nova referência ao bestiário antecipava a inicialização. `MonstroPagina` agora importa a fonte sob demanda, somente quando a ficha é aberta; a barreira de campanha continua antes disso. Conferir também arquivos/suítes com falha, não apenas `numFailedTests`.
+
+Verificação da correção: oito testes de barreira/identidade aprovados, build aprovado e os dois E2E de abertura de ficha em três painéis aprovados. Suíte completa reexecutada; resultado definitivo e publicação devem ser conferidos nos checks do SHA final do PR #139, que permanecem condição do merge. Não houve alteração de mock para esconder a falha nem redução de cobertura.
