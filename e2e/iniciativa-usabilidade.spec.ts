@@ -43,7 +43,7 @@ test('loot de criatura e baú aparece sem expandir; escolha abre janela contextu
  dialogo = page.getByRole('dialog', { name: 'Escolher loot de Baú dourado' });
  await dialogo.getByLabel('Tipo de item em Baú dourado').selectOption('moeda'); await dialogo.getByLabel('Quantidade a adicionar em Baú dourado').fill('25');
  await dialogo.getByRole('button', { name: 'Incluir moeda', exact: true }).click(); await dialogo.getByRole('button', { name: 'Concluir seleção', exact: true }).click();
- await expect(enc.getByRole('heading', { name: /Baú dourado/ })).toBeVisible(); await expect(enc.getByText('peças de ouro', { exact: true })).toBeVisible();
+ await expect(enc.getByRole('heading', { name: /Baú dourado/ })).toBeVisible(); await expect(enc.locator('.loot-recipiente').filter({ has: enc.getByRole('heading', { name: /Baú dourado/ }) }).getByText('peças de ouro', { exact: true })).toBeVisible();
  await expect(enc.locator('.loot-recipiente details')).toHaveCount(0); await expectNoHorizontalOverflow(page);
  await page.screenshot({ path: info.outputPath('loot-visivel.png') });
 });
@@ -51,8 +51,11 @@ test('loot de criatura e baú aparece sem expandir; escolha abre janela contextu
 test('faixa fixa cobre as bordas e usa controles compactos em meia tela', async ({ page }, info) => {
  test.skip((page.viewportSize()?.width ?? 0) < 1024, 'Divisão real no desktop.');
  await openDemo(page); await navigate(page, 'Iniciativa');
- await page.getByLabel('Buscar combatentes').fill('goblin');
- for (let i = 0; i < 8; i++) await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
+ for (let i = 0; i < 8; i++) {
+   await page.getByLabel('Buscar combatentes').fill('goblin');
+   await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
+ }
+ await expect(page.getByRole('group', { name: 'Combatentes' }).locator('.ini-item')).toHaveCount(8);
  await page.getByLabel('Buscar combatentes').press('Escape');
  await page.getByRole('tab', { name: /^Iniciativa/ }).click({ button: 'right' });
  await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
