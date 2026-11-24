@@ -29,6 +29,8 @@ export function marcarEnviado(enc: Encontro, selecionado: Encontro): Encontro {
   const novas = instanciasParaEnviar({ ...selecionado, atual: enc.atual });
   if (!novas.length) return enc;
   const criaturas = [...(enc.atual?.criaturas ?? [])];
+  // Completa também encontros antigos que registraram somente um envio parcial.
+  for (const c of criaturasIniciais(enc)) if (!criaturas.some(x => x.id === c.id)) criaturas.push(c);
   for (const i of novas) {
     const k = criaturas.findIndex(c => c.id === i.criaturaId);
     if (k >= 0) criaturas[k] = { ...criaturas[k], noCombate: true };
