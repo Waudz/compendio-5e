@@ -332,3 +332,23 @@ Corrigidos (ver `CRIADOR-FICHA-INVENTARIO.md`): `meta` da nota presa à existên
 - **Próximas:** entrega 3 (estados Preparado/Em andamento/Em combate/Concluído, configuração original x estado atual, restaurar/duplicar, vínculo com a Iniciativa) e entrega 4 (loot por criatura, recipientes, recompensas, estados Disponível/Encontrado/Coletado/Distribuído). Se alguma exigir migração: preparar, validar em ambiente isolado e pedir autorização antes de aplicar.
 - **Entrega 3 (estados e persistência) concluída em 24/11/2026:** ver DEC-021. Testes: `src/estadoEncontro.test.tsx` e caso novo em `src/iniciativaNuvem.test.tsx`. Correção do CI: o E2E "navegação e responsividade" falhava desde a entrega 1 porque `getByText('Goblin', exact)` passou a casar também o seletor de encontros preparados; os specs agora escopam à lista "Ordem de iniciativa" (confirmar no CI; Chromium não está instalado localmente). Pendências: reflexo do estado na ficha do mestre não se aplica; loot/recipientes na entrega 4.
 - **Entrega 4 (loot e recipientes) concluída em 24/11/2026:** ver DEC-022. Código: `src/loot.ts`, `src/LootEditor.tsx`, `src/LootEncontro.tsx`; testes: `src/loot.test.tsx`. CI da entrega 3 verde (3 workflows). Fora do escopo desta etapa (pendentes): distribuição automática para inventários/fichas, ligação com Anotações (dungeon/salas) e Documentos, escolha do personagem destinatário na distribuição. Etapas 2 a 6 aprovadas, não iniciadas.
+
+
+## Revisão efetiva da etapa 1 — #138 / PR #139 (24/11/2026)
+
+Branch `fix/138-iniciativa-encontros`, base auditada `bb634d0`. Issue e quatro comentários consultados; todos os 13 arquivos do diff original revisados. Não presumir que os 28 commits originais estavam validados: a primeira execução revelou 25 testes falhando e um worker encerrado por falta de recursos; a execução com dois workers e as correções eliminaram as falhas. Mudanças e compatibilidade: DEC-023.
+
+Validação local: 1.534 testes unitários/integração/RLS aprovados; E2E principal 66 aprovados, 2 saltos previstos no teste de três painéis em celular. Cenário obrigatório com cinco goblins/líder validado nas quatro larguras, inclusive recarga. Capturas reais inspecionadas; corrigidos alinhamento com notas e altura da barra em painel estreito. TypeScript, build e tipos E2E executados; confirmação final/CI deve corresponder ao HEAD publicado.
+
+Sem escrita em Supabase hospedado, sem alteração do legado e sem migrações. O backend E2E é sintético, com requisições externas bloqueadas; sincronização em duas sessões foi verificada nesse ambiente e não representa teste contra contas reais de produção. Entrega automática de loot, Anotações/Documentos e demais etapas permanecem fora do escopo. Merge e publicação do PR #139 autorizados pelo William após validação completa.
+
+Compatibilidade SQL adicional: 24 testes de `supabase/encontros-rls.test.ts` aprovados, incluindo leitura/gravação do líder com PV feridos e bloqueio de jogador, outro mestre e usuário estranho nos campos novos. Nenhum SQL hospedado executado.
+
+Resultado final local: 1.534 testes aprovados, nenhum falho ou pendente; build (TypeScript + Vite) e tipos E2E aprovados. E2E principal: 66 aprovados/2 saltos previstos; reconferência visual final: 6 aprovados/2 saltos. Criador: 95/96 na rodada completa e o único timeout de 30 s (Maga, 1024 px) passou isolado com um worker, sem mudar código ou aumentar limites. Qualidade nas larguras 320/1440: 23 aprovados/7 saltos previstos por papel/largura. Avisos de tamanho dos chunks e anotações de tree shaking de Zod preexistentes continuam não bloqueantes. CI do commit original `bb634d0` foi conferido: validação e E2E falhavam; stack Supabase isolada estava aprovada. Revalidar todos no SHA desta correção antes do merge.
+
+
+### Correção após CI do `e69dadf`
+
+O CI identificou uma falha de importação de `catalogueCampaignGate.test.tsx`: as 1.534 asserções anteriores passaram, mas a contagem de asserções sozinha não revelava esse arquivo que não carregou. O teste usa mock parcial do catálogo e a nova referência ao bestiário antecipava a inicialização. `MonstroPagina` agora importa a fonte sob demanda, somente quando a ficha é aberta; a barreira de campanha continua antes disso. Conferir também arquivos/suítes com falha, não apenas `numFailedTests`.
+
+Verificação da correção: oito testes de barreira/identidade aprovados, build aprovado e os dois E2E de abertura de ficha em três painéis aprovados. Suíte completa reexecutada; resultado definitivo e publicação devem ser conferidos nos checks do SHA final do PR #139, que permanecem condição do merge. Não houve alteração de mock para esconder a falha nem redução de cobertura.

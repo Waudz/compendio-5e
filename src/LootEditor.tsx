@@ -1,7 +1,8 @@
 // Editor compacto de uma lista de loot (usado por criatura, recompensas gerais e recipientes). Itens do catálogo existente, personalizados ou moedas.
 import { Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { srdItemFile } from "./catalogue/srd-2014-items";
+import { PesquisaCatalogo } from "./PesquisaCatalogo";
+import { srdItemFile, describeItem } from "./catalogue/srd-2014-items";
 import { novoId } from "./combate";
 import { ROTULO_MOEDA, itemLootValido, textoLoot, type ItemLoot, type Moeda } from "./loot";
 
@@ -34,13 +35,11 @@ export function LootEditor({ itens, onChange, rotulo }: { itens: readonly ItemLo
       <div className="ini-form">
         <label>Tipo<select aria-label={`Tipo de item em ${rotulo}`} value={tipo} onChange={e => setTipo(e.target.value as Tipo)}><option value="catalogo">Item do catálogo</option><option value="personalizado">Item personalizado</option><option value="moeda">Moeda</option></select></label>
         <label>Qtd.<input inputMode="numeric" aria-label={`Quantidade a adicionar em ${rotulo}`} value={qtd} onChange={e => setQtd(e.target.value)}/></label>
-        {tipo === "catalogo" && <label>Buscar item<input type="search" value={busca} onChange={e => setBusca(e.target.value)} placeholder="Nome em português ou inglês"/></label>}
+        {tipo === "catalogo" && <PesquisaCatalogo rotulo="Buscar item" valor={busca} onChange={setBusca} vazio={!achados.length} resultados={achados.map(i => <li key={i.id}><button type="button" className="btn-secondary" onClick={() => incluir({ itemId: i.id, nome: i.nome, quantidade: q })} aria-label={`Adicionar ${i.nome} do catálogo a ${rotulo}`}><strong>{i.nome}</strong><small>{describeItem(i)}</small></button></li>)}/>}
         {tipo === "personalizado" && <><label>Nome do item<input value={nome} maxLength={80} onChange={e => setNome(e.target.value)}/></label><label>Descrição (opcional)<input value={desc} maxLength={300} onChange={e => setDesc(e.target.value)}/></label></>}
         {tipo === "moeda" && <label>Moeda<select value={moeda} onChange={e => setMoeda(e.target.value as Moeda)}>{(Object.keys(ROTULO_MOEDA) as Moeda[]).map(m => <option key={m} value={m}>{ROTULO_MOEDA[m]}</option>)}</select></label>}
         {tipo !== "catalogo" && <button type="button" className="btn-secondary" onClick={() => incluir(tipo === "moeda" ? { moeda, nome: ROTULO_MOEDA[moeda], quantidade: q } : { nome, quantidade: q, descricao: desc })}><Plus size={15} aria-hidden="true"/> Incluir {tipo === "moeda" ? "moeda" : "item"}</button>}
       </div>
-      {tipo === "catalogo" && busca.trim().length >= 2 && achados.length === 0 && <p className="muted">Nenhum item encontrado.</p>}
-      {tipo === "catalogo" && <ul className="ini-achados">{achados.map(i => <li key={i.id}><button type="button" className="btn-secondary" onClick={() => incluir({ itemId: i.id, nome: i.nome, quantidade: q })} aria-label={`Adicionar ${i.nome} do catálogo a ${rotulo}`}><strong>{i.nome}</strong></button></li>)}</ul>}
       {erro && <p role="alert" className="muted">Confira o nome e a quantidade (1 a 9999).</p>}
     </details>
   </div>;

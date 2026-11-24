@@ -26,7 +26,7 @@ test('mestre: encontro → combate → turnos, dano, condição → recarregar �
   // 2. conduz o combate
   await navigate(page, 'Iniciativa');
   await expect(page.getByRole('heading', { name: 'Iniciativa', exact: true })).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Ordem de iniciativa' }).getByText('Goblin', { exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Combatentes' }).getByText('Goblin', { exact: true })).toBeVisible();
   // a aba Encontros continua aberta (o menu não substitui abas): escopo no formulário do combate
   const form = page.getByRole('form', { name: 'Adicionar combatente' });
   await form.getByLabel('Nome', { exact: true }).fill('Lydia');
@@ -56,7 +56,7 @@ test('mestre: encontro → combate → turnos, dano, condição → recarregar �
   await expect(page.getByRole('region', { name: 'Encontro Emboscada na estrada' })).toBeVisible();
   await page.getByRole('region', { name: 'Encontro Emboscada na estrada' }).getByRole('button', { name: 'Enviar para a Iniciativa', exact: true }).click();
   await navigate(page, 'Iniciativa');
-  await expect(page.getByRole('list', { name: 'Ordem de iniciativa' }).getByText('Goblin', { exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Combatentes' }).getByText('Goblin', { exact: true })).toBeVisible();
   await expect(page.getByText('Rodada 1', { exact: true })).toBeVisible();
 });
 

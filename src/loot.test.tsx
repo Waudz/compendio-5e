@@ -93,14 +93,15 @@ describe("tela: loot e recipientes", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Abrir encontro Covil" }));
     const pagina = await screen.findByRole("region", { name: "Página do encontro Covil" });
     const lido = () => lerEncontros(localStorage.getItem(chaveEncontros("u1", "c1")))[0];
+    fireEvent.click(within(pagina).getByRole("button", { name: "Tesouros" }));
     const sec = within(within(pagina).getByRole("region", { name: "Loot do encontro" }));
-    fireEvent.click(sec.getByText(/Recompensas gerais/)); fireEvent.click(sec.getByText("Adicionar a recompensas gerais"));
+    fireEvent.click(sec.getByText("Adicionar a recompensas gerais"));
     const rec = within(sec.getByText("Adicionar a recompensas gerais").closest("details")!);
     fireEvent.change(rec.getByLabelText("Tipo de item em recompensas gerais"), { target: { value: "personalizado" } });
     fireEvent.change(rec.getByLabelText("Nome do item"), { target: { value: "Selo do duque" } }); fireEvent.change(rec.getByLabelText("Descrição (opcional)"), { target: { value: "Lacre de cera" } });
     fireEvent.click(rec.getByRole("button", { name: "Incluir item" }));
     await waitFor(() => expect(lido().recompensas).toMatchObject([{ nome: "Selo do duque", descricao: "Lacre de cera", quantidade: 1 }]));
-    fireEvent.click(sec.getByText(/^Recipientes/)); fireEvent.change(sec.getByLabelText("Nome do recipiente"), { target: { value: "Baú" } }); fireEvent.click(sec.getByRole("button", { name: /Criar recipiente/ }));
+    fireEvent.change(sec.getByLabelText("Nome do recipiente"), { target: { value: "Baú" } }); fireEvent.click(sec.getByRole("button", { name: /Criar recipiente/ }));
     await waitFor(() => expect(lido().recipientes).toHaveLength(1));
     fireEvent.click(sec.getByText(/^Baú/)); fireEvent.click(sec.getByText("Adicionar a Baú"));
     const bau = within(sec.getByText("Adicionar a Baú").closest("details")!);
@@ -109,6 +110,7 @@ describe("tela: loot e recipientes", () => {
     await waitFor(() => expect(lido().recipientes![0].itens[0].itemId).toBeTruthy());
     fireEvent.change(bau.getByLabelText("Tipo de item em Baú"), { target: { value: "moeda" } }); fireEvent.change(bau.getByLabelText("Quantidade a adicionar em Baú"), { target: { value: "30" } }); fireEvent.click(bau.getByRole("button", { name: "Incluir moeda" }));
     await waitFor(() => expect(lido().recipientes![0].itens[1]).toMatchObject({ moeda: "gp", quantidade: 30 }));
+    fireEvent.click(within(pagina).getByRole("button", { name: "Criaturas" }));
     const cri = within(pagina.querySelector(".enc-loot-criatura") as HTMLElement);
     fireEvent.click(cri.getByText("Adicionar a loot de Goblin")); fireEvent.change(cri.getByLabelText("Tipo de item em loot de Goblin"), { target: { value: "personalizado" } });
     fireEvent.change(cri.getByLabelText("Nome do item"), { target: { value: "Dente de lobo" } }); fireEvent.click(cri.getByRole("button", { name: "Incluir item" }));
@@ -122,6 +124,7 @@ describe("tela: loot e recipientes", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Abrir encontro Covil" }));
     const pagina = await screen.findByRole("region", { name: "Página do encontro Covil" });
     const lido = () => lerEncontros(localStorage.getItem(chaveEncontros("u1", "c1")))[0];
+    fireEvent.click(within(pagina).getByRole("button", { name: "Tesouros" }));
     const and = within(within(pagina).getByRole("group", { name: "Andamento do loot" }));
     const bau = within(and.getByText(/^Baú trancado/).closest("details")!);
     fireEvent.click(bau.getAllByRole("button", { name: /Marcar encontrado/ })[0]);
@@ -131,6 +134,7 @@ describe("tela: loot e recipientes", () => {
     fireEvent.click(bau.getByRole("button", { name: "Distribuir Poção de cura" })); await waitFor(() => expect(linha(lido(), "r:r1|b1").distribuida).toBe(1));
     expect(bau.getByText(/coletado 1\/2 · distribuído 1\/2/)).toBeTruthy();
     const confirma = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(within(pagina).getByRole("button", { name: "Progresso" }));
     fireEvent.click(within(pagina).getByRole("button", { name: "Restaurar original" }));
     expect(confirma.mock.calls[0][0]).toMatch(/continuam com os personagens/); expect(lido().estado).toBe("em_andamento");
     fireEvent.click(within(pagina).getByRole("button", { name: "Concluir encontro" }));

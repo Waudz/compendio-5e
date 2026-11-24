@@ -797,3 +797,48 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .iniciativa .loot-linha[data-estado="distribuido"]{opacity:.65}
 .iniciativa .enc-estado[data-loot="coletado"],.iniciativa .enc-estado[data-loot="encontrado"]{border-color:var(--accent,#c0392b)}
 .iniciativa .loot-andamento h4{margin:10px 0 4px;font-size:14px}
+
+/* Campos de combate e encontros: tokens do tema, sem fundo nativo cinza. */
+.iniciativa :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:7px;font:inherit;box-sizing:border-box;min-width:0;padding:6px 8px}
+.iniciativa :is(input,select,textarea):focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.iniciativa .controle-numerico input,.iniciativa .enc-criatura .controle-numerico input{width:56px;text-align:center;min-height:32px}
+.iniciativa .controle-numerico .ini-icone{width:32px;height:32px;flex:none;padding:0}
+
+.iniciativa .pesquisa-catalogo{position:relative;min-width:0;flex:1 1 240px}.iniciativa .pesquisa-catalogo label{display:grid;gap:4px}.iniciativa .pesquisa-catalogo input{width:100%}.iniciativa .pesquisa-resultados{position:absolute;top:100%;left:0;right:0;z-index:20;max-height:280px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px #0005;padding:4px}.iniciativa .pesquisa-resultados ul{list-style:none;margin:0;padding:0}.iniciativa .pesquisa-resultados li{margin:0;padding:0}.iniciativa .pesquisa-resultados button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;width:100%;white-space:normal;border:0;background:transparent;padding:8px;gap:3px}.iniciativa .pesquisa-resultados button:hover,.iniciativa .pesquisa-resultados button:focus-visible{background:var(--hover)}.iniciativa .pesquisa-resultados small{color:var(--muted)}
+
+.pesquisa-criatura{display:flex;align-items:center;gap:8px}.pesquisa-criatura>span:last-child{display:grid;gap:3px;min-width:0}
+
+.ini-turnos-topo{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line)}.faixa-turnos{display:grid;grid-template-columns:minmax(0,1fr) 86px minmax(0,1fr);align-items:center;gap:6px;overflow:hidden;padding:6px 0}.faixa-passados,.faixa-proximos{display:flex;gap:6px;overflow:hidden;align-items:center}.faixa-passados{justify-content:flex-end;opacity:.48}.faixa-personagem{display:grid;justify-items:center;gap:3px;min-width:0;flex:0 0 58px;font-size:11px}.faixa-personagem small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.faixa-personagem.ativo{color:var(--accent);font-weight:600}.faixa-personagem.ativo .retrato-q{outline:2px solid var(--accent);outline-offset:2px}
+
+.ini-grupos{display:grid;gap:12px;min-width:0}.ini-grupos.separados{grid-template-columns:repeat(2,minmax(0,1fr))}.ini-grupo{min-width:0}.ini-grupo h3{margin:8px 0;font-size:14px}.ini-grupos.separados .ini-grupo:last-child:nth-child(odd){grid-column:1/-1}@container ini (max-width:700px){.ini-grupos.separados{grid-template-columns:1fr}}
+
+.enc-subabas{display:flex;gap:6px;border-bottom:1px solid var(--line);padding:8px 0;margin:8px 0}.enc-subabas button{flex:1;justify-content:center;min-width:0}.enc-subabas button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
+
+.ini-dialogo{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;width:min(520px,calc(100vw - 32px));max-height:85vh;overflow:auto;padding:18px;box-sizing:border-box}.ini-dialogo::backdrop{background:#0009}.ini-dialogo .ini-enc-lista{padding:0;list-style:none}
+
+/* Etapa 1: faixa estável e cartões compartilhados em qualquer grupo do workspace. */
+.faixa-turnos{display:block;height:108px;position:relative;padding:12px 0;box-sizing:border-box}
+.faixa-trilha{display:flex;width:100%;align-items:center;transition:transform .32s ease;will-change:transform}
+.faixa-trilha .faixa-personagem{flex:0 0 76px;box-sizing:border-box;transition:opacity .25s ease,scale .25s ease;scale:1}
+.faixa-trilha .faixa-personagem.ativo{scale:1.12}.faixa-trilha .faixa-personagem.passado{opacity:.4}
+.iniciativa .ini-item.derrotado,.faixa-personagem.derrotado{opacity:.55;filter:saturate(.35)}
+.iniciativa .ini-item.derrotado .ini-nome strong{text-decoration:line-through}
+.iniciativa .ini-notas,.enc-individuais,.enc-individual-form{grid-column:1/-1;min-width:0;overflow-wrap:anywhere}
+.enc-individuais>label{display:flex;gap:6px;align-items:center;margin:6px 0}.enc-instancias{list-style:none;padding:0;display:grid;gap:8px}
+.enc-instancia{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px;min-width:0}
+.enc-instancia>.btn-link{grid-column:2/-1}.criatura-ficha{text-align:left;padding:0;white-space:normal;overflow-wrap:anywhere}
+.ini-dialogo .ini-enc-criaturas>li{flex-wrap:wrap}.ini-dialogo .enc-individuais{flex-basis:100%}
+.ini-dialogo .enc-individuais label{white-space:normal;overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){.faixa-trilha,.faixa-trilha .faixa-personagem{transition:none}}
+
+.ini-grupo{container:ini / inline-size}
+
+.iniciativa .ini-nome{display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere}
+.iniciativa .ini-lista-cartoes .ini-item{grid-template-columns:44px minmax(0,1fr) auto}
+.iniciativa .ini-lista-cartoes .ini-item .ini-ini{grid-column:1/-1;justify-content:flex-start}
+.iniciativa .ini-lista-cartoes .ini-item .ini-remover{grid-column:3;grid-row:1}
+@container ini (max-width:520px){
+  .ini-turnos-topo .ini-barra .btn-secondary{font-size:0;gap:0;min-width:36px;min-height:36px;padding:8px}
+  .ini-turnos-topo .ini-barra .btn-secondary svg{width:18px;height:18px}
+  .ini-turnos-topo .ini-barra{gap:6px}.ini-turnos-topo .ini-turno-atual{font-size:12px;max-width:100%;overflow-wrap:anywhere}
+}

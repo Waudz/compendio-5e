@@ -9,9 +9,17 @@ Ferramenta gratuita de apoio à mesa de D&D 5e (regras de 2014), para mestre e j
 
 Site publicado: https://waudz.github.io/compendio-5e/ (exige login).
 
-## Alpha 2.0 — estado em 23/11/2026
+## Alpha 2.0 — registro histórico de 23/11/2026
+
+Este parágrafo registra a situação da data indicada; para a revisão atual, consulte a seção Etapa 1 abaixo e a continuidade.
 
 **Leia primeiro:** [docs/ALPHA-CHECKLIST-20261123.md](docs/ALPHA-CHECKLIST-20261123.md) (estado real, achados, roteiro de testes, publicação e reversão). Em resumo: criador/ficha/inventário, Compêndio, Diário e Anotações, Iniciativa e Encontros (local ou **nuvem**, esta atrás de `VITE_COMBATE_REMOTO=1`), e PV/condições do combate na ficha do jogador estão implementados e testados em ambiente isolado. **Pendem autorizações suas:** desligar o cadastro público no servidor (hoje aberto), aplicar as migrações 0008–0011 no Supabase `compendio-5e` e publicar. Enciclopédia e Documentos não fazem parte da Alpha. Traduções de monstros são de IA, sem revisão humana.
+
+## Etapa 1 — Iniciativa e Encontros (24/11/2026)
+
+O PR #139 revisa a Iniciativa exclusiva do mestre: faixa de turnos centralizada, cartões estáveis, modos independentes de lista/cartões e lados, controles compactos, pesquisas suspensas e abertura da ficha completa no workspace. Encontros têm subabas Criaturas/Tesouros/Progresso, grupos expansíveis, personalizações individuais herdáveis e envio coletivo ou seletivo por identidade estável. Remover e reinserir uma criatura preserva seus PV e estado; nomes repetidos não duplicam identidades.
+
+O loot registra preparação e andamento; marcar como distribuído **não entrega automaticamente** itens à ficha. Monstros sem imagem usam o placeholder. Campos novos são opcionais, sem migração. A validação usa dados sintéticos locais e PostgreSQL isolado, sem alterar campanhas reais; limites e resultados em [continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md) e [DEC-023](DECISOES-E-ARQUITETURA.md#dec-023--identidade-individual-e-interface-de-iniciativaencontros-24112026-138139). Confirmar CI/merge do PR antes de considerar esta revisão publicada.
 
 ## Desenvolvimento
 

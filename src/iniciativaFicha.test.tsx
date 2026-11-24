@@ -23,7 +23,7 @@ let banco: BancoFichas;
 const personagens = { listar: async () => ({ ok: true as const, data: [{ id: "p1", nome: "Lydia", classe: "Guerreira", nivel: 1 }, { id: "p2", nome: "Toran", classe: "Guerreiro", nivel: 1 }] }) };
 const montar = () => render(<AventureirosContext.Provider value={personagens}><RegistrosProvider api={null} fichas={fichasEmMemoria("u1", banco)}><IniciativaPanel/></RegistrosProvider></AventureirosContext.Provider>);
 const fichaDe = (id: string) => banco.fichas.find(f => f.id === id)!;
-const abrirSeletor = async () => { await screen.findByText("Nenhum combatente ainda"); fireEvent.click(screen.getByText("Adicionar personagem da campanha")); await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" }); };
+const abrirSeletor = async () => { await screen.findByText("Nenhum combatente ainda"); fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.focus(await screen.findByLabelText("Buscar personagem")); await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" }); };
 
 beforeEach(() => {
   localStorage.clear(); escopo = { user: { id: "u1" }, active: { role: "mestre", campaign: { id: "c1", name: "Véu Negro" } } };
@@ -98,7 +98,7 @@ describe("finalizar o combate: PV persistem na ficha", () => {
   it("monstros e combatentes avulsos não tocam em nenhuma ficha", async () => {
     montar(); await screen.findByText("Nenhum combatente ainda");
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Goblin" } }); fireEvent.change(screen.getByLabelText("PV (opcional)"), { target: { value: "7" } });
-    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ })); await screen.findByLabelText("PV de Goblin");
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" })); await screen.findByLabelText("PV de Goblin");
     vi.spyOn(window, "confirm").mockReturnValue(true); const antes = JSON.stringify(banco.fichas);
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ })); await screen.findByText("Nenhum combatente ainda");
     expect(JSON.stringify(banco.fichas)).toBe(antes);

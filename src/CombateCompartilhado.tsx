@@ -1,3 +1,5 @@
+import { PesquisaCatalogo } from "./PesquisaCatalogo";
+import { RetratoQuadrado } from "./RetratoCombate";
 import { Download } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
@@ -100,7 +102,7 @@ export function ModoArmazenamento({ nuvem, sync, mensagem, o, onTentar, onRecarr
     {mensagem ?? "Outra sessão alterou os dados."} Suas últimas alterações não foram gravadas (uma cópia ficou neste aparelho). <button className="btn-link" onClick={onRecarregar}>Recarregar do servidor</button> (descarta o que não foi gravado).</div>;
   if (sync === "permissao") return <Aviso erro t={mensagem ?? "Sem permissão para gravar."}/>;
   if (sync === "falha") return <div className="notice err" role="alert" data-modo="nuvem" data-sync="falha">{mensagem ?? "Sem conexão com o servidor."} As alterações continuam nesta tela e serão enviadas assim que a conexão voltar. <button className="btn-link" onClick={onTentar}>Tentar agora</button></div>;
-  return <p className="muted ini-modo" role="status" data-modo="nuvem" data-sync={sync}>{sync === "salvando" ? "Salvando na nuvem…" : `Salvo na nuvem (${o}): disponível em qualquer aparelho em que você entrar como mestre desta campanha.`} {baixar}</p>;
+  return <p className="muted ini-modo" role="status" data-modo="nuvem" data-sync={sync}>{sync === "salvando" ? "Salvando na nuvem…" : `Nuvem · ${o}`} {baixar}</p>;
 }
 export function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }) {
   const [bruto, setBruto] = useState<string | null>(null);
@@ -113,34 +115,31 @@ export function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }
 // ---------------------------------------------------------------- seletores de conteúdo canônico (sem bancos paralelos)
 export const modAtributo = (v: number) => Math.floor((v - 10) / 2);
 export function SeletorMonstro({ rotulo, onEscolher }: { rotulo: string; onEscolher: (m: Monstro) => void }) {
-  const [aberto, setAberto] = useState(false), [busca, setBusca] = useState("");
+  const [busca, setBusca] = useState("");
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: readonly Monstro[] }>({ status: "carregando" });
   const carregar = useCallback(() => { setDados({ status: "carregando" }); import("./catalogue/contratos").then(c => c.todosOsMonstros()).then(lista => setDados({ status: "pronto", lista }), () => setDados({ status: "erro" })); }, []);
-  useEffect(() => { if (aberto && dados.status === "carregando") carregar(); }, [aberto]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { carregar(); }, [carregar]);
   const achados = useMemo(() => {
     if (dados.status !== "pronto" || busca.trim().length < 2) return [];
     const q = sem(busca.trim());
     return dados.lista.filter(m => sem(m.nome).includes(q) || sem(m.en).includes(q)).slice(0, 8);
   }, [dados, busca]);
-  return <details className="ini-seletor" open={aberto} onToggle={e => setAberto((e.target as HTMLDetailsElement).open)}>
-    <summary>{rotulo}</summary>
-    {dados.status === "carregando" && aberto && <p className="muted" role="status">Carregando o Bestiário…</p>}
+  return <section className="ini-seletor" aria-label={rotulo}>
+    <strong>{rotulo}</strong>
+    {dados.status === "carregando" && <p className="muted" role="status">Carregando o Bestiário…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar o Bestiário." onRetry={carregar}/>}
     {dados.status === "pronto" && <>
-      <label>Buscar monstro<input type="search" value={busca} onChange={e => setBusca(e.target.value)} placeholder="Nome em português ou inglês"/></label>
-      {busca.trim().length >= 2 && achados.length === 0 && <p className="muted">Nenhum monstro encontrado.</p>}
-      <ul className="ini-achados">{achados.map(m => <li key={m.id}><button type="button" className="btn-secondary" onClick={() => onEscolher(m)} aria-label={`Adicionar ${m.nome} do Bestiário`}>
-        <strong>{m.nome}</strong> <small>ND {m.nd >= 1 ? m.nd : m.nd === 0.5 ? "1/2" : m.nd === 0.25 ? "1/4" : m.nd === 0.125 ? "1/8" : m.nd} · PV {m.pv} · CA {m.ca}</small></button></li>)}</ul>
+      <PesquisaCatalogo rotulo="Buscar monstro" valor={busca} onChange={setBusca} vazio={!achados.length} resultados={achados.map(m => <li key={m.id}><button type="button" className="btn-secondary" onClick={() => { onEscolher(m); setBusca(""); }} aria-label={`Adicionar ${m.nome} do Bestiário`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="monstro" tamanho={36}/><span><strong>{m.nome}</strong><small>ND {m.nd >= 1 ? m.nd : m.nd === 0.5 ? "1/2" : m.nd === 0.25 ? "1/4" : m.nd === 0.125 ? "1/8" : m.nd} · PV {m.pv} · CA {m.ca}</small></span></span></button></li>)}/> 
     </>}
-  </details>;
+  </section>;
 }
 export function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
   const fonte = useAventureiros(), fichas = useFichas();
-  const [aberto, setAberto] = useState(false), [pvTexto, setPvTexto] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
-  const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: { id: string; nome: string; classe: string }[] }>({ status: "carregando" });
+  const [busca, setBusca] = useState(""), [pvTexto, setPvTexto] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
+  const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: { id: string; nome: string; classe: string; retratoUrl?: string | null }[] }>({ status: "carregando" });
   const carregar = useCallback(() => { if (!fonte) return; setDados({ status: "carregando" }); fonte.listar(campaignId).then(r => setDados(r.ok ? { status: "pronto", lista: r.data } : { status: "erro" }), () => setDados({ status: "erro" })); }, [fonte, campaignId]);
-  useEffect(() => { if (aberto && dados.status === "carregando") carregar(); }, [aberto]);   // eslint-disable-line react-hooks/exhaustive-deps
-  if (!fonte) return null;
+  useEffect(() => { carregar(); }, [carregar]);
+  if (!fonte) return <p className="muted">Não foi possível acessar os personagens da campanha.</p>;
   /** Lê PV atuais e máximos da ficha (automático). Sem ficha legível, usa o PV máximo digitado, se houver, e avisa. */
   const escolher = async (p: { id: string; nome: string }) => {
     setAviso(null);
@@ -153,15 +152,15 @@ export function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: stri
     onEscolher(p, pvManual);
     setAviso(`${p.nome} foi adicionado, mas os PV não vieram da ficha: ${r.erro}${pvManual ? " Foi usado o PV máximo digitado." : " Informe o PV máximo abaixo e adicione de novo, ou ajuste no combate."}`);
   };
-  return <details className="ini-seletor" open={aberto} onToggle={e => setAberto((e.target as HTMLDetailsElement).open)}>
-    <summary>Adicionar personagem da campanha</summary>
-    {dados.status === "carregando" && aberto && <p className="muted" role="status">Carregando personagens…</p>}
+  return <section className="ini-seletor" aria-label="Adicionar personagem da campanha">
+    <strong>Adicionar personagem da campanha</strong>
+    {dados.status === "carregando" && <p className="muted" role="status">Carregando personagens…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar os personagens da campanha." onRetry={carregar}/>}
     {dados.status === "pronto" && (dados.lista.length === 0 ? <p className="muted">Esta campanha ainda não tem personagens vinculados.</p>
       : <><p className="muted">Os PV atuais e máximos vêm da ficha do personagem.</p>
         <label>PV máximo manual (usado só se a ficha não puder ser lida)<input inputMode="numeric" value={pvTexto} onChange={e => setPvTexto(e.target.value)}/></label>
         {aviso && <Aviso erro t={aviso}/>}
-        <ul className="ini-achados">{dados.lista.map(p => <li key={p.id}><button type="button" className="btn-secondary" disabled={lendo !== null} onClick={() => void escolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><strong>{p.nome}</strong> <small>{p.classe}</small>{lendo === p.id && <small role="status"> lendo a ficha…</small>}</button></li>)}</ul></>)}
-  </details>;
+        <PesquisaCatalogo rotulo="Buscar personagem" valor={busca} onChange={setBusca} minimo={0} vazio={!dados.lista.some(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca)))} resultados={dados.lista.filter(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca))).map(p => <li key={p.id}><button type="button" className="btn-secondary" disabled={lendo !== null} onClick={() => void escolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="personagem" src={p.retratoUrl} tamanho={36}/><span><strong>{p.nome}</strong><small>{p.classe}</small>{lendo === p.id && <small role="status">lendo a ficha…</small>}</span></span></button></li>)}/></>)}
+  </section>;
 }
 

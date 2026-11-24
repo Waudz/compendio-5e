@@ -53,12 +53,12 @@ export function LootEncontro({ enc, salvar }: { enc: Encontro; salvar: (e: Encon
   };
   return <section className="enc-loot" aria-label="Loot do encontro">
     <h3>Loot e recompensas</h3>
-    <details className="enc-bloco">
-      <summary>Recompensas gerais <small className="muted">({recompensas.length})</small></summary>
+    <section className="enc-bloco">
+      <h4>Recompensas gerais <small className="muted">({recompensas.length})</small></h4>
       <LootEditor rotulo="recompensas gerais" itens={recompensas} onChange={i => salvar({ ...enc, recompensas: i })}/>
-    </details>
-    <details className="enc-bloco">
-      <summary>Recipientes <small className="muted">({recipientes.length})</small></summary>
+    </section>
+    <section className="enc-bloco">
+      <h4>Recipientes <small className="muted">({recipientes.length})</small></h4>
       <form className="ini-form" aria-label="Novo recipiente" onSubmit={novoRecipiente}>
         <label>Nome do recipiente<input value={nome} maxLength={60} onChange={e => setNome(e.target.value)} required placeholder="Baú, armário, saco…"/></label>
         <label>Descrição (opcional)<input value={desc} maxLength={300} onChange={e => setDesc(e.target.value)}/></label>
@@ -70,7 +70,7 @@ export function LootEncontro({ enc, salvar }: { enc: Encontro; salvar: (e: Encon
         <LootEditor rotulo={r.nome} itens={r.itens} onChange={i => mudarRec(r.id, x => ({ ...x, itens: i }))}/>
         <button type="button" className="btn-secondary" onClick={() => { if (window.confirm(`Remover o recipiente "${r.nome}" e a configuração dos itens dele? O que já foi coletado ou distribuído continua registrado.`)) salvar({ ...enc, recipientes: recipientes.filter(x => x.id !== r.id) }); }} aria-label={`Remover recipiente ${r.nome}`}><Trash2 size={14} aria-hidden="true"/> Remover recipiente</button>
       </details>)}
-    </details>
+    </section>
     <Andamento enc={enc} salvar={salvar}/>
   </section>;
 }

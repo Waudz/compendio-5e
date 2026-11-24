@@ -39,8 +39,8 @@ describe("Iniciativa na nuvem", () => {
   it("mostra o modo 'nuvem', salva cada alteração no servidor e retoma o combate ao reabrir (outro aparelho)", async () => {
     const { combate, unmount } = montar(<IniciativaPanel/>);
     await screen.findByText("Nenhum combatente ainda"); expect(document.querySelector("[data-modo='nuvem']")).toBeTruthy();
-    preencher("Nome", "Goblin"); preencher("Iniciativa", "12"); preencher("PV (opcional)", "7"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
-    preencher("Nome", "Lydia"); preencher("Iniciativa", "18"); preencher("Lado", "aliado"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    preencher("Nome", "Goblin"); preencher("Iniciativa", "12"); preencher("PV (opcional)", "7"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
+    preencher("Nome", "Lydia"); preencher("Iniciativa", "18"); preencher("Lado", "aliado"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     await waitFor(() => expect(document.querySelector("[data-sync='salvo']")).toBeTruthy());
     expect(combate.s.linhas.get("c1")?.valor.combatentes.map(c => c.nome)).toEqual(["Lydia", "Goblin"]);
     fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ })); fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ }));
@@ -56,15 +56,15 @@ describe("Iniciativa na nuvem", () => {
     localStorage.setItem("compendio5e:iniciativa:u1:c1", antigo);
     montar(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
     expect(screen.queryByText("Antigo")).toBeNull(); expect(screen.getByText(/não foi importado nem apagado/)).toBeTruthy(); expect(screen.getByRole("button", { name: /Baixar backup/ })).toBeTruthy();
-    preencher("Nome", "Novo"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    preencher("Nome", "Novo"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     await waitFor(() => expect(document.querySelector("[data-sync='salvo']")).toBeTruthy());
     expect(localStorage.getItem("compendio5e:iniciativa:u1:c1")).toBe(antigo);
   });
   it("queda de conexão: mantém na tela, avisa e grava sozinho quando volta", async () => {
     const combate = servidor<EstadoCombate>(vazioCombate); combate.s.falhas = 1;
     montar(<IniciativaPanel/>, combate); await screen.findByText("Nenhum combatente ainda");
-    preencher("Nome", "Goblin"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
-    expect(await screen.findByText(/Sem conexão com o servidor/)).toBeTruthy(); expect(screen.getByLabelText("Ordem de iniciativa").textContent).toContain("Goblin");
+    preencher("Nome", "Goblin"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
+    expect(await screen.findByText(/Sem conexão com o servidor/)).toBeTruthy(); expect(screen.getByRole("group", { name: "Combatentes" }).textContent).toContain("Goblin");
     fireEvent.click(screen.getByRole("button", { name: "Tentar agora" }));
     await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes[0].nome).toBe("Goblin"));
   });
@@ -72,18 +72,18 @@ describe("Iniciativa na nuvem", () => {
     const combate = servidor<EstadoCombate>(vazioCombate);
     montar(<IniciativaPanel/>, combate); await screen.findByText("Nenhum combatente ainda");
     combate.s.linhas.set("c1", { valor: { combatentes: [{ id: "o", nome: "Do outro aparelho", iniciativa: 1, lado: "inimigo" }], turno: "o", rodada: 1 }, versao: 1 });
-    preencher("Nome", "Meu"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    preencher("Nome", "Meu"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/mudou em outra sessão/);
     expect(combate.s.linhas.get("c1")?.valor.combatentes.map(c => c.nome)).toEqual(["Do outro aparelho"]);
     fireEvent.click(screen.getByRole("button", { name: "Recarregar do servidor" }));
-    expect(await screen.findByText("Do outro aparelho")).toBeTruthy(); expect(screen.queryByText("Meu")).toBeNull();
+    expect(await screen.findByText("Do outro aparelho", { selector: "strong" })).toBeTruthy(); expect(screen.queryByText("Meu")).toBeNull();
   });
   it("finalizar apaga o combate no servidor mas preserva os encontros; novo combate começa limpo", async () => {
     const combate = servidor<EstadoCombate>(vazioCombate), encontros = servidor<Encontro[]>([]);
     encontros.s.linhas.set("c1", { valor: [{ id: "e1", nome: "Emboscada", participantes: [{ id: "p", nome: "Goblin", quantidade: 2 }] }], versao: 1 });
     vi.spyOn(window, "confirm").mockReturnValue(true);
     montar(<IniciativaPanel/>, combate, encontros); await screen.findByText("Nenhum combatente ainda");
-    preencher("Nome", "Goblin"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ })); await waitFor(() => expect(combate.s.linhas.has("c1")).toBe(true));
+    preencher("Nome", "Goblin"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" })); await waitFor(() => expect(combate.s.linhas.has("c1")).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     await waitFor(() => expect(combate.s.finalizados).toBe(1)); expect(combate.s.linhas.has("c1")).toBe(false);
     expect(await screen.findByText("Nenhum combatente ainda")).toBeTruthy(); expect(encontros.s.linhas.get("c1")?.valor).toHaveLength(1);
@@ -91,8 +91,8 @@ describe("Iniciativa na nuvem", () => {
   it("condições, rolar iniciativa e turno anterior", async () => {
     const combate = servidor<EstadoCombate>(vazioCombate);
     montar(<IniciativaPanel/>, combate); await screen.findByText("Nenhum combatente ainda");
-    preencher("Nome", "Orc"); preencher("Iniciativa", "10"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
-    preencher("Nome", "Lydia"); preencher("Iniciativa", "15"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    preencher("Nome", "Orc"); preencher("Iniciativa", "10"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
+    preencher("Nome", "Lydia"); preencher("Iniciativa", "15"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     fireEvent.change(screen.getByLabelText("Adicionar condição a Orc"), { target: { value: "Caído" } });
     expect(await screen.findByRole("button", { name: "Remover condição Caído de Orc" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ })); fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ })); expect(screen.getByText("Rodada 2")).toBeTruthy();
@@ -108,7 +108,7 @@ describe("Iniciativa na nuvem", () => {
     await screen.findByText("Nenhum combatente ainda");
     fireEvent.click(screen.getByText(/Adicionar do Bestiário/)); fireEvent.change(await screen.findByLabelText("Buscar monstro"), { target: { value: "goblin" } });
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Goblin do Bestiário" }));
-    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
+    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.focus(await screen.findByLabelText("Buscar personagem")); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
     await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes).toHaveLength(2));
     const cs = combate.s.linhas.get("c1")!.valor.combatentes;
     expect(cs.find(c => c.ref?.tipo === "monstro")).toMatchObject({ nome: "Goblin", ref: { tipo: "monstro", id: "goblin" }, pvMax: 7, lado: "inimigo" });
@@ -143,7 +143,7 @@ describe("Encontros na nuvem", () => {
     preencher("Nome do encontro", "Emboscada"); fireEvent.click(screen.getByRole("button", { name: /Criar encontro/ }));
     const cartao = await screen.findByRole("region", { name: "Página do encontro Emboscada" });
     fireEvent.change(within(cartao).getByLabelText("Nome"), { target: { value: "Goblin" } }); fireEvent.change(within(cartao).getByLabelText("Quantidade"), { target: { value: "2" } });
-    fireEvent.click(within(cartao).getByRole("button", { name: /Adicionar/ }));
+    fireEvent.click(within(cartao).getByRole("button", { name: "Adicionar" }));
     await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].participantes[0]).toMatchObject({ nome: "Goblin", quantidade: 2 }));
     fireEvent.click(screen.getByRole("button", { name: /Voltar à lista/ }));
     fireEvent.click(within(await screen.findByRole("region", { name: "Encontro Emboscada" })).getByRole("button", { name: "Duplicar encontro Emboscada" }));
@@ -190,7 +190,8 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
   };
   const adicionarLydia = async (pv = "12") => {
     await screen.findByText("Nenhum combatente ainda");
-    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.change(await screen.findByLabelText(/PV máximo manual/), { target: { value: pv } });
+    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.focus(await screen.findByLabelText("Buscar personagem")); fireEvent.change(await screen.findByLabelText(/PV máximo manual/), { target: { value: pv } });
+    fireEvent.focus(await screen.findByLabelText("Buscar personagem"));
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
   };
   it("dano, cura e condição do personagem chegam à ficha; só PV, máximo e condições são enviados", async () => {
@@ -204,7 +205,7 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
   });
   it("monstros e combatentes genéricos NÃO geram status de ficha nem alteram o Bestiário", async () => {
     const st = statusFalso(); montarComStatus(st); await screen.findByText("Nenhum combatente ainda");
-    preencher("Nome", "Orc"); preencher("PV (opcional)", "15"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    preencher("Nome", "Orc"); preencher("PV (opcional)", "15"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     fireEvent.click(screen.getByText(/Adicionar do Bestiário/)); fireEvent.change(await screen.findByLabelText("Buscar monstro"), { target: { value: "goblin" } }); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Goblin do Bestiário" }));
     fireEvent.change(screen.getByLabelText("Quantidade de dano ou cura de Goblin"), { target: { value: "3" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Goblin" }));
     await waitFor(() => expect(screen.getByLabelText("PV de Goblin").textContent).toBe("PV 4/7"));

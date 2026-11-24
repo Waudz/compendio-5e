@@ -19,9 +19,9 @@ describe("tela Iniciativa", () => {
   });
   it("adiciona combatentes, ordena, avança turno/rodada, aplica dano e persiste ao trocar de aba (remontar)", async () => {
     const { unmount } = render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
-    preencher("Nome", "Goblin"); preencher("Iniciativa", "12"); preencher("PV (opcional)", "7"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
-    preencher("Nome", "Lydia"); preencher("Iniciativa", "18"); preencher("Lado", "aliado"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
-    const lista = screen.getByRole("list", { name: "Ordem de iniciativa" }); const itens = within(lista).getAllByRole("listitem");
+    preencher("Nome", "Goblin"); preencher("Iniciativa", "12"); preencher("PV (opcional)", "7"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
+    preencher("Nome", "Lydia"); preencher("Iniciativa", "18"); preencher("Lado", "aliado"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
+    const lista = screen.getByRole("group", { name: "Combatentes" }); const itens = within(lista).getAllByRole("listitem");
     expect(itens[0].textContent).toContain("Lydia"); expect(itens[0].getAttribute("aria-current")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ })); fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ }));
     expect(screen.getByText("Rodada 2")).toBeTruthy();
@@ -53,11 +53,11 @@ describe("tela Encontros", () => {
     preencher("Nome do encontro", "Emboscada"); fireEvent.click(screen.getByRole("button", { name: /Criar encontro/ }));
     const cartao = await screen.findByRole("region", { name: "Página do encontro Emboscada" });
     fireEvent.change(within(cartao).getByLabelText("Nome"), { target: { value: "Goblin" } }); fireEvent.change(within(cartao).getByLabelText("Quantidade"), { target: { value: "2" } });
-    fireEvent.change(within(cartao).getByLabelText("PV de cada (opcional)"), { target: { value: "7" } }); fireEvent.click(within(cartao).getByRole("button", { name: /Adicionar/ }));
+    fireEvent.change(within(cartao).getByLabelText("PV de cada (opcional)"), { target: { value: "7" } }); fireEvent.click(within(cartao).getByRole("button", { name: "Adicionar" }));
     expect(within(cartao).getByText(/Avulsa · PV 7/)).toBeTruthy(); expect((within(cartao).getByLabelText("Quantidade de Goblin em Emboscada") as HTMLInputElement).value).toBe("2");
     fireEvent.click(screen.getByRole("button", { name: /Voltar à lista/ }));
     fireEvent.click(within(screen.getByRole("region", { name: "Encontro Emboscada" })).getByRole("button", { name: /Enviar para a Iniciativa/ })); expect(await screen.findByText(/foi enviado para a Iniciativa/)).toBeTruthy();
-    cleanup(); render(<IniciativaPanel/>); await waitFor(() => expect(screen.getByText("Goblin 1")).toBeTruthy()); expect(screen.getByText("Goblin 2")).toBeTruthy();
+    cleanup(); render(<IniciativaPanel/>); await waitFor(() => expect(screen.getByText("Goblin 1", { selector: "strong" })).toBeTruthy()); expect(screen.getByText("Goblin 2", { selector: "strong" })).toBeTruthy();
   });
   it("encontro persiste ao remontar e armazenamento corrompido mostra erro com nova tentativa", async () => {
     localStorage.setItem("compendio5e:encontros:u1:c1", JSON.stringify([{ id: "e1", nome: "Ruínas", participantes: [] }]));
@@ -95,8 +95,8 @@ describe("isolamento entre campanhas", () => {
     const { rerender } = render(<IniciativaPanel/>);
     await screen.findByText("Nenhum combatente ainda");
     preencher("Nome", "Segredo da campanha A");
-    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
-    expect(screen.getByText("Segredo da campanha A")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
+    expect(screen.getByText("Segredo da campanha A", { selector: "strong" })).toBeTruthy();
     escopo.active = { role: "mestre", campaign: { id: "c2", name: "Outra mesa" } };
     rerender(<IniciativaPanel/>);
     expect(screen.queryByText("Segredo da campanha A")).toBeNull();
@@ -110,8 +110,8 @@ describe("falha de gravação sem perda da edição em tela", () => {
     render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
     const gravacao = vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new DOMException("Quota", "QuotaExceededError"); });
     preencher("Nome", "Goblin preservado");
-    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
-    expect(screen.getByText("Goblin preservado")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
+    expect(screen.getByText("Goblin preservado", { selector: "strong" })).toBeTruthy();
     const alerta = screen.getByRole("alert");
     expect(alerta.textContent).toContain("Não foi possível salvar o combate");
     expect(localStorage.getItem("compendio5e:iniciativa:u1:c1")).toBeNull();
@@ -143,7 +143,7 @@ describe("proteção de navegação com gravação pendente", () => {
     await screen.findByText("Nenhum combatente ainda");
     vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new Error("quota"); });
     preencher("Nome", "Combate pendente");
-    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     expect(register).toHaveBeenLastCalledWith("secao:iniciativa", expect.objectContaining({ dirty: true, save: expect.any(Function) }));
     fireEvent.click(within(screen.getByRole("alert")).getByRole("button", { name: "Tentar de novo" }));
     await waitFor(() => expect(register).toHaveBeenLastCalledWith("secao:iniciativa", expect.objectContaining({ dirty: false })));
@@ -155,17 +155,17 @@ describe("remoção do último turno na interface", () => {
   it("passa ao primeiro da rodada seguinte e persiste sem repetir turno anterior", async () => {
     const { unmount } = render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
     preencher("Nome", "Primeiro"); preencher("Iniciativa", "20");
-    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     preencher("Nome", "Último"); preencher("Iniciativa", "10");
-    fireEvent.click(screen.getByRole("button", { name: /Adicionar/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
     fireEvent.click(screen.getByRole("button", { name: "Próximo turno" }));
     fireEvent.click(screen.getByRole("button", { name: "Remover Último" }));
     expect(screen.getByText("Rodada 2")).toBeTruthy();
-    const linha = screen.getByText("Primeiro").closest("li")!;
+    const linha = screen.getByText("Primeiro", { selector: "strong" }).closest("li")!;
     expect(linha.getAttribute("aria-current")).toBe("true");
     unmount(); render(<IniciativaPanel/>);
     expect(await screen.findByText("Rodada 2")).toBeTruthy();
     expect(screen.queryByText("Último")).toBeNull();
-    expect(screen.getByText("Primeiro").closest("li")!.getAttribute("aria-current")).toBe("true");
+    expect(screen.getByText("Primeiro", { selector: "strong" }).closest("li")!.getAttribute("aria-current")).toBe("true");
   });
 });

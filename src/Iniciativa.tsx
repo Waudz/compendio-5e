@@ -1,8 +1,8 @@
-import { ChevronLeft, ChevronRight, Dices, LayoutGrid, List, Minus, Plus, RotateCcw, Swords, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dices, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Aviso } from "./Diario";
 import { useUnsavedGuard } from "./unsaved";
-import { adicionar, alterarPv, alternarCondicao, chaveCombate, combateVazio, definirIniciativa, enviarParaCombate, lerCombate, novoId, ordenar, proximoTurno, reiniciarRodadas, remover, turnoAnterior, type EstadoCombate, type Lado } from "./combate";
+import { adicionar, nomeCombatenteDisponivel, alterarPv, alternarCondicao, chaveCombate, combateVazio, definirIniciativa, enviarParaCombate, lerCombate, novoId, ordenar, proximoTurno, reiniciarRodadas, remover, turnoAnterior, type EstadoCombate, type Lado } from "./combate";
 import { useNuvem, type ApisNuvem } from "./nuvem";
 import { gravarPvFicha } from "./pvFicha";
 import { useFichas } from "./RegistrosContext";
@@ -11,7 +11,10 @@ import { useLinhaRemota, type SyncRemoto } from "./useLinhaRemota";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { rolarD20, textoRolagem, type Rolagem } from "./combate";
 import { useLojaEncontros } from "./Encontros";
-import { RetratoQuadrado, useRetratosPersonagens } from "./RetratoCombate";
+import { useRetratosPersonagens } from "./RetratoCombate";
+import { FaixaTurnos } from "./FaixaTurnos";
+import { ControleNumerico } from "./ControleNumerico";
+import { CriaturaIdentidade } from "./CriaturaIdentidade";
 import { SeletorEncontro } from "./SeletorEncontro";
 import { marcarEnviado, sincronizarComCombate } from "./estadoEncontro";
 import { EVENTO, type Estado, useArmazenado, rotuloLado, CONDICOES_5E, numero, useEscopo, SemCampanha, AcessoRestrito, ErroArmazenamento, ModoArmazenamento, BackupLocal, modAtributo, SeletorMonstro, SeletorPersonagem, type VisualizacaoCombate, chaveVisualizacaoCombate, lerVisualizacaoCombate } from "./CombateCompartilhado";
@@ -64,13 +67,14 @@ export function IniciativaPanel() {
   }, [estado, statusApi, loja.nuvem]);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   const [visualizacao, setVisualizacao] = useState<VisualizacaoCombate>("cartoes"), [erroFinalizar, setErroFinalizar] = useState<string | null>(null);
+  const [separarLados, setSepararLados] = useState(true);
   const [mods, setMods] = useState<Record<string, number>>({});   // bônus de iniciativa por combatente (monstros: Destreza do catálogo)
   const [rolagens, setRolagens] = useState<Record<string, Rolagem>>({});   // última rolagem de cada um (só para mostrar; o resultado já está na iniciativa)
   const retratos = useRetratosPersonagens(campaignId);
   const lojaEnc = useLojaEncontros(userId, campaignId, podeGerenciar, nuvem), encontros = lojaEnc.estado;
   useEffect(() => {
-    try { setVisualizacao(lerVisualizacaoCombate(localStorage.getItem(chaveVisualizacaoCombate(userId ?? "")))); }
-    catch { setVisualizacao("cartoes"); }
+    try { setVisualizacao(lerVisualizacaoCombate(localStorage.getItem(chaveVisualizacaoCombate(userId ?? "")))); setSepararLados(localStorage.getItem(`compendio5e:lados-combate:${userId ?? ""}`) !== "unificados"); }
+    catch { setVisualizacao("cartoes"); setSepararLados(true); }
   }, [userId]);
   const alterarVisualizacao = (proxima: VisualizacaoCombate) => {
     setVisualizacao(proxima);
@@ -87,13 +91,24 @@ export function IniciativaPanel() {
   };
   const adicionarMonstro = (m: Monstro) => {
     const id = novoId(), bonus = modAtributo(m.atributos.dex);
-    const existentes = (combate?.combatentes ?? []).filter(c => c.ref?.tipo === "monstro" && c.ref.id === m.id).length;
     const r = rolarD20(bonus);
     setMods(x => ({ ...x, [id]: bonus })); setRolagens(x => ({ ...x, [id]: r }));
-    aplicar(e => definirIniciativa(adicionar(e, { id, nome: existentes || e.combatentes.some(c => c.nome === m.nome) ? `${m.nome} ${existentes + 1}` : m.nome, iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ref: { tipo: "monstro", id: m.id } }), id, r.total));
+    aplicar(e => definirIniciativa(adicionar(e, { id, nome: nomeCombatenteDisponivel(e, m.nome), iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } }), id, r.total));
   };
   const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } }));
   const ordem = combate ? ordenar(combate.combatentes) : [];
+  const removerCombatente: Aplicar = fn => {
+    if (!combate) return false;
+    const proximo = fn(combate);
+    const saiu = combate.combatentes.filter(c => !proximo.combatentes.some(x => x.id === c.id) && c.encontro);
+    if (saiu.length && encontros.status !== "pronto") return false;
+    const ok = aplicar(fn);
+    if (ok && saiu.length) lojaEnc.aplicar(l => l.map(enc => {
+      if (!saiu.some(c => c.encontro?.encontroId === enc.id)) return enc;
+      return sincronizarComCombate(sincronizarComCombate(enc, combate), proximo);
+    }));
+    return ok;
+  };
   const finalizar = async () => {
     if (!window.confirm("Finalizar e descartar este combate? Os PV finais dos personagens serão gravados nas fichas. Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) return;
     // PV finais dos personagens vão para a ficha (só currentHp, sobre a ficha mais recente e com controle de revisão). Se algum falhar, o mestre decide: nada se perde em silêncio.
@@ -123,6 +138,15 @@ export function IniciativaPanel() {
     {combate && <>
       <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()} dados={combate} arquivo="combate-nuvem"/>
       {loja.nuvem && <BackupLocal chave={chaveCombate(userId, campaignId)} rotulo="combate"/>}
+      <div className="ini-turnos-topo"><FaixaTurnos ordem={ordem} turno={combate.turno} retratos={retratos}/>
+      <div className="ini-barra">
+        <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
+        <button className="btn-secondary" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
+        <button className="btn-secondary" title="Próximo turno" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
+        <button className="btn-secondary" title="Reiniciar rodadas" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
+        <button className="btn-secondary" title="Finalizar combate" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
+      </div>
+      </div>
       <form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
         <label>Nome<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={60}/></label>
         <label>Iniciativa<input inputMode="decimal" value={ini} onChange={e => setIni(e.target.value)} placeholder="0"/></label>
@@ -131,34 +155,28 @@ export function IniciativaPanel() {
         <button type="submit" className="btn-secondary"><Plus size={15} aria-hidden="true"/> Adicionar</button>
       </form>
       <SeletorMonstro rotulo="Adicionar do Bestiário (rola a iniciativa)" onEscolher={adicionarMonstro}/>
-      <SeletorPersonagem campaignId={campaignId} onEscolher={adicionarPersonagem}/>
-      <SeletorEncontro encontros={encontros.status === "pronto" ? encontros.valor : null} onEnviar={enc => { aplicar(e => enviarParaCombate(e, enc)); lojaEnc.aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x))); }}/>
-      <div className="ini-barra">
-        <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
-        <button className="btn-secondary" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
-        <button className="btn-secondary" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
-        <button className="btn-secondary" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
-        <button className="btn-secondary" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
-      </div>
+      <SeletorPersonagem key={campaignId} campaignId={campaignId} onEscolher={adicionarPersonagem}/>
+      <SeletorEncontro encontros={encontros.status === "pronto" ? encontros.valor : null} onEnviar={enc => { if (!aplicar(e => enviarParaCombate(e, enc))) return; lojaEnc.aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x))); }}/>
       <div className="ini-visualizacao" role="group" aria-label="Visualização dos combatentes">
         <button type="button" className={visualizacao === "cartoes" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "cartoes"} onClick={() => alterarVisualizacao("cartoes")}><LayoutGrid size={15} aria-hidden="true"/> Cartões</button>
         <button type="button" className={visualizacao === "lista" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "lista"} onClick={() => alterarVisualizacao("lista")}><List size={15} aria-hidden="true"/> Lista compacta</button>
+        <button type="button" className="btn-secondary" aria-pressed={separarLados} onClick={() => { const v = !separarLados; setSepararLados(v); try { localStorage.setItem(`compendio5e:lados-combate:${userId}`, v ? "separados" : "unificados"); } catch { /* preferência em memória */ } }}>{separarLados ? "Lados separados" : "Lados unificados"}</button>
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
-        : <ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label="Ordem de iniciativa">{ordem.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol>}
+        : <div role="group" aria-label="Combatentes" className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: combate.combatentes.filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: combate.combatentes }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={removerCombatente} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
     </>}
   </div>;
 }
 type Aplicar = (fn: (e: EstadoCombate) => EstadoCombate) => boolean;
-function Linha({ c, atual, aplicar, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
-  const [valor, setValor] = useState("");
-  const acao = (sinal: 1 | -1) => { const n = numero(valor); if (n && n > 0) { aplicar(e => alterarPv(e, c.id, sinal * n)); setValor(""); } };
+function Linha({ c, atual, aplicar, aoRemover, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; aoRemover: Aplicar; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
+  const [valor, setValor] = useState("1");
+  const acao = (sinal: 1 | -1) => { const n = numero(valor); if (n && n > 0) { if (aplicar(e => alterarPv(e, c.id, sinal * n))) setValor("1"); } };
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
   const pct = c.pvMax ? Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100)) : 0;
-  return <li className={`ini-item lado-${c.lado}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
-    <RetratoQuadrado src={retrato} tipo={c.ref?.tipo ?? "avulso"} tamanho={44}/>
-    <div className="ini-nome"><strong>{c.nome}</strong> <small>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}</small></div>
+  return <li className={`ini-item lado-${c.lado}${c.pvMax && c.pv === 0 ? " derrotado" : ""}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
+    <CriaturaIdentidade nome={c.nome} tipo={c.ref?.tipo ?? "avulso"} retrato={retrato} referencia={c.ref} detalhes={<>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}{c.ca ? ` · CA ${c.ca}` : ""}</>}/>
+    {c.notas && <small className="ini-notas muted">{c.notas}</small>}
     <div className="ini-ini">
       <label className="ini-valor">Iniciativa<input aria-label={`Iniciativa de ${c.nome}`} inputMode="decimal" defaultValue={c.iniciativa} key={c.iniciativa}
         onBlur={e => { const n = numero(e.target.value); if (n !== undefined && n !== c.iniciativa) aplicar(x => definirIniciativa(x, c.id, n)); }}/></label>
@@ -166,16 +184,13 @@ function Linha({ c, atual, aplicar, bonus, retrato, rolagem, aoRolar }: { c: Est
       {rolagem && <span className="ini-rolagem" role="status" aria-label={`Resultado da rolagem de ${c.nome}`}>{textoRolagem(rolagem)}</span>}
     </div>
     {c.pvMax ? <div className="ini-pv"><span className="ini-pv-texto" aria-label={`PV de ${c.nome}`}>PV {c.pv}/{c.pvMax}{c.pv === 0 ? " · caído" : ""}</span>
-      <div className="ini-pv-controles">
-        <button className="btn-secondary ini-icone" onClick={() => acao(-1)} aria-label={`Causar dano a ${c.nome}`} title="Dano"><Minus size={14} aria-hidden="true"/></button>
-        <input aria-label={`Quantidade de dano ou cura de ${c.nome}`} inputMode="numeric" value={valor} onChange={e => setValor(e.target.value)} placeholder="valor"/>
-        <button className="btn-secondary ini-icone" onClick={() => acao(1)} aria-label={`Curar ${c.nome}`} title="Cura"><Plus size={14} aria-hidden="true"/></button></div>
+      <ControleNumerico campo={{ "aria-label": `Quantidade de dano ou cura de ${c.nome}`, value: valor, onChange: e => setValor(e.target.value), placeholder: "valor" }} menos={{ rotulo: `Causar dano a ${c.nome}`, titulo: "Dano", acao: () => acao(-1) }} mais={{ rotulo: `Curar ${c.nome}`, titulo: "Cura", acao: () => acao(1) }}/>
       <div className="ini-pv-trilho" aria-hidden="true"><div className="ini-pv-preenchimento" style={{ width: `${pct}%` }} data-baixo={pct <= 25 ? "true" : undefined}/></div></div> : <span className="muted ini-pv">Sem PV</span>}
     <div className="ini-condicoes">
       {(c.condicoes ?? []).map(k => <button key={k} className="ini-chip" onClick={() => aplicar(e => alternarCondicao(e, c.id, k))} aria-label={`Remover condição ${k} de ${c.nome}`}>{k} ×</button>)}
       <select aria-label={`Adicionar condição a ${c.nome}`} value="" onChange={e => { if (e.target.value) aplicar(x => alternarCondicao(x, c.id, e.target.value)); }}>
         <option value="">+ condição</option>{CONDICOES_5E.filter(k => !(c.condicoes ?? []).includes(k)).map(k => <option key={k} value={k}>{k}</option>)}</select>
     </div>
-    <button className="btn-secondary ini-icone ini-remover" onClick={() => aplicar(e => remover(e, c.id))} aria-label={`Remover ${c.nome}`}><Trash2 size={15} aria-hidden="true"/></button>
+    <button className="btn-secondary ini-icone ini-remover" onClick={() => aoRemover(e => remover(e, c.id))} aria-label={`Remover ${c.nome}`}><Trash2 size={15} aria-hidden="true"/></button>
   </li>;
 }
