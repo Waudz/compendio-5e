@@ -149,6 +149,7 @@ describe("campanha (detalhes, mestre x jogador)", () => {
     expect(screen.queryByRole("button", { name: "Tornar mestre" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Tornar jogador" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Sair da campanha" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Editar informações" }));
     fireEvent.click(await screen.findByRole("button", { name: "Criar convite" }));
     expect(await screen.findByText(/convite=NEWCODE12345/)).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "Revogar" })[0]);
@@ -181,7 +182,7 @@ describe("campanha (detalhes, mestre x jogador)", () => {
     mount(api); await openCampaign("Festival da Lua");
     fireEvent.click(await screen.findByRole("button", { name: "Excluir campanha" }));
     expect(api.remove).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Cancelar" })); expect(api.remove).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancelar" })); expect(api.remove).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Excluir campanha" }));
     fireEvent.click(screen.getByRole("button", { name: "Excluir definitivamente" }));
     await waitFor(() => expect(api.remove).toHaveBeenCalledWith("c1"));
