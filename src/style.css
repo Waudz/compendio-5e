@@ -889,3 +889,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .iniciativa .ini-resultados-unicos{max-height:min(260px,40vh);overflow-y:auto}
 .ini-resultados-unicos .ini-seletor{padding:3px 6px}
 @container ini (max-width:900px){.iniciativa .ini-turnos-topo .ini-controles-turno{gap:8px}.ini-controles-turno .ini-rodada{font-size:14px}}
+
+/* Faixa de turnos: retratos maiores no painel amplo, sem penalizar painéis estreitos. */
+@container ini (min-width: 760px){
+ .faixa-turnos{height:132px;padding:6px 0}
+ .faixa-trilha .faixa-personagem{font-size:14px;gap:3px}
+ .faixa-trilha .faixa-personagem .retrato-q{width:80px!important;height:80px!important}
+ .faixa-trilha .faixa-personagem.ativo{scale:1.2}
+ .faixa-trilha .faixa-personagem small{font-size:12px}
+}
