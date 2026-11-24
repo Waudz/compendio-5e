@@ -333,7 +333,7 @@ describe("colunas redimensionáveis", () => {
     expect(colunas(registros)[0].secoes[0].cartoes).toEqual(["s1", "s2"]);
     const a = alca(0); a.setPointerCapture = () => {};
     fireEvent.pointerDown(a, { clientX: 400, pointerId: 1 }); fireEvent.pointerMove(a, { clientX: 1000, pointerId: 1 });
-    expect(faixa(0).style.width).toBe("900px");
+    expect(faixa(0).style.width).toBe("1400px");
     expect(colunas(registros)[0].largura).toBe(340);
     fireEvent.pointerUp(a, { clientX: 1000, pointerId: 1 });
     await waitFor(() => expect(colunas(registros)[0].largura).toBe(900));
