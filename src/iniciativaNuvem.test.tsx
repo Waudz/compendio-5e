@@ -58,7 +58,7 @@ describe("Iniciativa na nuvem", () => {
     const { combate } = montar(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
     expect(screen.queryByText("Antigo")).toBeNull(); expect(screen.getByText(/não foi importado nem apagado/)).toBeTruthy(); expect(screen.getByRole("button", { name: /Baixar backup/ })).toBeTruthy();
     preencher("Nome", "Novo"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
-    await waitFor(() => expect(document.querySelector("[data-sync='salvo']")).toBeTruthy());
+    await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes.map(c => c.nome)).toEqual(["Novo"]));
     expect(localStorage.getItem("compendio5e:iniciativa:u1:c1")).toBe(antigo);
   });
   it("queda de conexão: mantém na tela, avisa e grava sozinho quando volta", async () => {
