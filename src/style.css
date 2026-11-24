@@ -697,3 +697,14 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 @media(max-width:900px){.iniciativa .ini-lista-compacta .ini-item{grid-template-columns:minmax(0,1fr) auto}.iniciativa .ini-lista-compacta .ini-pv{grid-column:1 / -1}}
 
 .aba-mais::before{content:"EF"}.aba-mais[data-n]:not([data-n=""])::after{content:attr(data-n);font-size:11px;margin-left:2px}
+
+/* Início Alpha: largura do grupo, capa imersiva e cartões responsivos. */
+.home{width:100%;max-width:none;min-width:0;container-type:inline-size;gap:18px}
+.home-cover{position:relative;isolation:isolate;border:0;border-radius:10px 10px 0 0;aspect-ratio:auto;height:clamp(180px,30cqw,380px);overflow:hidden}
+.home-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,var(--bg) 100%);pointer-events:none}
+.home-cover .home-name{position:absolute;z-index:1;bottom:16px;left:20px;right:20px;margin:0;color:var(--text);overflow-wrap:anywhere;text-shadow:0 2px 12px #0009}
+.home-edit{position:absolute;z-index:2;top:12px;right:12px;display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--text);cursor:pointer}
+.home-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:24px;align-items:start}
+.home-columns>*{min-width:0}.home-char{padding:12px}.home-char img,.home-portrait{width:56px;height:56px}
+.home-shortcuts{margin:0}.home-shortcuts button{min-height:40px;padding:8px 12px}
+@container (max-width:720px){.home-columns{grid-template-columns:minmax(0,1fr)}.home-party{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}}
