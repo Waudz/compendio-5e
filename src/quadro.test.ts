@@ -1,6 +1,6 @@
 // Quadro de Planejamento: colunas -> seções -> cartões (funções puras).
 import { describe, expect, it } from "vitest";
-import { LARGURA_MAX, LARGURA_MIN, adicionarCartao, alternarTituloGrande, colunaDaSecao, excluirSecao, excluirSecoes, lerQuadro, moverCartao, novaColuna, novaSecaoDepois, proximoNomeSecao, redimensionarColuna, removerCartao, renomearSecao, soltarCartao, soltarSecao, todasSecoes, todosCartoes, type Quadro } from "./quadro";
+import { LARGURA_MIN, adicionarCartao, alternarTituloGrande, colunaDaSecao, excluirSecao, excluirSecoes, lerQuadro, moverCartao, novaColuna, novaSecaoDepois, proximoNomeSecao, redimensionarColuna, removerCartao, renomearSecao, soltarCartao, soltarSecao, todasSecoes, todosCartoes, type Quadro } from "./quadro";
 
 /** Coluna c1: seções a (x,y) e b (z); coluna c2: seção c (vazia). */
 const q = (): Quadro => ({ colunas: [
@@ -22,7 +22,7 @@ describe("lerQuadro", () => {
   });
   it("cartão repetido só vale na primeira ocorrência; ids repetidos e largura inválida são tratados", () => {
     const r = lerQuadro({ colunas: [{ id: "a", largura: 5000, secoes: [{ id: "s", titulo: "A", cartoes: ["x"] }, { id: "s", titulo: "dup", cartoes: [] }, { id: "t", titulo: "B", cartoes: ["x", "y"], grande: true }] }, { id: "a", secoes: [] }] });
-    expect(r.colunas).toHaveLength(1); expect(r.colunas[0].largura).toBe(LARGURA_MAX);
+    expect(r.colunas).toHaveLength(1); expect(r.colunas[0].largura).toBe(5000);
     expect(todosCartoes(r)).toEqual(["x", "y"]); expect(r.colunas[0].secoes.map(s => s.id)).toEqual(["s", "t"]); expect(r.colunas[0].secoes[1].grande).toBe(true);
   });
 });
@@ -45,6 +45,7 @@ describe("seções e colunas", () => {
     const g = alternarTituloGrande(q(), "a"); expect(g.colunas[0].secoes[0].grande).toBe(true);
     expect(alternarTituloGrande(g, "a").colunas[0].secoes[0]).not.toHaveProperty("grande");
     expect(redimensionarColuna(q(), "c1", 5).colunas[0].largura).toBe(LARGURA_MIN);
+    expect(redimensionarColuna(q(), "c1", 1920).colunas[0].largura).toBe(1920);
     expect(redimensionarColuna(q(), "c1", 480).colunas[0].largura).toBe(480); expect(redimensionarColuna(q(), "nao", 480)).toEqual(q());
   });
   it("excluirSecao só exclui seção vazia; a coluna que ficar sem seções some", () => {
