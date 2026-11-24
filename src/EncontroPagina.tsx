@@ -3,7 +3,7 @@ import { ArrowLeft, Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { adicionarParticipante, definirDescricao, editarParticipante, removerParticipante, renomearEncontro, type Encontro, type ParticipanteEncontro, type RefCombate } from "./combate";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
-import { RetratoQuadrado } from "./RetratoCombate";
+import { CriaturaIdentidade } from "./CriaturaIdentidade";
 import { ROTULO_ESTADO, avisoEntregas, concluirEncontro, estadoDe, iniciarSemCombate, normalizarLoot, pendencias, podeRestaurar, reabrirEncontro, restaurarOriginal } from "./estadoEncontro";
 import { LootEditor } from "./LootEditor";
 import { LootEncontro } from "./LootEncontro";
@@ -36,10 +36,7 @@ function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; 
       <button type="submit" className="btn-secondary">Salvar criatura</button><button type="button" className="btn-secondary" onClick={() => setEditando(false)}>Cancelar</button>
     </form></li>;
   return <li className="enc-criatura">
-    <RetratoQuadrado tipo={tipo} tamanho={44}/>
-    <div className="enc-criatura-info"><strong>{p.nome}</strong>
-      <small>{p.ref?.tipo === "monstro" ? "Bestiário" : "Avulsa"}{p.pv ? ` · PV ${p.pv}` : ""}{p.ca ? ` · CA ${p.ca}` : ""}</small>
-      {p.notas && <small className="muted">{p.notas}</small>}</div>
+    <CriaturaIdentidade nome={p.nome} tipo={tipo} className="enc-criatura-info" detalhes={<>{p.ref?.tipo === "monstro" ? "Bestiário" : "Avulsa"}{p.pv ? ` · PV ${p.pv}` : ""}{p.ca ? ` · CA ${p.ca}` : ""}</>}>{p.notas && <small className="muted">{p.notas}</small>}</CriaturaIdentidade>
     <div className="ini-pv-controles">
       <button className="btn-secondary ini-icone" onClick={() => mudarQtd(p.quantidade - 1)} aria-label={`Diminuir quantidade de ${p.nome}`} title="Menos um"><Minus size={14} aria-hidden="true"/></button>
       <input aria-label={`Quantidade de ${p.nome} em ${enc.nome}`} inputMode="numeric" defaultValue={p.quantidade} key={p.quantidade} onBlur={e => { const n = numero(e.target.value); if (n !== undefined) mudarQtd(n); }}/>
