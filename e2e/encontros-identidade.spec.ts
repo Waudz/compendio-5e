@@ -1,4 +1,4 @@
-import { expectFaixaGeometry } from './faixa-geometry';
+import { expectFaixaGeometry, expectTurnControls } from './faixa-geometry';
 import { test, expect, navigate, campaignName, expectNoHorizontalOverflow } from './fixtures';
 
 test('cinco goblins: líder individual, envio 4+1 e reinserção ferida persistente', async ({ page }, info) => {
@@ -88,7 +88,7 @@ test('iniciativa permanece utilizável em três painéis e abre ficha completa',
   await page.getByRole('tab', { name: /^Goblin/ }).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
   await expect(page.getByRole('tabpanel')).toHaveCount(3);
-  await expectFaixaGeometry(page);
+  await expectFaixaGeometry(page); await expectTurnControls(page);
   const quantidade = page.getByLabel('Quantidade de dano ou cura de Goblin', { exact: true });
   await quantidade.fill('2'); await page.getByRole('button', { name: 'Causar dano a Goblin', exact: true }).click();
   await expect(page.getByLabel('PV de Goblin', { exact: true })).toHaveText('PV 5/7');

@@ -1,4 +1,4 @@
-import { expectFaixaGeometry } from './faixa-geometry';
+import { expectFaixaGeometry, expectTurnControls } from './faixa-geometry';
 import { test, expect, openDemo, navigate, expectNoHorizontalOverflow } from './fixtures';
 
 test('próximo turno conserva posição com nomes longos; busca única inclui personagens reais do demo', async ({ page }, info) => {
@@ -65,7 +65,7 @@ test('faixa fixa cobre as bordas e usa controles compactos em meia tela', async 
  await page.getByLabel('Buscar combatentes').press('Escape');
  await page.getByRole('tab', { name: /^Iniciativa/ }).click({ button: 'right' });
  await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
- await expectFaixaGeometry(page);
+ await expectFaixaGeometry(page); await expectTurnControls(page);
  const conteudo = page.locator('.content.iniciativa'); await conteudo.hover(); await page.mouse.wheel(0, 950);
  const faixa = conteudo.locator('.ini-turnos-topo');
  await expect.poll(async () => {
@@ -88,17 +88,17 @@ test('retratos ampliados ficam separados e turno centralizado ao avançar e volt
    await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
  }
  await page.getByLabel('Buscar combatentes').press('Escape');
- await expectFaixaGeometry(page);
+ await expectFaixaGeometry(page); await expectTurnControls(page);
  await page.screenshot({ path: info.outputPath('retratos-ampliados.png') });
  const next = page.getByRole('button', { name: 'Próximo turno', exact: true });
  const before = (await next.boundingBox())!;
  for (let i = 0; i < 5; i++) {
-   await next.click(); await expectFaixaGeometry(page);
+   await next.click(); await expectFaixaGeometry(page); await expectTurnControls(page);
    const after = (await next.boundingBox())!;
    expect(Math.abs(after.x - before.x)).toBeLessThan(1);
    expect(Math.abs(after.y - before.y)).toBeLessThan(1);
  }
  await page.getByRole('button', { name: 'Turno anterior', exact: true }).click();
- await expectFaixaGeometry(page);
+ await expectFaixaGeometry(page); await expectTurnControls(page);
  await page.screenshot({ path: info.outputPath('retratos-retorno.png') });
 });

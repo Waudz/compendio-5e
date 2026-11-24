@@ -902,3 +902,14 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
  .faixa-turnos{--faixa-passo:112px;--faixa-retrato:80px;height:140px;padding:2px 0}
 }
 @media(prefers-reduced-motion:reduce){.faixa-trilha .faixa-personagem .retrato-q{transition:none}}
+/* Espaço para o contorno ativo e para os rótulos, inclusive no painel mínimo. */
+.faixa-turnos{height:124px;padding:4px 0}
+.faixa-trilha .faixa-personagem{gap:4px}
+@container ini (min-width:760px){.faixa-turnos{height:148px}}
+.iniciativa .ini-turnos-topo .ini-controles-turno{flex-wrap:wrap}
+.iniciativa .ini-controles-turno .ini-acoes-turno{min-width:162px}
+.iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:1 1 auto;font-size:14px;padding:8px}
+@container ini (max-width:900px){
+ .iniciativa .ini-barra.ini-controles-turno .ini-rodada{font-size:14px;min-width:6em}
+ .iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:0 0 36px;font-size:0}
+}

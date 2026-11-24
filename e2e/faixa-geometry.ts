@@ -16,7 +16,19 @@ export async function expectFaixaGeometry(page: Page) {
       normal: sizes.every((r, i) => cards[i] === active || Math.abs(r.width - (large ? 80 : 60)) < 1),
       separated: sizes.every((r, i) => i === 0 || r.left - sizes[i - 1].right >= 6),
       contained: sizes.every(r => r.top >= bounds.top - 1 && r.bottom <= bounds.bottom + 1),
-      text: cards.every(c => parseFloat(getComputedStyle(c.querySelector('small')!).fontSize) >= 12 && parseFloat(getComputedStyle(c.querySelector(':scope > span')!).fontSize) >= 14),
+      text: cards.every(c => parseFloat(getComputedStyle(c.querySelector('small')!).fontSize) >= 12 && parseFloat(getComputedStyle(c.querySelector(':scope > span:last-child')!).fontSize) >= 14),
     };
   })).toEqual({ centered: true, size: true, normal: true, separated: true, contained: true, text: true });
+}
+
+/** Todos os controles cabem no cabeçalho e seus rótulos cabem no botão. */
+export async function expectTurnControls(page: Page) {
+  const bar = page.locator('.ini-controles-turno');
+  await expect.poll(async () => bar.evaluate(el => {
+    const parent = el.closest('.content')!.getBoundingClientRect();
+    return [...el.querySelectorAll('button')].every(b => {
+      const r = b.getBoundingClientRect();
+      return r.left >= parent.left && r.right <= parent.right + 1 && b.scrollWidth <= b.clientWidth + 1;
+    });
+  })).toBe(true);
 }
