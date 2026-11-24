@@ -128,16 +128,29 @@ export type InstanciaEncontro = { criaturaId: string; participanteId: string; no
 export function instanciasParaEnviar(enc: Encontro): InstanciaEncontro[] {
   return enc.participantes.flatMap(p => {
     const doEstado = enc.atual?.criaturas.filter(c => c.participanteId === p.id) ?? [];
+    // Recupera instâncias ausentes de encontros gravados antes da correção do envio parcial.
+    if (enc.atual) for (let n = 1; n <= p.quantidade; n++) {
+      const id = `${p.id}#${n}`;
+      if (!doEstado.some(c => c.id === id)) doEstado.push({ id, participanteId: p.id, nome: p.quantidade > 1 ? `${p.nome} ${n}` : p.nome, ...(p.pv ? { pv: p.pv, pvMax: p.pv } : {}), situacao: "viva" });
+    }
     if (doEstado.length) return doEstado.filter(c => c.situacao === "viva" && !c.noCombate).slice(0, p.quantidade).map((c): InstanciaEncontro => ({ criaturaId: c.id, participanteId: p.id, nome: c.nome, ...(c.pvMax ? { pv: c.pv ?? c.pvMax, pvMax: c.pvMax } : {}), ...(p.ref ? { ref: p.ref } : {}) }));
     return Array.from({ length: p.quantidade }, (_, i): InstanciaEncontro => ({ criaturaId: `${p.id}#${i + 1}`, participanteId: p.id, nome: p.quantidade > 1 ? `${p.nome} ${i + 1}` : p.nome, ...(p.pv ? { pv: p.pv, pvMax: p.pv } : {}), ...(p.ref ? { ref: p.ref } : {}) }));
   });
 }
 /** Leva as criaturas do encontro para o combate como inimigos (iniciativa 0 até o mestre informar). Preserva quem já está no combate e NUNCA duplica uma criatura já presente (vínculo por ids). */
+export function nomeCombatenteDisponivel(e: EstadoCombate, nome: string): string {
+  const usados = new Set(e.combatentes.map(c => c.nome.trim().toLocaleLowerCase("pt-BR")));
+  if (!usados.has(nome.toLocaleLowerCase("pt-BR"))) return nome;
+  const base = nome.replace(/ \d+$/, "");
+  let n = 1;
+  while (usados.has(`${base} ${n}`.toLocaleLowerCase("pt-BR"))) n++;
+  return `${base} ${n}`;
+}
 export function enviarParaCombate(e: EstadoCombate, enc: Encontro): EstadoCombate {
   let r = e;
   for (const i of instanciasParaEnviar(enc)) {
     if (r.combatentes.some(c => c.encontro?.encontroId === enc.id && c.encontro.criaturaId === i.criaturaId)) continue;
-    r = adicionar(r, { nome: i.nome, iniciativa: 0, lado: "inimigo", ...(i.pvMax ? { pv: i.pv, pvMax: i.pvMax } : {}), ...(i.ref ? { ref: i.ref } : {}), encontro: { encontroId: enc.id, criaturaId: i.criaturaId } });
+    r = adicionar(r, { nome: nomeCombatenteDisponivel(r, i.nome), iniciativa: 0, lado: "inimigo", ...(i.pvMax ? { pv: i.pv, pvMax: i.pvMax } : {}), ...(i.ref ? { ref: i.ref } : {}), encontro: { encontroId: enc.id, criaturaId: i.criaturaId } });
   }
   return r;
 }
