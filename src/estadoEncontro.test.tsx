@@ -107,6 +107,7 @@ describe("telas: fim do combate e página do encontro", () => {
     render(<EncontrosPanel/>);
     fireEvent.click(await screen.findByRole("button", { name: "Abrir encontro Covil" }));
     let pagina = await screen.findByRole("region", { name: "Página do encontro Covil" });
+    fireEvent.click(within(pagina).getByRole("button", { name: "Progresso" }));
     const lido = () => lerEncontros(localStorage.getItem(chaveEncontros("u1", "c1")));
     expect((within(pagina).getByRole("button", { name: "Restaurar original" }) as HTMLButtonElement).disabled).toBe(true);      // nada a restaurar
     fireEvent.click(within(pagina).getByRole("button", { name: "Iniciar sem combate" }));
@@ -116,6 +117,7 @@ describe("telas: fim do combate e página do encontro", () => {
     fireEvent.click(within(pagina).getByRole("button", { name: /Voltar à lista/ }));
     expect(await screen.findByRole("region", { name: "Encontro Covil (estado atual)" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Abrir encontro Covil" })); pagina = await screen.findByRole("region", { name: "Página do encontro Covil" });
+    fireEvent.click(within(pagina).getByRole("button", { name: "Progresso" }));
     const confirma = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     fireEvent.click(within(pagina).getByRole("button", { name: "Restaurar original" })); expect(lido()[0].estado).toBe("em_andamento");   // recusou: nada muda
     fireEvent.click(within(pagina).getByRole("button", { name: "Restaurar original" })); await waitFor(() => expect(lido()[0].estado).toBe("preparado")); expect(confirma).toHaveBeenCalledTimes(2);
@@ -128,6 +130,7 @@ describe("telas: fim do combate e página do encontro", () => {
     render(<EncontrosPanel/>);
     fireEvent.click(await screen.findByRole("button", { name: "Abrir encontro Covil" }));
     const pagina = await screen.findByRole("region", { name: "Página do encontro Covil" });
+    fireEvent.click(within(pagina).getByRole("button", { name: "Progresso" }));
     expect((within(pagina).getByRole("button", { name: "Restaurar original" }) as HTMLButtonElement).disabled).toBe(true);
     expect((within(pagina).getByRole("button", { name: "Concluir encontro" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(within(pagina).getByRole("button", { name: "Atualizar a partir do combate" }));    // não há combate guardado: equivale a combate encerrado

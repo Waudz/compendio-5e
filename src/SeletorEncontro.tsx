@@ -1,7 +1,7 @@
 // Seleção de encontro preparado para a Iniciativa, com escolha parcial de criaturas e quantidades. Nada é gravado aqui: devolve um encontro filtrado.
 import { Swords } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Encontro } from "./combate";
+import { instanciasParaEnviar, type Encontro } from "./combate";
 
 const disponivel = (enc: Encontro, id: string, quantidade: number) => Math.max(0, quantidade - (enc.atual?.criaturas.filter(c => c.participanteId === id && (c.noCombate || c.situacao === "derrotada")).length ?? 0));
 
@@ -18,16 +18,22 @@ export function selecionarParticipantes(enc: Encontro, marcas: Marca): Encontro 
 }
 
 function CartaoEncontro({ enc, onEnviar }: { enc: Encontro; onEnviar: (e: Encontro) => void }) {
-  const [marcas, setMarcas] = useState<Marca>(() => Object.fromEntries(enc.participantes.map(p => [p.id, { incluir: true, qtd: String(disponivel(enc, p.id, p.quantidade)) }])));
-  const escolhido = useMemo(() => selecionarParticipantes(enc, marcas), [enc, marcas]);
-  const total = escolhido.participantes.reduce((s, p) => s + p.quantidade, 0);
+  const disponiveis = useMemo(() => instanciasParaEnviar(enc), [enc]);
+  const [ids, setIds] = useState(() => disponiveis.map(c => c.criaturaId));
+  const escolhidos = disponiveis.filter(c => ids.includes(c.criaturaId));
+  const marcar = (grupo: string[], incluir: boolean) => setIds(antes => incluir ? [...new Set([...antes, ...grupo])] : antes.filter(id => !grupo.includes(id)));
   return <li className="ini-enc-sel">
-    <strong>{enc.nome}</strong><div className="ini-barra"><button type="button" className="btn-secondary" onClick={() => setMarcas(Object.fromEntries(enc.participantes.map(p => [p.id, { incluir: true, qtd: String(disponivel(enc, p.id, p.quantidade)) }])))}>Selecionar todos</button><button type="button" className="btn-secondary" onClick={() => setMarcas(Object.fromEntries(enc.participantes.map(p => [p.id, { incluir: false, qtd: "0" }])))}>Limpar seleção</button></div>
-    {enc.participantes.length === 0 ? <p className="muted">Sem criaturas.</p> : <ul className="ini-enc-criaturas">{enc.participantes.map(p => <li key={p.id}>
-      <label className="ini-enc-marca"><input type="checkbox" aria-label={`Incluir ${p.nome} de ${enc.nome}`} disabled={disponivel(enc, p.id, p.quantidade) === 0} checked={disponivel(enc, p.id, p.quantidade) > 0 && (marcas[p.id]?.incluir ?? true)} onChange={e => setMarcas(m => ({ ...m, [p.id]: { incluir: e.target.checked, qtd: m[p.id]?.qtd ?? String(disponivel(enc, p.id, p.quantidade)) } }))}/> {p.nome}</label>
-      <input className="ini-enc-qtd" inputMode="numeric" aria-label={`Quantidade de ${p.nome} a enviar de ${enc.nome}`} value={marcas[p.id]?.qtd ?? String(disponivel(enc, p.id, p.quantidade))} onChange={e => setMarcas(m => ({ ...m, [p.id]: { incluir: m[p.id]?.incluir ?? true, qtd: e.target.value } }))}/>
-      <small className="muted">de {disponivel(enc, p.id, p.quantidade)} disponíveis</small></li>)}</ul>}
-    <button type="button" className="btn-secondary" disabled={total === 0} onClick={() => onEnviar(escolhido)} aria-label={`Incluir no combate: ${enc.nome}`}><Swords size={14} aria-hidden="true"/> Incluir {total || ""} no combate</button>
+    <strong>{enc.nome}</strong><div className="ini-barra"><button type="button" className="btn-secondary" onClick={() => setIds(disponiveis.map(c => c.criaturaId))}>Selecionar todos</button><button type="button" className="btn-secondary" onClick={() => setIds([])}>Limpar seleção</button></div>
+    {!disponiveis.length && <p className="muted">Sem criaturas disponíveis. As que estão em combate ou derrotadas não serão duplicadas.</p>}
+    <ul className="ini-enc-criaturas">{enc.participantes.map(p => {
+      const grupo = disponiveis.filter(c => c.participanteId === p.id), marcados = grupo.filter(c => ids.includes(c.criaturaId));
+      return <li key={p.id}><label><input type="checkbox" aria-label={`Incluir ${p.nome} de ${enc.nome}`} disabled={!grupo.length} checked={!!grupo.length && marcados.length === grupo.length} onChange={e => marcar(grupo.map(c => c.criaturaId), e.target.checked)}/> {p.nome}</label>
+        <input className="ini-enc-qtd" type="number" min={0} max={grupo.length} aria-label={`Quantidade de ${p.nome} a enviar de ${enc.nome}`} value={marcados.length} onChange={e => { const n = Number(e.target.value); if (Number.isInteger(n) && n >= 0 && n <= grupo.length) { marcar(grupo.map(c => c.criaturaId), false); marcar(grupo.slice(0, n).map(c => c.criaturaId), true); } }}/>
+        <small className="muted">de {grupo.length} disponíveis · {p.quantidade} no grupo</small>
+        <details className="enc-individuais"><summary>Escolher criaturas específicas</summary>{grupo.map(c => <label key={c.criaturaId}><input type="checkbox" checked={ids.includes(c.criaturaId)} onChange={e => marcar([c.criaturaId], e.target.checked)}/> {c.nome}{c.pvMax ? ` · PV ${c.pv}/${c.pvMax}` : ""}{c.ca ? ` · CA ${c.ca}` : ""}</label>)}</details>
+      </li>;
+    })}</ul>
+    <button type="button" className="btn-secondary" disabled={!escolhidos.length} onClick={() => onEnviar({ ...enc, selecao: escolhidos.map(c => c.criaturaId) })} aria-label={`Incluir no combate: ${enc.nome}`}><Swords size={14} aria-hidden="true"/> Incluir {escolhidos.length || ""} no combate</button>
   </li>;
 }
 

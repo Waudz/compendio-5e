@@ -2,3 +2,8 @@
 // (máquina lenta ou CI). O limite padrão das consultas assíncronas do Testing Library (1 s) gerava falhas intermitentes que passavam ao rodar o arquivo isolado.
 import { configure } from "@testing-library/dom";
 configure({ asyncUtilTimeout: 5000 });
+
+if (typeof HTMLDialogElement !== "undefined" && !HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); this.dispatchEvent(new Event("close")); };
+}

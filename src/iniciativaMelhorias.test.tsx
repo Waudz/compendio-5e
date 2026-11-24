@@ -13,7 +13,7 @@ import { selecionarParticipantes } from "./SeletorEncontro";
 
 const encontros: Encontro[] = [{ id: "e1", nome: "Emboscada", participantes: [{ id: "p1", nome: "Goblin", quantidade: 3, pv: 7 }, { id: "p2", nome: "Lobo", quantidade: 1, pv: 11 }, { id: "p3", nome: "Chefe", quantidade: 1 }] }];
 const preencher = (rotulo: string, valor: string) => fireEvent.change(within(screen.getByRole("form", { name: "Adicionar combatente" })).getByLabelText(rotulo), { target: { value: valor } });
-const adicionarAvulso = (nome: string, ini = "10", pv = "") => { preencher("Nome", nome); preencher("Iniciativa", ini); if (pv) preencher("PV (opcional)", pv); fireEvent.click(within(screen.getByRole("form", { name: "Adicionar combatente" })).getByRole("button", { name: /Adicionar/ })); };
+const adicionarAvulso = (nome: string, ini = "10", pv = "") => { preencher("Nome", nome); preencher("Iniciativa", ini); if (pv) preencher("PV (opcional)", pv); fireEvent.click(within(screen.getByRole("form", { name: "Adicionar combatente" })).getByRole("button", { name: "Adicionar" })); };
 beforeEach(() => { localStorage.clear(); escopo = { user: { id: "u1" }, active: { role: "mestre", campaign: { id: "c1", name: "Véu Negro" } } }; });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
@@ -45,9 +45,9 @@ describe("tela da Iniciativa", () => {
     render(<AventureirosContext.Provider value={fonte}><IniciativaPanel/></AventureirosContext.Provider>);
     await screen.findByText("Nenhum combatente ainda");
     adicionarAvulso("Goblin avulso");
-    expect(await screen.findAllByTestId("retrato-placeholder")).toHaveLength(1);
-    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" }));
-    const item = (await within(await screen.findByRole("list", { name: "Ordem de iniciativa" })).findByText("Lydia", { selector: "strong" })).closest("li")!;
+    expect(await within(screen.getByRole("group", { name: "Combatentes" })).findAllByTestId("retrato-placeholder")).toHaveLength(1);
+    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.focus(await screen.findByLabelText("Buscar personagem")); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" }));
+    const item = (await within(await screen.findByRole("group", { name: "Combatentes" })).findByText("Lydia", { selector: "strong" })).closest("li")!;
     await waitFor(() => expect(item.querySelector("img")?.getAttribute("src")).toBe("https://exemplo.test/lydia.png"));
     fireEvent.error(item.querySelector("img")!);                                    // imagem quebrada
     expect(within(item).getByTestId("retrato-placeholder")).toBeTruthy();
@@ -65,11 +65,11 @@ describe("tela da Iniciativa", () => {
     adicionarAvulso("Lydia", "18"); adicionarAvulso("Goblin", "12");
     expect(screen.getByText("Rodada 1").className).toContain("ini-rodada");
     expect(screen.getByText("Turno atual: Lydia")).toBeTruthy();
-    const itens = within(screen.getByRole("list", { name: "Ordem de iniciativa" })).getAllByRole("listitem");
+    const itens = within(screen.getByRole("group", { name: "Combatentes" })).getAllByRole("listitem");
     expect(itens[0].getAttribute("aria-current")).toBe("true"); expect(itens[0].className).toContain("atual"); expect(itens[1].getAttribute("aria-current")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Próximo turno/ }));
     expect(screen.getByText("Turno atual: Goblin")).toBeTruthy();
-    expect(within(screen.getByRole("list", { name: "Ordem de iniciativa" })).getAllByRole("listitem")[1].getAttribute("aria-current")).toBe("true");
+    expect(within(screen.getByRole("group", { name: "Combatentes" })).getAllByRole("listitem")[1].getAttribute("aria-current")).toBe("true");
   });
   it("controles compactos de dano e cura continuam acessíveis e a barra de PV acompanha (baixa fica sinalizada)", async () => {
     render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
@@ -88,7 +88,7 @@ describe("tela da Iniciativa", () => {
     fireEvent.click(screen.getByLabelText("Incluir Lobo de Emboscada"));                                   // desmarca o lobo
     fireEvent.change(screen.getByLabelText("Quantidade de Goblin a enviar de Emboscada"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Incluir no combate: Emboscada" }));
-    const lista = within(await screen.findByRole("list", { name: "Ordem de iniciativa" }));
+    const lista = within(await screen.findByRole("group", { name: "Combatentes" }));
     await waitFor(() => expect(lista.getAllByRole("listitem")).toHaveLength(4));
     const nomes = lista.getAllByRole("listitem").map(li => within(li).getByText(/^(Lydia|Goblin \d|Chefe|Lobo)$/, { selector: "strong" }).textContent).sort();
     expect(nomes).toEqual(["Chefe", "Goblin 1", "Goblin 2", "Lydia"]);                                    // Lydia preservada; sem Lobo; 2 goblins
@@ -107,5 +107,31 @@ describe("tela da Iniciativa", () => {
     escopo = { user: { id: "u2" }, active: { role: "jogador", campaign: { id: "c1", name: "Véu Negro" } } };
     render(<IniciativaPanel/>);
     expect(await screen.findByText(/Somente o mestre/)).toBeTruthy(); expect(screen.queryByText("Adicionar encontro preparado")).toBeNull();
+  });
+});
+
+
+describe("preferências e controles independentes", () => {
+  it("lista/cartões não altera a separação de lados; ambas as preferências reabrem", async () => {
+    render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
+    fireEvent.click(screen.getByRole("button", { name: "Lista compacta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lados separados" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cartões" }));
+    expect(screen.getByRole("button", { name: "Lados unificados" }).getAttribute("aria-pressed")).toBe("false");
+    cleanup(); render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
+    expect(screen.getByRole("button", { name: "Cartões" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Lados unificados" })).toBeTruthy();
+    escopo.user = { id: "outro" }; cleanup(); render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
+    expect(screen.getByRole("button", { name: "Lados separados" })).toBeTruthy();
+  });
+  it("dano e cura usam valor editável e voltam a 1 sem trocar turno ou posição", async () => {
+    render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda"); adicionarAvulso("Teste", "10", "20");
+    const campo = screen.getByLabelText("Quantidade de dano ou cura de Teste") as HTMLInputElement;
+    expect(campo.value).toBe("1");
+    fireEvent.change(campo, { target: { value: "6" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Teste" }));
+    expect(campo.value).toBe("1"); expect(screen.getByLabelText("PV de Teste").textContent).toBe("PV 14/20");
+    fireEvent.change(campo, { target: { value: "3" } }); fireEvent.click(screen.getByRole("button", { name: "Curar Teste" }));
+    expect(campo.value).toBe("1"); expect(screen.getByLabelText("PV de Teste").textContent).toBe("PV 17/20");
+    expect(screen.getByText("Turno atual: Teste")).toBeTruthy(); expect(screen.getByText("Rodada 1")).toBeTruthy();
   });
 });

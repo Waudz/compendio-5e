@@ -815,3 +815,30 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .enc-subabas{display:flex;gap:6px;border-bottom:1px solid var(--line);padding:8px 0;margin:8px 0}.enc-subabas button{flex:1;justify-content:center;min-width:0}.enc-subabas button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
 
 .ini-dialogo{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;width:min(520px,calc(100vw - 32px));max-height:85vh;overflow:auto;padding:18px;box-sizing:border-box}.ini-dialogo::backdrop{background:#0009}.ini-dialogo .ini-enc-lista{padding:0;list-style:none}
+
+/* Etapa 1: faixa estável e cartões compartilhados em qualquer grupo do workspace. */
+.faixa-turnos{display:block;height:108px;position:relative;padding:12px 0;box-sizing:border-box}
+.faixa-trilha{display:flex;width:100%;align-items:center;transition:transform .32s ease;will-change:transform}
+.faixa-trilha .faixa-personagem{flex:0 0 76px;box-sizing:border-box;transition:opacity .25s ease,scale .25s ease;scale:1}
+.faixa-trilha .faixa-personagem.ativo{scale:1.12}.faixa-trilha .faixa-personagem.passado{opacity:.4}
+.iniciativa .ini-item.derrotado,.faixa-personagem.derrotado{opacity:.55;filter:saturate(.35)}
+.iniciativa .ini-item.derrotado .ini-nome strong{text-decoration:line-through}
+.iniciativa .ini-notas,.enc-individuais,.enc-individual-form{grid-column:1/-1;min-width:0;overflow-wrap:anywhere}
+.enc-individuais>label{display:flex;gap:6px;align-items:center;margin:6px 0}.enc-instancias{list-style:none;padding:0;display:grid;gap:8px}
+.enc-instancia{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px;min-width:0}
+.enc-instancia>.btn-link{grid-column:2/-1}.criatura-ficha{text-align:left;padding:0;white-space:normal;overflow-wrap:anywhere}
+.ini-dialogo .ini-enc-criaturas>li{flex-wrap:wrap}.ini-dialogo .enc-individuais{flex-basis:100%}
+.ini-dialogo .enc-individuais label{white-space:normal;overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){.faixa-trilha,.faixa-trilha .faixa-personagem{transition:none}}
+
+.ini-grupo{container:ini / inline-size}
+
+.iniciativa .ini-nome{display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere}
+.iniciativa .ini-lista-cartoes .ini-item{grid-template-columns:44px minmax(0,1fr) auto}
+.iniciativa .ini-lista-cartoes .ini-item .ini-ini{grid-column:1/-1;justify-content:flex-start}
+.iniciativa .ini-lista-cartoes .ini-item .ini-remover{grid-column:3;grid-row:1}
+@container ini (max-width:520px){
+  .ini-turnos-topo .ini-barra .btn-secondary{font-size:0;gap:0;min-width:36px;min-height:36px;padding:8px}
+  .ini-turnos-topo .ini-barra .btn-secondary svg{width:18px;height:18px}
+  .ini-turnos-topo .ini-barra{gap:6px}.ini-turnos-topo .ini-turno-atual{font-size:12px;max-width:100%;overflow-wrap:anywhere}
+}

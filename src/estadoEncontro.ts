@@ -21,7 +21,7 @@ export function normalizarLoot(enc: Encontro): Encontro {
 
 /** Estado atual novo, a partir da configuração original: todas vivas, com ids estáveis. */
 function criaturasIniciais(enc: Encontro): CriaturaAtual[] {
-  return instanciasParaEnviar({ ...enc, atual: undefined }).map(i => ({ id: i.criaturaId, participanteId: i.participanteId, nome: i.nome, ...(i.pvMax ? { pv: i.pvMax, pvMax: i.pvMax } : {}), situacao: "viva" as const }));
+  return instanciasParaEnviar({ ...enc, atual: undefined }).map(i => ({ id: i.criaturaId, participanteId: i.participanteId, nome: i.nome, ca: i.ca, notas: i.notas, ...(i.pvMax ? { pv: i.pvMax, pvMax: i.pvMax } : {}), situacao: "viva" as const }));
 }
 
 /** Registra no encontro o que foi enviado ao combate (criaturas marcadas "no combate") e o põe "em combate". `selecionado` é o encontro filtrado que foi enviado. */
@@ -34,7 +34,7 @@ export function marcarEnviado(enc: Encontro, selecionado: Encontro): Encontro {
   for (const i of novas) {
     const k = criaturas.findIndex(c => c.id === i.criaturaId);
     if (k >= 0) criaturas[k] = { ...criaturas[k], noCombate: true };
-    else criaturas.push({ id: i.criaturaId, participanteId: i.participanteId, nome: i.nome, ...(i.pvMax ? { pv: i.pv ?? i.pvMax, pvMax: i.pvMax } : {}), situacao: "viva", noCombate: true });
+    else criaturas.push({ id: i.criaturaId, participanteId: i.participanteId, nome: i.nome, ca: i.ca, notas: i.notas, ...(i.pvMax ? { pv: i.pv ?? i.pvMax, pvMax: i.pvMax } : {}), situacao: "viva", noCombate: true });
   }
   return normalizarLoot({ ...enc, estado: "em_combate", atual: { ...enc.atual, criaturas } });
 }
@@ -48,7 +48,7 @@ export function sincronizarComCombate(enc: Encontro, combate: EstadoCombate, enc
     const k = combate.combatentes.find(x => x.encontro?.encontroId === enc.id && x.encontro.criaturaId === c.id);
     if (!k) return base;
     const pvMax = k.pvMax ?? c.pvMax, pv = k.pv ?? c.pv;
-    return { ...base, ...(pvMax ? { pvMax } : {}), ...(pv !== undefined ? { pv } : {}), situacao: pvMax && pv === 0 ? "derrotada" : "viva", ...(encerrado ? {} : { noCombate: true as const }) };
+    return { ...base, iniciativa: k.iniciativa, condicoes: k.condicoes, ca: k.ca ?? c.ca, notas: k.notas ?? c.notas, ...(pvMax ? { pvMax } : {}), ...(pv !== undefined ? { pv } : {}), situacao: pvMax && pv === 0 ? "derrotada" : "viva", ...(encerrado ? {} : { noCombate: true as const }) };
   });
   const novo: Encontro = { ...enc, atual: { ...enc.atual, criaturas } };
   if (estadoDe(enc) !== "em_combate" || criaturas.some(c => c.noCombate)) return novo;

@@ -93,7 +93,7 @@ export function IniciativaPanel() {
     const id = novoId(), bonus = modAtributo(m.atributos.dex);
     const r = rolarD20(bonus);
     setMods(x => ({ ...x, [id]: bonus })); setRolagens(x => ({ ...x, [id]: r }));
-    aplicar(e => definirIniciativa(adicionar(e, { id, nome: nomeCombatenteDisponivel(e, m.nome), iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ref: { tipo: "monstro", id: m.id } }), id, r.total));
+    aplicar(e => definirIniciativa(adicionar(e, { id, nome: nomeCombatenteDisponivel(e, m.nome), iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } }), id, r.total));
   };
   const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } }));
   const ordem = combate ? ordenar(combate.combatentes) : [];
@@ -141,10 +141,10 @@ export function IniciativaPanel() {
       <div className="ini-turnos-topo"><FaixaTurnos ordem={ordem} turno={combate.turno} retratos={retratos}/>
       <div className="ini-barra">
         <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
-        <button className="btn-secondary" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
-        <button className="btn-secondary" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
-        <button className="btn-secondary" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
-        <button className="btn-secondary" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
+        <button className="btn-secondary" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
+        <button className="btn-secondary" title="Próximo turno" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
+        <button className="btn-secondary" title="Reiniciar rodadas" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
+        <button className="btn-secondary" title="Finalizar combate" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
       </div>
       </div>
       <form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
@@ -155,8 +155,8 @@ export function IniciativaPanel() {
         <button type="submit" className="btn-secondary"><Plus size={15} aria-hidden="true"/> Adicionar</button>
       </form>
       <SeletorMonstro rotulo="Adicionar do Bestiário (rola a iniciativa)" onEscolher={adicionarMonstro}/>
-      <SeletorPersonagem campaignId={campaignId} onEscolher={adicionarPersonagem}/>
-      <SeletorEncontro encontros={encontros.status === "pronto" ? encontros.valor : null} onEnviar={enc => { aplicar(e => enviarParaCombate(e, enc)); lojaEnc.aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x))); }}/>
+      <SeletorPersonagem key={campaignId} campaignId={campaignId} onEscolher={adicionarPersonagem}/>
+      <SeletorEncontro encontros={encontros.status === "pronto" ? encontros.valor : null} onEnviar={enc => { if (!aplicar(e => enviarParaCombate(e, enc))) return; lojaEnc.aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x))); }}/>
       <div className="ini-visualizacao" role="group" aria-label="Visualização dos combatentes">
         <button type="button" className={visualizacao === "cartoes" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "cartoes"} onClick={() => alterarVisualizacao("cartoes")}><LayoutGrid size={15} aria-hidden="true"/> Cartões</button>
         <button type="button" className={visualizacao === "lista" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "lista"} onClick={() => alterarVisualizacao("lista")}><List size={15} aria-hidden="true"/> Lista compacta</button>
@@ -164,18 +164,19 @@ export function IniciativaPanel() {
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
-        : <div className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: ordem.filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: ordem }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={removerCombatente} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
+        : <div role="group" aria-label="Combatentes" className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: combate.combatentes.filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: combate.combatentes }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={removerCombatente} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
     </>}
   </div>;
 }
 type Aplicar = (fn: (e: EstadoCombate) => EstadoCombate) => boolean;
 function Linha({ c, atual, aplicar, aoRemover, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; aoRemover: Aplicar; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
   const [valor, setValor] = useState("1");
-  const acao = (sinal: 1 | -1) => { const n = numero(valor); if (n && n > 0) { aplicar(e => alterarPv(e, c.id, sinal * n)); setValor("1"); } };
+  const acao = (sinal: 1 | -1) => { const n = numero(valor); if (n && n > 0) { if (aplicar(e => alterarPv(e, c.id, sinal * n))) setValor("1"); } };
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
   const pct = c.pvMax ? Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100)) : 0;
-  return <li className={`ini-item lado-${c.lado}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
-    <CriaturaIdentidade nome={c.nome} tipo={c.ref?.tipo ?? "avulso"} retrato={retrato} detalhes={<>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}</>}/>
+  return <li className={`ini-item lado-${c.lado}${c.pvMax && c.pv === 0 ? " derrotado" : ""}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
+    <CriaturaIdentidade nome={c.nome} tipo={c.ref?.tipo ?? "avulso"} retrato={retrato} referencia={c.ref} detalhes={<>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}{c.ca ? ` · CA ${c.ca}` : ""}</>}/>
+    {c.notas && <small className="ini-notas muted">{c.notas}</small>}
     <div className="ini-ini">
       <label className="ini-valor">Iniciativa<input aria-label={`Iniciativa de ${c.nome}`} inputMode="decimal" defaultValue={c.iniciativa} key={c.iniciativa}
         onBlur={e => { const n = numero(e.target.value); if (n !== undefined && n !== c.iniciativa) aplicar(x => definirIniciativa(x, c.id, n)); }}/></label>

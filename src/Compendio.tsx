@@ -1,3 +1,7 @@
+import { useEffect, useState } from "react";
+import { todosOsMonstros } from "./catalogue/contratos";
+import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
+import { DetalheMonstro } from "./compendio/DetalheMonstro";
 // Compêndio: ponto de entrada da seção (painel do catálogo) e da página de item (aba `item:<id>`, aberta pelo inventário do criador e pelos pacotes).
 // O painel é o catálogo genérico de `src/compendio/` (itens, magias e monstros de D&D 5e 2014); a página de item reutiliza o mesmo detalhe.
 import { Aviso } from "./Diario";
@@ -31,6 +35,7 @@ export function CompendioPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) 
 export function ItemPagina({ id, onOpenContent }: { id: string; onOpenContent: (s: TabSpec) => void }) {
   const unavailable = useCatalogueCampaign(onOpenContent);
   if (unavailable) return unavailable;
+  if (id.startsWith("monstro:")) return <MonstroPagina id={id.slice(8)}/>;
   const item = srdItem(id);
   if (!item) return <div className="content"><h1>Item</h1><Aviso erro t="Item não encontrado no catálogo desta revisão. O identificador pode ser antigo ou inválido."/></div>;
   return <div className="content item-pagina">
@@ -39,4 +44,11 @@ export function ItemPagina({ id, onOpenContent }: { id: string; onOpenContent: (
     <p className="muted">{item.en}</p>
     <DetalheItem item={item} onOpenContent={onOpenContent}/>
   </div>;
+}
+
+function MonstroPagina({ id }: { id: string }) {
+  const [dados, setDados] = useState<{ id: string; monstro?: Monstro; erro?: boolean } | null>(null);
+  useEffect(() => { let vivo = true; todosOsMonstros().then(lista => { if (vivo) setDados({ id, monstro: lista.find(m => m.id === id) }); }, () => { if (vivo) setDados({ id, erro: true }); }); return () => { vivo = false; }; }, [id]);
+  if (!dados || dados.id !== id) return <p role="status">Carregando ficha…</p>;
+  return <div className="content">{dados.monstro ? <><h1>{dados.monstro.nome}</h1><DetalheMonstro monstro={dados.monstro}/></> : <Aviso erro t={dados.erro ? "Não foi possível carregar a ficha." : "Criatura não encontrada."}/>}</div>;
 }

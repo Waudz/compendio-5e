@@ -1,7 +1,7 @@
 // Página individual de um encontro (aberta na mesma aba da lista): nome, descrição e criaturas editáveis. Só edita o próprio encontro; o catálogo nunca é alterado.
 import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { adicionarParticipante, definirDescricao, editarParticipante, removerParticipante, renomearEncontro, type Encontro, type ParticipanteEncontro, type RefCombate } from "./combate";
+import { adicionarParticipante, configurarCriatura, personalizarCriatura, definirDescricao, editarParticipante, removerParticipante, renomearEncontro, type Encontro, type ParticipanteEncontro, type RefCombate } from "./combate";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { ControleNumerico } from "./ControleNumerico";
 import { CriaturaIdentidade } from "./CriaturaIdentidade";
@@ -13,6 +13,7 @@ import { SeletorMonstro, numero } from "./CombateCompartilhado";
 
 function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; salvar: (e: Encontro) => void }) {
   const [editando, setEditando] = useState(false);
+  const [expandido, setExpandido] = useState(false);
   const [f, setF] = useState({ nome: p.nome, quantidade: String(p.quantidade), pv: p.pv ? String(p.pv) : "", ca: p.ca ? String(p.ca) : "", notas: p.notas ?? "" });
   const [erro, setErro] = useState(false);
   const mudarQtd = (n: number) => { if (Number.isInteger(n) && n >= 1 && n <= 50 && n !== p.quantidade) salvar(editarParticipante(enc, p.id, { quantidade: n })); };
@@ -37,16 +38,51 @@ function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; 
       <button type="submit" className="btn-secondary">Salvar criatura</button><button type="button" className="btn-secondary" onClick={() => setEditando(false)}>Cancelar</button>
     </form></li>;
   return <li className="enc-criatura">
-    <CriaturaIdentidade nome={p.nome} tipo={tipo} className="enc-criatura-info" detalhes={<>{p.ref?.tipo === "monstro" ? "Bestiário" : "Avulsa"}{p.pv ? ` · PV ${p.pv}` : ""}{p.ca ? ` · CA ${p.ca}` : ""}</>}>{p.notas && <small className="muted">{p.notas}</small>}</CriaturaIdentidade>
+    <CriaturaIdentidade nome={p.nome} tipo={tipo} referencia={p.ref} className="enc-criatura-info" detalhes={<>{p.ref?.tipo === "monstro" ? "Bestiário" : "Avulsa"}{p.pv ? ` · PV ${p.pv}` : ""}{p.ca ? ` · CA ${p.ca}` : ""}</>}>{p.notas && <small className="muted">{p.notas}</small>}</CriaturaIdentidade>
     <ControleNumerico campo={{ "aria-label": `Quantidade de ${p.nome} em ${enc.nome}`, defaultValue: p.quantidade, onBlur: e => { const n = numero(e.target.value); if (n !== undefined) mudarQtd(n); } }} key={p.quantidade} menos={{ rotulo: `Diminuir quantidade de ${p.nome}`, titulo: "Menos um", acao: () => mudarQtd(p.quantidade - 1) }} mais={{ rotulo: `Aumentar quantidade de ${p.nome}`, titulo: "Mais um", acao: () => mudarQtd(p.quantidade + 1) }}/>
     <button className="btn-secondary ini-icone" onClick={abrir} aria-label={`Editar criatura ${p.nome}`} title="Editar"><Pencil size={14} aria-hidden="true"/></button>
     <button className="btn-secondary ini-icone" onClick={() => salvar(removerParticipante(enc, p.id))} aria-label={`Remover ${p.nome} de ${enc.nome}`} title="Remover"><Trash2 size={14} aria-hidden="true"/></button>
+    <div className="enc-individuais"><button type="button" className="btn-secondary" aria-expanded={expandido} onClick={() => setExpandido(!expandido)}>Personalizar indivíduos ({p.quantidade})</button>
+      {expandido && <ul className="enc-instancias">{Array.from({ length: p.quantidade }, (_, i) => <Individual key={`${p.id}#${i + 1}`} enc={enc} p={p} n={i + 1} salvar={salvar}/>)}</ul>}</div>
     <details className="enc-loot-criatura"><summary>Loot de cada {p.nome} <small className="muted">({p.loot?.length ?? 0})</small></summary>
       <LootEditor rotulo={`loot de ${p.nome}`} itens={p.loot ?? []} onChange={loot => salvar({ ...enc, participantes: enc.participantes.map(x => { if (x.id !== p.id) return x; const { loot: _l, ...resto } = x; void _l; return loot.length ? { ...resto, loot } : resto; }) })}/></details>
   </li>;
 }
 
 /** Estado do encontro: configuração original (editável abaixo) x estado atual (o que já aconteceu). */
+function Individual({ enc, p, n, salvar }: { enc: Encontro; p: ParticipanteEncontro; n: number; salvar: (e: Encontro) => void }) {
+  const efetivo = configurarCriatura(p, n), id = `${p.id}#${n}`;
+  const individual = p.individuais?.[String(n)] ?? {};
+  const [editando, setEditando] = useState(false), [erro, setErro] = useState(false);
+  const atual = enc.atual?.criaturas.find(c => c.id === id);
+  const restaurar = () => { const individuais = { ...p.individuais }; delete individuais[String(n)]; salvar({ ...enc, participantes: enc.participantes.map(x => x.id === p.id ? { ...x, individuais } : x) }); };
+  return <li className="enc-instancia">
+    <CriaturaIdentidade nome={efetivo.nome ?? p.nome} tipo={p.ref?.tipo ?? "avulso"} referencia={p.ref} detalhes={<>{efetivo.pv ? `PV ${efetivo.pv}` : "Sem PV"}{efetivo.ca ? ` · CA ${efetivo.ca}` : ""}{atual?.noCombate ? " · no combate" : ""}</>}/>
+    <button type="button" className="btn-secondary" onClick={() => setEditando(!editando)} aria-label={`Personalizar ${efetivo.nome}`}>Editar</button>
+    {Object.keys(individual).length > 0 && <button type="button" className="btn-link" onClick={restaurar}>Usar padrões do grupo</button>}
+    {editando && <form className="ini-form enc-individual-form" aria-label={`Personalização de ${id}`} onSubmit={e => {
+      e.preventDefault(); const f = new FormData(e.currentTarget);
+      const valores: typeof individual = { ...individual };
+      for (const campo of ["nome", "notas"] as const) { const v = String(f.get(campo) ?? "").trim(); if (v) valores[campo] = v; else delete valores[campo]; }
+      for (const campo of ["pv", "ca"] as const) { const v = String(f.get(campo) ?? "").trim(); if (v) valores[campo] = Number(v); else delete valores[campo]; }
+      const novo = personalizarCriatura(enc, p.id, n, valores);
+      if (novo === enc) { setErro(true); return; } salvar(novo); setEditando(false); setErro(false);
+    }}>
+      <p className="muted">Campos vazios herdam o grupo. Alterações de preparação não substituem PV já em jogo.</p>
+      <label>Nome individual<input name="nome" maxLength={60} defaultValue={individual.nome ?? ""} placeholder={efetivo.nome}/></label>
+      <label>PV individual<input name="pv" type="number" min={1} step={1} defaultValue={individual.pv ?? ""} placeholder={String(p.pv ?? "")}/></label>
+      <label>CA individual<input name="ca" type="number" min={1} max={40} step={1} defaultValue={individual.ca ?? ""} placeholder={String(p.ca ?? "")}/></label>
+      <label>Notas individuais<textarea name="notas" maxLength={500} defaultValue={individual.notas ?? ""}/></label>
+      {erro && <p role="alert">Confira os valores de PV e CA.</p>}
+      <button type="submit" className="btn-secondary">Salvar personalização</button>
+    </form>}
+    <details className="enc-loot-criatura"><summary>Loot de {efetivo.nome}</summary>
+      <label><input type="checkbox" checked={individual.loot !== undefined} onChange={e => { const valores = { ...individual }; if (e.target.checked) valores.loot = structuredClone(efetivo.loot ?? []); else delete valores.loot; salvar(personalizarCriatura(enc, p.id, n, valores)); }}/> Loot próprio (substitui o grupo)</label>
+      {individual.loot !== undefined && <LootEditor rotulo={`loot de ${efetivo.nome}`} itens={individual.loot} onChange={loot => salvar(personalizarCriatura(enc, p.id, n, { ...individual, loot }))}/>}
+    </details>
+  </li>;
+}
+
 function EstadoEncontro({ enc, salvar, sincronizar, duplicarAtual }: { enc: Encontro; salvar: (e: Encontro) => void; sincronizar: () => void; duplicarAtual: () => void }) {
   const estado = estadoDe(enc), emCombate = estado === "em_combate", pend = pendencias(enc);
   const concluir = () => { if (pend.length && !window.confirm(`Ainda há pendências (${pend.join("; ")}). Concluir mesmo assim?`)) return; salvar(concluirEncontro(enc)); };

@@ -23,7 +23,7 @@ export const ROTULO_LOOT: Record<EstadoLoot, string> = { disponivel: "Disponíve
 
 /** Parte do encontro que o loot precisa ler (evita importar combate.ts e criar ciclo). */
 export type FonteLoot = {
-  participantes: { id: string; loot?: ItemLoot[] }[]; recompensas?: ItemLoot[]; recipientes?: Recipiente[];
+  participantes: { id: string; loot?: ItemLoot[]; individuais?: Record<string, { loot?: ItemLoot[] }> }[]; recompensas?: ItemLoot[]; recipientes?: Recipiente[];
   atual?: { criaturas: { id: string; participanteId: string; situacao: "viva" | "derrotada" }[]; loot?: LinhaLoot[] };
 };
 
@@ -95,7 +95,11 @@ const nova = (o: OrigemLoot, i: ItemLoot): LinhaLoot => ({ id: idLinha(o, i.id),
 /** Linhas que a configuração original prevê para o estado atual (criaturas existentes, recipientes e recompensas). */
 export function linhasPrevistas(enc: FonteLoot): LinhaLoot[] {
   const r: LinhaLoot[] = [];
-  for (const c of enc.atual?.criaturas ?? []) for (const i of enc.participantes.find(p => p.id === c.participanteId)?.loot ?? []) r.push(nova({ tipo: "criatura", criaturaId: c.id }, i));
+  for (const c of enc.atual?.criaturas ?? []) {
+    const p = enc.participantes.find(p => p.id === c.participanteId);
+    const n = c.id.slice(c.id.lastIndexOf("#") + 1);
+    for (const i of p?.individuais?.[n]?.loot ?? p?.loot ?? []) r.push(nova({ tipo: "criatura", criaturaId: c.id }, i));
+  }
   for (const rec of enc.recipientes ?? []) for (const i of rec.itens) r.push(nova({ tipo: "recipiente", recipienteId: rec.id }, i));
   for (const i of enc.recompensas ?? []) r.push(nova({ tipo: "recompensa" }, i));
   return r;

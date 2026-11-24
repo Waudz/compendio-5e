@@ -50,11 +50,11 @@ test('mestre só descarta combate ao confirmar Finalizar; F5 mantém o combate a
   await page.getByRole('button', { name: 'Adicionar', exact: true }).click();
   await page.reload();
   await navigate(page, 'Iniciativa');
-  await expect(page.getByText('Sentinela', { exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Combatentes' }).getByText('Sentinela', { exact: true })).toBeVisible();
 
   page.once('dialog', dialog => dialog.dismiss());
   await page.getByRole('button', { name: 'Finalizar combate', exact: true }).click();
-  await expect(page.getByText('Sentinela', { exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Combatentes' }).getByText('Sentinela', { exact: true })).toBeVisible();
 
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Finalizar combate', exact: true }).click();
@@ -75,7 +75,7 @@ test('finalizar combate preserva encontros preparados para reutilização', asyn
   await encontro.getByRole('button', { name: 'Voltar à lista de encontros' }).click();
   await page.getByRole('region', { name: 'Encontro Emboscada de teste' }).getByRole('button', { name: 'Enviar para a Iniciativa' }).click();
   await navigate(page, 'Iniciativa');
-  await expect(page.getByRole('list', { name: 'Ordem de iniciativa' }).getByText('Goblin', { exact: true })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Combatentes' }).getByText('Goblin', { exact: true })).toBeVisible();
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Finalizar combate' }).click();
   await expect(page.getByText('Nenhum combatente ainda', { exact: true })).toBeVisible();

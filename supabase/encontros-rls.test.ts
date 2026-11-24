@@ -98,3 +98,12 @@ describe("encontros preparados — RLS real em PostgreSQL isolado", () => {
     expect((await como(mestreA, "update public.campaign_encounters set state=$2,version=2 where campaign_id=$1 returning state", [a, novo])).rows).toEqual([{ state: novo }]);
   });
 });
+
+
+it("#138: mestre persiste líder individual e estado ferido no JSON existente; jogador e outro mestre continuam bloqueados", async () => {
+  const novo = { encontros: [{ id: "cinco", nome: "Cinco goblins", participantes: [{ id: "g", nome: "Goblin", quantidade: 5, pv: 7, ca: 15, individuais: { "3": { nome: "Líder", pv: 20, ca: 17, notas: "Chave", loot: [] } } }], estado: "em_andamento", atual: { criaturas: [{ id: "g#3", participanteId: "g", nome: "Líder", pv: 14, pvMax: 20, ca: 17, iniciativa: 18, condicoes: ["Envenenado"], situacao: "viva" }] } }] };
+  const salvar = "update public.campaign_encounters set state=$2,version=2 where campaign_id=$1 and version=1 returning state";
+  for (const user of [jogadorA, mestreB, estranho]) expect((await como(user, salvar, [a, novo])).rows).toEqual([]);
+  expect((await como(mestreA, salvar, [a, novo])).rows).toEqual([{ state: novo }]);
+  expect((await como(mestreA, "select state from public.campaign_encounters where campaign_id=$1", [a])).rows).toEqual([{ state: novo }]);
+});

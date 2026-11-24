@@ -102,7 +102,7 @@ export function ModoArmazenamento({ nuvem, sync, mensagem, o, onTentar, onRecarr
     {mensagem ?? "Outra sessão alterou os dados."} Suas últimas alterações não foram gravadas (uma cópia ficou neste aparelho). <button className="btn-link" onClick={onRecarregar}>Recarregar do servidor</button> (descarta o que não foi gravado).</div>;
   if (sync === "permissao") return <Aviso erro t={mensagem ?? "Sem permissão para gravar."}/>;
   if (sync === "falha") return <div className="notice err" role="alert" data-modo="nuvem" data-sync="falha">{mensagem ?? "Sem conexão com o servidor."} As alterações continuam nesta tela e serão enviadas assim que a conexão voltar. <button className="btn-link" onClick={onTentar}>Tentar agora</button></div>;
-  return <p className="muted ini-modo" role="status" data-modo="nuvem" data-sync={sync}>{sync === "salvando" ? "Salvando na nuvem…" : `Salvo na nuvem (${o}): disponível em qualquer aparelho em que você entrar como mestre desta campanha.`} {baixar}</p>;
+  return <p className="muted ini-modo" role="status" data-modo="nuvem" data-sync={sync}>{sync === "salvando" ? "Salvando na nuvem…" : `Nuvem · ${o}`} {baixar}</p>;
 }
 export function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }) {
   const [bruto, setBruto] = useState<string | null>(null);
@@ -136,7 +136,7 @@ export function SeletorMonstro({ rotulo, onEscolher }: { rotulo: string; onEscol
 export function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
   const fonte = useAventureiros(), fichas = useFichas();
   const [busca, setBusca] = useState(""), [pvTexto, setPvTexto] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
-  const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: { id: string; nome: string; classe: string }[] }>({ status: "carregando" });
+  const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: { id: string; nome: string; classe: string; retratoUrl?: string | null }[] }>({ status: "carregando" });
   const carregar = useCallback(() => { if (!fonte) return; setDados({ status: "carregando" }); fonte.listar(campaignId).then(r => setDados(r.ok ? { status: "pronto", lista: r.data } : { status: "erro" }), () => setDados({ status: "erro" })); }, [fonte, campaignId]);
   useEffect(() => { carregar(); }, [carregar]);
   if (!fonte) return <p className="muted">Não foi possível acessar os personagens da campanha.</p>;
@@ -160,7 +160,7 @@ export function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: stri
       : <><p className="muted">Os PV atuais e máximos vêm da ficha do personagem.</p>
         <label>PV máximo manual (usado só se a ficha não puder ser lida)<input inputMode="numeric" value={pvTexto} onChange={e => setPvTexto(e.target.value)}/></label>
         {aviso && <Aviso erro t={aviso}/>}
-        <label>Buscar personagem<input type="search" value={busca} onChange={e => setBusca(e.target.value)}/></label><ul className="ini-achados">{dados.lista.filter(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca))).map(p => <li key={p.id}><button type="button" className="btn-secondary" disabled={lendo !== null} onClick={() => void escolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><strong>{p.nome}</strong> <small>{p.classe}</small>{lendo === p.id && <small role="status"> lendo a ficha…</small>}</button></li>)}</ul></>)}
+        <PesquisaCatalogo rotulo="Buscar personagem" valor={busca} onChange={setBusca} minimo={0} vazio={!dados.lista.some(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca)))} resultados={dados.lista.filter(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca))).map(p => <li key={p.id}><button type="button" className="btn-secondary" disabled={lendo !== null} onClick={() => void escolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="personagem" src={p.retratoUrl} tamanho={36}/><span><strong>{p.nome}</strong><small>{p.classe}</small>{lendo === p.id && <small role="status">lendo a ficha…</small>}</span></span></button></li>)}/></>)}
   </section>;
 }
 
