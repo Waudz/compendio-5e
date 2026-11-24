@@ -31,7 +31,9 @@ test('cinco goblins: líder individual, envio 4+1 e reinserção ferida persiste
   await expect(combatentes.locator('.ini-item')).toHaveCount(4);
   await expect(page.getByLabel('PV de Líder goblin', { exact: true })).toHaveText('PV 20/20');
   const enviar = async () => {
-    await page.getByRole('button', { name: 'Adicionar encontro preparado', exact: true }).click();
+    await page.getByRole('button', { name: 'Encontros preparados', exact: true }).click();
+    await page.getByLabel('Buscar combatentes', { exact: true }).fill('QA cinco goblins');
+    await page.getByRole('button', { name: 'Selecionar encontro QA cinco goblins', exact: true }).click();
     const d = page.getByRole('dialog', { name: 'Adicionar encontro preparado', exact: true });
     await d.getByRole('button', { name: 'Incluir no combate: QA cinco goblins', exact: true }).click();
   };
@@ -64,7 +66,7 @@ test('iniciativa permanece utilizável em três painéis e abre ficha completa',
   await page.goto('?demo=mestre&nuvem=1');
   await expect(page.getByRole('heading', { name: campaignName, exact: true })).toBeVisible();
   await navigate(page, 'Iniciativa');
-  await page.getByLabel('Buscar monstro', { exact: true }).fill('goblin');
+  await page.getByLabel('Buscar combatentes', { exact: true }).fill('goblin');
   await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
   await page.getByRole('button', { name: 'Recolher menu', exact: true }).click();
   await page.getByRole('tab', { name: /^Iniciativa/ }).click({ button: 'right' });

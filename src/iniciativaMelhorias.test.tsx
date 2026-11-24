@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { abrirAvulso, abrirBusca, abrirEncontro } from "../tests/combate-ui";
 // Iniciativa: retratos padronizados, resultado das rolagens, turno atual em destaque e seleção parcial de encontros preparados.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -12,7 +13,7 @@ import { IniciativaPanel } from "./Iniciativa";
 import { selecionarParticipantes } from "./SeletorEncontro";
 
 const encontros: Encontro[] = [{ id: "e1", nome: "Emboscada", participantes: [{ id: "p1", nome: "Goblin", quantidade: 3, pv: 7 }, { id: "p2", nome: "Lobo", quantidade: 1, pv: 11 }, { id: "p3", nome: "Chefe", quantidade: 1 }] }];
-const preencher = (rotulo: string, valor: string) => fireEvent.change(within(screen.getByRole("form", { name: "Adicionar combatente" })).getByLabelText(rotulo), { target: { value: valor } });
+const preencher = (rotulo: string, valor: string) => { if (rotulo === "Nome") abrirAvulso(); return fireEvent.change(within(screen.getByRole("form", { name: "Adicionar combatente" })).getByLabelText(rotulo), { target: { value: valor } }); };
 const adicionarAvulso = (nome: string, ini = "10", pv = "") => { preencher("Nome", nome); preencher("Iniciativa", ini); if (pv) preencher("PV (opcional)", pv); fireEvent.click(within(screen.getByRole("form", { name: "Adicionar combatente" })).getByRole("button", { name: "Adicionar" })); };
 beforeEach(() => { localStorage.clear(); escopo = { user: { id: "u1" }, active: { role: "mestre", campaign: { id: "c1", name: "Véu Negro" } } }; });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -46,7 +47,7 @@ describe("tela da Iniciativa", () => {
     await screen.findByText("Nenhum combatente ainda");
     adicionarAvulso("Goblin avulso");
     expect(await within(screen.getByRole("group", { name: "Combatentes" })).findAllByTestId("retrato-placeholder")).toHaveLength(1);
-    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.focus(await screen.findByLabelText("Buscar personagem")); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" }));
+    abrirBusca("Personagens"); fireEvent.focus(await screen.findByLabelText("Buscar combatentes")); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" }));
     const item = (await within(await screen.findByRole("group", { name: "Combatentes" })).findByText("Lydia", { selector: "strong" })).closest("li")!;
     await waitFor(() => expect(item.querySelector("img")?.getAttribute("src")).toBe("https://exemplo.test/lydia.png"));
     fireEvent.error(item.querySelector("img")!);                                    // imagem quebrada
@@ -83,7 +84,7 @@ describe("tela da Iniciativa", () => {
     localStorage.setItem(chaveEncontros("u1", "c1"), JSON.stringify(encontros));
     render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
     adicionarAvulso("Lydia", "18");
-    fireEvent.click(screen.getByText("Adicionar encontro preparado"));
+    await abrirEncontro("Emboscada");
     await screen.findByText("Emboscada");
     fireEvent.click(screen.getByLabelText("Incluir Lobo de Emboscada"));                                   // desmarca o lobo
     fireEvent.change(screen.getByLabelText("Quantidade de Goblin a enviar de Emboscada"), { target: { value: "2" } });
@@ -96,10 +97,10 @@ describe("tela da Iniciativa", () => {
   });
   it("sem encontros preparados mostra a orientação; desmarcar tudo desabilita o envio", async () => {
     render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
-    fireEvent.click(screen.getByText("Adicionar encontro preparado")); expect(await screen.findByText(/Nenhum encontro preparado/)).toBeTruthy();
+    abrirBusca("Encontros preparados"); expect(await screen.findByText(/Nenhum encontro preparado/)).toBeTruthy();
     cleanup(); localStorage.setItem(chaveEncontros("u1", "c1"), JSON.stringify(encontros));
     render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
-    fireEvent.click(screen.getByText("Adicionar encontro preparado")); await screen.findByText("Emboscada");
+    await abrirEncontro("Emboscada"); await screen.findByText("Emboscada");
     for (const n of ["Goblin", "Lobo", "Chefe"]) fireEvent.click(screen.getByLabelText(`Incluir ${n} de Emboscada`));
     expect((screen.getByRole("button", { name: "Incluir no combate: Emboscada" }) as HTMLButtonElement).disabled).toBe(true);
   });

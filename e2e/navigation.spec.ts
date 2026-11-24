@@ -18,6 +18,7 @@ test('mestre usa iniciativa local, preserva PV e rodada ao recarregar', async ({
   await openDemo(page);
   await navigate(page, 'Iniciativa');
   await expect(page.getByRole('heading', { name: 'Iniciativa', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Combatente avulso', exact: true }).click();
   await page.getByLabel('Nome', { exact: true }).fill('Goblin de teste');
   await page.getByRole('textbox', { name: 'Iniciativa', exact: true }).fill('12');
   await page.getByLabel('PV (opcional)', { exact: true }).fill('7');
@@ -46,6 +47,7 @@ test('jogador não acessa o conteúdo de iniciativa', async ({ page }) => {
 test('mestre só descarta combate ao confirmar Finalizar; F5 mantém o combate até lá', async ({ page }) => {
   await openDemo(page);
   await navigate(page, 'Iniciativa');
+  await page.getByRole('button', { name: 'Combatente avulso', exact: true }).click();
   await page.getByLabel('Nome', { exact: true }).fill('Sentinela');
   await page.getByRole('button', { name: 'Adicionar', exact: true }).click();
   await page.reload();

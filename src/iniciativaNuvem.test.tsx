@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { abrirAvulso, abrirBusca, abrirEncontro } from "../tests/combate-ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Encontro, EstadoCombate } from "./combate";
@@ -31,7 +32,7 @@ function montar(ui: React.ReactElement, combate = servidor<EstadoCombate>(vazioC
   const r = render(<NuvemContext.Provider value={{ combate: combate.api, encontros: encontros.api }}>{ui}</NuvemContext.Provider>);
   return { ...r, combate, encontros };
 }
-const preencher = (rotulo: string, valor: string) => fireEvent.change(within(screen.getByRole("form", { name: /^(Adicionar combatente|Novo encontro)$/ })).getByLabelText(rotulo), { target: { value: valor } });
+const preencher = (rotulo: string, valor: string) => { if (rotulo === "Nome") abrirAvulso(); return fireEvent.change(within(screen.getByRole("form", { name: /^(Adicionar combatente|Novo encontro)$/ })).getByLabelText(rotulo), { target: { value: valor } }); };
 beforeEach(() => { localStorage.clear(); escopo = { user: { id: "u1" }, active: { role: "mestre", campaign: { id: "c1", name: "Véu Negro" } } }; });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
@@ -106,9 +107,9 @@ describe("Iniciativa na nuvem", () => {
     const fonte = { listar: async () => ({ ok: true as const, data: [{ id: "pj1", nome: "Lydia Valenmoor", classe: "Guerreira", nivel: null }] }) };
     render(<AventureirosContext.Provider value={fonte}><NuvemContext.Provider value={{ combate: combate.api, encontros: servidor<Encontro[]>([]).api }}><IniciativaPanel/></NuvemContext.Provider></AventureirosContext.Provider>);
     await screen.findByText("Nenhum combatente ainda");
-    fireEvent.click(screen.getByText(/Adicionar do Bestiário/)); fireEvent.change(await screen.findByLabelText("Buscar monstro"), { target: { value: "goblin" } });
+    abrirBusca("Bestiário"); fireEvent.change(await screen.findByLabelText(/Buscar (monstro|combatentes)/), { target: { value: "goblin" } });
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Goblin do Bestiário" }));
-    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.focus(await screen.findByLabelText("Buscar personagem")); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
+    abrirBusca("Personagens"); fireEvent.focus(await screen.findByLabelText("Buscar combatentes")); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
     await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes).toHaveLength(2));
     const cs = combate.s.linhas.get("c1")!.valor.combatentes;
     expect(cs.find(c => c.ref?.tipo === "monstro")).toMatchObject({ nome: "Goblin", ref: { tipo: "monstro", id: "goblin" }, pvMax: 7, lado: "inimigo" });
@@ -128,7 +129,7 @@ describe("Encontros na nuvem", () => {
     encontros.s.linhas.set("c1", { valor: [{ id: "e1", nome: "Covil", participantes: [{ id: "p", nome: "Goblin", quantidade: 2, pv: 7 }] }], versao: 1 });
     vi.spyOn(window, "confirm").mockReturnValue(true);
     montar(<><IniciativaPanel/><EncontrosPanel/></>, combate, encontros);
-    fireEvent.click((await screen.findAllByText("Adicionar encontro preparado"))[0]); fireEvent.click(await screen.findByRole("button", { name: "Incluir no combate: Covil" }));
+    await screen.findByRole("button", { name: "Encontros preparados" }); await abrirEncontro("Covil"); fireEvent.click(await screen.findByRole("button", { name: "Incluir no combate: Covil" }));
     await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].estado).toBe("em_combate"));
     await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes[0]?.encontro).toEqual({ encontroId: "e1", criaturaId: "p#1" }));
     expect((await screen.findAllByText("Em combate")).length).toBeGreaterThan(0);                   // o painel Encontros também já vê
@@ -190,8 +191,8 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
   };
   const adicionarLydia = async (pv = "12") => {
     await screen.findByText("Nenhum combatente ainda");
-    fireEvent.click(screen.getByText("Adicionar personagem da campanha")); fireEvent.focus(await screen.findByLabelText("Buscar personagem")); fireEvent.change(await screen.findByLabelText(/PV máximo manual/), { target: { value: pv } });
-    fireEvent.focus(await screen.findByLabelText("Buscar personagem"));
+    abrirBusca("Personagens"); fireEvent.focus(await screen.findByLabelText("Buscar combatentes")); fireEvent.change(await screen.findByLabelText(/PV máximo manual/), { target: { value: pv } });
+    fireEvent.focus(await screen.findByLabelText("Buscar combatentes"));
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia Valenmoor (personagem)" }));
   };
   it("dano, cura e condição do personagem chegam à ficha; só PV, máximo e condições são enviados", async () => {
@@ -206,7 +207,7 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
   it("monstros e combatentes genéricos NÃO geram status de ficha nem alteram o Bestiário", async () => {
     const st = statusFalso(); montarComStatus(st); await screen.findByText("Nenhum combatente ainda");
     preencher("Nome", "Orc"); preencher("PV (opcional)", "15"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
-    fireEvent.click(screen.getByText(/Adicionar do Bestiário/)); fireEvent.change(await screen.findByLabelText("Buscar monstro"), { target: { value: "goblin" } }); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Goblin do Bestiário" }));
+    abrirBusca("Bestiário"); fireEvent.change(await screen.findByLabelText(/Buscar (monstro|combatentes)/), { target: { value: "goblin" } }); fireEvent.click(await screen.findByRole("button", { name: "Adicionar Goblin do Bestiário" }));
     fireEvent.change(screen.getByLabelText("Quantidade de dano ou cura de Goblin"), { target: { value: "3" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Goblin" }));
     await waitFor(() => expect(screen.getByLabelText("PV de Goblin").textContent).toBe("PV 4/7"));
     await new Promise(r => setTimeout(r, 80)); expect(st.chamadas).toEqual([]);

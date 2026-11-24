@@ -28,6 +28,7 @@ test('mestre: encontro → combate → turnos, dano, condição → recarregar �
   await expect(page.getByRole('heading', { name: 'Iniciativa', exact: true })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Combatentes' }).getByText('Goblin', { exact: true })).toBeVisible();
   // a aba Encontros continua aberta (o menu não substitui abas): escopo no formulário do combate
+  await page.getByRole('button', { name: 'Combatente avulso', exact: true }).click();
   const form = page.getByRole('form', { name: 'Adicionar combatente' });
   await form.getByLabel('Nome', { exact: true }).fill('Lydia');
   await form.getByRole('textbox', { name: 'Iniciativa', exact: true }).fill('18');

@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Dices, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2 } from "lucide-react";
+import { BuscaCombatentes } from "./BuscaCombatentes";
+import { ChevronLeft, ChevronRight, Dices, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2, Columns2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Aviso } from "./Diario";
 import { useUnsavedGuard } from "./unsaved";
@@ -15,9 +16,8 @@ import { useRetratosPersonagens } from "./RetratoCombate";
 import { FaixaTurnos } from "./FaixaTurnos";
 import { ControleNumerico } from "./ControleNumerico";
 import { CriaturaIdentidade } from "./CriaturaIdentidade";
-import { SeletorEncontro } from "./SeletorEncontro";
 import { marcarEnviado, sincronizarComCombate } from "./estadoEncontro";
-import { EVENTO, type Estado, useArmazenado, rotuloLado, CONDICOES_5E, numero, useEscopo, SemCampanha, AcessoRestrito, ErroArmazenamento, ModoArmazenamento, BackupLocal, modAtributo, SeletorMonstro, SeletorPersonagem, type VisualizacaoCombate, chaveVisualizacaoCombate, lerVisualizacaoCombate } from "./CombateCompartilhado";
+import { EVENTO, type Estado, useArmazenado, rotuloLado, CONDICOES_5E, numero, useEscopo, SemCampanha, AcessoRestrito, ErroArmazenamento, ModoArmazenamento, BackupLocal, modAtributo, type VisualizacaoCombate, chaveVisualizacaoCombate, lerVisualizacaoCombate } from "./CombateCompartilhado";
 export { NuvemContext, type ApisNuvem, type VisualizacaoCombate, chaveVisualizacaoCombate, lerVisualizacaoCombate } from "./CombateCompartilhado";
 export { EncontrosPanel } from "./Encontros";
 // ---------------------------------------------------------------- Iniciativa
@@ -139,28 +139,25 @@ export function IniciativaPanel() {
       <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()} dados={combate} arquivo="combate-nuvem"/>
       {loja.nuvem && <BackupLocal chave={chaveCombate(userId, campaignId)} rotulo="combate"/>}
       <div className="ini-turnos-topo"><FaixaTurnos ordem={ordem} turno={combate.turno} retratos={retratos}/>
-      <div className="ini-barra">
-        <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
-        <button className="btn-secondary" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
+      <div className="ini-barra ini-controles-turno">
+        <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" title={ordem.find(c => c.id === combate.turno)?.nome} aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
+        <div className="ini-acoes-turno"><button className="btn-secondary" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
         <button className="btn-secondary" title="Próximo turno" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
         <button className="btn-secondary" title="Reiniciar rodadas" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
-        <button className="btn-secondary" title="Finalizar combate" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
+        <button className="btn-secondary" title="Finalizar combate" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button></div>
       </div>
       </div>
-      <form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
+      <BuscaCombatentes campaignId={campaignId} encontros={encontros.status === "pronto" ? encontros.valor : null} monstro={adicionarMonstro} personagem={adicionarPersonagem} enviar={enc => { if (!aplicar(e => enviarParaCombate(e, enc))) return; lojaEnc.aplicar(l => l.map(x => x.id === enc.id ? marcarEnviado(x, enc) : x)); }} avulso={<form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
         <label>Nome<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={60}/></label>
         <label>Iniciativa<input inputMode="decimal" value={ini} onChange={e => setIni(e.target.value)} placeholder="0"/></label>
         <label>PV (opcional)<input inputMode="numeric" value={pv} onChange={e => setPv(e.target.value)}/></label>
         <label>Lado<select value={lado} onChange={e => setLado(e.target.value as Lado)}>{(Object.keys(rotuloLado) as Lado[]).map(l => <option key={l} value={l}>{rotuloLado[l]}</option>)}</select></label>
         <button type="submit" className="btn-secondary"><Plus size={15} aria-hidden="true"/> Adicionar</button>
-      </form>
-      <SeletorMonstro rotulo="Adicionar do Bestiário (rola a iniciativa)" onEscolher={adicionarMonstro}/>
-      <SeletorPersonagem key={campaignId} campaignId={campaignId} onEscolher={adicionarPersonagem}/>
-      <SeletorEncontro encontros={encontros.status === "pronto" ? encontros.valor : null} onEnviar={enc => { if (!aplicar(e => enviarParaCombate(e, enc))) return; lojaEnc.aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x))); }}/>
+      </form>}/>
       <div className="ini-visualizacao" role="group" aria-label="Visualização dos combatentes">
-        <button type="button" className={visualizacao === "cartoes" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "cartoes"} onClick={() => alterarVisualizacao("cartoes")}><LayoutGrid size={15} aria-hidden="true"/> Cartões</button>
-        <button type="button" className={visualizacao === "lista" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "lista"} onClick={() => alterarVisualizacao("lista")}><List size={15} aria-hidden="true"/> Lista compacta</button>
-        <button type="button" className="btn-secondary" aria-pressed={separarLados} onClick={() => { const v = !separarLados; setSepararLados(v); try { localStorage.setItem(`compendio5e:lados-combate:${userId}`, v ? "separados" : "unificados"); } catch { /* preferência em memória */ } }}>{separarLados ? "Lados separados" : "Lados unificados"}</button>
+        <button type="button" className={visualizacao === "cartoes" ? "btn-secondary selecionado" : "btn-secondary"} aria-label="Cartões" title="Cartões" aria-pressed={visualizacao === "cartoes"} onClick={() => alterarVisualizacao("cartoes")}><LayoutGrid size={15} aria-hidden="true"/> Cartões</button>
+        <button type="button" className={visualizacao === "lista" ? "btn-secondary selecionado" : "btn-secondary"} aria-label="Lista compacta" title="Lista compacta" aria-pressed={visualizacao === "lista"} onClick={() => alterarVisualizacao("lista")}><List size={15} aria-hidden="true"/> Lista compacta</button>
+        <button type="button" className="btn-secondary" aria-label={separarLados ? "Lados separados" : "Lados unificados"} title={separarLados ? "Lados separados" : "Lados unificados"} aria-pressed={separarLados} onClick={() => { const v = !separarLados; setSepararLados(v); try { localStorage.setItem(`compendio5e:lados-combate:${userId}`, v ? "separados" : "unificados"); } catch { /* preferência em memória */ } }}><Columns2 size={15} aria-hidden="true"/><span className="sr-only">{separarLados ? "Lados separados" : "Lados unificados"}</span></button>
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>

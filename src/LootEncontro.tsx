@@ -24,7 +24,7 @@ function Linha({ l, enc, salvar }: { l: LinhaLoot; enc: Encontro; salvar: (e: En
 }
 
 /** Andamento do loot, agrupado por origem. Cada grupo é recolhível; grupos resolvidos começam fechados. */
-function Andamento({ enc, salvar }: { enc: Encontro; salvar: (e: Encontro) => void }) {
+export function AndamentoLoot({ enc, salvar }: { enc: Encontro; salvar: (e: Encontro) => void }) {
   const linhas = enc.atual?.loot ?? [];
   const grupos = new Map<string, { titulo: string; linhas: LinhaLoot[] }>();
   for (const l of linhas) {
@@ -36,10 +36,10 @@ function Andamento({ enc, salvar }: { enc: Encontro; salvar: (e: Encontro) => vo
   if (!grupos.size) return null;
   return <div className="loot-andamento" role="group" aria-label="Andamento do loot">
     <h4>Andamento do loot</h4>
-    {[...grupos.entries()].map(([k, g]) => <details key={k} open={g.linhas.some(l => restante(l) > 0)} className="loot-grupo">
-      <summary>{g.titulo} <small className="muted">({g.linhas.filter(l => restante(l) <= 0).length}/{g.linhas.length} distribuídos)</small></summary>
+    {[...grupos.entries()].map(([k, g]) => <section key={k} className="loot-grupo">
+      <h4>{g.titulo} <small className="muted">({g.linhas.filter(l => restante(l) <= 0).length}/{g.linhas.length} distribuídos)</small></h4>
       <ul className="loot-lista">{g.linhas.map(l => <Linha key={l.id} l={l} enc={enc} salvar={salvar}/>)}</ul>
-    </details>)}
+    </section>)}
   </div>;
 }
 
@@ -64,13 +64,12 @@ export function LootEncontro({ enc, salvar }: { enc: Encontro; salvar: (e: Encon
         <label>Descrição (opcional)<input value={desc} maxLength={300} onChange={e => setDesc(e.target.value)}/></label>
         <button type="submit" className="btn-secondary"><Plus size={15} aria-hidden="true"/> Criar recipiente</button>
       </form>
-      {recipientes.map(r => <details key={r.id} className="loot-recipiente" aria-label={`Recipiente ${r.nome}`}>
-        <summary>{r.nome} <small className="muted">({r.itens.length} item(ns))</small></summary>
+      {recipientes.map(r => <section key={r.id} className="loot-recipiente" aria-label={`Recipiente ${r.nome}`}>
+        <h4>{r.nome} <small className="muted">({r.itens.length} item(ns))</small></h4>
         {r.descricao && <p className="muted">{r.descricao}</p>}
         <LootEditor rotulo={r.nome} itens={r.itens} onChange={i => mudarRec(r.id, x => ({ ...x, itens: i }))}/>
         <button type="button" className="btn-secondary" onClick={() => { if (window.confirm(`Remover o recipiente "${r.nome}" e a configuração dos itens dele? O que já foi coletado ou distribuído continua registrado.`)) salvar({ ...enc, recipientes: recipientes.filter(x => x.id !== r.id) }); }} aria-label={`Remover recipiente ${r.nome}`}><Trash2 size={14} aria-hidden="true"/> Remover recipiente</button>
-      </details>)}
+      </section>)}
     </section>
-    <Andamento enc={enc} salvar={salvar}/>
   </section>;
 }

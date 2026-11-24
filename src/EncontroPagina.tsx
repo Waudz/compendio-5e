@@ -7,7 +7,7 @@ import { ControleNumerico } from "./ControleNumerico";
 import { CriaturaIdentidade } from "./CriaturaIdentidade";
 import { ROTULO_ESTADO, avisoEntregas, concluirEncontro, estadoDe, iniciarSemCombate, normalizarLoot, pendencias, podeRestaurar, reabrirEncontro, restaurarOriginal } from "./estadoEncontro";
 import { LootEditor } from "./LootEditor";
-import { LootEncontro } from "./LootEncontro";
+import { LootEncontro, AndamentoLoot } from "./LootEncontro";
 import { SeletorEncontro } from "./SeletorEncontro";
 import { SeletorMonstro, numero } from "./CombateCompartilhado";
 
@@ -44,8 +44,8 @@ function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; 
     <button className="btn-secondary ini-icone" onClick={() => salvar(removerParticipante(enc, p.id))} aria-label={`Remover ${p.nome} de ${enc.nome}`} title="Remover"><Trash2 size={14} aria-hidden="true"/></button>
     <div className="enc-individuais"><button type="button" className="btn-secondary" aria-expanded={expandido} onClick={() => setExpandido(!expandido)}>Personalizar indivíduos ({p.quantidade})</button>
       {expandido && <ul className="enc-instancias">{Array.from({ length: p.quantidade }, (_, i) => <Individual key={`${p.id}#${i + 1}`} enc={enc} p={p} n={i + 1} salvar={salvar}/>)}</ul>}</div>
-    <details className="enc-loot-criatura"><summary>Loot de cada {p.nome} <small className="muted">({p.loot?.length ?? 0})</small></summary>
-      <LootEditor rotulo={`loot de ${p.nome}`} itens={p.loot ?? []} onChange={loot => salvar({ ...enc, participantes: enc.participantes.map(x => { if (x.id !== p.id) return x; const { loot: _l, ...resto } = x; void _l; return loot.length ? { ...resto, loot } : resto; }) })}/></details>
+    <section className="enc-loot-criatura" aria-label={`Loot de cada ${p.nome}`}><h4>Loot de cada {p.nome} <small className="muted">({p.loot?.length ?? 0})</small></h4>
+      <LootEditor rotulo={`loot de ${p.nome}`} itens={p.loot ?? []} onChange={loot => salvar({ ...enc, participantes: enc.participantes.map(x => { if (x.id !== p.id) return x; const { loot: _l, ...resto } = x; void _l; return loot.length ? { ...resto, loot } : resto; }) })}/></section>
   </li>;
 }
 
@@ -76,10 +76,10 @@ function Individual({ enc, p, n, salvar }: { enc: Encontro; p: ParticipanteEncon
       {erro && <p role="alert">Confira os valores de PV e CA.</p>}
       <button type="submit" className="btn-secondary">Salvar personalização</button>
     </form>}
-    <details className="enc-loot-criatura"><summary>Loot de {efetivo.nome}</summary>
+    <section className="enc-loot-criatura" aria-label={`Loot de ${efetivo.nome}`}><h4>Loot de {efetivo.nome}</h4>
       <label><input type="checkbox" checked={individual.loot !== undefined} onChange={e => { const valores = { ...individual }; if (e.target.checked) valores.loot = structuredClone(efetivo.loot ?? []); else delete valores.loot; salvar(personalizarCriatura(enc, p.id, n, valores)); }}/> Loot próprio (substitui o grupo)</label>
       {individual.loot !== undefined && <LootEditor rotulo={`loot de ${efetivo.nome}`} itens={individual.loot} onChange={loot => salvar(personalizarCriatura(enc, p.id, n, { ...individual, loot }))}/>}
-    </details>
+    </section>
   </li>;
 }
 
@@ -121,7 +121,7 @@ export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincr
     <label className="enc-descricao">Descrição<textarea rows={3} maxLength={2000} defaultValue={enc.descricao ?? ""} key={enc.descricao ?? ""} placeholder="O que acontece, onde, como começa…"
       onBlur={e => { if (e.target.value.trim() !== (enc.descricao ?? "")) salvar(definirDescricao(enc, e.target.value)); }}/></label>
     <div className="enc-subabas" role="group" aria-label="Seções do encontro">{(["criaturas", "tesouros", "progresso"] as const).map(v => <button key={v} type="button" className="btn-secondary" aria-pressed={aba === v} onClick={() => setAba(v)}>{v === "criaturas" ? "Criaturas" : v === "tesouros" ? "Tesouros" : "Progresso"}</button>)}</div>
-    {aba === "progresso" && <EstadoEncontro enc={enc} salvar={salvar} sincronizar={sincronizar} duplicarAtual={duplicarAtual}/>}
+    {aba === "progresso" && <><EstadoEncontro enc={enc} salvar={salvar} sincronizar={sincronizar} duplicarAtual={duplicarAtual}/><AndamentoLoot enc={enc} salvar={salvar}/></>}
     {aba === "criaturas" && <>
     <h3>Criaturas <small className="muted">{enc.participantes.length ? `${enc.participantes.length} tipo(s), ${total} no total` : ""}</small></h3>
     {enc.participantes.length === 0 ? <p className="muted">Sem criaturas. Adicione do Bestiário ou crie uma avulsa abaixo (um encontro também pode não ter combate).</p>

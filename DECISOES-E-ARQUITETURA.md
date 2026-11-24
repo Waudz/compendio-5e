@@ -319,3 +319,14 @@ O usuário informa que **não há dados reais de uso no novo site além do conte
 - **Segurança/compatibilidade:** Iniciativa e Encontros exclusivos do mestre; nenhuma migração ou alteração de produção. Campos JSON opcionais mantêm leitura dos encontros antigos. Salvamento mantém revisão otimista e backups existentes; combate e encontro ainda são registros separados, não uma transação distribuída.
 - **Verificação:** 1.534 testes Vitest aprovados (inclui RLS/PGlite isolado); 66 E2E aprovados e 2 saltos previstos (três painéis no celular). Caso cinco goblins/líder, 4+1, remoção ferida, reinserção e recarga testado a 320/390/1024/1440 px. Build e testes adicionais finais registrados na continuidade.
 - **Alternativa rejeitada:** duplicar o grupo para representar o líder, identificar por nome ou descartar/recriar o estado do encontro. Etapa 2 não iniciada.
+
+
+### DEC-024 — Busca única, controles imóveis e loot direto (24/11/2026)
+
+- **Problema:** o nome do turno alterava a posição das ações, a fonte de personagens da Iniciativa não era conectada ao adaptador real e a preparação do loot continuava excessivamente aninhada.
+- **Decisão:** nome/rodada em linha própria e ações com colunas fixas. Em painéis de até 900 px, ações por ícone com nomes acessíveis e tooltips. Faixa sticky opaca cobre todo o recuo interno do painel. Modos de visualização ficam em ícones discretos à direita da lista.
+- **Busca:** uma pesquisa com filtros Todos, Personagens, Bestiário e Encontros preparados, reutilizando os seletores existentes e o diálogo seletivo. Combatente avulso é a ação explícita para cadastro manual, não um gerador aleatório de inimigos. Formulário aparece apenas nessa opção.
+- **Personagens:** `useAventureiros` usa o mesmo `fontePersonagens`/API autenticada de registros da campanha quando não há fonte explícita. Filtro de campanha/visibilidade e permissões existentes preservados; retratos usam a mesma origem. Teste cobre a integração sem injetar contexto artificial.
+- **Loot:** conteúdo de criaturas, recipientes e recompensas sempre visível na preparação. Um seletor contextual compartilhado abre por Escolher loot; itens do catálogo, personalizados e moedas mantidos. Andamento fica em Progresso para não duplicar as listas de preparação.
+- **Alternativa rejeitada:** mais seletores independentes, cabeçalho que muda com o nome ou formulários/itens escondidos em details aninhados. Sem alteração de JSON, schema, políticas, dados existentes ou Supabase hospedado.
+- **Verificação:** testes de integração e E2E de busca real, isolamento de campanha, cliques repetidos na mesma coordenada, cinco goblins/retomada, loot visível e faixa em painel dividido. Resultados finais na continuidade. Trabalho local na branch `codex/iniciativa-busca-controles`; não confundir com o PR #139 já publicado.

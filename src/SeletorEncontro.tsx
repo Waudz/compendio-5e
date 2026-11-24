@@ -38,13 +38,13 @@ function CartaoEncontro({ enc, onEnviar }: { enc: Encontro; onEnviar: (e: Encont
 }
 
 /** Quem já está no combate é preservado (o chamador só acrescenta). Sem encontros: orientação para criá-los. */
-export function SeletorEncontro({ encontros, onEnviar, rotulo = "Adicionar encontro preparado" }: { encontros: readonly Encontro[] | null; onEnviar: (e: Encontro) => void; rotulo?: string }) {
-  const [aberto, setAberto] = useState(false);
+export function SeletorEncontro({ encontros, onEnviar, rotulo = "Adicionar encontro preparado", automatico = false, aoFechar }: { encontros: readonly Encontro[] | null; onEnviar: (e: Encontro) => void; rotulo?: string; automatico?: boolean; aoFechar?: () => void }) {
+  const [aberto, setAberto] = useState(automatico);
   const dialogo = useRef<HTMLDialogElement>(null);
   useEffect(() => { if (aberto && !dialogo.current?.open) dialogo.current?.showModal(); }, [aberto]);
   const fechar = () => { dialogo.current?.close(); setAberto(false); };
-  return <><button type="button" className="btn-secondary" onClick={() => setAberto(true)}><Swords size={15} aria-hidden="true"/> {rotulo}</button>
-    <dialog ref={dialogo} className="ini-dialogo" aria-label={rotulo} onClose={() => setAberto(false)}>
+  return <>{!automatico && <button type="button" className="btn-secondary" onClick={() => setAberto(true)}><Swords size={15} aria-hidden="true"/> {rotulo}</button>}
+    <dialog ref={dialogo} className="ini-dialogo" aria-label={rotulo} onClose={() => { setAberto(false); aoFechar?.(); }}>
       {aberto && <><h3>{rotulo}</h3>
       {encontros === null ? <p className="muted" role="status">Carregando os encontros…</p>
       : encontros.length === 0 ? <p className="muted">Nenhum encontro preparado. Crie um em Encontros.</p>

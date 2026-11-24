@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { abrirEncontro } from "../tests/combate-ui";
 // Encontros (entrega 3): estados, configuração original x estado atual, vínculo estável com o combate, restauração, duplicação e persistência.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -91,7 +92,7 @@ describe("telas: fim do combate e página do encontro", () => {
   it("Finalizar combate devolve PV e sobreviventes ao encontro, persiste e mantém 'em andamento'", async () => {
     localStorage.setItem(chaveEncontros("u1", "c1"), JSON.stringify([{ id: "e1", nome: "Covil", participantes: [{ id: "p1", nome: "Goblin", quantidade: 2, pv: 7 }] }]));
     render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
-    fireEvent.click(screen.getByText("Adicionar encontro preparado")); fireEvent.click(await screen.findByRole("button", { name: "Incluir no combate: Covil" }));
+    await abrirEncontro("Covil"); fireEvent.click(await screen.findByRole("button", { name: "Incluir no combate: Covil" }));
     await screen.findByText("Goblin 1", { selector: "strong" });
     fireEvent.change(screen.getByLabelText("Quantidade de dano ou cura de Goblin 1"), { target: { value: "7" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Goblin 1" }));
     vi.spyOn(window, "confirm").mockReturnValue(true);

@@ -1,6 +1,6 @@
 // Editor compacto de uma lista de loot (usado por criatura, recompensas gerais e recipientes). Itens do catálogo existente, personalizados ou moedas.
 import { Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PesquisaCatalogo } from "./PesquisaCatalogo";
 import { srdItemFile, describeItem } from "./catalogue/srd-2014-items";
 import { novoId } from "./combate";
@@ -10,6 +10,10 @@ const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCas
 type Tipo = "catalogo" | "personalizado" | "moeda";
 
 export function LootEditor({ itens, onChange, rotulo }: { itens: readonly ItemLoot[]; onChange: (i: ItemLoot[]) => void; rotulo: string }) {
+  const titulo = `Escolher loot de ${rotulo.replace(/^loot de /, "")}`;
+  const [aberto, setAberto] = useState(false);
+  const dialogo = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (aberto && !dialogo.current?.open) dialogo.current?.showModal(); }, [aberto]);
   const [tipo, setTipo] = useState<Tipo>("catalogo"), [busca, setBusca] = useState(""), [nome, setNome] = useState(""), [desc, setDesc] = useState(""), [qtd, setQtd] = useState("1"), [moeda, setMoeda] = useState<Moeda>("gp"), [erro, setErro] = useState(false);
   const achados = useMemo(() => {
     if (tipo !== "catalogo" || busca.trim().length < 2) return [];
@@ -30,8 +34,8 @@ export function LootEditor({ itens, onChange, rotulo }: { itens: readonly ItemLo
         <input className="loot-qtd" inputMode="numeric" aria-label={`Quantidade de ${i.moeda ? ROTULO_MOEDA[i.moeda] : i.nome} em ${rotulo}`} defaultValue={i.quantidade} key={i.quantidade} onBlur={e => mudarQtd(i.id, Number(e.target.value))}/>
         <button type="button" className="btn-secondary ini-icone" onClick={() => onChange(itens.filter(x => x.id !== i.id))} aria-label={`Remover ${textoLoot(i)} de ${rotulo}`} title="Remover"><Trash2 size={14} aria-hidden="true"/></button>
       </li>)}</ul>}
-    <details className="loot-adicionar">
-      <summary>Adicionar a {rotulo}</summary>
+    <button type="button" className="btn-secondary" aria-label={titulo} onClick={() => setAberto(true)}><Plus size={15} aria-hidden="true"/> Escolher loot</button>
+    <dialog ref={dialogo} className="ini-dialogo loot-dialogo" aria-label={titulo} onClose={() => setAberto(false)}>{aberto && <><h3>Escolher loot · {rotulo}</h3>
       <div className="ini-form">
         <label>Tipo<select aria-label={`Tipo de item em ${rotulo}`} value={tipo} onChange={e => setTipo(e.target.value as Tipo)}><option value="catalogo">Item do catálogo</option><option value="personalizado">Item personalizado</option><option value="moeda">Moeda</option></select></label>
         <label>Qtd.<input inputMode="numeric" aria-label={`Quantidade a adicionar em ${rotulo}`} value={qtd} onChange={e => setQtd(e.target.value)}/></label>
@@ -41,6 +45,7 @@ export function LootEditor({ itens, onChange, rotulo }: { itens: readonly ItemLo
         {tipo !== "catalogo" && <button type="button" className="btn-secondary" onClick={() => incluir(tipo === "moeda" ? { moeda, nome: ROTULO_MOEDA[moeda], quantidade: q } : { nome, quantidade: q, descricao: desc })}><Plus size={15} aria-hidden="true"/> Incluir {tipo === "moeda" ? "moeda" : "item"}</button>}
       </div>
       {erro && <p role="alert" className="muted">Confira o nome e a quantidade (1 a 9999).</p>}
-    </details>
+      <button type="button" className="btn-secondary" onClick={() => dialogo.current?.close()}>Concluir seleção</button>
+    </>}</dialog>
   </div>;
 }

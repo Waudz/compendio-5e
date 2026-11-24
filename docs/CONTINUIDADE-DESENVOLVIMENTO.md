@@ -352,3 +352,12 @@ Resultado final local: 1.534 testes aprovados, nenhum falho ou pendente; build (
 O CI identificou uma falha de importação de `catalogueCampaignGate.test.tsx`: as 1.534 asserções anteriores passaram, mas a contagem de asserções sozinha não revelava esse arquivo que não carregou. O teste usa mock parcial do catálogo e a nova referência ao bestiário antecipava a inicialização. `MonstroPagina` agora importa a fonte sob demanda, somente quando a ficha é aberta; a barreira de campanha continua antes disso. Conferir também arquivos/suítes com falha, não apenas `numFailedTests`.
 
 Verificação da correção: oito testes de barreira/identidade aprovados, build aprovado e os dois E2E de abertura de ficha em três painéis aprovados. Suíte completa reexecutada; resultado definitivo e publicação devem ser conferidos nos checks do SHA final do PR #139, que permanecem condição do merge. Não houve alteração de mock para esconder a falha nem redução de cobertura.
+
+
+## Correções de usabilidade após #139 — 24/11/2026, local
+
+Base `429c2c5`, branch `codex/iniciativa-busca-controles`. Pedidos: ações de turno imóveis; modos discretos; pesquisa única com fontes e cadastro manual explícito; personagens realmente disponíveis; loot de baú/criatura visível com botão contextual; faixa fixa cobrindo toda a largura interna e botões compactos em meia tela. Implementação e motivos: DEC-024.
+
+A causa dos personagens ausentes era o consumo exclusivo de AventureirosContext sem provider na aplicação. A fonte agora reutiliza o adaptador da campanha via API autenticada; teste inclui criação de registros em memória sem provider explícito, exclusão de outra campanha e de fichas privadas. Não houve acesso a dados reais ou migração.
+
+Validação local concluída: 1.541 testes aprovados em 126 arquivos, nenhuma falha de importação ou asserção; E2E principal 74 aprovados/2 saltos previstos; rodada visual final 10 aprovados/2 saltos (cliques na mesma coordenada, busca de personagens sem contexto injetado, loot visível, cobertura de todas as bordas e ações de 36 px em meia tela). Qualidade a 320/1440: 23 aprovados/7 saltos previstos. Build/TypeScript e tipos E2E aprovados. Capturas inspecionadas e preservadas fora do repositório. Sem push/deploy; Android físico e sessões reais hospedadas não foram utilizados.

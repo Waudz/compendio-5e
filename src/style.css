@@ -842,3 +842,39 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
   .ini-turnos-topo .ini-barra .btn-secondary svg{width:18px;height:18px}
   .ini-turnos-topo .ini-barra{gap:6px}.ini-turnos-topo .ini-turno-atual{font-size:12px;max-width:100%;overflow-wrap:anywhere}
 }
+
+/* Controles de turno em posições constantes: a identidade nunca determina a largura das ações. */
+.iniciativa .ini-controles-turno{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%;max-width:680px;align-items:center}
+.ini-controles-turno .ini-rodada{grid-column:1;white-space:nowrap;line-height:36px;margin:0}
+.ini-controles-turno .ini-turno-atual{grid-column:2/-1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box;line-height:22px;height:36px}
+.iniciativa .ini-controles-turno .btn-secondary{width:100%;height:38px;min-width:0;box-sizing:border-box;justify-content:center;white-space:nowrap}
+.iniciativa .ini-visualizacao{display:flex;justify-content:flex-end;gap:4px;margin:8px 0 4px}
+.iniciativa .ini-visualizacao .btn-secondary{width:30px;height:30px;min-height:30px;min-width:30px;padding:6px;font-size:0;gap:0;justify-content:center}
+.ini-busca-unica{margin:12px 0;min-width:0}.ini-fontes{display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;max-width:100%;padding:2px 0 8px;scrollbar-width:thin}
+.ini-fontes button{flex:none;font-size:12px;padding:5px 8px;white-space:nowrap}.ini-fontes button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
+.iniciativa .ini-resultados-unicos{max-height:min(420px,55vh)}.ini-resultados-unicos .ini-seletor{margin:0;padding:6px;border:0}
+.ini-resultados-unicos .ini-seletor>strong{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.loot-secao-cabecalho{display:flex;align-items:center;justify-content:space-between;gap:8px}.loot-secao-cabecalho h4{margin:8px 0}
+.iniciativa .loot-dialogo{width:min(700px,calc(100vw - 24px))}.loot-dialogo .pesquisa-resultados{position:static;max-height:240px}
+@container ini (max-width:520px){.ini-controles-turno .ini-rodada{grid-column:1/3}.ini-controles-turno .ini-turno-atual{grid-column:3/-1}}
+
+/* A faixa fixa pinta toda a largura interna do painel, inclusive o recuo dos cartões. */
+.iniciativa{--ini-recuo:clamp(15px,3vw,42px)}
+.mobile .iniciativa{--ini-recuo:16px}
+.iniciativa .ini-turnos-topo{margin-inline:calc(-1 * var(--ini-recuo));padding-inline:var(--ini-recuo);box-sizing:border-box;background:var(--bg);isolation:isolate;z-index:40;box-shadow:0 -12px 0 var(--bg)}
+@container ini (max-width:900px){
+  .ini-turnos-topo .ini-controles-turno{max-width:420px;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .ini-turnos-topo .ini-controles-turno .btn-secondary{font-size:0;gap:0;min-width:36px;padding:8px}
+  .ini-turnos-topo .ini-controles-turno .btn-secondary svg{width:18px;height:18px}
+  .ini-turnos-topo .ini-controles-turno .ini-rodada{grid-column:1/3}
+  .ini-turnos-topo .ini-controles-turno .ini-turno-atual{grid-column:3/-1}
+}
+
+/* Compensa o padding superior do scrollport; não deixa uma fresta acima da faixa sticky. */
+.iniciativa .ini-turnos-topo{top:-30px;box-shadow:none}
+.mobile .iniciativa .ini-turnos-topo{top:-22px}
+.mobile.has-groups .iniciativa .ini-turnos-topo{top:-66px}
+
+.ini-acoes-turno{grid-column:1/-1;display:flex;gap:6px;min-width:0}
+.iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:1 1 0;width:auto}
+@container ini (max-width:900px){.iniciativa .ini-controles-turno .ini-acoes-turno .btn-secondary{flex:0 0 36px;width:36px;height:36px}}

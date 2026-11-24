@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { abrirAvulso } from "../tests/combate-ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
@@ -7,7 +8,7 @@ vi.mock("./AuthContext", () => ({ useAuth: () => ({ user: escopo.user }) }));
 vi.mock("./CampaignsContext", () => ({ useCampaigns: () => ({ active: escopo.active }) }));
 import { EncontrosPanel, IniciativaPanel } from "./Iniciativa";
 
-const preencher = (rotulo: string, valor: string) => fireEvent.change(within(screen.getByRole("form", { name: /^(Adicionar combatente|Novo encontro)$/ })).getByLabelText(rotulo), { target: { value: valor } });
+const preencher = (rotulo: string, valor: string) => { if (rotulo === "Nome") abrirAvulso(); return fireEvent.change(within(screen.getByRole("form", { name: /^(Adicionar combatente|Novo encontro)$/ })).getByLabelText(rotulo), { target: { value: valor } }); };
 beforeEach(() => { localStorage.clear(); escopo = { user: { id: "u1" }, active: { role: "mestre", campaign: { id: "c1", name: "Véu Negro" } } }; });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
