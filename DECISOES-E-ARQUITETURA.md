@@ -276,3 +276,13 @@ Navegação confirmada: mestre — Início, Anotações, Iniciativa, Compêndio,
 ### Premissa de dados da Alpha — confirmação do usuário (23/11/2026)
 
 O usuário informa que **não há dados reais de uso no novo site além do conteúdo importado do sistema anterior**. Não construir uma migração complexa de combates locais de usuários como bloqueador do lançamento. Para o novo fluxo, criar combates diretamente na nuvem; preservar os catálogos e demais dados importados do legado. Dados de teste só podem ser descartados após identificação inequívoca de que são sintéticos; não presumir que toda linha do Supabase é descartável, nem executar limpeza de produção sem verificação e autorização. A segurança/RLS e a persistência entre dispositivos continuam obrigatórias.
+
+### DEC-020 — Iniciativa e Encontros integrados (24/11/2026, issue #134)
+
+- **Retratos:** componente único `RetratoQuadrado` (`src/RetratoCombate.tsx`), quadrado de cantos levemente arredondados. Personagens usam a imagem já existente na ficha/identidade pública, resolvida na hora de exibir por id estável (não é copiada para o estado do combate, preservando a compatibilidade dos dados salvos). Monstros e avulsos usam o placeholder padrão; imagem quebrada cai no placeholder.
+- **Rolagens:** `rolarD20`/`textoRolagem` (`src/combate.ts`) devolvem dado, modificador e total; a Iniciativa mostra "d20 15 + 2 = 17". O resultado visível é só informativo; a iniciativa gravada continua sendo o total.
+- **PV:** sem segunda fonte de verdade (ficha + `character_combat_status`, ver ciclo de vida do combate).
+- **Encontro preparado → Iniciativa:** `SeletorEncontro` envia só as criaturas e quantidades marcadas; quem já está no combate é preservado e o encontro original nunca é alterado. O mesmo seletor é usado na Iniciativa e na página do encontro.
+- **Encontros (entrega 2):** lista resumida e página individual na mesma aba (`EncontroPagina.tsx`). Criar um encontro já abre a página. Campos novos, todos opcionais e compatíveis com o JSON antigo `{id,nome,participantes}`: `descricao` (até 2000), por criatura `ca` e `notas` (até 500). A criatura é uma **cópia editável** do encontro; `ref` guarda só a origem do Bestiário e o catálogo nunca é alterado. Ids de encontro e de criatura continuam estáveis (base para a futura ligação Anotação/masmorra → sala → encontro, sem duplicar registros).
+- **Sem migração:** o encontro continua uma linha jsonb por campanha (`campaign_encounters`); nenhuma mudança de banco nas entregas 1 e 2.
+- **Fora de escopo por ora:** estados do encontro, configuração original x estado atual, loot, recipientes e recompensas (entregas 3 e 4); Anotações/Documentos e distribuição automática para inventários.

@@ -5,8 +5,9 @@ export type Lado = "aliado" | "inimigo" | "neutro";
 export type RefCombate = { tipo: "monstro" | "personagem"; id: string };
 export type Combatente = { id: string; nome: string; iniciativa: number; lado: Lado; pv?: number; pvMax?: number; condicoes?: string[]; ref?: RefCombate };
 export type EstadoCombate = { combatentes: Combatente[]; turno: string | null; rodada: number };
-export type ParticipanteEncontro = { id: string; nome: string; quantidade: number; pv?: number; ref?: RefCombate };
-export type Encontro = { id: string; nome: string; participantes: ParticipanteEncontro[] };
+/** Criatura de um encontro: cópia editável (nome, quantidade, PV, CA, notas); nunca altera o catálogo. `ref` guarda só a origem (Bestiário). */
+export type ParticipanteEncontro = { id: string; nome: string; quantidade: number; pv?: number; ca?: number; notas?: string; ref?: RefCombate };
+export type Encontro = { id: string; nome: string; descricao?: string; participantes: ParticipanteEncontro[] };
 
 export const combateVazio = (): EstadoCombate => ({ combatentes: [], turno: null, rodada: 1 });
 export const novoId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`);
@@ -82,14 +83,34 @@ export function rolarIniciativa(e: EstadoCombate, id: string, modificador = 0, a
 export const reiniciarRodadas = (e: EstadoCombate): EstadoCombate => ({ ...e, rodada: 1, turno: ordenar(e.combatentes)[0]?.id ?? null });
 
 // ---------------------------------------------------------------- encontros
-export function adicionarParticipante(enc: Encontro, p: { nome: string; quantidade: number; pv?: number; ref?: RefCombate }): Encontro {
+export function adicionarParticipante(enc: Encontro, p: { nome: string; quantidade: number; pv?: number; ca?: number; notas?: string; ref?: RefCombate }): Encontro {
   const nome = p.nome.trim(); if (!nome) return enc;
   if (!Number.isSafeInteger(p.quantidade) || p.quantidade < 1 || p.quantidade > 50 || (p.pv !== undefined && (!Number.isSafeInteger(p.pv) || p.pv < 1))) return enc;
   const quantidade = p.quantidade;
-  return { ...enc, participantes: [...enc.participantes, { id: novoId(), nome, quantidade, ...(p.pv && p.pv > 0 ? { pv: Math.floor(p.pv) } : {}), ...(p.ref ? { ref: p.ref } : {}) }] };
+  return { ...enc, participantes: [...enc.participantes, { id: novoId(), nome, quantidade, ...(p.pv && p.pv > 0 ? { pv: Math.floor(p.pv) } : {}), ...(p.ca && Number.isSafeInteger(p.ca) && p.ca > 0 && p.ca <= 40 ? { ca: p.ca } : {}), ...(textoOpc(p.notas, 500) ? { notas: textoOpc(p.notas, 500) } : {}), ...(p.ref ? { ref: p.ref } : {}) }] };
+}
+const textoOpc = (v: unknown, max: number): string | undefined => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined);
+/** Edita uma criatura do encontro (só a cópia do encontro). Valores inválidos mantêm o encontro como estava. `pv`/`ca` vazios (null) removem o campo. */
+export type EdicaoParticipante = { nome?: string; quantidade?: number; pv?: number | null; ca?: number | null; notas?: string };
+export function editarParticipante(enc: Encontro, id: string, e: EdicaoParticipante): Encontro {
+  const p = enc.participantes.find(x => x.id === id); if (!p) return enc;
+  const nome = e.nome === undefined ? p.nome : e.nome.trim();
+  if (!nome || nome.length > 60) return enc;
+  const quantidade = e.quantidade ?? p.quantidade; if (!Number.isSafeInteger(quantidade) || quantidade < 1 || quantidade > 50) return enc;
+  const pv = e.pv === undefined ? p.pv : e.pv; if (pv != null && (!Number.isSafeInteger(pv) || pv < 1)) return enc;
+  const ca = e.ca === undefined ? p.ca : e.ca; if (ca != null && (!Number.isSafeInteger(ca) || ca < 1 || ca > 40)) return enc;
+  const notas = e.notas === undefined ? p.notas : textoOpc(e.notas, 500);
+  const novo: ParticipanteEncontro = { id: p.id, nome, quantidade, ...(pv != null ? { pv } : {}), ...(ca != null ? { ca } : {}), ...(notas ? { notas } : {}), ...(p.ref ? { ref: p.ref } : {}) };
+  return { ...enc, participantes: enc.participantes.map(x => (x.id === id ? novo : x)) };
+}
+export const removerParticipante = (enc: Encontro, id: string): Encontro => ({ ...enc, participantes: enc.participantes.filter(x => x.id !== id) });
+/** Descrição livre do encontro (até 2000 caracteres); vazia remove o campo. */
+export function definirDescricao(enc: Encontro, descricao: string): Encontro {
+  const { descricao: _antiga, ...resto } = enc; void _antiga;
+  const d = textoOpc(descricao, 2000); return d ? { ...resto, descricao: d } : resto;
 }
 /** Cópia independente (novos ids) com nome "… (cópia)". */
-export const duplicarEncontro = (enc: Encontro): Encontro => ({ id: novoId(), nome: `${enc.nome} (cópia)`.slice(0, 80), participantes: enc.participantes.map(p => ({ ...p, id: novoId() })) });
+export const duplicarEncontro = (enc: Encontro): Encontro => ({ id: novoId(), nome: `${enc.nome} (cópia)`.slice(0, 80), ...(enc.descricao ? { descricao: enc.descricao } : {}), participantes: enc.participantes.map(p => ({ ...p, id: novoId() })) });
 export function renomearEncontro(enc: Encontro, nome: string): Encontro { const n = nome.trim(); return n && n.length <= 80 ? { ...enc, nome: n } : enc; }
 /** Leva os participantes do encontro para o combate como inimigos, numerando quando há mais de um ("Goblin 1", "Goblin 2"). Iniciativa 0 até o mestre informar. */
 export function enviarParaCombate(e: EstadoCombate, enc: Encontro): EstadoCombate {
@@ -132,10 +153,10 @@ export function lerEncontros(bruto: string | null): Encontro[] {
   if (!Array.isArray(v)) throw new Error("lista de encontros inválida");
   return v.map((e): Encontro => {
     if (!obj(e) || typeof e.id !== "string" || typeof e.nome !== "string" || !Array.isArray(e.participantes)) throw new Error("encontro inválido");
-    return { id: e.id, nome: e.nome, participantes: e.participantes.map((p): ParticipanteEncontro => {
+    return { id: e.id, nome: e.nome, ...(textoOpc(e.descricao, 2000) ? { descricao: textoOpc(e.descricao, 2000) } : {}), participantes: e.participantes.map((p): ParticipanteEncontro => {
       if (!obj(p) || typeof p.id !== "string" || typeof p.nome !== "string" || typeof p.quantidade !== "number" || !Number.isSafeInteger(p.quantidade) || p.quantidade < 1 || p.quantidade > 50) throw new Error("participante inválido");
       if (p.pv !== undefined && (typeof p.pv !== "number" || !Number.isSafeInteger(p.pv) || p.pv < 1)) throw new Error("PV inválido");
-      return { id: p.id, nome: p.nome, quantidade: p.quantidade, ...(typeof p.pv === "number" && p.pv > 0 ? { pv: p.pv } : {}), ...(lerRef(p.ref) ? { ref: lerRef(p.ref) } : {}) };
+      return { id: p.id, nome: p.nome, quantidade: p.quantidade, ...(typeof p.pv === "number" && p.pv > 0 ? { pv: p.pv } : {}), ...(typeof p.ca === "number" && Number.isSafeInteger(p.ca) && p.ca > 0 && p.ca <= 40 ? { ca: p.ca } : {}), ...(textoOpc(p.notas, 500) ? { notas: textoOpc(p.notas, 500) } : {}), ...(lerRef(p.ref) ? { ref: lerRef(p.ref) } : {}) };
     }) };
   });
 }

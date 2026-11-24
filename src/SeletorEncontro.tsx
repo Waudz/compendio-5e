@@ -30,10 +30,10 @@ function CartaoEncontro({ enc, onEnviar }: { enc: Encontro; onEnviar: (e: Encont
 }
 
 /** Quem já está no combate é preservado (o chamador só acrescenta). Sem encontros: orientação para criá-los. */
-export function SeletorEncontro({ encontros, onEnviar }: { encontros: readonly Encontro[] | null; onEnviar: (e: Encontro) => void }) {
+export function SeletorEncontro({ encontros, onEnviar, rotulo = "Adicionar encontro preparado" }: { encontros: readonly Encontro[] | null; onEnviar: (e: Encontro) => void; rotulo?: string }) {
   const [aberto, setAberto] = useState(false);
   return <details className="ini-seletor" open={aberto} onToggle={e => setAberto((e.target as HTMLDetailsElement).open)}>
-    <summary>Adicionar encontro preparado</summary>
+    <summary>{rotulo}</summary>
     {encontros === null ? <p className="muted" role="status">Carregando os encontros…</p>
       : encontros.length === 0 ? <p className="muted">Nenhum encontro preparado. Crie um em Encontros.</p>
       : <><p className="muted">Escolha quais criaturas e quantas entram. Quem já está no combate continua lá.</p><ul className="ini-enc-lista">{encontros.map(enc => <CartaoEncontro key={enc.id} enc={enc} onEnviar={onEnviar}/>)}</ul></>}

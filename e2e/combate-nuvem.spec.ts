@@ -15,12 +15,13 @@ test('mestre: encontro → combate → turnos, dano, condição → recarregar �
   await expect(page.locator('[data-modo="nuvem"]')).toBeVisible();
   await page.getByLabel('Nome do encontro', { exact: true }).fill('Emboscada na estrada');
   await page.getByRole('button', { name: 'Criar encontro', exact: true }).click();
-  const cartao = page.getByRole('region', { name: 'Encontro Emboscada na estrada' });
+  const cartao = page.getByRole('region', { name: 'Página do encontro Emboscada na estrada' });
   await cartao.getByText('Adicionar do Bestiário', { exact: true }).click();
   await cartao.getByLabel('Buscar monstro').fill('goblin');
   await cartao.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
-  await expect(cartao.getByText(/1× Goblin · PV 7/)).toBeVisible();
-  await cartao.getByRole('button', { name: 'Enviar para a Iniciativa', exact: true }).click();
+  await expect(cartao.getByText(/Bestiário · PV 7/)).toBeVisible();
+  await cartao.getByRole('button', { name: 'Voltar à lista de encontros' }).click();
+  await page.getByRole('region', { name: 'Encontro Emboscada na estrada' }).getByRole('button', { name: 'Enviar para a Iniciativa', exact: true }).click();
   await expect(page.getByText(/foi enviado para a Iniciativa/)).toBeVisible();
   // 2. conduz o combate
   await navigate(page, 'Iniciativa');
