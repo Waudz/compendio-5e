@@ -40,18 +40,37 @@ function Capa({ campaignId, isMaster, editing, name, onEdit }: { campaignId: str
     api.obter(campaignId).then(r => { if (!vivo) return; if (r.ok) setUrl(r.data); else setMsg(r.error); setPronto(true); });
     return () => { vivo = false; };
   }, [api, campaignId]);
-  const escolher = async (f: File | undefined) => {
+  const [zoom, setZoom] = useState(1), [x, setX] = useState(50), [y, setY] = useState(50);
+  const [preview, setPreview] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => { if (!preview) { setPreviewUrl(null); return; } const u = URL.createObjectURL(preview); setPreviewUrl(u); return () => URL.revokeObjectURL(u); }, [preview]);
+  const escolher = (f: File | undefined) => {
     if (!f || !api) return; const bad = validarCapa(f); if (bad) { setMsg(bad); return; }
-    setBusy(true); setMsg(null); const r = await api.definir(campaignId, f); setBusy(false);
-    if (r.ok) setUrl(r.data); else setMsg(r.error);
+    setPreview(f); setZoom(1); setX(50); setY(50); setMsg(null);
   };
-  const remover = async () => { if (!api) return; setBusy(true); setMsg(null); const r = await api.remover(campaignId); setBusy(false); if (r.ok) setUrl(null); else setMsg(r.error); };
+  const salvarCapa = async () => {
+    if (!api || !(previewUrl || url)) return;
+    setBusy(true); setMsg(null);
+    try {
+      const img = new Image(); img.crossOrigin = "anonymous"; img.src = (previewUrl || url)!; await img.decode();
+      const canvas = document.createElement("canvas"); canvas.width = 1920; canvas.height = 540;
+      const escala = Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight) * zoom;
+      const w = img.naturalWidth * escala, h = img.naturalHeight * escala;
+      const ctx = canvas.getContext("2d"); if (!ctx) throw new Error("Não foi possível preparar a capa.");
+      ctx.drawImage(img, (canvas.width-w)*x/100, (canvas.height-h)*y/100, w, h);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", .92));
+      if (!blob) throw new Error("Não foi possível gerar a capa.");
+      const r = await api.definir(campaignId, new File([blob], "capa.jpg", {type:"image/jpeg"}));
+      if (r.ok) { setUrl(r.data); setPreview(null); setZoom(1); setX(50); setY(50); } else setMsg(r.error);
+    } catch { setMsg("Não foi possível ajustar a capa. A imagem anterior foi mantida."); } finally { setBusy(false); }
+  };
+  const remover = async () => { if (!api) return; setPreview(null); setBusy(true); setMsg(null); const r = await api.remover(campaignId); setBusy(false); if (r.ok) setUrl(null); else setMsg(r.error); };
   return <section className="home-cover-wrap" aria-label="Capa da campanha" data-testid="inicio-capa">
-    <div className="home-cover">{url ? <img src={url} alt="Capa da campanha"/> : <div className="home-cover-empty"><ImageIcon size={26} aria-hidden="true"/><span>{pronto ? "Sem capa" : "Carregando…"}</span></div>}<h1 className="home-name">{name}</h1>{isMaster && <button type="button" className="home-edit" aria-label="Editar informações" title="Editar campanha" aria-expanded={editing} onClick={onEdit}><Pencil size={18}/></button>}</div>
+    <div className="home-cover">{(editing && previewUrl || url) ? <img src={(editing && previewUrl || url)!} alt="Capa da campanha" style={editing ? {objectPosition:`${x}% ${y}%`,transform:`scale(${zoom})`,transformOrigin:`${x}% ${y}%`} : undefined}/> : <div className="home-cover-empty"><ImageIcon size={26} aria-hidden="true"/><span>{pronto ? "Sem capa" : "Carregando…"}</span></div>}<h1 className="home-name">{name}</h1>{isMaster && <button type="button" className="home-edit" aria-label="Editar informações" title="Editar campanha" aria-expanded={editing} onClick={onEdit}><Pencil size={18}/></button>}</div>
     {isMaster && editing && api && <div className="home-cover-actions row">
       <label className="btn-secondary file-btn">{url ? "Substituir capa" : "Adicionar capa"}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={busy} onChange={e => { void escolher(e.target.files?.[0]); e.target.value = ""; }}/></label>
       {url && <button className="btn-secondary" disabled={busy} onClick={() => void remover()}>Remover capa</button>}
-      {busy && <span className="muted" role="status">Enviando…</span>}</div>}
+      {(url || previewUrl) && <div className="home-crop"><label>Zoom<input type="range" min="1" max="3" step=".05" value={zoom} onChange={e=>setZoom(+e.target.value)}/></label><label>Horizontal<input type="range" min="0" max="100" value={x} onChange={e=>setX(+e.target.value)}/></label><label>Vertical<input type="range" min="0" max="100" value={y} onChange={e=>setY(+e.target.value)}/></label><button className="btn-secondary" disabled={busy} onClick={()=>void salvarCapa()}>Salvar enquadramento</button><button className="btn-secondary" disabled={busy} onClick={()=>{setPreview(null);setZoom(1);setX(50);setY(50)}}>Restaurar prévia</button><small>O enquadramento salvo substitui a imagem da capa.</small></div>}{busy && <span className="muted" role="status">Enviando…</span>}</div>}
     {msg && <div className="notice err" role="alert">{msg}</div>}
   </section>;
 }
