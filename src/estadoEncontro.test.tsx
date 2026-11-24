@@ -2,7 +2,7 @@
 // Encontros (entrega 3): estados, configuração original x estado atual, vínculo estável com o combate, restauração, duplicação e persistência.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { chaveEncontros, combateVazio, enviarParaCombate, lerCombate, lerEncontros, alterarPv, type Encontro, type EstadoCombate } from "./combate";
+import { chaveEncontros, adicionar, remover, combateVazio, enviarParaCombate, lerCombate, lerEncontros, alterarPv, type Encontro, type EstadoCombate } from "./combate";
 import { concluirEncontro, duplicarEstadoAtual, estadoDe, iniciarSemCombate, marcarEnviado, pendencias, podeRestaurar, reabrirEncontro, restaurarOriginal, sincronizarComCombate } from "./estadoEncontro";
 import { duplicarEncontro } from "./combate";
 
@@ -133,5 +133,37 @@ describe("telas: fim do combate e página do encontro", () => {
     fireEvent.click(within(pagina).getByRole("button", { name: "Atualizar a partir do combate" }));    // não há combate guardado: equivale a combate encerrado
     await waitFor(() => expect(lerEncontros(localStorage.getItem(chaveEncontros("u1", "c1")))[0].estado).toBe("em_andamento"));
     expect((within(pagina).getByRole("button", { name: "Restaurar original" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
+describe("regressões #138", () => {
+  it("envia quatro de cinco, preserva o quinto e permite retomar após remoção", () => {
+    const original: Encontro = { id: "e", nome: "Emboscada", participantes: [{ id: "p", nome: "Goblin", quantidade: 5, pv: 7 }] };
+    const parcial = { ...original, participantes: [{ ...original.participantes[0], quantidade: 4 }] };
+    let combate = enviarParaCombate(combateVazio(), parcial);
+    let enc = marcarEnviado(original, parcial);
+    expect(enc.atual!.criaturas).toHaveLength(5);
+    expect(enc.atual!.criaturas.filter(c => c.noCombate)).toHaveLength(4);
+    enc = lerEncontros(JSON.stringify([enc]))[0];
+    combate = enviarParaCombate(combate, enc);
+    enc = marcarEnviado(enc, enc);
+    expect(combate.combatentes).toHaveLength(5);
+    const alvo = combate.combatentes[0];
+    combate = alterarPv(combate, alvo.id, -3);
+    enc = sincronizarComCombate(enc, combate);
+    combate = remover(combate, alvo.id);
+    enc = sincronizarComCombate(enc, combate);
+    expect(enc.atual!.criaturas.find(c => c.id === alvo.encontro!.criaturaId)).toMatchObject({ pv: 4, situacao: "viva" });
+    combate = enviarParaCombate(combate, enc);
+    expect(combate.combatentes).toHaveLength(5);
+    expect(combate.combatentes.find(c => c.encontro?.criaturaId === alvo.encontro!.criaturaId)?.pv).toBe(4);
+  });
+  it("recupera encontro parcial antigo e evita colisão com avulso", () => {
+    const original = goblins();
+    const enc = { ...original, atual: { criaturas: [{ id: "p1#1", participanteId: "p1", nome: "Goblin 1", situacao: "viva" as const, noCombate: true }] } };
+    const combate = enviarParaCombate(adicionar(combateVazio(), { nome: "Goblin 2", iniciativa: 0, lado: "inimigo" }), enc);
+    expect(combate.combatentes).toHaveLength(3);
+    expect(new Set(combate.combatentes.map(c => c.nome)).size).toBe(3);
+    expect(combate.combatentes.some(c => c.encontro?.criaturaId === "p1#2")).toBe(true);
   });
 });
