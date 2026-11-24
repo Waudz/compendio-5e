@@ -142,6 +142,7 @@ export function CampaignPanel({ id, onOpen, embedded = false, readOnly = false }
 
   const load = useCallback(async () => {
     if (!api || !mem) return;
+    if (typeof api.members !== "function") { setLoadErr("Participantes indisponíveis."); return; }
     const m = await api.members(id);
     if (!m.ok) { setLoadErr(m.error); return; }
     setLoadErr(null); setMembers(m.data);
