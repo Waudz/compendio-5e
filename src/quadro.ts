@@ -5,8 +5,8 @@ export type Coluna = { id: string; secoes: Secao[]; largura?: number };
 export type Quadro = { colunas: Coluna[] };
 export const MAX_COLUNAS = 12, MAX_SECOES = 60, MAX_CARTOES_POR_SECAO = 100;
 /** Largura das colunas em pixels: todas as seções e cartões da coluna acompanham. */
-export const LARGURA_PADRAO = 300, LARGURA_MIN = 220, LARGURA_MAX = 900;
-export const limitarLargura = (w: number) => Math.round(Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, w)));
+export const LARGURA_PADRAO = 300, LARGURA_MIN = 220;
+export const limitarLargura = (w: number) => Math.round(Math.max(LARGURA_MIN, w));
 
 let seq = 0;
 export const novoId = () => `c${Date.now().toString(36)}${(seq++).toString(36)}${Math.random().toString(36).slice(2, 6)}`;

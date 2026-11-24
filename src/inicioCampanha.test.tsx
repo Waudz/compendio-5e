@@ -31,7 +31,7 @@ async function montarHome(m: Membership, opts: { diario?: FonteDiario; aventurei
   await screen.findByRole("heading", { name: m.campaign.name });
   return { onOpen, onOpenContent, api };
 }
-const abrirGestao = (rotulo: string) => { const d = screen.getByText(rotulo).closest("details")!; d.open = true; fireEvent(d, new Event("toggle")); };
+
 
 beforeEach(() => { vi.stubGlobal("localStorage", memoryStorage()); window.history.pushState({}, "", "/"); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
@@ -66,11 +66,11 @@ describe("Início: mestre", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(/nome/i);
     expect(api.update).not.toHaveBeenCalled();
   });
-  it("participantes e convites só são consultados quando a gestão é aberta", async () => {
+  it("participantes visíveis e convites consultados apenas na edição", async () => {
     const { api } = await montarHome(mestre());
-    expect(api.members).not.toHaveBeenCalled(); expect(api.invites).not.toHaveBeenCalled();
-    abrirGestao("Gerenciar campanha");
-    await waitFor(() => expect(api.members).toHaveBeenCalledTimes(1)); expect(api.invites).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(api.members).toHaveBeenCalled()); expect(api.invites).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", {name:"Editar informações"}));
+    await waitFor(() => expect(api.members).toHaveBeenCalledTimes(2)); expect(api.invites).toHaveBeenCalledTimes(1);
     expect(await screen.findByRole("button", { name: "Criar convite" })).toBeTruthy();
   });
 });
@@ -86,7 +86,6 @@ describe("Início: jogador", () => {
     expect(screen.getByText("Para jogadores.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Editar informações" })).toBeNull();
     expect(screen.queryByText("Gerenciar campanha")).toBeNull();
-    abrirGestao("Participantes");
     await waitFor(() => expect(api.members).toHaveBeenCalled());
     expect(api.invites).not.toHaveBeenCalled(); expect(screen.queryByRole("button", { name: "Criar convite" })).toBeNull();
   });

@@ -14,7 +14,7 @@ import { ConflitoAviso } from "./ConflitoAviso";
 import { ConteudoLeve, temConteudo } from "./ConteudoLeve";
 import { EditorLazy } from "./EditorLazy";
 import type { BlocoTexto } from "./inicio";
-import { LARGURA_MAX, LARGURA_MIN, LARGURA_PADRAO, adicionarCartao, alternarTituloGrande, excluirSecoes, lerQuadro, limitarLargura, novaColuna, novaSecaoDepois, novoId, redimensionarColuna, removerCartao, renomearSecao, soltarCartao, soltarSecao, todosCartoes, type Quadro, type Secao } from "./quadro";
+import { LARGURA_MIN, LARGURA_PADRAO, adicionarCartao, alternarTituloGrande, excluirSecoes, lerQuadro, limitarLargura, novaColuna, novaSecaoDepois, novoId, redimensionarColuna, removerCartao, renomearSecao, soltarCartao, soltarSecao, todosCartoes, type Quadro, type Secao } from "./quadro";
 import { validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
 import { novaOrigem, publicarExclusao, publicarRegistro, useAssinaturaGeral, type Conflito } from "./registrosStore";
@@ -522,12 +522,12 @@ function Coluna({ id, largura, mobile, onLargura, children }: { id: string; larg
   const [vivo, setVivo] = useState<number | null>(null);   // largura durante o arraste; só vira dado ao soltar
   const ref = useRef<{ x: number; w: number } | null>(null);
   const w = vivo ?? largura;
-  const comecar = (e: RPointerEvent) => { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); ref.current = { x: e.clientX, w: largura }; setVivo(largura); };
+  const comecar = (e: RPointerEvent) => { e.preventDefault(); e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); ref.current = { x: e.clientX, w: (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect().width || largura }; setVivo((e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect().width || largura); };
   const mover = (e: RPointerEvent) => { if (ref.current) setVivo(limitarLargura(ref.current.w + e.clientX - ref.current.x)); };
   const soltar = (e: RPointerEvent) => { if (!ref.current) return; const nova = limitarLargura(ref.current.w + e.clientX - ref.current.x); ref.current = null; setVivo(null); if (nova !== largura) onLargura(nova); };
   const teclas = (e: RKeyEvent) => { const d = e.key === "ArrowRight" ? 20 : e.key === "ArrowLeft" ? -20 : 0; if (d) { e.preventDefault(); onLargura(limitarLargura(largura + d)); } };
-  return <div className={"coluna" + (vivo !== null ? " redimensionando" : "")} role="listitem" data-coluna={id} style={mobile ? { flexBasis: "100%", width: "100%", maxWidth: "100%" } : { flexBasis: w, width: w }}>{children}
-    {!mobile && <div className="coluna-redim" role="separator" aria-orientation="vertical" aria-label="Redimensionar a coluna" aria-valuemin={LARGURA_MIN} aria-valuemax={LARGURA_MAX} aria-valuenow={w} tabIndex={0}
+  return <div className={"coluna" + (vivo !== null ? " redimensionando" : "")} role="listitem" data-coluna={id} style={mobile ? { flexBasis: "100%", width: "100%", maxWidth: "100%" } : { flexBasis: w, width: w, maxWidth: 'calc(100% - 4px)' }}>{children}
+    {!mobile && <div className="coluna-redim" role="separator" aria-orientation="vertical" aria-label="Redimensionar a coluna" aria-valuemin={LARGURA_MIN} aria-valuenow={w} tabIndex={0}
       onPointerDown={comecar} onPointerMove={mover} onPointerUp={soltar} onPointerCancel={soltar} onKeyDown={teclas} title="Arraste para ajustar a largura da coluna"/>}
   </div>;
 }

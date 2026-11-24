@@ -128,7 +128,7 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec, mode?: NavMode
 }
 
 /** Detalhes de uma campanha: dados básicos, participantes e convites. */
-export function CampaignPanel({ id, onOpen, embedded = false }: { id: string; onOpen: (s: TabSpec, mode?: NavMode) => void; embedded?: boolean }) {
+export function CampaignPanel({ id, onOpen, embedded = false, readOnly = false }: { id: string; onOpen: (s: TabSpec, mode?: NavMode) => void; embedded?: boolean; readOnly?: boolean }) {
   const { api, memberships, activeId, setActive, refresh } = useCampaigns();
   const unsaved = useUnsaved();
   const { user } = useAuth();
@@ -142,11 +142,12 @@ export function CampaignPanel({ id, onOpen, embedded = false }: { id: string; on
 
   const load = useCallback(async () => {
     if (!api || !mem) return;
+    if (typeof api.members !== "function") { setLoadErr("Participantes indisponíveis."); return; }
     const m = await api.members(id);
     if (!m.ok) { setLoadErr(m.error); return; }
     setLoadErr(null); setMembers(m.data);
-    if (mem.role === "mestre") { const i = await api.invites(id); if (i.ok) setInvites(i.data); }
-  }, [api, id, mem?.role]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (mem.role === "mestre" && !readOnly) { const i = await api.invites(id); if (i.ok) setInvites(i.data); }
+  }, [api, id, mem?.role, readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void load(); }, [load]);
 
   if (!api) return <NeedLogin title="Campanha"/>;
@@ -181,13 +182,13 @@ export function CampaignPanel({ id, onOpen, embedded = false }: { id: string; on
     <ul className="camp-list">{members?.map(m => <li key={m.user_id} className="camp">
       <div><strong>{m.display_name}</strong>{m.user_id === user?.id && " (você)"} <span className="badge">{m.role === "mestre" ? "Mestre" : "Jogador"}</span></div>
       <div className="row">
-        {isMaster && m.user_id !== user?.id && <>
+        {isMaster && !readOnly && m.user_id !== user?.id && <>
           <button className="btn-secondary" disabled={people.busy} onClick={() => leave(m.user_id)}>Remover</button></>}
         {m.user_id === user?.id && !isMaster && <button className="btn-secondary" disabled={people.busy} onClick={() => leave(m.user_id)}>Sair da campanha</button>}
       </div></li>)}</ul>
     <Notice m={people.msg}/>
 
-    {isMaster && <><h2>Convites</h2>
+    {isMaster && !readOnly && <><h2>Convites</h2>
       <p>Quem entra por convite é sempre jogador. Compartilhe o link só com quem deve participar.</p>
       <ul className="camp-list">{invites.map(i => <li key={i.id} className="camp">
         <div><code className="code">{inviteUrl(i.code)}</code> <span className="badge">{i.uses}/{i.max_uses} usos</span> <span className="badge">até {dateBr(i.expires_at)}</span></div>
