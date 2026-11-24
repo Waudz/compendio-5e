@@ -39,18 +39,19 @@ describe("adicionar personagem: PV carregados da ficha", () => {
     fireEvent.click(screen.getByRole("button", { name: "Adicionar Lydia (personagem)" }));
     expect((await screen.findByLabelText("PV de Lydia")).textContent).toBe(`PV 5/${MAX}`);
   });
-  it("personagem sem ficha guiada: entra sem PV, avisa e usa o PV máximo manual se houver", async () => {
+  it("personagem sem ficha guiada: bloqueia inclusão e não oferece PV manual", async () => {
     montar(); await abrirSeletor();
-    fireEvent.change(screen.getByLabelText(/PV máximo manual/), { target: { value: "20" } });
+    expect(screen.queryByLabelText(/PV máximo manual/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Adicionar Toran (personagem)" }));
-    expect((await screen.findByLabelText("PV de Toran")).textContent).toBe("PV 20/20");
-    expect(screen.getByText(/os PV não vieram da ficha/)).toBeTruthy();
+    expect(await screen.findByText(/Não foi possível adicionar Toran/)).toBeTruthy();
+    expect(screen.getByText("Nenhum combatente ainda")).toBeTruthy();
   });
-  it("sem rede ao ler a ficha: adiciona sem PV e avisa (não inventa valores)", async () => {
+  it("sem rede ao ler a ficha: bloqueia inclusão e avisa", async () => {
     montar(); await abrirSeletor(); banco.rede.caida = true;
     fireEvent.click(screen.getByRole("button", { name: "Adicionar Lydia (personagem)" }));
-    expect(await screen.findByText(/os PV não vieram da ficha/)).toBeTruthy();
+    expect(await screen.findByText(/Não foi possível adicionar Lydia/)).toBeTruthy();
     expect(screen.queryByLabelText("PV de Lydia")).toBeNull();
+    expect(screen.getByText("Nenhum combatente ainda")).toBeTruthy();
   });
 });
 
