@@ -11,7 +11,8 @@ import { useLinhaRemota, type SyncRemoto } from "./useLinhaRemota";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { rolarD20, textoRolagem, type Rolagem } from "./combate";
 import { useLojaEncontros } from "./Encontros";
-import { RetratoQuadrado, useRetratosPersonagens } from "./RetratoCombate";
+import { useRetratosPersonagens } from "./RetratoCombate";
+import { CriaturaIdentidade } from "./CriaturaIdentidade";
 import { SeletorEncontro } from "./SeletorEncontro";
 import { marcarEnviado, sincronizarComCombate } from "./estadoEncontro";
 import { EVENTO, type Estado, useArmazenado, rotuloLado, CONDICOES_5E, numero, useEscopo, SemCampanha, AcessoRestrito, ErroArmazenamento, ModoArmazenamento, BackupLocal, modAtributo, SeletorMonstro, SeletorPersonagem, type VisualizacaoCombate, chaveVisualizacaoCombate, lerVisualizacaoCombate } from "./CombateCompartilhado";
@@ -168,8 +169,7 @@ function Linha({ c, atual, aplicar, aoRemover, bonus, retrato, rolagem, aoRolar 
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
   const pct = c.pvMax ? Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100)) : 0;
   return <li className={`ini-item lado-${c.lado}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
-    <RetratoQuadrado src={retrato} tipo={c.ref?.tipo ?? "avulso"} tamanho={44}/>
-    <div className="ini-nome"><strong>{c.nome}</strong> <small>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}</small></div>
+    <CriaturaIdentidade nome={c.nome} tipo={c.ref?.tipo ?? "avulso"} retrato={retrato} detalhes={<>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}</>}/>
     <div className="ini-ini">
       <label className="ini-valor">Iniciativa<input aria-label={`Iniciativa de ${c.nome}`} inputMode="decimal" defaultValue={c.iniciativa} key={c.iniciativa}
         onBlur={e => { const n = numero(e.target.value); if (n !== undefined && n !== c.iniciativa) aplicar(x => definirIniciativa(x, c.id, n)); }}/></label>
