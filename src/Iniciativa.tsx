@@ -67,13 +67,14 @@ export function IniciativaPanel() {
   }, [estado, statusApi, loja.nuvem]);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   const [visualizacao, setVisualizacao] = useState<VisualizacaoCombate>("cartoes"), [erroFinalizar, setErroFinalizar] = useState<string | null>(null);
+  const [separarLados, setSepararLados] = useState(true);
   const [mods, setMods] = useState<Record<string, number>>({});   // bônus de iniciativa por combatente (monstros: Destreza do catálogo)
   const [rolagens, setRolagens] = useState<Record<string, Rolagem>>({});   // última rolagem de cada um (só para mostrar; o resultado já está na iniciativa)
   const retratos = useRetratosPersonagens(campaignId);
   const lojaEnc = useLojaEncontros(userId, campaignId, podeGerenciar, nuvem), encontros = lojaEnc.estado;
   useEffect(() => {
-    try { setVisualizacao(lerVisualizacaoCombate(localStorage.getItem(chaveVisualizacaoCombate(userId ?? "")))); }
-    catch { setVisualizacao("cartoes"); }
+    try { setVisualizacao(lerVisualizacaoCombate(localStorage.getItem(chaveVisualizacaoCombate(userId ?? "")))); setSepararLados(localStorage.getItem(`compendio5e:lados-combate:${userId ?? ""}`) !== "unificados"); }
+    catch { setVisualizacao("cartoes"); setSepararLados(true); }
   }, [userId]);
   const alterarVisualizacao = (proxima: VisualizacaoCombate) => {
     setVisualizacao(proxima);
@@ -159,10 +160,11 @@ export function IniciativaPanel() {
       <div className="ini-visualizacao" role="group" aria-label="Visualização dos combatentes">
         <button type="button" className={visualizacao === "cartoes" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "cartoes"} onClick={() => alterarVisualizacao("cartoes")}><LayoutGrid size={15} aria-hidden="true"/> Cartões</button>
         <button type="button" className={visualizacao === "lista" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "lista"} onClick={() => alterarVisualizacao("lista")}><List size={15} aria-hidden="true"/> Lista compacta</button>
+        <button type="button" className="btn-secondary" aria-pressed={separarLados} onClick={() => { const v = !separarLados; setSepararLados(v); try { localStorage.setItem(`compendio5e:lados-combate:${userId}`, v ? "separados" : "unificados"); } catch { /* preferência em memória */ } }}>{separarLados ? "Lados separados" : "Lados unificados"}</button>
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
-        : <ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label="Ordem de iniciativa">{ordem.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={removerCombatente} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol>}
+        : <div className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: ordem.filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: ordem }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={removerCombatente} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
     </>}
   </div>;
 }
