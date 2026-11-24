@@ -361,3 +361,12 @@ Base `429c2c5`, branch `codex/iniciativa-busca-controles`. Pedidos: ações de t
 A causa dos personagens ausentes era o consumo exclusivo de AventureirosContext sem provider na aplicação. A fonte agora reutiliza o adaptador da campanha via API autenticada; teste inclui criação de registros em memória sem provider explícito, exclusão de outra campanha e de fichas privadas. Não houve acesso a dados reais ou migração.
 
 Validação local concluída: 1.541 testes aprovados em 126 arquivos, nenhuma falha de importação ou asserção; E2E principal 74 aprovados/2 saltos previstos; rodada visual final 10 aprovados/2 saltos (cliques na mesma coordenada, busca de personagens sem contexto injetado, loot visível, cobertura de todas as bordas e ações de 36 px em meia tela). Qualidade a 320/1440: 23 aprovados/7 saltos previstos. Build/TypeScript e tipos E2E aprovados. Capturas inspecionadas e preservadas fora do repositório. Sem push/deploy; Android físico e sessões reais hospedadas não foram utilizados.
+
+
+## Refinamentos finais da Iniciativa — PR #140
+
+Busca sob demanda por categoria, PV de personagens exclusivamente da ficha, retratos ampliados sem aumentar a altura da faixa, remoção do indicador textual redundante de turno e do indicador/exportação rotineiros de nuvem. Preservar persistência, recuperação e alertas de falha. Validação e merge ainda pendentes.
+
+### Backlog aprovado: configurações da Iniciativa (etapa futura)
+
+Engrenagem discreta no cabeçalho, preferências por mestre: iniciativa automática/manual separadamente para monstros e jogadores; rolagem individual/coletiva de criaturas iguais; PV iniciais de monstros pela média, dados ou entrada manual; valor padrão de dano/cura; visibilidade e salto de turnos de derrotados; cartões/lista; lados separados/unificados; tamanho dos retratos e animações; confirmações de ações destrutivas (preservar salvaguardas críticas). PV de personagens sempre da ficha. Preferências não devem alterar retroativamente combates existentes. Não implementar no PR #140; priorizar validação da etapa 1 e seguir para Personagens, Fichas e Inventário.
