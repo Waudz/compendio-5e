@@ -152,8 +152,8 @@ export function IniciativaPanel() {
 }
 type Aplicar = (fn: (e: EstadoCombate) => EstadoCombate) => boolean;
 function Linha({ c, atual, aplicar, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
-  const [valor, setValor] = useState("");
-  const acao = (sinal: 1 | -1) => { const n = numero(valor); if (n && n > 0) { aplicar(e => alterarPv(e, c.id, sinal * n)); setValor(""); } };
+  const [valor, setValor] = useState("1");
+  const acao = (sinal: 1 | -1) => { const n = numero(valor); if (n && n > 0) { aplicar(e => alterarPv(e, c.id, sinal * n)); setValor("1"); } };
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
   const pct = c.pvMax ? Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100)) : 0;
   return <li className={`ini-item lado-${c.lado}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
