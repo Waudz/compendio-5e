@@ -46,6 +46,7 @@ describe("Diário (mestre)", () => {
     expect(await screen.findByTestId("diario-lista-vazia")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Novo registro/ }));
     const titulo = await screen.findByLabelText("Título");
+    expect(screen.getByRole("button", {name:"Voltar ao Diário"})).toBeTruthy();
     fireEvent.change(titulo, { target: { value: "4ª Sessão — Caverna" } });
     fireEvent.change(screen.getByLabelText("Dia"), { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("Mês"), { target: { value: "12" } });
@@ -230,11 +231,17 @@ describe("Capa da campanha", () => {
     const capa = capaEmMemoria();
     await renderApp({ api: apiC(mestre), capa });
     expect(await screen.findByText("Sem capa")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {name:"Editar informações"}));
+    vi.stubGlobal("URL", Object.assign(URL, {createObjectURL: (f:File)=>`blob:${f.name}`, revokeObjectURL:()=>{}}));
+    vi.spyOn(window,"confirm").mockReturnValue(true);
     const input = () => document.querySelector("input[type=file]") as HTMLInputElement;
     fireEvent.change(input(), { target: { files: [new File(["x"], "capa.png", { type: "image/png" })] } });
+    fireEvent.click(await screen.findByRole("button", {name:"Salvar enquadramento"}));
     const img = await screen.findByAltText("Capa da campanha"); expect(img.getAttribute("src")).toBe("blob:capa.png");
     fireEvent.change(input(), { target: { files: [new File(["y"], "nova.webp", { type: "image/webp" })] } });
     await waitFor(() => expect((screen.getByAltText("Capa da campanha")).getAttribute("src")).toBe("blob:nova.webp"));
+    fireEvent.click(screen.getByRole("button", {name:"Salvar enquadramento"}));
+    await waitFor(()=>expect(capa.url).toBe("blob:nova.webp"));
     expect(screen.getByText("Substituir capa")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Remover capa" }));
     await screen.findByText("Sem capa"); expect(capa.url).toBeNull();
@@ -247,6 +254,7 @@ describe("Capa da campanha", () => {
     const capa = capaEmMemoria(); const definir = vi.spyOn(capa, "definir");
     await renderApp({ api: apiC(mestre), capa });
     await screen.findByText("Sem capa");
+    fireEvent.click(screen.getByRole("button", {name:"Editar informações"}));
     const input = document.querySelector("input[type=file]") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["<svg/>"], "a.svg", { type: "image/svg+xml" })] } });
     expect((await screen.findByText(/JPEG, PNG ou WebP/)).getAttribute("role")).toBe("alert");
