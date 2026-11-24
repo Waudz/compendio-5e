@@ -711,3 +711,10 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 
 /* Colunas podem ocupar a largura do grupo; o botão de nova coluna continua acessível por rolagem. */
 .quadro>.coluna{box-sizing:border-box}
+
+/* Diário: lista e editor acompanham a largura do grupo ativo. */
+.diario .registro-lista{max-width:none;width:100%}
+.diario-editor-inline{min-width:0;width:100%}
+.diario-editor-inline .registro,.diario-editor-inline .registro form{max-width:none;width:100%;box-sizing:border-box}
+.diario-voltar{display:inline-flex;align-items:center;gap:6px;margin:12px 0 0 24px}
+.diario-editor-inline .campo-editor{width:100%;min-width:0}
