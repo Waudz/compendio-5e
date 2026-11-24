@@ -370,3 +370,11 @@ Busca sob demanda por categoria, PV de personagens exclusivamente da ficha, retr
 ### Backlog aprovado: configurações da Iniciativa (etapa futura)
 
 Engrenagem discreta no cabeçalho, preferências por mestre: iniciativa automática/manual separadamente para monstros e jogadores; rolagem individual/coletiva de criaturas iguais; PV iniciais de monstros pela média, dados ou entrada manual; valor padrão de dano/cura; visibilidade e salto de turnos de derrotados; cartões/lista; lados separados/unificados; tamanho dos retratos e animações; confirmações de ações destrutivas (preservar salvaguardas críticas). PV de personagens sempre da ficha. Preferências não devem alterar retroativamente combates existentes. Não implementar no PR #140; priorizar validação da etapa 1 e seguir para Personagens, Fichas e Inventário.
+
+### Finalização do PR #140 — revisão de 24/11/2026
+
+Retomada pelo HEAD `9e3caef`, 17 commits e três workflows consultados. Validar projeto/Alpha isolado verdes; E2E falhou. Artefatos de `85abd88` inspecionados: loot correto e visível (25 peças de ouro no Baú dourado); seletor com `has` reintroduzia a região ancestral no escopo do recipiente. Corrigido pelo nome acessível da região, com quantidade e fechamento do diálogo verificados.
+
+Faixa: passo CSS compartilhado com a transformação (112 px amplo / 88 px estreito), retratos 80/96 px no painel amplo, 60/72 px no estreito, texto 12/14 px. Linhas fixas evitam crescimento do cabeçalho ao mudar turno; regressão mede retângulos renderizados, centralização, espaçamento e tamanhos ao avançar/voltar e em dois/três painéis. DEC-025 consolida as decisões anteriores.
+
+Validação local: 126 arquivos e 1.541 testes aprovados; TypeScript/build aprovados. E2E local tentou executar, mas Chromium foi bloqueado por restrição de sockets; download da versão Playwright recebeu HTTP 403. Navegador disponível não alcançou o servidor local. Pedido de execução fora da restrição foi rejeitado pela política do ambiente. Portanto a geometria e a revisão visual final exigem evidências do CI antes da integração. Não declarar as capturas antigas como validação do CSS final. Merge autorizado somente com os três workflows verdes no HEAD final. Nenhum banco hospedado alterado. Configurações futuras e próxima etapa não iniciadas.
