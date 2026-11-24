@@ -727,3 +727,40 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .ini-pv-trilho { flex-basis: 100%; width: 100%; height: 6px; background: rgba(128,128,128,.25); border-radius: 6px; overflow: hidden; }
 .ini-pv-preenchimento { height: 100%; background: #43885d; transition: width 220ms ease; border-radius: inherit; }
 @media (prefers-reduced-motion: reduce) { .ini-pv-preenchimento { transition: none; } }
+
+/* ===== Iniciativa: layout pela largura do PAINEL (container query), retratos padronizados, controles compactos ===== */
+.iniciativa{container-type:inline-size;container-name:ini}
+.retrato-q{flex:none;display:inline-flex;border-radius:8px;overflow:hidden;background:var(--hover,#8882);border:1px solid var(--line,#8884)}
+.retrato-q img{width:100%;height:100%;object-fit:cover;display:block}
+.retrato-q-vazio{display:flex;width:100%;height:100%;align-items:center;justify-content:center;color:var(--muted,#888)}
+.iniciativa .ini-item{grid-template-columns:44px minmax(0,1fr) auto auto;gap:6px 10px;align-items:center}
+.iniciativa .ini-item .ini-pv,.iniciativa .ini-item .ini-condicoes{grid-column:1 / -1}
+.iniciativa .ini-item .ini-remover{grid-column:4;grid-row:1}
+.iniciativa .ini-ini{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.iniciativa .ini-icone{padding:3px 8px;min-height:30px}
+.iniciativa .ini-pv{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.iniciativa .ini-pv-texto{font-weight:600;font-variant-numeric:tabular-nums}
+.iniciativa .ini-pv-controles{display:inline-flex;align-items:center;gap:4px}
+.iniciativa .ini-pv-controles input{width:64px;min-height:30px}
+.iniciativa .ini-pv-trilho{flex-basis:100%;height:8px}
+.iniciativa .ini-pv-preenchimento[data-baixo]{background:#c4533f}
+.iniciativa .ini-rolagem{font-size:12px;color:var(--text-2,inherit);background:var(--hover,#8882);padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.iniciativa .ini-condicoes{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.iniciativa .ini-condicoes select{min-height:28px;font-size:12px}
+/* turno atual inequívoco */
+.iniciativa .ini-item.atual{border-color:var(--accent,#bca16a);outline:3px solid var(--accent,#bca16a);outline-offset:0;background:color-mix(in srgb,var(--accent,#bca16a) 10%,transparent);box-shadow:0 0 16px color-mix(in srgb,var(--accent,#bca16a) 35%,transparent)}
+.iniciativa .ini-barra .ini-rodada{font-size:1.3rem}
+.iniciativa .ini-barra .ini-turno-atual{border-color:var(--accent,#bca16a);color:var(--accent,#bca16a)}
+.iniciativa .ini-exportar{background:transparent;border:0;color:var(--muted,#888);padding:2px 4px;cursor:pointer;vertical-align:middle;border-radius:4px}.iniciativa .ini-exportar:hover{color:var(--text,inherit);background:var(--hover,#8882)}
+.iniciativa .ini-enc-lista{list-style:none;padding:0;margin:6px 0}.iniciativa .ini-enc-sel{border:1px solid var(--line,#8884);border-radius:8px;padding:8px 10px;margin:6px 0}
+.iniciativa .ini-enc-criaturas{list-style:none;padding:0;margin:6px 0;display:grid;gap:4px}.iniciativa .ini-enc-criaturas li{display:flex;align-items:center;gap:8px}
+.iniciativa .ini-enc-marca{display:flex;align-items:center;gap:6px;flex:1;min-width:0}.iniciativa .ini-enc-qtd{width:56px;min-height:28px}
+@container ini (max-width:520px){
+  .iniciativa .ini-item{grid-template-columns:44px minmax(0,1fr) auto}
+  .iniciativa .ini-item .ini-ini{grid-column:1 / -1;justify-content:flex-start}
+  .iniciativa .ini-item .ini-remover{grid-column:3;grid-row:1}
+  .iniciativa .ini-lista-compacta .ini-item{grid-template-columns:36px minmax(0,1fr) auto}
+}
+@container ini (min-width:521px) and (max-width:760px){.iniciativa .ini-lista-compacta .ini-item{grid-template-columns:36px minmax(0,1fr) auto auto}}
+@container ini (min-width:761px){.iniciativa .ini-lista-compacta .ini-item{grid-template-columns:36px minmax(120px,1fr) auto minmax(220px,1.2fr) auto auto;}
+  .iniciativa .ini-lista-compacta .ini-item .ini-pv,.iniciativa .ini-lista-compacta .ini-item .ini-condicoes{grid-column:auto}.iniciativa .ini-lista-compacta .ini-item .ini-remover{grid-column:auto;grid-row:auto}}
+.iniciativa .ini-lista-compacta .retrato-q{width:36px!important;height:36px!important}

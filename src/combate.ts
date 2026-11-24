@@ -67,10 +67,17 @@ export function alternarCondicao(e: EstadoCombate, id: string, condicao: string)
     return novas.length ? { ...resto, condicoes: novas } : resto;
   }) };
 }
+/** Resultado de uma rolagem de d20 com modificador (para mostrar ao mestre: dado, modificador e total). */
+export type Rolagem = { dado: number; modificador: number; total: number };
+export function rolarD20(modificador = 0, aleatorio: () => number = Math.random): Rolagem {
+  const dado = 1 + Math.floor(aleatorio() * 20), m = Number.isFinite(modificador) ? Math.trunc(modificador) : 0;
+  return { dado, modificador: m, total: dado + m };
+}
+/** "d20 15 + 2 = 17" / "d20 15 − 1 = 14" / "d20 15 = 15". */
+export const textoRolagem = (r: Rolagem) => `d20 ${r.dado}${r.modificador ? ` ${r.modificador > 0 ? "+" : "−"} ${Math.abs(r.modificador)}` : ""} = ${r.total}`;
 /** Rola 1d20 + modificador para quem ainda não tem a iniciativa definida (ou para qualquer um). `aleatorio` é injetável para teste. */
 export function rolarIniciativa(e: EstadoCombate, id: string, modificador = 0, aleatorio: () => number = Math.random): EstadoCombate {
-  const dado = 1 + Math.floor(aleatorio() * 20);
-  return definirIniciativa(e, id, dado + (Number.isFinite(modificador) ? Math.trunc(modificador) : 0));
+  return definirIniciativa(e, id, rolarD20(modificador, aleatorio).total);
 }
 export const reiniciarRodadas = (e: EstadoCombate): EstadoCombate => ({ ...e, rodada: 1, turno: ordenar(e.combatentes)[0]?.id ?? null });
 

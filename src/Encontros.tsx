@@ -8,7 +8,7 @@ import { useLinhaRemota, type SyncRemoto } from "./useLinhaRemota";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { EVENTO, type Estado, useArmazenado, numero, useEscopo, SemCampanha, AcessoRestrito, ErroArmazenamento, ModoArmazenamento, BackupLocal, SeletorMonstro } from "./CombateCompartilhado";
 // ---------------------------------------------------------------- Encontros
-function useLojaEncontros(userId: string | null, campaignId: string | null, podeGerenciar: boolean, nuvem: ApisNuvem | null) {
+export function useLojaEncontros(userId: string | null, campaignId: string | null, podeGerenciar: boolean, nuvem: ApisNuvem | null) {
   const ativo = !!(userId && campaignId && podeGerenciar);
   const local = useArmazenado<Encontro[]>(ativo && !nuvem ? chaveEncontros(userId!, campaignId!) : null, lerEncontros);
   const remoto = useLinhaRemota<Encontro[]>({ api: ativo && nuvem ? nuvem.encontros : null, campaignId: ativo && nuvem ? campaignId : null, vazio: () => [], chaveBackup: ativo && nuvem ? `compendio5e:encontros-nuvem:${userId}:${campaignId}` : null });

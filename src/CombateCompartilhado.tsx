@@ -94,7 +94,7 @@ function baixarJson(dados: unknown, nome: string) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" })); const a = document.createElement("a"); a.href = url; a.download = `${nome}.json`; a.click(); URL.revokeObjectURL(url);
 }
 export function ModoArmazenamento({ nuvem, sync, mensagem, o, onTentar, onRecarregar, dados, arquivo }: { nuvem: boolean; sync: SyncRemoto; mensagem: string | null; o: string; onTentar: () => void; onRecarregar: () => void; dados?: unknown; arquivo?: string }) {
-  const baixar = nuvem && dados !== undefined ? <button className="btn-link" onClick={() => baixarJson(dados, arquivo ?? "copia-nuvem")}><Download size={13} aria-hidden="true"/> Baixar cópia (JSON)</button> : null;
+  const baixar = nuvem && dados !== undefined ? <button className="ini-exportar" onClick={() => baixarJson(dados, arquivo ?? "copia-nuvem")} title="Baixar cópia (JSON)" aria-label="Baixar cópia (JSON)"><Download size={13} aria-hidden="true"/></button> : null;
   if (!nuvem) return <p className="muted ini-modo" role="status" data-modo="local">Modo local: {o} ficam só neste aparelho e não aparecem em outros dispositivos.</p>;
   if (sync === "conflito") return <div className="notice err" role="alert" data-modo="nuvem" data-sync="conflito">
     {mensagem ?? "Outra sessão alterou os dados."} Suas últimas alterações não foram gravadas (uma cópia ficou neste aparelho). <button className="btn-link" onClick={onRecarregar}>Recarregar do servidor</button> (descarta o que não foi gravado).</div>;
