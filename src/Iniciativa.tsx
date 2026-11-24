@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Dices, LayoutGrid, List, Minus, Plus, RotateCcw, Swords, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dices, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Aviso } from "./Diario";
 import { useUnsavedGuard } from "./unsaved";
@@ -12,6 +12,7 @@ import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { rolarD20, textoRolagem, type Rolagem } from "./combate";
 import { useLojaEncontros } from "./Encontros";
 import { useRetratosPersonagens } from "./RetratoCombate";
+import { ControleNumerico } from "./ControleNumerico";
 import { CriaturaIdentidade } from "./CriaturaIdentidade";
 import { SeletorEncontro } from "./SeletorEncontro";
 import { marcarEnviado, sincronizarComCombate } from "./estadoEncontro";
@@ -177,10 +178,7 @@ function Linha({ c, atual, aplicar, aoRemover, bonus, retrato, rolagem, aoRolar 
       {rolagem && <span className="ini-rolagem" role="status" aria-label={`Resultado da rolagem de ${c.nome}`}>{textoRolagem(rolagem)}</span>}
     </div>
     {c.pvMax ? <div className="ini-pv"><span className="ini-pv-texto" aria-label={`PV de ${c.nome}`}>PV {c.pv}/{c.pvMax}{c.pv === 0 ? " · caído" : ""}</span>
-      <div className="ini-pv-controles">
-        <button className="btn-secondary ini-icone" onClick={() => acao(-1)} aria-label={`Causar dano a ${c.nome}`} title="Dano"><Minus size={14} aria-hidden="true"/></button>
-        <input aria-label={`Quantidade de dano ou cura de ${c.nome}`} inputMode="numeric" value={valor} onChange={e => setValor(e.target.value)} placeholder="valor"/>
-        <button className="btn-secondary ini-icone" onClick={() => acao(1)} aria-label={`Curar ${c.nome}`} title="Cura"><Plus size={14} aria-hidden="true"/></button></div>
+      <ControleNumerico campo={{ "aria-label": `Quantidade de dano ou cura de ${c.nome}`, value: valor, onChange: e => setValor(e.target.value), placeholder: "valor" }} menos={{ rotulo: `Causar dano a ${c.nome}`, titulo: "Dano", acao: () => acao(-1) }} mais={{ rotulo: `Curar ${c.nome}`, titulo: "Cura", acao: () => acao(1) }}/>
       <div className="ini-pv-trilho" aria-hidden="true"><div className="ini-pv-preenchimento" style={{ width: `${pct}%` }} data-baixo={pct <= 25 ? "true" : undefined}/></div></div> : <span className="muted ini-pv">Sem PV</span>}
     <div className="ini-condicoes">
       {(c.condicoes ?? []).map(k => <button key={k} className="ini-chip" onClick={() => aplicar(e => alternarCondicao(e, c.id, k))} aria-label={`Remover condição ${k} de ${c.nome}`}>{k} ×</button>)}
