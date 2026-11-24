@@ -70,6 +70,7 @@ function EstadoEncontro({ enc, salvar, sincronizar, duplicarAtual }: { enc: Enco
 
 export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincronizar, duplicarAtual }: { enc: Encontro; salvar: (e: Encontro) => void; voltar: () => void; enviar: (e: Encontro) => void; sincronizar: () => void; duplicarAtual: () => void }) {
   const salvar = (e: Encontro) => salvarBruto(normalizarLoot(e));   // mantém o loot do estado atual em dia com a configuração
+  const [aba, setAba] = useState<"criaturas" | "tesouros" | "progresso">("criaturas");
   const [renomeando, setRenomeando] = useState(false), [novoNome, setNovoNome] = useState(enc.nome);
   const [nome, setNome] = useState(""), [qtd, setQtd] = useState("1"), [pv, setPv] = useState(""), [ca, setCa] = useState("");
   const adicionarMonstro = (m: Monstro) => salvar(adicionarParticipante(enc, { nome: m.nome, quantidade: 1, pv: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } as RefCombate }));
@@ -83,7 +84,9 @@ export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincr
       : <h2>{enc.nome} <button className="btn-link" onClick={() => { setNovoNome(enc.nome); setRenomeando(true); }} aria-label={`Renomear encontro ${enc.nome}`}><Pencil size={13} aria-hidden="true"/></button></h2>}
     <label className="enc-descricao">Descrição<textarea rows={3} maxLength={2000} defaultValue={enc.descricao ?? ""} key={enc.descricao ?? ""} placeholder="O que acontece, onde, como começa…"
       onBlur={e => { if (e.target.value.trim() !== (enc.descricao ?? "")) salvar(definirDescricao(enc, e.target.value)); }}/></label>
-    <EstadoEncontro enc={enc} salvar={salvar} sincronizar={sincronizar} duplicarAtual={duplicarAtual}/>
+    <div className="enc-subabas" role="group" aria-label="Seções do encontro">{(["criaturas", "tesouros", "progresso"] as const).map(v => <button key={v} type="button" className="btn-secondary" aria-pressed={aba === v} onClick={() => setAba(v)}>{v === "criaturas" ? "Criaturas" : v === "tesouros" ? "Tesouros" : "Progresso"}</button>)}</div>
+    {aba === "progresso" && <EstadoEncontro enc={enc} salvar={salvar} sincronizar={sincronizar} duplicarAtual={duplicarAtual}/>}
+    {aba === "criaturas" && <>
     <h3>Criaturas <small className="muted">{enc.participantes.length ? `${enc.participantes.length} tipo(s), ${total} no total` : ""}</small></h3>
     {enc.participantes.length === 0 ? <p className="muted">Sem criaturas. Adicione do Bestiário ou crie uma avulsa abaixo (um encontro também pode não ter combate).</p>
       : <ul className="enc-criaturas">{enc.participantes.map(p => <Criatura key={p.id} enc={enc} p={p} salvar={salvar}/>)}</ul>}
@@ -95,7 +98,8 @@ export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincr
       <label>CA (opcional)<input inputMode="numeric" value={ca} onChange={e => setCa(e.target.value)}/></label>
       <button type="submit" className="btn-secondary"><Plus size={15} aria-hidden="true"/> Adicionar</button>
     </form>
-    <LootEncontro enc={enc} salvar={salvar}/>
+    </>}
+    {aba === "tesouros" && <LootEncontro enc={enc} salvar={salvar}/>}
     <SeletorEncontro rotulo="Enviar só parte para a Iniciativa" encontros={[enc]} onEnviar={enviar}/>
   </section>;
 }
