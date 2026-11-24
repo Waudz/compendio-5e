@@ -135,11 +135,11 @@ export function SeletorMonstro({ rotulo, onEscolher }: { rotulo: string; onEscol
 }
 export function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
   const fonte = useAventureiros(), fichas = useFichas();
-  const [aberto, setAberto] = useState(false), [pvTexto, setPvTexto] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
+  const [busca, setBusca] = useState(""), [pvTexto, setPvTexto] = useState(""), [lendo, setLendo] = useState<string | null>(null), [aviso, setAviso] = useState<string | null>(null);
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: { id: string; nome: string; classe: string }[] }>({ status: "carregando" });
   const carregar = useCallback(() => { if (!fonte) return; setDados({ status: "carregando" }); fonte.listar(campaignId).then(r => setDados(r.ok ? { status: "pronto", lista: r.data } : { status: "erro" }), () => setDados({ status: "erro" })); }, [fonte, campaignId]);
-  useEffect(() => { if (aberto && dados.status === "carregando") carregar(); }, [aberto]);   // eslint-disable-line react-hooks/exhaustive-deps
-  if (!fonte) return null;
+  useEffect(() => { carregar(); }, [carregar]);
+  if (!fonte) return <p className="muted">Não foi possível acessar os personagens da campanha.</p>;
   /** Lê PV atuais e máximos da ficha (automático). Sem ficha legível, usa o PV máximo digitado, se houver, e avisa. */
   const escolher = async (p: { id: string; nome: string }) => {
     setAviso(null);
@@ -152,15 +152,15 @@ export function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: stri
     onEscolher(p, pvManual);
     setAviso(`${p.nome} foi adicionado, mas os PV não vieram da ficha: ${r.erro}${pvManual ? " Foi usado o PV máximo digitado." : " Informe o PV máximo abaixo e adicione de novo, ou ajuste no combate."}`);
   };
-  return <details className="ini-seletor" open={aberto} onToggle={e => setAberto((e.target as HTMLDetailsElement).open)}>
-    <summary>Adicionar personagem da campanha</summary>
-    {dados.status === "carregando" && aberto && <p className="muted" role="status">Carregando personagens…</p>}
+  return <section className="ini-seletor" aria-label="Adicionar personagem da campanha">
+    <strong>Adicionar personagem da campanha</strong>
+    {dados.status === "carregando" && <p className="muted" role="status">Carregando personagens…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar os personagens da campanha." onRetry={carregar}/>}
     {dados.status === "pronto" && (dados.lista.length === 0 ? <p className="muted">Esta campanha ainda não tem personagens vinculados.</p>
       : <><p className="muted">Os PV atuais e máximos vêm da ficha do personagem.</p>
         <label>PV máximo manual (usado só se a ficha não puder ser lida)<input inputMode="numeric" value={pvTexto} onChange={e => setPvTexto(e.target.value)}/></label>
         {aviso && <Aviso erro t={aviso}/>}
-        <ul className="ini-achados">{dados.lista.map(p => <li key={p.id}><button type="button" className="btn-secondary" disabled={lendo !== null} onClick={() => void escolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><strong>{p.nome}</strong> <small>{p.classe}</small>{lendo === p.id && <small role="status"> lendo a ficha…</small>}</button></li>)}</ul></>)}
-  </details>;
+        <label>Buscar personagem<input type="search" value={busca} onChange={e => setBusca(e.target.value)}/></label><ul className="ini-achados">{dados.lista.filter(p => sem(p.nome).includes(sem(busca)) || sem(p.classe).includes(sem(busca))).map(p => <li key={p.id}><button type="button" className="btn-secondary" disabled={lendo !== null} onClick={() => void escolher(p)} aria-label={`Adicionar ${p.nome} (personagem)`}><strong>{p.nome}</strong> <small>{p.classe}</small>{lendo === p.id && <small role="status"> lendo a ficha…</small>}</button></li>)}</ul></>)}
+  </section>;
 }
 
