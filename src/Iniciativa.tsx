@@ -12,6 +12,7 @@ import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { rolarD20, textoRolagem, type Rolagem } from "./combate";
 import { useLojaEncontros } from "./Encontros";
 import { useRetratosPersonagens } from "./RetratoCombate";
+import { FaixaTurnos } from "./FaixaTurnos";
 import { ControleNumerico } from "./ControleNumerico";
 import { CriaturaIdentidade } from "./CriaturaIdentidade";
 import { SeletorEncontro } from "./SeletorEncontro";
@@ -136,6 +137,15 @@ export function IniciativaPanel() {
     {combate && <>
       <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()} dados={combate} arquivo="combate-nuvem"/>
       {loja.nuvem && <BackupLocal chave={chaveCombate(userId, campaignId)} rotulo="combate"/>}
+      <div className="ini-turnos-topo"><FaixaTurnos ordem={ordem} turno={combate.turno} retratos={retratos}/>
+      <div className="ini-barra">
+        <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
+        <button className="btn-secondary" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
+        <button className="btn-secondary" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
+        <button className="btn-secondary" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
+        <button className="btn-secondary" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
+      </div>
+      </div>
       <form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
         <label>Nome<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={60}/></label>
         <label>Iniciativa<input inputMode="decimal" value={ini} onChange={e => setIni(e.target.value)} placeholder="0"/></label>
@@ -146,13 +156,6 @@ export function IniciativaPanel() {
       <SeletorMonstro rotulo="Adicionar do Bestiário (rola a iniciativa)" onEscolher={adicionarMonstro}/>
       <SeletorPersonagem campaignId={campaignId} onEscolher={adicionarPersonagem}/>
       <SeletorEncontro encontros={encontros.status === "pronto" ? encontros.valor : null} onEnviar={enc => { aplicar(e => enviarParaCombate(e, enc)); lojaEnc.aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x))); }}/>
-      <div className="ini-barra">
-        <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
-        <button className="btn-secondary" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
-        <button className="btn-secondary" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
-        <button className="btn-secondary" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
-        <button className="btn-secondary" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
-      </div>
       <div className="ini-visualizacao" role="group" aria-label="Visualização dos combatentes">
         <button type="button" className={visualizacao === "cartoes" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "cartoes"} onClick={() => alterarVisualizacao("cartoes")}><LayoutGrid size={15} aria-hidden="true"/> Cartões</button>
         <button type="button" className={visualizacao === "lista" ? "btn-secondary selecionado" : "btn-secondary"} aria-pressed={visualizacao === "lista"} onClick={() => alterarVisualizacao("lista")}><List size={15} aria-hidden="true"/> Lista compacta</button>
