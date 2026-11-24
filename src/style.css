@@ -813,3 +813,5 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .ini-grupos{display:grid;gap:12px;min-width:0}.ini-grupos.separados{grid-template-columns:repeat(2,minmax(0,1fr))}.ini-grupo{min-width:0}.ini-grupo h3{margin:8px 0;font-size:14px}.ini-grupos.separados .ini-grupo:last-child:nth-child(odd){grid-column:1/-1}@container ini (max-width:700px){.ini-grupos.separados{grid-template-columns:1fr}}
 
 .enc-subabas{display:flex;gap:6px;border-bottom:1px solid var(--line);padding:8px 0;margin:8px 0}.enc-subabas button{flex:1;justify-content:center;min-width:0}.enc-subabas button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
+
+.ini-dialogo{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;width:min(520px,calc(100vw - 32px));max-height:85vh;overflow:auto;padding:18px;box-sizing:border-box}.ini-dialogo::backdrop{background:#0009}.ini-dialogo .ini-enc-lista{padding:0;list-style:none}
