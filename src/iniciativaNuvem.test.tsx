@@ -123,19 +123,36 @@ describe("Iniciativa na nuvem", () => {
 });
 
 describe("Encontros na nuvem", () => {
+  it("fim do combate atualiza o encontro no servidor e o painel de Encontros (outra instância) relê o estado novo", async () => {
+    const combate = servidor<EstadoCombate>(vazioCombate), encontros = servidor<Encontro[]>([]);
+    encontros.s.linhas.set("c1", { valor: [{ id: "e1", nome: "Covil", participantes: [{ id: "p", nome: "Goblin", quantidade: 2, pv: 7 }] }], versao: 1 });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    montar(<><IniciativaPanel/><EncontrosPanel/></>, combate, encontros);
+    fireEvent.click((await screen.findAllByText("Adicionar encontro preparado"))[0]); fireEvent.click(await screen.findByRole("button", { name: "Incluir no combate: Covil" }));
+    await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].estado).toBe("em_combate"));
+    await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes[0]?.encontro).toEqual({ encontroId: "e1", criaturaId: "p#1" }));
+    expect((await screen.findAllByText("Em combate")).length).toBeGreaterThan(0);                   // o painel Encontros também já vê
+    fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
+    await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].estado).toBe("em_andamento"));
+    expect(encontros.s.linhas.get("c1")?.valor[0].atual?.criaturas.map(c => [c.id, c.pv, c.noCombate])).toEqual([["p#1", 7, undefined], ["p#2", 7, undefined]]);
+    expect((await screen.findAllByText("Em andamento")).length).toBeGreaterThan(0);
+  });
   it("cria, edita, duplica, salva no servidor e envia ao combate sem apagar o encontro", async () => {
     const { combate, encontros } = montar(<EncontrosPanel/>);
     expect(await screen.findByText("Nenhum encontro preparado")).toBeTruthy();
     preencher("Nome do encontro", "Emboscada"); fireEvent.click(screen.getByRole("button", { name: /Criar encontro/ }));
-    const cartao = await screen.findByRole("region", { name: "Encontro Emboscada" });
+    const cartao = await screen.findByRole("region", { name: "Página do encontro Emboscada" });
     fireEvent.change(within(cartao).getByLabelText("Nome"), { target: { value: "Goblin" } }); fireEvent.change(within(cartao).getByLabelText("Quantidade"), { target: { value: "2" } });
     fireEvent.click(within(cartao).getByRole("button", { name: /Adicionar/ }));
     await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].participantes[0]).toMatchObject({ nome: "Goblin", quantidade: 2 }));
-    fireEvent.click(within(cartao).getByRole("button", { name: "Duplicar encontro Emboscada" }));
+    fireEvent.click(screen.getByRole("button", { name: /Voltar à lista/ }));
+    fireEvent.click(within(await screen.findByRole("region", { name: "Encontro Emboscada" })).getByRole("button", { name: "Duplicar encontro Emboscada" }));
     await screen.findByRole("region", { name: "Encontro Emboscada (cópia)" });
-    fireEvent.click(within(cartao).getByRole("button", { name: "Renomear encontro Emboscada" })); fireEvent.change(within(cartao).getByLabelText("Novo nome"), { target: { value: "Ruínas" } }); fireEvent.click(within(cartao).getByRole("button", { name: "Salvar nome" }));
-    await screen.findByRole("region", { name: "Encontro Ruínas" });
-    fireEvent.click(within(screen.getByRole("region", { name: "Encontro Ruínas" })).getByRole("button", { name: /Enviar para a Iniciativa/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Abrir encontro Emboscada" }));
+    const pagina = await screen.findByRole("region", { name: "Página do encontro Emboscada" });
+    fireEvent.click(within(pagina).getByRole("button", { name: "Renomear encontro Emboscada" })); fireEvent.change(within(pagina).getByLabelText("Novo nome"), { target: { value: "Ruínas" } }); fireEvent.click(within(pagina).getByRole("button", { name: "Salvar nome" }));
+    fireEvent.click(screen.getByRole("button", { name: /Voltar à lista/ }));
+    fireEvent.click(within(await screen.findByRole("region", { name: "Encontro Ruínas" })).getByRole("button", { name: /Enviar para a Iniciativa/ }));
     expect(await screen.findByText(/foi enviado para a Iniciativa/)).toBeTruthy();
     expect(combate.s.linhas.get("c1")?.valor.combatentes.map(c => c.nome).sort()).toEqual(["Goblin 1", "Goblin 2"]);
     expect(encontros.s.linhas.get("c1")?.valor.map(e => e.nome)).toEqual(["Ruínas", "Emboscada (cópia)"]);   // o encontro original segue salvo
@@ -143,7 +160,7 @@ describe("Encontros na nuvem", () => {
   it("adiciona monstro do Bestiário ao encontro com PV e referência", async () => {
     const { encontros } = montar(<EncontrosPanel/>); await screen.findByText("Nenhum encontro preparado");
     preencher("Nome do encontro", "Covil"); fireEvent.click(screen.getByRole("button", { name: /Criar encontro/ }));
-    const cartao = await screen.findByRole("region", { name: "Encontro Covil" });
+    const cartao = await screen.findByRole("region", { name: "Página do encontro Covil" });
     fireEvent.click(within(cartao).getByText("Adicionar do Bestiário")); fireEvent.change(await within(cartao).findByLabelText("Buscar monstro"), { target: { value: "ogro" } });
     fireEvent.click(await within(cartao).findByRole("button", { name: /Adicionar Ogro do Bestiário/ }));
     await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].participantes[0]).toMatchObject({ ref: { tipo: "monstro", id: "ogre" }, pv: 59 }));

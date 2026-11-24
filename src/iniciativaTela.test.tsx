@@ -51,11 +51,12 @@ describe("tela Encontros", () => {
   it("estado vazio, cria encontro, adiciona participante e envia para a Iniciativa", async () => {
     render(<EncontrosPanel/>); expect(await screen.findByText("Nenhum encontro preparado")).toBeTruthy();
     preencher("Nome do encontro", "Emboscada"); fireEvent.click(screen.getByRole("button", { name: /Criar encontro/ }));
-    const cartao = await screen.findByRole("region", { name: "Encontro Emboscada" });
+    const cartao = await screen.findByRole("region", { name: "Página do encontro Emboscada" });
     fireEvent.change(within(cartao).getByLabelText("Nome"), { target: { value: "Goblin" } }); fireEvent.change(within(cartao).getByLabelText("Quantidade"), { target: { value: "2" } });
     fireEvent.change(within(cartao).getByLabelText("PV de cada (opcional)"), { target: { value: "7" } }); fireEvent.click(within(cartao).getByRole("button", { name: /Adicionar/ }));
-    expect(within(cartao).getByText(/2× Goblin · PV 7/)).toBeTruthy();
-    fireEvent.click(within(cartao).getByRole("button", { name: /Enviar para a Iniciativa/ })); expect(await screen.findByText(/foi enviado para a Iniciativa/)).toBeTruthy();
+    expect(within(cartao).getByText(/Avulsa · PV 7/)).toBeTruthy(); expect((within(cartao).getByLabelText("Quantidade de Goblin em Emboscada") as HTMLInputElement).value).toBe("2");
+    fireEvent.click(screen.getByRole("button", { name: /Voltar à lista/ }));
+    fireEvent.click(within(screen.getByRole("region", { name: "Encontro Emboscada" })).getByRole("button", { name: /Enviar para a Iniciativa/ })); expect(await screen.findByText(/foi enviado para a Iniciativa/)).toBeTruthy();
     cleanup(); render(<IniciativaPanel/>); await waitFor(() => expect(screen.getByText("Goblin 1")).toBeTruthy()); expect(screen.getByText("Goblin 2")).toBeTruthy();
   });
   it("encontro persiste ao remontar e armazenamento corrompido mostra erro com nova tentativa", async () => {
@@ -124,7 +125,7 @@ describe("falha de gravação sem perda da edição em tela", () => {
     const gravacao = vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new Error("bloqueado"); });
     preencher("Nome do encontro", "Ruínas preservadas");
     fireEvent.click(screen.getByRole("button", { name: /Criar encontro/ }));
-    expect(screen.getByRole("region", { name: "Encontro Ruínas preservadas" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Página do encontro Ruínas preservadas" })).toBeTruthy();
     const alerta = screen.getByRole("alert");
     gravacao.mockRestore();
     fireEvent.click(within(alerta).getByRole("button", { name: "Tentar de novo" }));
