@@ -120,7 +120,7 @@ export function IniciativaPanel() {
       <SeletorMonstro rotulo="Adicionar do Bestiário (rola a iniciativa)" onEscolher={adicionarMonstro}/>
       <SeletorPersonagem campaignId={campaignId} onEscolher={adicionarPersonagem}/>
       <div className="ini-barra">
-        <strong role="status">Rodada {combate.rodada}</strong>
+        <strong role="status">Rodada {combate.rodada}</strong><span className="ini-turno-atual" aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
         <button className="btn-secondary" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
         <button className="btn-secondary" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
         <button className="btn-secondary" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
@@ -145,7 +145,7 @@ function Linha({ c, atual, aplicar, bonus }: { c: EstadoCombate["combatentes"][n
     <label className="ini-valor">Iniciativa<input aria-label={`Iniciativa de ${c.nome}`} inputMode="decimal" defaultValue={c.iniciativa} key={c.iniciativa}
       onBlur={e => { const n = numero(e.target.value); if (n !== undefined && n !== c.iniciativa) aplicar(x => definirIniciativa(x, c.id, n)); }}/></label>
     <button className="btn-secondary" onClick={() => aplicar(e => rolarIniciativa(e, c.id, bonus))} aria-label={`Rolar iniciativa de ${c.nome}`} title={bonus ? `1d20 ${bonus > 0 ? "+" : ""}${bonus}` : "1d20"}><Dices size={15} aria-hidden="true"/></button>
-    {c.pvMax ? <div className="ini-pv"><span aria-label={`PV de ${c.nome}`}>PV {c.pv}/{c.pvMax}{c.pv === 0 ? " · caído" : ""}</span>
+    {c.pvMax ? <div className="ini-pv"><span aria-label={`PV de ${c.nome}`}>PV {c.pv}/{c.pvMax}{c.pv === 0 ? " · caído" : ""}</span><div className="ini-pv-trilho" aria-hidden="true"><div className="ini-pv-preenchimento" style={{width: `${Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100))}%`}}/></div>
       <input aria-label={`Quantidade de dano ou cura de ${c.nome}`} inputMode="numeric" value={valor} onChange={e => setValor(e.target.value)} placeholder="valor"/>
       <button className="btn-secondary" onClick={() => acao(-1)} aria-label={`Causar dano a ${c.nome}`}>Dano</button>
       <button className="btn-secondary" onClick={() => acao(1)} aria-label={`Curar ${c.nome}`}>Cura</button></div> : <span className="muted ini-pv">Sem PV</span>}
