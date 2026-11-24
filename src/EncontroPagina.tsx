@@ -1,8 +1,9 @@
 // Página individual de um encontro (aberta na mesma aba da lista): nome, descrição e criaturas editáveis. Só edita o próprio encontro; o catálogo nunca é alterado.
-import { ArrowLeft, Minus, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { adicionarParticipante, definirDescricao, editarParticipante, removerParticipante, renomearEncontro, type Encontro, type ParticipanteEncontro, type RefCombate } from "./combate";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
+import { ControleNumerico } from "./ControleNumerico";
 import { CriaturaIdentidade } from "./CriaturaIdentidade";
 import { ROTULO_ESTADO, avisoEntregas, concluirEncontro, estadoDe, iniciarSemCombate, normalizarLoot, pendencias, podeRestaurar, reabrirEncontro, restaurarOriginal } from "./estadoEncontro";
 import { LootEditor } from "./LootEditor";
@@ -37,10 +38,7 @@ function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; 
     </form></li>;
   return <li className="enc-criatura">
     <CriaturaIdentidade nome={p.nome} tipo={tipo} className="enc-criatura-info" detalhes={<>{p.ref?.tipo === "monstro" ? "Bestiário" : "Avulsa"}{p.pv ? ` · PV ${p.pv}` : ""}{p.ca ? ` · CA ${p.ca}` : ""}</>}>{p.notas && <small className="muted">{p.notas}</small>}</CriaturaIdentidade>
-    <div className="ini-pv-controles">
-      <button className="btn-secondary ini-icone" onClick={() => mudarQtd(p.quantidade - 1)} aria-label={`Diminuir quantidade de ${p.nome}`} title="Menos um"><Minus size={14} aria-hidden="true"/></button>
-      <input aria-label={`Quantidade de ${p.nome} em ${enc.nome}`} inputMode="numeric" defaultValue={p.quantidade} key={p.quantidade} onBlur={e => { const n = numero(e.target.value); if (n !== undefined) mudarQtd(n); }}/>
-      <button className="btn-secondary ini-icone" onClick={() => mudarQtd(p.quantidade + 1)} aria-label={`Aumentar quantidade de ${p.nome}`} title="Mais um"><Plus size={14} aria-hidden="true"/></button></div>
+    <ControleNumerico campo={{ "aria-label": `Quantidade de ${p.nome} em ${enc.nome}`, defaultValue: p.quantidade, onBlur: e => { const n = numero(e.target.value); if (n !== undefined) mudarQtd(n); } }} key={p.quantidade} menos={{ rotulo: `Diminuir quantidade de ${p.nome}`, titulo: "Menos um", acao: () => mudarQtd(p.quantidade - 1) }} mais={{ rotulo: `Aumentar quantidade de ${p.nome}`, titulo: "Mais um", acao: () => mudarQtd(p.quantidade + 1) }}/>
     <button className="btn-secondary ini-icone" onClick={abrir} aria-label={`Editar criatura ${p.nome}`} title="Editar"><Pencil size={14} aria-hidden="true"/></button>
     <button className="btn-secondary ini-icone" onClick={() => salvar(removerParticipante(enc, p.id))} aria-label={`Remover ${p.nome} de ${enc.nome}`} title="Remover"><Trash2 size={14} aria-hidden="true"/></button>
     <details className="enc-loot-criatura"><summary>Loot de cada {p.nome} <small className="muted">({p.loot?.length ?? 0})</small></summary>
