@@ -123,7 +123,7 @@ describe('criador guiado na navegação real (desktop)', () => {
 
     // reabrir (novo carregamento do app): lista, ficha, inventário e identidade restaurados
     cleanup(); await montar(); await abrirPersonagens();
-    fireEvent.click(await screen.findByRole('button', { name: 'Abrir personagem guiado Thorin' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Thorin/ }));
     await waitFor(() => expect((screen.getByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('Thorin'));
     expect(screen.getByText(/Atletismo, Percepção/)).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
@@ -247,7 +247,7 @@ describe('criador guiado no celular', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Voltar' }));                       // salvo: volta sem confirmação
     await waitFor(() => expect(screen.queryByLabelText('Nome do personagem')).toBeNull());
     expect(screen.queryByRole('alertdialog')).toBeNull();
-    expect(await screen.findByRole('button', { name: 'Abrir personagem guiado Thorin' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /^Thorin/ })).toBeTruthy();
   });
 });
 
@@ -258,7 +258,7 @@ it('ficha legada continua editável na versão original, sem conversão nem regr
  const inventory=[{id:'reliquia',itemId:'dagger',quantity:2,equipped:false,origin:'acquired' as const}];
  store.salvar({schemaVersion:1,savedAt:'2026-11-20T00:00:00Z',identity:defaultPublicIdentity(),draft:{id:'antiga',name:'Veterana',ruleset:'5e-2014',catalogueVersion:catalog.version,baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},raceId:ids.raceId,backgroundId:ids.backgroundId,classId:ids.classId,level:1,decisions:[],inventory,currentHp:13,temporaryHp:0,spentResources:{},currency:{cp:0,sp:0,gp:7}}});
  const before=structuredClone(store.carregar('antiga'));
- await montar();await abrirPersonagens();fireEvent.click(await screen.findByRole('button',{name:/^Abrir personagem guiado Veterana$/}));
+ await montar();await abrirPersonagens();fireEvent.click(await screen.findByRole('button',{name:/^Veterana/}));
  expect((await screen.findByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('Veterana');
  expect(store.carregar('antiga')).toEqual(before);
  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Veterana revisada'}});

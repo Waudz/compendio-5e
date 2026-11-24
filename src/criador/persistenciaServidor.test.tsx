@@ -94,7 +94,7 @@ describe("salvar e reabrir (servidor)", () => {
     expect(JSON.stringify(publico)).not.toMatch(/chain-mail|baseAbilities|inventory|currentHp|Guerreiro|Cota de malha/);
     // reabre numa janela nova pela lista
     cleanup(); await montar(); await abrirPersonagens();
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     expect((await nomeInput()).value).toBe("Thorin");
     expect(screen.getByText(/Atletismo, Percepção/)).toBeTruthy();
     fireEvent.click(secoes().getByRole("button", { name: "Inventário" }));
@@ -109,7 +109,7 @@ describe("salvar e reabrir (servidor)", () => {
   it("editar o inventário dentro da ficha e salvar grava nova revisão; a identidade pública continua igual", async () => {
     await criarPersonagem("Thorin", true);
     cleanup(); await montar(); await abrirPersonagens();
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" })); await nomeInput();
+    fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ })); await nomeInput();
     fireEvent.click(secoes().getByRole("button", { name: "Inventário" }));
     fireEvent.change(screen.getByLabelText("Buscar item para adicionar"), { target: { value: "adaga" } });
     fireEvent.click(await screen.findByRole("button", { name: /^Adicionar Adaga$/ }));
@@ -123,7 +123,7 @@ describe("salvar e reabrir (servidor)", () => {
     await criarPersonagem("Thorin", false);
     cleanup(); vi.stubGlobal("localStorage", memoryStorage());          // aparelho novo: nada local
     await montar(); await abrirPersonagens();
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     expect((await nomeInput()).value).toBe("Thorin");
     expect(screen.getByTestId("aviso-servidor")).toBeTruthy();
     expect(screen.queryByTestId("aviso-armazenamento")).toBeNull();
@@ -152,8 +152,8 @@ describe("quem vê o quê", () => {
   it("outro jogador da campanha vê só a identidade pública publicada (sem nível, PV, inventário nem ficha) e nada se não foi publicada", async () => {
     await criarPersonagem("Thorin", true);
     cleanup(); await montar(other); await abrirPersonagens();
-    expect(screen.queryByRole("button", { name: /Abrir ficha guiada/ })).toBeNull();            // não lê a ficha de ninguém
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir identidade pública de O Escudo" }));
+    expect(screen.queryByRole("button", { name: /sua ficha|ficha de outro participante/ })).toBeNull();            // não lê a ficha de ninguém
+    fireEvent.click(await screen.findByRole("button", { name: /^O Escudo/ }));
     const cartao = await screen.findByTestId("cartao-publico");
     expect(cartao.textContent).toMatch(/O Escudo/);
     expect(cartao.textContent).not.toMatch(/nível|PV|Cota de malha|Guerreiro|Anão|atributo/i);
@@ -161,7 +161,7 @@ describe("quem vê o quê", () => {
     banco.registros.dados[0].visibility = "private";
     cleanup(); await montar(other); await abrirPersonagens();
     await screen.findByTestId("guiados-vazio");
-    expect(screen.queryByRole("button", { name: /Abrir identidade pública/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^O Escudo/ })).toBeNull();
     // e abrir a ficha direto (aba restaurada/link) não funciona
     const id = banco.fichas[0].id;
     localStorage.setItem(`compendio5e:workspace:v2:u2:ca:navegador`, JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", id: "grupo-1", weight: 100, active: true, selected: 0, children: [{ type: "tab", id: `criador:${id}` }] }] } }));
@@ -179,8 +179,8 @@ describe("quem vê o quê", () => {
   it("o mestre vê e edita a ficha de outro jogador, mas não vê a identidade privada nem a altera", async () => {
     await criarPersonagem("Thorin", false);                               // identidade NÃO publicada (privada)
     cleanup(); await montar(mestreUser); await abrirPersonagens();
-    expect(screen.queryByRole("button", { name: /Abrir identidade pública/ })).toBeNull();
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" }));
+    expect(screen.queryByRole("button", { name: /^O Escudo/ })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     expect((await nomeInput()).value).toBe("Thorin");
     expect(screen.getByTestId("aviso-servidor").textContent).toMatch(/outro jogador.*mestre/);
     fireEvent.click(secoes().getByRole("button", { name: "Identidade pública" }));
@@ -218,7 +218,7 @@ describe("conflito de revisão", () => {
   it("edição do mestre durante a do dono: o dono recebe aviso, nada é sobrescrito, e pode carregar a versão atual e restaurar as próprias alterações", async () => {
     await criarPersonagem("Thorin", false);
     cleanup(); await montar(); await abrirPersonagens();
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     fireEvent.change(await nomeInput(), { target: { value: "Thorin B" } });
     // o mestre grava antes (revisão 2)
     const f = banco.fichas[0];
@@ -262,7 +262,7 @@ describe("falhas de rede e recuperação", () => {
   it("falha ao abrir (rede) mostra o erro com 'Tentar de novo' e recupera quando a conexão volta", async () => {
     await criarPersonagem("Thorin", false);
     cleanup(); await montar(); await abrirPersonagens();
-    const botao = await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" });
+    const botao = await screen.findByRole("button", { name: /^Thorin/ });
     banco.rede.caida = true; fireEvent.click(botao);
     expect(await screen.findByText(/Não foi possível verificar a ficha/)).toBeTruthy();
     banco.rede.caida = false; fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
@@ -274,7 +274,7 @@ describe("falhas de rede e recuperação", () => {
     banco.rede.caida = true; cleanup(); await montar(); await abrirPersonagens();
     expect(await screen.findByText(/Sem conexão com o servidor/)).toBeTruthy();
     banco.rede.caida = false; fireEvent.click(screen.getAllByRole("button", { name: "Tentar de novo" })[0]);
-    expect(await screen.findByRole("button", { name: "Abrir ficha guiada Thorin" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Thorin/ })).toBeTruthy();
   });
 
   it("a cópia de recuperação de um usuário não aparece para outro no mesmo navegador", async () => {
@@ -305,7 +305,7 @@ describe("rascunhos do armazenamento local (experimental) → campanha", () => {
     expect((registros.dados[0] as { visibility: string }).visibility).toBe("private");        // identidade começa privada
     expect(armazenamentoLocalExperimental("u1", "ca").listar()).toEqual([]);
     expect(screen.queryByTestId("rascunhos-locais")).toBeNull();
-    expect(await screen.findByRole("button", { name: "Abrir ficha guiada Velho Rascunho" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Velho Rascunho/ })).toBeTruthy();
   });
   it("os botões da lista de rascunhos locais têm nome acessível que contém o texto visível (WCAG 2.5.3)", async () => {
     await rascunhoLocal("Velho Rascunho");

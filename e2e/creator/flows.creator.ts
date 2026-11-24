@@ -69,7 +69,7 @@ test('alterações não salvas: salvar pelo diálogo e reabrir o personagem loca
   await page.getByRole('alertdialog', { name: 'Alterações não salvas', exact: true })
     .getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByRole('alertdialog')).toBeHidden();
-  await page.getByRole('button', { name: 'Abrir personagem guiado Guerreira E2E', exact: true }).click();
+  await page.getByRole('button', { name: /^Guerreira E2E/ }).click();
   await expect(nameField(page)).toHaveValue('Guerreira E2E');
   await expect(page.getByRole('group',{name:/^Proficiências de Guerreiro/}).getByRole('checkbox', { name: 'Atletismo', exact: true })).toBeChecked();
   await expect(page.getByRole('button', { name: 'Salvar', exact: true })).toBeDisabled();

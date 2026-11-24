@@ -6,7 +6,7 @@
 ## 0. Achados que exigem a sua decisão ou autorização (leia primeiro)
 
 1. **O cadastro público está ABERTO no servidor.** Leitura somente de `GET /auth/v1/settings` do projeto `compendio-5e` (chave publicável do próprio site): `disable_signup: false`, confirmação de e-mail ligada. Só o *cliente* esconde o cadastro; qualquer pessoa pode chamar `/auth/v1/signup` direto e, com a conta, criar campanhas (`create_campaign`). **Antes de convidar testadores:** Supabase → Authentication → Sign In/Providers → desligar "Allow new users to sign up" (contas já existentes e a recuperação de senha continuam funcionando — o harness isolado confirma isso). Não alterei nada em produção.
-2. **O banco hospedado está atrás do repositório.** Sondagem somente leitura (HTTP anônimo, sem credenciais privadas): existem `campaigns`, `campaign_members`, `notes`, `character_sheets`; **não existem** `create_guided_character` (0008) nem `save_note_content` (0005) — ou seja, **a persistência de personagens no servidor (criador → ficha) não funciona em produção até a 0008 ser aplicada** — e nenhuma tabela das 0009–0011. **Discrepância a esclarecer:** a 0007 (marcada como aplicada) usa `notes.kind`, criada pela 0005, mas a função da 0005 não aparece. Antes de aplicar qualquer coisa, consultar `select version, name from supabase_migrations.schema_migrations order by 1;` e comparar com o livro-razão (`supabase/migrations/LEIA-ME.md`).
+2. ~~**O banco hospedado está atrás do repositório.**~~ **SUPERADO em 23/11:** consulta direta confirmou 0005 e 0008 aplicadas (ver o fim do documento); a sondagem anônima era enganosa. Texto original: Sondagem somente leitura (HTTP anônimo, sem credenciais privadas): existem `campaigns`, `campaign_members`, `notes`, `character_sheets`; **não existem** `create_guided_character` (0008) nem `save_note_content` (0005) — ou seja, **a persistência de personagens no servidor (criador → ficha) não funciona em produção até a 0008 ser aplicada** — e nenhuma tabela das 0009–0011. **Discrepância a esclarecer:** a 0007 (marcada como aplicada) usa `notes.kind`, criada pela 0005, mas a função da 0005 não aparece. Antes de aplicar qualquer coisa, consultar `select version, name from supabase_migrations.schema_migrations order by 1;` e comparar com o livro-razão (`supabase/migrations/LEIA-ME.md`).
 3. **Desligar `VITE_COMBATE_REMOTO` não é rollback completo** quanto aos dados: o que foi gravado só na nuvem fica nas tabelas. Recuperação: botão **"Baixar cópia (JSON)"** na Iniciativa e nos Encontros (modo nuvem) e, para o conjunto, `select campaign_id, state, version from public.campaign_combats;` / `campaign_encounters` / `character_combat_status` no SQL Editor (exportar CSV/JSON) **antes** de qualquer reversão. Ver §7.
 4. Aplicar as migrações **0008 → 0009 → 0010 → 0011** (e a 0005/0006 se o registro mostrar que faltam) exige a sua autorização expressa.
 
@@ -88,3 +88,22 @@ Importar cópia JSON no modo local; Realtime também para combate/encontros entr
 | `playwright.quality`/`creator` (8 larguras, axe) | a configuração `creator` foi executada em partes na rodada anterior desta frente; a suíte `quality` completa **não foi reexecutada** nesta sessão |
 
 CI do GitHub: **não verificado** (branch ainda sem PR no momento deste registro).
+
+### Correção do workflow "E2E e responsividade" (23/11/2026, CI do PR #132 reprovou 3 grupos)
+
+Causas reais (reproduzidas localmente com as mesmas resoluções do CI: 320, 360, 390, 700, 701, 768, 1024, 1440; nenhum teste foi desativado ou afrouxado):
+1. **`e2e/historico.spec.ts`, celular estreito (320):** o teste só dispensava o "Avançar" no projeto chamado `celular`; no `celular-estreito` ele rodava e falhava. Agora o critério é a largura da tela (≤ 700), pois o celular não tem Avançar por desenho.
+2. **`accessibility.creator.ts` e `expansao-2014.creator.ts` (≥ 701):** o axe acusava `label-content-name-mismatch` (WCAG 2.5.3). Com a navegação do PR #130 as abas deixam de ser substituídas, então a lista **Personagens** continua aberta ao lado do criador nas larguras de desktop e passa a ser escaneada: os botões de personagem tinham `aria-label` ("Abrir ficha de …") que não continha o texto visível ("Nome · classe · nível…"). Correção no componente: o nome acessível passa a ser o texto visível e a dica da ação vai em `title`. Os seletores de testes que dependiam do nome antigo foram atualizados (`personagens.test.tsx`, `criadorGuiado.test.tsx`, `persistenciaServidor.test.tsx`, `regressoes-persistencia.test.tsx`, `flows.creator.ts`, `expansao-2014.creator.ts`); as asserções "não aparece" continuam equivalentes.
+3. **Mesmos testes, larguras 701 e 768:** o botão de abas ocultas do FlexLayout (`aria-label` "Hidden tabs" com a quantidade visível) tinha o mesmo defeito, agora exposto porque abas deixam de ser substituídas. O botão não tem mais texto no DOM (símbolo e contagem vêm do CSS) e o nome acessível deixa de divergir.
+
+Resultado local após as correções (Chrome instalado, sem vídeo):
+
+| Verificação | Resultado |
+|---|---|
+| `tsc -b`, `tsc -p e2e` e `npm run build` | passaram |
+| Vitest completo | 118 arquivos, 1473 testes: passaram |
+| Playwright base (`npm run test:e2e`, 4 resoluções) | **60 passaram** |
+| Playwright creator (`npm run test:creator`, 8 resoluções) | **96 passaram** |
+| Playwright quality (`npm run test:quality`, 8 resoluções) | **88 passaram** |
+
+Observação: as migrações 0005 e 0008 já estão aplicadas no banco hospedado (confirmado por consulta direta); o §0.2 acima, que as dava como ausentes por sondagem anônima, fica **superado**: a sondagem anônima recebeu 404 nas funções porque o schema cache da Data API não as expunha ao papel anônimo, não porque faltassem. Não reaplicar 0005 nem 0008; pendentes: 0009, 0010 e 0011.

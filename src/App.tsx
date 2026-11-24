@@ -32,6 +32,9 @@ function useMobile() {
 }
 
 /** Só existe com sessão. `key` por usuário: trocar de conta descarta TODO o estado do espaço de trabalho (nada vaza entre contas). */
+/** Botão de abas ocultas: sem texto no DOM (a quantidade e o símbolo vêm do CSS), para o nome acessível do botão ("Hidden tabs") não divergir do texto visível (WCAG 2.5.3). */
+const ICONES = { more: (_n: unknown, ocultas: readonly unknown[]) => <span className="aba-mais" aria-hidden="true" data-n={ocultas.length || ""}/> };
+
 export default function App() {
   const { status, user } = useAuth();
   const { loading, active, error } = useCampaigns();
@@ -277,7 +280,8 @@ function Workspace({ userId }: { userId: string }) {
             onClose={id => guarded([id], () => closeTab(model, id))()} onTabMenu={(t, x, y) => showTabMenu(t, x, y)}
             onNewTab={(x, y) => setMenu({ x, y, items: [...(active ? [{ label: "Início", onSelect: () => openMenu(homeSpec, "new") }] : []), ...[campaignsHub, ...visibleSections(active?.role === "mestre")].map(({ page, title }) => ({ label: title, onSelect: () => openMenu({ kind: "secao", ref: page }, "new") }))] })}/>
         : <Layout model={model} factory={factory} onAction={onAction} onModelChange={onModelChange} onContextMenu={contextMenu}
-            onRenderTab={renderTab} onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize/>}
+            onRenderTab={renderTab} onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize
+            icons={ICONES}/>}
     </main>
     {menu && <ContextMenu menu={menu} onClose={closeMenu}/>}
     {unsaved.dialog}

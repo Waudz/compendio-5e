@@ -45,7 +45,7 @@ describe("Personagens e Aventureiros", () => {
     fireEvent.click(screen.getByRole("button", { name: "Criar personagem" }));
     expect(await screen.findByLabelText("Nome do personagem")).toBeTruthy();
     await abrir("Personagens");
-    fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha de Lydia" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Lydia/ }));
     expect(await screen.findByLabelText("Nome")).toBeTruthy();
     expect((await screen.findByLabelText("Opções SRD 2014")).querySelector("select")).toBeTruthy();
   });
@@ -55,9 +55,9 @@ describe("Personagens e Aventureiros", () => {
     expect(await screen.findByRole("button", { name: "Público alheio Guerreiro · nível 3" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Privado alheio/ })).toBeNull(); expect(screen.queryByRole("button", { name: /Meu privado/ })).toBeNull();
     await abrir("Personagens");
-    await screen.findByRole("button", { name: "Abrir ficha de Meu privado" });
+    await screen.findByRole("button", { name: /^Meu privado/ });
     expect(screen.queryByRole("button", { name: /Privado alheio/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Abrir ficha de Meu privado" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Meu privado/ }));
     fireEvent.change(await screen.findByLabelText("Nível"), { target: { value: "30" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
     expect((await screen.findByText(/nível deve ser/)).getAttribute("role")).toBe("alert");
@@ -69,7 +69,7 @@ describe("Personagens e Aventureiros", () => {
     const apagar = vi.fn(async () => ({ ok: true as const, data: true as const }));
     const capa: CapaApi = { obter: async () => ({ ok: true, data: null }), definir: async () => ({ ok: true, data: "" }), remover: async () => ({ ok: true, data: true }), enviar: async () => ({ ok: true, data: u1 }), urlDe: async c => ({ ok: true, data: `blob:${c}` }), apagar };
     await renderApp({ api: apiC(jogador), registros: registrosEmMemoria("jogador", me.id, [], store), capa });
-    await abrir("Personagens"); fireEvent.click(await screen.findByRole("button", { name: "Abrir ficha de Meu" }));
+    await abrir("Personagens"); fireEvent.click(await screen.findByRole("button", { name: /^Meu(?! privado)/ }));
     const input = (await screen.findByText("Adicionar retrato")).querySelector("input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["x"], "r.png", { type: "image/png" })] } });
     await screen.findByText("Remover retrato"); fireEvent.click(screen.getByRole("button", { name: "Salvar" }));

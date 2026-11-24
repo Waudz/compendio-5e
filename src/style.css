@@ -695,3 +695,5 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .iniciativa .ini-lista-compacta .ini-pv{grid-column:auto}
 .iniciativa .ini-lista-compacta .ini-nome small{display:block}
 @media(max-width:900px){.iniciativa .ini-lista-compacta .ini-item{grid-template-columns:minmax(0,1fr) auto}.iniciativa .ini-lista-compacta .ini-pv{grid-column:1 / -1}}
+
+.aba-mais::before{content:"EF"}.aba-mais[data-n]:not([data-n=""])::after{content:attr(data-n);font-size:11px;margin-left:2px}

@@ -42,7 +42,7 @@ async function abrirExistente() {
   await renderApp({ user: me, api: apiCampanhas, fichas: api, registros: registrosEmMemoria('jogador', me.id, [], banco.registros) });
   const menu = within(await screen.findByRole('navigation', { name: 'Menu principal' }));
   fireEvent.click(menu.getByRole('button', { name: 'Personagens' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Abrir ficha guiada Lira' }));
+  fireEvent.click(await screen.findByRole('button', { name: /^Lira/ }));
   const nome = await waitFor(() => {
     const campo = screen.queryByLabelText('Nome do personagem') as HTMLInputElement | null;
     if (campo) return campo;
