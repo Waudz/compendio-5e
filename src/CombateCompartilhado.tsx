@@ -1,3 +1,5 @@
+import { PesquisaCatalogo } from "./PesquisaCatalogo";
+import { RetratoQuadrado } from "./RetratoCombate";
 import { Download } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
@@ -113,26 +115,23 @@ export function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }
 // ---------------------------------------------------------------- seletores de conteúdo canônico (sem bancos paralelos)
 export const modAtributo = (v: number) => Math.floor((v - 10) / 2);
 export function SeletorMonstro({ rotulo, onEscolher }: { rotulo: string; onEscolher: (m: Monstro) => void }) {
-  const [aberto, setAberto] = useState(false), [busca, setBusca] = useState("");
+  const [busca, setBusca] = useState("");
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: readonly Monstro[] }>({ status: "carregando" });
   const carregar = useCallback(() => { setDados({ status: "carregando" }); import("./catalogue/contratos").then(c => c.todosOsMonstros()).then(lista => setDados({ status: "pronto", lista }), () => setDados({ status: "erro" })); }, []);
-  useEffect(() => { if (aberto && dados.status === "carregando") carregar(); }, [aberto]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { carregar(); }, [carregar]);
   const achados = useMemo(() => {
     if (dados.status !== "pronto" || busca.trim().length < 2) return [];
     const q = sem(busca.trim());
     return dados.lista.filter(m => sem(m.nome).includes(q) || sem(m.en).includes(q)).slice(0, 8);
   }, [dados, busca]);
-  return <details className="ini-seletor" open={aberto} onToggle={e => setAberto((e.target as HTMLDetailsElement).open)}>
-    <summary>{rotulo}</summary>
-    {dados.status === "carregando" && aberto && <p className="muted" role="status">Carregando o Bestiário…</p>}
+  return <section className="ini-seletor" aria-label={rotulo}>
+    <strong>{rotulo}</strong>
+    {dados.status === "carregando" && <p className="muted" role="status">Carregando o Bestiário…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar o Bestiário." onRetry={carregar}/>}
     {dados.status === "pronto" && <>
-      <label>Buscar monstro<input type="search" value={busca} onChange={e => setBusca(e.target.value)} placeholder="Nome em português ou inglês"/></label>
-      {busca.trim().length >= 2 && achados.length === 0 && <p className="muted">Nenhum monstro encontrado.</p>}
-      <ul className="ini-achados">{achados.map(m => <li key={m.id}><button type="button" className="btn-secondary" onClick={() => onEscolher(m)} aria-label={`Adicionar ${m.nome} do Bestiário`}>
-        <strong>{m.nome}</strong> <small>ND {m.nd >= 1 ? m.nd : m.nd === 0.5 ? "1/2" : m.nd === 0.25 ? "1/4" : m.nd === 0.125 ? "1/8" : m.nd} · PV {m.pv} · CA {m.ca}</small></button></li>)}</ul>
+      <PesquisaCatalogo rotulo="Buscar monstro" valor={busca} onChange={setBusca} vazio={!achados.length} resultados={achados.map(m => <li key={m.id}><button type="button" className="btn-secondary" onClick={() => { onEscolher(m); setBusca(""); }} aria-label={`Adicionar ${m.nome} do Bestiário`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="monstro" tamanho={36}/><span><strong>{m.nome}</strong><small>ND {m.nd >= 1 ? m.nd : m.nd === 0.5 ? "1/2" : m.nd === 0.25 ? "1/4" : m.nd === 0.125 ? "1/8" : m.nd} · PV {m.pv} · CA {m.ca}</small></span></span></button></li>)}/> 
     </>}
-  </details>;
+  </section>;
 }
 export function SeletorPersonagem({ campaignId, onEscolher }: { campaignId: string; onEscolher: (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => void }) {
   const fonte = useAventureiros(), fichas = useFichas();
