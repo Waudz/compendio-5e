@@ -101,6 +101,6 @@ describe("tela Encontros: lista e página", () => {
     fireEvent.change(within(pagina).getByLabelText("Quantidade de Goblin a enviar de Covil"), { target: { value: "2" } });
     fireEvent.click(within(pagina).getByRole("button", { name: "Incluir no combate: Covil" }));
     await waitFor(() => expect(JSON.parse(localStorage.getItem(chaveCombate("u1", "c1"))!).combatentes.map((c: { nome: string }) => c.nome).sort()).toEqual(["Goblin 1", "Goblin 2"]));
-    expect(JSON.parse(localStorage.getItem(chaveEncontros("u1", "c1"))!)).toEqual([enc]);
+    expect(JSON.parse(localStorage.getItem(chaveEncontros("u1", "c1"))!)[0]).toMatchObject({ participantes: enc.participantes });   // configuração original intacta
   });
 });

@@ -13,6 +13,7 @@ import { rolarD20, textoRolagem, type Rolagem } from "./combate";
 import { useLojaEncontros } from "./Encontros";
 import { RetratoQuadrado, useRetratosPersonagens } from "./RetratoCombate";
 import { SeletorEncontro } from "./SeletorEncontro";
+import { marcarEnviado, sincronizarComCombate } from "./estadoEncontro";
 import { EVENTO, type Estado, useArmazenado, rotuloLado, CONDICOES_5E, numero, useEscopo, SemCampanha, AcessoRestrito, ErroArmazenamento, ModoArmazenamento, BackupLocal, modAtributo, SeletorMonstro, SeletorPersonagem, type VisualizacaoCombate, chaveVisualizacaoCombate, lerVisualizacaoCombate } from "./CombateCompartilhado";
 export { NuvemContext, type ApisNuvem, type VisualizacaoCombate, chaveVisualizacaoCombate, lerVisualizacaoCombate } from "./CombateCompartilhado";
 export { EncontrosPanel } from "./Encontros";
@@ -66,7 +67,7 @@ export function IniciativaPanel() {
   const [mods, setMods] = useState<Record<string, number>>({});   // bônus de iniciativa por combatente (monstros: Destreza do catálogo)
   const [rolagens, setRolagens] = useState<Record<string, Rolagem>>({});   // última rolagem de cada um (só para mostrar; o resultado já está na iniciativa)
   const retratos = useRetratosPersonagens(campaignId);
-  const encontros = useLojaEncontros(userId, campaignId, podeGerenciar, nuvem).estado;
+  const lojaEnc = useLojaEncontros(userId, campaignId, podeGerenciar, nuvem), encontros = lojaEnc.estado;
   useEffect(() => {
     try { setVisualizacao(lerVisualizacaoCombate(localStorage.getItem(chaveVisualizacaoCombate(userId ?? "")))); }
     catch { setVisualizacao("cartoes"); }
@@ -106,6 +107,10 @@ export function IniciativaPanel() {
       if (falhas.length && !window.confirm(`Não foi possível gravar os PV finais nas fichas de: ${falhas.join("; ")}.\n\nCancelar mantém o combate aberto para tentar de novo. Finalizar mesmo assim descarta esses PV.`)) { setErroFinalizar("Combate mantido aberto: os PV finais não foram gravados em todas as fichas. Tente finalizar novamente."); return; }
     }
     const erro = await loja.finalizar(); setErroFinalizar(erro);
+    if (!erro && combate) {   // sobreviventes e PV voltam para os encontros de origem; só conclui sozinho quem não tem pendências
+      if (encontros.status === "pronto") lojaEnc.aplicar(l => l.map(x => sincronizarComCombate(x, combate, true)));
+      else setErroFinalizar("Combate finalizado, mas os encontros não estavam carregados e não foram atualizados. Abra o encontro e conclua-o manualmente.");
+    }
     if (!erro && statusApi) { enviados.current.clear(); const l = await statusApi.limpar(campaignId); if (!l.ok) setAvisoFicha(l.mensagem); }
   };
   return <div className="content iniciativa">
@@ -127,7 +132,7 @@ export function IniciativaPanel() {
       </form>
       <SeletorMonstro rotulo="Adicionar do Bestiário (rola a iniciativa)" onEscolher={adicionarMonstro}/>
       <SeletorPersonagem campaignId={campaignId} onEscolher={adicionarPersonagem}/>
-      <SeletorEncontro encontros={encontros.status === "pronto" ? encontros.valor : null} onEnviar={enc => aplicar(e => enviarParaCombate(e, enc))}/>
+      <SeletorEncontro encontros={encontros.status === "pronto" ? encontros.valor : null} onEnviar={enc => { aplicar(e => enviarParaCombate(e, enc)); lojaEnc.aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x))); }}/>
       <div className="ini-barra">
         <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong><span className="ini-turno-atual" aria-live="polite">{ordem.find(c => c.id === combate.turno)?.nome ? `Turno atual: ${ordem.find(c => c.id === combate.turno)?.nome}` : "Sem turno ativo"}</span>
         <button className="btn-secondary" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>

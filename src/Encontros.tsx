@@ -1,9 +1,10 @@
 import { Copy, FolderOpen, Plus, Swords, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Aviso } from "./Diario";
 import { useUnsavedGuard } from "./unsaved";
-import { chaveCombate, chaveEncontros, duplicarEncontro, enviarParaCombate, lerCombate, lerEncontros, novoId, type Encontro } from "./combate";
+import { chaveCombate, chaveEncontros, duplicarEncontro, enviarParaCombate, lerCombate, lerEncontros, novoId, type Encontro, type EstadoCombate } from "./combate";
 import { EncontroPagina } from "./EncontroPagina";
+import { ROTULO_ESTADO, duplicarEstadoAtual, estadoDe, marcarEnviado, sincronizarComCombate } from "./estadoEncontro";
 import { useNuvem, type ApisNuvem } from "./nuvem";
 import { useLinhaRemota, type SyncRemoto } from "./useLinhaRemota";
 import { EVENTO, type Estado, useArmazenado, useEscopo, SemCampanha, AcessoRestrito, ErroArmazenamento, ModoArmazenamento, BackupLocal } from "./CombateCompartilhado";
@@ -12,6 +13,14 @@ export function useLojaEncontros(userId: string | null, campaignId: string | nul
   const ativo = !!(userId && campaignId && podeGerenciar);
   const local = useArmazenado<Encontro[]>(ativo && !nuvem ? chaveEncontros(userId!, campaignId!) : null, lerEncontros);
   const remoto = useLinhaRemota<Encontro[]>({ api: ativo && nuvem ? nuvem.encontros : null, campaignId: ativo && nuvem ? campaignId : null, vazio: () => [], chaveBackup: ativo && nuvem ? `compendio5e:encontros-nuvem:${userId}:${campaignId}` : null });
+  // Vários painéis (Iniciativa e Encontros) leem a mesma linha: ao gravar, avisa os outros para relerem; ao ser avisado, relê se houver versão nova.
+  const aviso = campaignId ? `nuvem:encontros:${campaignId}` : null, anterior = useRef(remoto.sync);
+  useEffect(() => { if (nuvem && aviso && anterior.current !== "salvo" && remoto.sync === "salvo") window.dispatchEvent(new CustomEvent(EVENTO, { detail: aviso })); anterior.current = remoto.sync; }, [remoto.sync, nuvem, aviso]);
+  useEffect(() => {
+    if (!nuvem || !aviso) return;
+    const aoAvisar = (e: Event) => { if ((e as CustomEvent<string>).detail === aviso) void remoto.reler(); };
+    window.addEventListener(EVENTO, aoAvisar); return () => window.removeEventListener(EVENTO, aoAvisar);
+  }, [nuvem, aviso, remoto.reler]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (nuvem) {
     const estado: Estado<Encontro[]> = remoto.carga.status === "pronto" ? { status: "pronto", valor: remoto.carga.valor } : remoto.carga.status === "erro" ? { status: "erro", mensagem: remoto.carga.mensagem } : { status: "carregando" };
     return { nuvem: true as const, estado, aplicar: (fn: (l: Encontro[]) => Encontro[]) => remoto.alterar(fn), sync: remoto.sync, mensagem: remoto.mensagem, sujo: remoto.sujo, salvar: async () => { remoto.tentarAgora(); return remoto.sync === "salvo"; }, tentar: remoto.tentarAgora, recarregar: remoto.recarregar, descartar: () => void remoto.recarregar() };
@@ -38,15 +47,27 @@ export function EncontrosPanel() {
       const s = await nuvem.combate.salvar(campaignId, enviarParaCombate(r.data.valor, enc), r.data.versao);
       if (!s.ok) { setAviso(`Não foi possível enviar: ${s.mensagem}`); return; }
       window.dispatchEvent(new CustomEvent(EVENTO, { detail: `nuvem:combate:${campaignId}` }));
+      aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x)));
       setAviso(`"${enc.nome}" foi enviado para a Iniciativa. O encontro continua salvo aqui. Informe a iniciativa de cada um lá.`); return;
     }
     const k = chaveCombate(userId, campaignId);
     try {
       const novo = enviarParaCombate(lerCombate(localStorage.getItem(k)), enc);
       localStorage.setItem(k, JSON.stringify(novo)); window.dispatchEvent(new CustomEvent(EVENTO, { detail: k }));
+      aplicar(l => l.map(x => (x.id === enc.id ? marcarEnviado(x, enc) : x)));
       setAviso(`"${enc.nome}" foi enviado para a Iniciativa. Informe a iniciativa de cada um lá.`);
     } catch { setAviso("Não foi possível enviar: o combate guardado neste aparelho está ilegível. Abra a Iniciativa para tentar de novo ou descartá-lo."); }
   };
+  /** Lê o combate em andamento (nuvem ou local) e atualiza PV, derrotados e quem saiu neste encontro. Sem combate, equivale a "o combate acabou". */
+  const sincronizar = async (enc: Encontro) => {
+    let combate: EstadoCombate;
+    if (nuvem) { const r = await nuvem.combate.carregar(campaignId); if (!r.ok) { setAviso(`Não foi possível ler o combate: ${r.mensagem}`); return; } combate = r.data.valor; }
+    else { try { combate = lerCombate(localStorage.getItem(chaveCombate(userId, campaignId))); } catch { setAviso("Não foi possível ler o combate guardado neste aparelho."); return; } }
+    const ativo = combate.combatentes.some(c => c.encontro?.encontroId === enc.id);
+    aplicar(l => l.map(x => (x.id === enc.id ? sincronizarComCombate(x, combate, !ativo) : x)));
+    setAviso(ativo ? "Encontro atualizado a partir do combate em andamento." : "Nenhuma criatura deste encontro está no combate: o estado atual foi atualizado como combate encerrado.");
+  };
+  const duplicarAtual = (enc: Encontro) => aplicar(l => { const i = l.findIndex(x => x.id === enc.id); return i < 0 ? l : [...l.slice(0, i + 1), duplicarEstadoAtual(enc), ...l.slice(i + 1)]; });
   return <div className="content iniciativa">
     <div className="eyebrow">{(campanha ?? "").toLocaleUpperCase("pt-BR")} · PREPARAÇÃO</div><h1>Encontros</h1>
     {estado.status === "carregando" && <div className="notice" role="status" aria-live="polite">Carregando os encontros…</div>}
@@ -56,7 +77,7 @@ export function EncontrosPanel() {
     {lista && <>
       <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="os encontros" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()} dados={lista} arquivo="encontros-nuvem"/>
       {loja.nuvem && <BackupLocal chave={chaveEncontros(userId, campaignId)} rotulo="encontros"/>}
-      {aberto ? <EncontroPagina enc={aberto} salvar={n => aplicar(l => l.map(x => (x.id === aberto.id ? n : x)))} voltar={() => setAbertoId(null)} enviar={e => void enviar(e)}/> : <>
+      {aberto ? <EncontroPagina enc={aberto} salvar={n => aplicar(l => l.map(x => (x.id === aberto.id ? n : x)))} voltar={() => setAbertoId(null)} enviar={e => void enviar(e)} sincronizar={() => void sincronizar(aberto)} duplicarAtual={() => duplicarAtual(aberto)}/> : <>
       <form className="ini-form" aria-label="Novo encontro" onSubmit={e => { e.preventDefault(); if (nome.trim()) { const n = nome.trim(); const novo = { id: novoId(), nome: n, participantes: [] }; aplicar(l => [...l, novo]); setAbertoId(novo.id); setNome(""); } }}>
         <label>Nome do encontro<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={80}/></label>
         <button type="submit" className="btn-secondary"><Plus size={15} aria-hidden="true"/> Criar encontro</button>
@@ -74,7 +95,7 @@ export function EncontrosPanel() {
 function Cartao({ enc, abrir, excluir, enviar, duplicar }: { enc: Encontro; abrir: () => void; excluir: () => void; enviar: () => void; duplicar: () => void }) {
   const total = enc.participantes.reduce((s, p) => s + p.quantidade, 0);
   return <section className="ini-cartao" aria-label={`Encontro ${enc.nome}`}>
-    <h2>{enc.nome}</h2>
+    <h2>{enc.nome} <span className="enc-estado" data-estado={estadoDe(enc)}>{ROTULO_ESTADO[estadoDe(enc)]}</span></h2>
     {enc.descricao && <p className="enc-resumo">{enc.descricao}</p>}
     <p className="muted">{enc.participantes.length === 0 ? "Sem criaturas" : `${enc.participantes.length} tipo(s) de criatura, ${total} no total: ${enc.participantes.slice(0, 4).map(p => `${p.quantidade}× ${p.nome}`).join(", ")}${enc.participantes.length > 4 ? "…" : ""}`}</p>
     <div className="ini-barra">

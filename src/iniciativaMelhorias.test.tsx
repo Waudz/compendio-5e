@@ -92,7 +92,7 @@ describe("tela da Iniciativa", () => {
     await waitFor(() => expect(lista.getAllByRole("listitem")).toHaveLength(4));
     const nomes = lista.getAllByRole("listitem").map(li => within(li).getByText(/^(Lydia|Goblin \d|Chefe|Lobo)$/, { selector: "strong" }).textContent).sort();
     expect(nomes).toEqual(["Chefe", "Goblin 1", "Goblin 2", "Lydia"]);                                    // Lydia preservada; sem Lobo; 2 goblins
-    expect(JSON.parse(localStorage.getItem(chaveEncontros("u1", "c1"))!)).toEqual(encontros);             // o encontro original continua intacto
+    expect(JSON.parse(localStorage.getItem(chaveEncontros("u1", "c1"))!)[0]).toMatchObject({ nome: "Emboscada", participantes: encontros[0].participantes });   // a configuração original continua intacta
   });
   it("sem encontros preparados mostra a orientação; desmarcar tudo desabilita o envio", async () => {
     render(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");

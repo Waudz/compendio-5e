@@ -102,20 +102,22 @@ export function useLinhaRemota<T>({ api, campaignId, vazio, chaveBackup, atrasoB
   }, [camp, drenar, marcar]);
 
   // outro aparelho pode ter gravado: ao voltar à janela, relê se não há nada pendente (nunca por cima de alteração local)
-  useEffect(() => {
-    const aoVoltar = async () => {
-      if (document.visibilityState === "hidden" || pendente.current || emVoo.current || syncRef.current !== "salvo" || !apiRef.current || !camp) return;
+  /** Relê só se o servidor tem versão mais nova e não há nada pendente (nunca por cima de alteração local). */
+  const reler = useCallback(async () => {
+    if (pendente.current || emVoo.current || syncRef.current !== "salvo" || !apiRef.current || !camp) return;
       const meuEscopo = escopo.current, r = await apiRef.current.carregar(camp);
       if (!r.ok || meuEscopo !== escopo.current || pendente.current || emVoo.current || r.data.versao <= versao.current) return;
       valor.current = r.data.valor; versao.current = r.data.versao; setCarga({ status: "pronto", valor: r.data.valor });
-    };
+  }, [camp, api]);
+  useEffect(() => {
+    const aoVoltar = () => { if (document.visibilityState !== "hidden") void reler(); };
     document.addEventListener("visibilitychange", aoVoltar); window.addEventListener("focus", aoVoltar);
     return () => { document.removeEventListener("visibilitychange", aoVoltar); window.removeEventListener("focus", aoVoltar); };
-  }, [camp, api]);
+  }, [reler]);
   useEffect(() => {
     const aoSair = (e: BeforeUnloadEvent) => { if (pendente.current || emVoo.current || syncRef.current === "falha" || syncRef.current === "conflito") { e.preventDefault(); e.returnValue = ""; } };
     window.addEventListener("beforeunload", aoSair); return () => window.removeEventListener("beforeunload", aoSair);
   }, []);
 
-  return { carga, sync, mensagem, alterar, recarregar, tentarAgora, finalizar, sujo: sync !== "salvo" };
+  return { carga, sync, mensagem, alterar, recarregar, reler, tentarAgora, finalizar, sujo: sync !== "salvo" };
 }

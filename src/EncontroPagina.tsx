@@ -4,6 +4,7 @@ import { useState } from "react";
 import { adicionarParticipante, definirDescricao, editarParticipante, removerParticipante, renomearEncontro, type Encontro, type ParticipanteEncontro, type RefCombate } from "./combate";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { RetratoQuadrado } from "./RetratoCombate";
+import { ROTULO_ESTADO, concluirEncontro, estadoDe, iniciarSemCombate, pendencias, podeRestaurar, reabrirEncontro, restaurarOriginal } from "./estadoEncontro";
 import { SeletorEncontro } from "./SeletorEncontro";
 import { SeletorMonstro, numero } from "./CombateCompartilhado";
 
@@ -46,7 +47,29 @@ function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; 
   </li>;
 }
 
-export function EncontroPagina({ enc, salvar, voltar, enviar }: { enc: Encontro; salvar: (e: Encontro) => void; voltar: () => void; enviar: (e: Encontro) => void }) {
+/** Estado do encontro: configuração original (editável abaixo) x estado atual (o que já aconteceu). */
+function EstadoEncontro({ enc, salvar, sincronizar, duplicarAtual }: { enc: Encontro; salvar: (e: Encontro) => void; sincronizar: () => void; duplicarAtual: () => void }) {
+  const estado = estadoDe(enc), emCombate = estado === "em_combate", pend = pendencias(enc);
+  const concluir = () => { if (pend.length && !window.confirm(`Ainda há pendências (${pend.join("; ")}). Concluir mesmo assim?`)) return; salvar(concluirEncontro(enc)); };
+  const restaurar = () => { if (window.confirm(`Restaurar "${enc.nome}" à configuração original? O estado atual (sobreviventes, PV e andamento) será descartado. Itens já entregues a personagens não são desfeitos.`)) salvar(restaurarOriginal(enc)); };
+  return <section className="enc-estado-bloco" aria-label="Estado do encontro">
+    <h3>Estado <span className="enc-estado" data-estado={estado}>{ROTULO_ESTADO[estado]}</span></h3>
+    <p className="muted">A configuração original (criaturas abaixo) não muda durante o jogo. O que acontece fica no estado atual.</p>
+    <div className="ini-barra">
+      {estado === "preparado" && <button className="btn-secondary" onClick={() => salvar(iniciarSemCombate(enc))}>Iniciar sem combate</button>}
+      {emCombate && <button className="btn-secondary" onClick={sincronizar}>Atualizar a partir do combate</button>}
+      {estado === "concluido" && <button className="btn-secondary" onClick={() => salvar(reabrirEncontro(enc))}>Reabrir encontro</button>}
+      {estado !== "concluido" && <button className="btn-secondary" onClick={concluir} disabled={emCombate} title={emCombate ? "Termine o combate ou atualize o estado primeiro" : undefined}>Concluir encontro</button>}
+      <button className="btn-secondary" onClick={restaurar} disabled={!podeRestaurar(enc)} title={emCombate ? "Não é possível restaurar durante um combate ativo" : undefined}>Restaurar original</button>
+      {enc.atual && <button className="btn-secondary" onClick={duplicarAtual}>Duplicar estado atual</button>}
+    </div>
+    {emCombate && <p className="muted" role="status">Há um combate ativo com criaturas deste encontro: restaurar e concluir ficam bloqueados até ele terminar.</p>}
+    {enc.atual && (enc.atual.criaturas.length === 0 ? <p className="muted">Sem criaturas no estado atual.</p>
+      : <ul className="enc-atual" aria-label="Estado atual das criaturas">{enc.atual.criaturas.map(c => <li key={c.id} data-situacao={c.situacao}><strong>{c.nome}</strong> <small>{c.situacao === "derrotada" ? "derrotada" : "viva"}{c.pvMax ? ` · PV ${c.pv ?? c.pvMax}/${c.pvMax}` : ""}{c.noCombate ? " · no combate" : ""}</small></li>)}</ul>)}
+  </section>;
+}
+
+export function EncontroPagina({ enc, salvar, voltar, enviar, sincronizar, duplicarAtual }: { enc: Encontro; salvar: (e: Encontro) => void; voltar: () => void; enviar: (e: Encontro) => void; sincronizar: () => void; duplicarAtual: () => void }) {
   const [renomeando, setRenomeando] = useState(false), [novoNome, setNovoNome] = useState(enc.nome);
   const [nome, setNome] = useState(""), [qtd, setQtd] = useState("1"), [pv, setPv] = useState(""), [ca, setCa] = useState("");
   const adicionarMonstro = (m: Monstro) => salvar(adicionarParticipante(enc, { nome: m.nome, quantidade: 1, pv: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } as RefCombate }));
@@ -60,6 +83,7 @@ export function EncontroPagina({ enc, salvar, voltar, enviar }: { enc: Encontro;
       : <h2>{enc.nome} <button className="btn-link" onClick={() => { setNovoNome(enc.nome); setRenomeando(true); }} aria-label={`Renomear encontro ${enc.nome}`}><Pencil size={13} aria-hidden="true"/></button></h2>}
     <label className="enc-descricao">Descrição<textarea rows={3} maxLength={2000} defaultValue={enc.descricao ?? ""} key={enc.descricao ?? ""} placeholder="O que acontece, onde, como começa…"
       onBlur={e => { if (e.target.value.trim() !== (enc.descricao ?? "")) salvar(definirDescricao(enc, e.target.value)); }}/></label>
+    <EstadoEncontro enc={enc} salvar={salvar} sincronizar={sincronizar} duplicarAtual={duplicarAtual}/>
     <h3>Criaturas <small className="muted">{enc.participantes.length ? `${enc.participantes.length} tipo(s), ${total} no total` : ""}</small></h3>
     {enc.participantes.length === 0 ? <p className="muted">Sem criaturas. Adicione do Bestiário ou crie uma avulsa abaixo (um encontro também pode não ter combate).</p>
       : <ul className="enc-criaturas">{enc.participantes.map(p => <Criatura key={p.id} enc={enc} p={p} salvar={salvar}/>)}</ul>}

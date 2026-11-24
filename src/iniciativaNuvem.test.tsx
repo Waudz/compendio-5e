@@ -123,6 +123,20 @@ describe("Iniciativa na nuvem", () => {
 });
 
 describe("Encontros na nuvem", () => {
+  it("fim do combate atualiza o encontro no servidor e o painel de Encontros (outra instância) relê o estado novo", async () => {
+    const combate = servidor<EstadoCombate>(vazioCombate), encontros = servidor<Encontro[]>([]);
+    encontros.s.linhas.set("c1", { valor: [{ id: "e1", nome: "Covil", participantes: [{ id: "p", nome: "Goblin", quantidade: 2, pv: 7 }] }], versao: 1 });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    montar(<><IniciativaPanel/><EncontrosPanel/></>, combate, encontros);
+    fireEvent.click((await screen.findAllByText("Adicionar encontro preparado"))[0]); fireEvent.click(await screen.findByRole("button", { name: "Incluir no combate: Covil" }));
+    await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].estado).toBe("em_combate"));
+    await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes[0]?.encontro).toEqual({ encontroId: "e1", criaturaId: "p#1" }));
+    expect((await screen.findAllByText("Em combate")).length).toBeGreaterThan(0);                   // o painel Encontros também já vê
+    fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
+    await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].estado).toBe("em_andamento"));
+    expect(encontros.s.linhas.get("c1")?.valor[0].atual?.criaturas.map(c => [c.id, c.pv, c.noCombate])).toEqual([["p#1", 7, undefined], ["p#2", 7, undefined]]);
+    expect((await screen.findAllByText("Em andamento")).length).toBeGreaterThan(0);
+  });
   it("cria, edita, duplica, salva no servidor e envia ao combate sem apagar o encontro", async () => {
     const { combate, encontros } = montar(<EncontrosPanel/>);
     expect(await screen.findByText("Nenhum encontro preparado")).toBeTruthy();

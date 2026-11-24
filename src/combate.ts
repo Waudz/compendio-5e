@@ -3,11 +3,20 @@
 export type Lado = "aliado" | "inimigo" | "neutro";
 /** Referência opcional a um conteúdo do catálogo ou da campanha (guardada por id estável, nunca por nome). */
 export type RefCombate = { tipo: "monstro" | "personagem"; id: string };
-export type Combatente = { id: string; nome: string; iniciativa: number; lado: Lado; pv?: number; pvMax?: number; condicoes?: string[]; ref?: RefCombate };
+/** Vínculo estável entre um combatente e a criatura do encontro que o originou (ids, nunca nomes). Um combate pode misturar criaturas de vários encontros. */
+export type VinculoEncontro = { encontroId: string; criaturaId: string };
+export type Combatente = { id: string; nome: string; iniciativa: number; lado: Lado; pv?: number; pvMax?: number; condicoes?: string[]; ref?: RefCombate; encontro?: VinculoEncontro };
 export type EstadoCombate = { combatentes: Combatente[]; turno: string | null; rodada: number };
 /** Criatura de um encontro: cópia editável (nome, quantidade, PV, CA, notas); nunca altera o catálogo. `ref` guarda só a origem (Bestiário). */
 export type ParticipanteEncontro = { id: string; nome: string; quantidade: number; pv?: number; ca?: number; notas?: string; ref?: RefCombate };
-export type Encontro = { id: string; nome: string; descricao?: string; participantes: ParticipanteEncontro[] };
+/** Ciclo de vida do encontro. Ausente em encontros antigos = "preparado". */
+export type EstadoEncontro = "preparado" | "em_andamento" | "em_combate" | "concluido";
+/** Uma criatura concreta (instância) do estado atual. `id` é estável (`<participanteId>#<n>`) e é o que o combate referencia. */
+export type CriaturaAtual = { id: string; participanteId: string; nome: string; pv?: number; pvMax?: number; situacao: "viva" | "derrotada"; noCombate?: boolean };
+/** Estado atual (jogo em andamento), separado da configuração original (`participantes`). A entrega de loot/recipientes acrescenta aqui os campos de itens. */
+export type SituacaoAtual = { criaturas: CriaturaAtual[] };
+/** Configuração original = nome, descrição e `participantes`; estado atual = `estado` e `atual`. Jogar nunca altera a configuração original. */
+export type Encontro = { id: string; nome: string; descricao?: string; participantes: ParticipanteEncontro[]; estado?: EstadoEncontro; atual?: SituacaoAtual };
 
 export const combateVazio = (): EstadoCombate => ({ combatentes: [], turno: null, rodada: 1 });
 export const novoId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`);
@@ -19,7 +28,7 @@ export function adicionar(e: EstadoCombate, c: Omit<Combatente, "id"> & { id?: s
   const nome = c.nome.trim(); if (!nome) return e;
   if ((c.pvMax !== undefined && (!Number.isSafeInteger(c.pvMax) || c.pvMax < 1)) || (c.pv !== undefined && !Number.isSafeInteger(c.pv)) || (c.id !== undefined && (!c.id.trim() || e.combatentes.some(x => x.id === c.id)))) return e;
   const pvMax = c.pvMax;
-  const novo: Combatente = { id: c.id ?? novoId(), nome, iniciativa: Number.isFinite(c.iniciativa) ? c.iniciativa : 0, lado: c.lado, ...(pvMax ? { pv: Math.min(Math.max(0, Math.floor(c.pv ?? pvMax)), pvMax), pvMax } : {}), ...(c.ref ? { ref: c.ref } : {}) };
+  const novo: Combatente = { id: c.id ?? novoId(), nome, iniciativa: Number.isFinite(c.iniciativa) ? c.iniciativa : 0, lado: c.lado, ...(pvMax ? { pv: Math.min(Math.max(0, Math.floor(c.pv ?? pvMax)), pvMax), pvMax } : {}), ...(c.ref ? { ref: c.ref } : {}), ...(c.encontro ? { encontro: c.encontro } : {}) };
   const primeiroAntes = ordenar(e.combatentes)[0]?.id, combatentes = ordenar([...e.combatentes, novo]);
   // antes de qualquer turno passar (rodada 1, ninguém avançou), o turno acompanha quem tem a maior iniciativa
   const turno = e.turno === null || (e.rodada === 1 && e.turno === primeiroAntes) ? combatentes[0].id : e.turno;
@@ -112,15 +121,29 @@ export function definirDescricao(enc: Encontro, descricao: string): Encontro {
 /** Cópia independente (novos ids) com nome "… (cópia)". */
 export const duplicarEncontro = (enc: Encontro): Encontro => ({ id: novoId(), nome: `${enc.nome} (cópia)`.slice(0, 80), ...(enc.descricao ? { descricao: enc.descricao } : {}), participantes: enc.participantes.map(p => ({ ...p, id: novoId() })) });
 export function renomearEncontro(enc: Encontro, nome: string): Encontro { const n = nome.trim(); return n && n.length <= 80 ? { ...enc, nome: n } : enc; }
-/** Leva os participantes do encontro para o combate como inimigos, numerando quando há mais de um ("Goblin 1", "Goblin 2"). Iniciativa 0 até o mestre informar. */
+/** Instância concreta de uma criatura de encontro, pronta para entrar no combate. */
+export type InstanciaEncontro = { criaturaId: string; participanteId: string; nome: string; pv?: number; pvMax?: number; ref?: RefCombate };
+/** Quem entra no combate: se o encontro já tem estado atual, as criaturas vivas e fora do combate (com os PV atuais); senão, a configuração original expandida em ids estáveis (`<participante>#<n>`). */
+export function instanciasParaEnviar(enc: Encontro): InstanciaEncontro[] {
+  return enc.participantes.flatMap(p => {
+    const doEstado = enc.atual?.criaturas.filter(c => c.participanteId === p.id) ?? [];
+    if (doEstado.length) return doEstado.filter(c => c.situacao === "viva" && !c.noCombate).slice(0, p.quantidade).map((c): InstanciaEncontro => ({ criaturaId: c.id, participanteId: p.id, nome: c.nome, ...(c.pvMax ? { pv: c.pv ?? c.pvMax, pvMax: c.pvMax } : {}), ...(p.ref ? { ref: p.ref } : {}) }));
+    return Array.from({ length: p.quantidade }, (_, i): InstanciaEncontro => ({ criaturaId: `${p.id}#${i + 1}`, participanteId: p.id, nome: p.quantidade > 1 ? `${p.nome} ${i + 1}` : p.nome, ...(p.pv ? { pv: p.pv, pvMax: p.pv } : {}), ...(p.ref ? { ref: p.ref } : {}) }));
+  });
+}
+/** Leva as criaturas do encontro para o combate como inimigos (iniciativa 0 até o mestre informar). Preserva quem já está no combate e NUNCA duplica uma criatura já presente (vínculo por ids). */
 export function enviarParaCombate(e: EstadoCombate, enc: Encontro): EstadoCombate {
   let r = e;
-  for (const p of enc.participantes) for (let i = 1; i <= p.quantidade; i++) r = adicionar(r, { nome: p.quantidade > 1 ? `${p.nome} ${i}` : p.nome, iniciativa: 0, lado: "inimigo", ...(p.pv ? { pv: p.pv, pvMax: p.pv } : {}), ...(p.ref ? { ref: p.ref } : {}) });
+  for (const i of instanciasParaEnviar(enc)) {
+    if (r.combatentes.some(c => c.encontro?.encontroId === enc.id && c.encontro.criaturaId === i.criaturaId)) continue;
+    r = adicionar(r, { nome: i.nome, iniciativa: 0, lado: "inimigo", ...(i.pvMax ? { pv: i.pv, pvMax: i.pvMax } : {}), ...(i.ref ? { ref: i.ref } : {}), encontro: { encontroId: enc.id, criaturaId: i.criaturaId } });
+  }
   return r;
 }
 
 // ---------------------------------------------------------------- leitura segura do armazenamento (dado de fora nunca é confiável)
 const lados: readonly string[] = ["aliado", "inimigo", "neutro"];
+function lerVinculo(v: unknown): VinculoEncontro | undefined { return obj(v) && typeof v.encontroId === "string" && v.encontroId && typeof v.criaturaId === "string" && v.criaturaId ? { encontroId: v.encontroId, criaturaId: v.criaturaId } : undefined; }
 function lerRef(v: unknown): RefCombate | undefined {
   if (v === undefined) return undefined;
   if (!obj(v) || (v.tipo !== "monstro" && v.tipo !== "personagem") || typeof v.id !== "string" || !v.id.trim() || v.id.length > 128) throw new Error("referência inválida");
@@ -141,11 +164,24 @@ export function lerCombate(bruto: string | null): EstadoCombate {
     if (c.pvMax !== undefined && (typeof c.pvMax !== "number" || !Number.isSafeInteger(c.pvMax) || c.pvMax < 1)) throw new Error("PV máximo inválido");
     if (c.pv !== undefined && (typeof c.pv !== "number" || !Number.isSafeInteger(c.pv) || c.pv < 0 || c.pvMax === undefined || c.pv > (c.pvMax as number))) throw new Error("PV inválido");
     const pvMax = c.pvMax as number | undefined;
-    return { id: c.id, nome: c.nome, iniciativa: c.iniciativa, lado: c.lado as Lado, ...(pvMax ? { pvMax, pv: typeof c.pv === "number" ? Math.min(pvMax, Math.max(0, c.pv)) : pvMax } : {}), ...(lerCondicoes(c.condicoes) ? { condicoes: lerCondicoes(c.condicoes) } : {}), ...(lerRef(c.ref) ? { ref: lerRef(c.ref) } : {}) };
+    return { id: c.id, nome: c.nome, iniciativa: c.iniciativa, lado: c.lado as Lado, ...(pvMax ? { pvMax, pv: typeof c.pv === "number" ? Math.min(pvMax, Math.max(0, c.pv)) : pvMax } : {}), ...(lerCondicoes(c.condicoes) ? { condicoes: lerCondicoes(c.condicoes) } : {}), ...(lerRef(c.ref) ? { ref: lerRef(c.ref) } : {}), ...(lerVinculo(c.encontro) ? { encontro: lerVinculo(c.encontro) } : {}) };
   });
   if (new Set(combatentes.map(c => c.id)).size !== combatentes.length) throw new Error("ids repetidos");
   const turno = typeof v.turno === "string" && combatentes.some(c => c.id === v.turno) ? v.turno : combatentes.length ? ordenar(combatentes)[0].id : null;
   return { combatentes: ordenar(combatentes), turno, rodada: v.rodada };
+}
+const estadosEncontro: readonly string[] = ["preparado", "em_andamento", "em_combate", "concluido"];
+function lerAtual(v: unknown): SituacaoAtual | undefined {
+  if (v === undefined) return undefined;
+  if (!obj(v) || !Array.isArray(v.criaturas)) throw new Error("estado atual inválido");
+  const criaturas = v.criaturas.map((c): CriaturaAtual => {
+    if (!obj(c) || typeof c.id !== "string" || !c.id || typeof c.participanteId !== "string" || typeof c.nome !== "string" || !c.nome.trim() || (c.situacao !== "viva" && c.situacao !== "derrotada")) throw new Error("criatura do estado atual inválida");
+    const pvMax = typeof c.pvMax === "number" && Number.isSafeInteger(c.pvMax) && c.pvMax > 0 ? c.pvMax : undefined;
+    const pv = pvMax && typeof c.pv === "number" && Number.isSafeInteger(c.pv) ? Math.min(pvMax, Math.max(0, c.pv)) : undefined;
+    return { id: c.id, participanteId: c.participanteId, nome: c.nome, ...(pvMax ? { pvMax } : {}), ...(pv !== undefined ? { pv } : {}), situacao: c.situacao, ...(c.noCombate === true ? { noCombate: true } : {}) };
+  });
+  if (new Set(criaturas.map(c => c.id)).size !== criaturas.length) throw new Error("criaturas repetidas");
+  return { criaturas };
 }
 export function lerEncontros(bruto: string | null): Encontro[] {
   if (bruto === null) return [];
@@ -153,7 +189,8 @@ export function lerEncontros(bruto: string | null): Encontro[] {
   if (!Array.isArray(v)) throw new Error("lista de encontros inválida");
   return v.map((e): Encontro => {
     if (!obj(e) || typeof e.id !== "string" || typeof e.nome !== "string" || !Array.isArray(e.participantes)) throw new Error("encontro inválido");
-    return { id: e.id, nome: e.nome, ...(textoOpc(e.descricao, 2000) ? { descricao: textoOpc(e.descricao, 2000) } : {}), participantes: e.participantes.map((p): ParticipanteEncontro => {
+    const estado = estadosEncontro.includes(e.estado as string) ? (e.estado as EstadoEncontro) : undefined, atual = lerAtual(e.atual);
+    return { id: e.id, nome: e.nome, ...(estado ? { estado } : {}), ...(atual ? { atual } : {}), ...(textoOpc(e.descricao, 2000) ? { descricao: textoOpc(e.descricao, 2000) } : {}), participantes: e.participantes.map((p): ParticipanteEncontro => {
       if (!obj(p) || typeof p.id !== "string" || typeof p.nome !== "string" || typeof p.quantidade !== "number" || !Number.isSafeInteger(p.quantidade) || p.quantidade < 1 || p.quantidade > 50) throw new Error("participante inválido");
       if (p.pv !== undefined && (typeof p.pv !== "number" || !Number.isSafeInteger(p.pv) || p.pv < 1)) throw new Error("PV inválido");
       return { id: p.id, nome: p.nome, quantidade: p.quantidade, ...(typeof p.pv === "number" && p.pv > 0 ? { pv: p.pv } : {}), ...(typeof p.ca === "number" && Number.isSafeInteger(p.ca) && p.ca > 0 && p.ca <= 40 ? { ca: p.ca } : {}), ...(textoOpc(p.notas, 500) ? { notas: textoOpc(p.notas, 500) } : {}), ...(lerRef(p.ref) ? { ref: lerRef(p.ref) } : {}) };
