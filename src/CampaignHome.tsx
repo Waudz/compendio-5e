@@ -1,7 +1,7 @@
 // Início da campanha: capa, nome e descrição, prévia do Diário e Aventureiros. É a aba `campanha:<id>` (mesma entidade de sempre).
 // Capa, Diário e Personagens ainda não têm módulo/persistência: cada seção recebe uma fonte opcional (ver inicio.ts) e,
 // sem ela, mostra um estado honesto "ainda não disponível". Nada aqui inventa dados nem cria um segundo Diário.
-import { BookOpen, Image as ImageIcon, Library, NotebookPen, ScrollText, Users } from "lucide-react";
+import { BookOpen, Image as ImageIcon, Library, NotebookPen, Pencil, ScrollText, Users } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { useAventureiros } from "./AventureirosContext";
@@ -32,7 +32,7 @@ function useFonte<T>(chave: string, carregar: (() => Promise<Res<T>>) | null): (
   return carregar ? { ...st, recarregar: () => setTick(n => n + 1) } : null;
 }
 
-function Capa({ campaignId, isMaster }: { campaignId: string; isMaster: boolean }) {
+function Capa({ campaignId, isMaster, editing, name, onEdit }: { campaignId: string; isMaster: boolean; editing: boolean; name: string; onEdit: () => void }) {
   const api = useCapa();
   const [url, setUrl] = useState<string | null>(null), [pronto, setPronto] = useState(false), [msg, setMsg] = useState<string | null>(null), [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -47,8 +47,8 @@ function Capa({ campaignId, isMaster }: { campaignId: string; isMaster: boolean 
   };
   const remover = async () => { if (!api) return; setBusy(true); setMsg(null); const r = await api.remover(campaignId); setBusy(false); if (r.ok) setUrl(null); else setMsg(r.error); };
   return <section className="home-cover-wrap" aria-label="Capa da campanha" data-testid="inicio-capa">
-    <div className="home-cover">{url ? <img src={url} alt="Capa da campanha"/> : <div className="home-cover-empty"><ImageIcon size={26} aria-hidden="true"/><span>{pronto ? "Sem capa" : "Carregando…"}</span></div>}</div>
-    {isMaster && api && <div className="home-cover-actions row">
+    <div className="home-cover">{url ? <img src={url} alt="Capa da campanha"/> : <div className="home-cover-empty"><ImageIcon size={26} aria-hidden="true"/><span>{pronto ? "Sem capa" : "Carregando…"}</span></div>}<h1 className="home-name">{name}</h1>{isMaster && <button type="button" className="home-edit" aria-label="Editar informações" title="Editar campanha" aria-expanded={editing} onClick={onEdit}><Pencil size={18}/></button>}</div>
+    {isMaster && editing && api && <div className="home-cover-actions row">
       <label className="btn-secondary file-btn">{url ? "Substituir capa" : "Adicionar capa"}<input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={busy} onChange={e => { void escolher(e.target.files?.[0]); e.target.value = ""; }}/></label>
       {url && <button className="btn-secondary" disabled={busy} onClick={() => void remover()}>Remover capa</button>}
       {busy && <span className="muted" role="status">Enviando…</span>}</div>}
@@ -56,12 +56,11 @@ function Capa({ campaignId, isMaster }: { campaignId: string; isMaster: boolean 
   </section>;
 }
 
-function NomeDescricao({ id, onOpen }: { id: string; onOpen: (s: TabSpec, mode?: NavMode) => void }) {
+function NomeDescricao({ id, onOpen, editing, setEditing }: { id: string; onOpen: (s: TabSpec, mode?: NavMode) => void; editing: boolean; setEditing: (v: boolean) => void }) {
   const { api, memberships, refresh } = useCampaigns();
   const mem = memberships.find(m => m.campaign.id === id);
   const c = mem?.campaign, isMaster = mem?.role === "mestre";
   const [name, setName] = useState(c?.name ?? ""), [desc, setDesc] = useState(c?.description ?? "");
-  const [editing, setEditing] = useState(false);
   const save = useAction();
   useEffect(() => { if (!editing) { setName(c?.name ?? ""); setDesc(c?.description ?? ""); } }, [c?.name, c?.description, editing]);
   const dirty = editing && (name !== (c?.name ?? "") || desc !== (c?.description ?? ""));
@@ -75,10 +74,9 @@ function NomeDescricao({ id, onOpen }: { id: string; onOpen: (s: TabSpec, mode?:
     if (r?.ok) { setEditing(false); await refresh(); onOpen({ kind: "campanha", ref: id, title: r.data.name }); }
   };
   return <section className="home-about" aria-label="Nome e descrição">
-    <h1 className="home-name">{c.name}</h1>
     {!isMaster || !editing
       ? <>{c.description ? <p className="home-desc">{c.description}</p> : <p className="home-desc muted">Sem descrição.</p>}
-        {isMaster && <button className="btn-secondary" onClick={() => setEditing(true)}>Editar informações</button>}</>
+        </>
       : <form noValidate onSubmit={onSave} className="home-form">
         <label>Nome<input value={name} maxLength={MAX_NAME} onChange={e => setName(e.target.value)}/></label>
         <label>Descrição<textarea value={desc} maxLength={MAX_DESCRIPTION} rows={4} onChange={e => setDesc(e.target.value)}/></label>
@@ -135,13 +133,15 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
   const regApi = useRegistros(), capaApi = useCapa(), fonteCtx = useAventureiros();
   const fonteAv = useMemo(() => fonteCtx ?? (regApi ? fontePersonagens(regApi, capaApi) : null), [fonteCtx, regApi, capaApi]);
   const diarioFonte = useMemo(() => diario ?? (regApi ? fonteDiario(regApi) : undefined), [diario, regApi]);
+  const [editing, setEditing] = useState(false);
   const [gerir, setGerir] = useState(false);   // participantes/convites só são carregados quando a seção é aberta (evita consultas à toa)
   if (!api) return <div className="auth"><h1>Campanha</h1><div className="notice" role="status">Conta necessária para usar campanhas.</div></div>;
   if (!mem) return <div className="auth"><h1>Campanha</h1><div className="notice" role="status">Você não participa desta campanha (ou ela foi removida).</div></div>;
   const isMaster = mem.role === "mestre";
   return <div className="home" data-testid="campanha-inicio">
-    <Capa campaignId={id} isMaster={isMaster}/>
-    <NomeDescricao id={id} onOpen={onOpen}/>
+    <Capa campaignId={id} isMaster={isMaster} name={mem.campaign.name} editing={editing} onEdit={() => setEditing(true)}/>
+    <NomeDescricao id={id} onOpen={onOpen} editing={editing} setEditing={setEditing}/>
+    {isMaster && editing && <section className="home-sec"><CampaignPanel id={id} onOpen={onOpen} embedded/></section>}
     {isMaster && <nav className="home-shortcuts" aria-label="Atalhos da campanha">
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"planejamento"})}><NotebookPen size={19} aria-hidden="true"/> Anotações</button>
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"enciclopedia"})}><BookOpen size={19} aria-hidden="true"/> Enciclopédia</button>
@@ -149,9 +149,9 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"personagens"})}><Users size={19} aria-hidden="true"/> Personagens</button>
       <button type="button" onClick={() => onOpen({kind:"secao",ref:"diario"})}><Library size={19} aria-hidden="true"/> Diário</button>
     </nav>}
-    <DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>
-    <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/>
-    <details className="home-manage" onToggle={e => setGerir((e.currentTarget as HTMLDetailsElement).open)}><summary>{isMaster ? "Gerenciar campanha" : "Participantes"}</summary>
-      {gerir && <CampaignPanel id={id} onOpen={onOpen} embedded/>}</details>
+    <div className="home-columns"><DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>
+    <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/></div>
+    {!isMaster && <details className="home-manage" onToggle={e => setGerir((e.currentTarget as HTMLDetailsElement).open)}><summary>{isMaster ? "Gerenciar campanha" : "Participantes"}</summary>
+      {gerir && <CampaignPanel id={id} onOpen={onOpen} embedded/>}</details>}
   </div>;
 }
