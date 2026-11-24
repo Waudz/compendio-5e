@@ -1,26 +1,29 @@
 // Estado em combate na ficha do jogador: PV e condições informados pelo mestre (migração 0011). Mostra SÓ isso: nada de ordem, turno, rodada ou outros combatentes.
 // Atualiza em tempo real (Realtime) e, como reserva, a cada 15 s e ao voltar para a janela.
 import { Swords } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNuvem } from "./nuvem";
 import type { StatusFicha } from "./statusCombate";
 
 export function EstadoCombateFicha({ characterId }: { characterId: string }) {
   const api = useNuvem()?.status;
   const [status, setStatus] = useState<StatusFicha | null>(null), [erro, setErro] = useState<string | null>(null);
-  const ler = useCallback(async () => {
-    if (!api) return;
-    const r = await api.ler(characterId);
-    if (r.ok) { setStatus(r.status); setErro(null); } else setErro(r.mensagem);
-  }, [api, characterId]);
   useEffect(() => {
+    setStatus(null); setErro(null);
     if (!api) return;
-    void ler();
+    let ativo = true, sequencia = 0;
+    const ler = async () => {
+      const pedido = ++sequencia;
+      const r = await api.ler(characterId);
+      if (!ativo || pedido !== sequencia) return;
+      if (r.ok) { setStatus(r.status); setErro(null); } else setErro(r.mensagem);
+    };
     const cancelar = api.assinar(characterId, () => void ler());
+    void ler();
     const t = setInterval(() => void ler(), 15000), aoVoltar = () => { if (document.visibilityState !== "hidden") void ler(); };
     window.addEventListener("focus", aoVoltar); document.addEventListener("visibilitychange", aoVoltar);
-    return () => { cancelar(); clearInterval(t); window.removeEventListener("focus", aoVoltar); document.removeEventListener("visibilitychange", aoVoltar); };
-  }, [api, characterId, ler]);
+    return () => { ativo = false; cancelar(); clearInterval(t); window.removeEventListener("focus", aoVoltar); document.removeEventListener("visibilitychange", aoVoltar); };
+  }, [api, characterId]);
   if (!api) return null;
   const vazio = !status || (status.hp === null && status.condicoes.length === 0);
   if (vazio && !erro) return null;
