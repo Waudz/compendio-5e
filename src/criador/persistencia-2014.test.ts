@@ -37,7 +37,8 @@ it('grava e reabre a versão 2014 na campanha pelo mesmo repositório do servido
     somenteFicha: false,
     source: {
       name: d.name,
-      surname: '',
+      alias: '',
+      portrait: '',
       race: 'Humano',
       characterClass: 'Mago',
     },
@@ -60,7 +61,8 @@ it('grava e reabre a versão 2014 na campanha pelo mesmo repositório do servido
     somenteFicha: false,
     source: {
       name: d.name,
-      surname: '',
+      alias: '',
+      portrait: '',
       race: 'Humano',
       characterClass: 'Mago',
     },
@@ -75,7 +77,8 @@ it('grava e reabre a versão 2014 na campanha pelo mesmo repositório do servido
       somenteFicha: false,
       source: {
         name: d.name,
-        surname: '',
+        alias: '',
+      portrait: '',
         race: 'Humano',
         characterClass: 'Mago',
       },
@@ -95,7 +98,8 @@ it('não cria personagem sem participação em uma campanha', async () => {
       somenteFicha: false,
       source: {
         name: 'Maga',
-        surname: '',
+        alias: '',
+      portrait: '',
         race: 'Humano',
         characterClass: 'Mago',
       },

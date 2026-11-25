@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import PublicIdentityEditor from '../criador/identidade-publica-editor';
 import {inventoryCompendiumEntry} from '../rules/inventory-compendium-link';
-import {defaultPublicIdentity,type PublicIdentitySettings} from '../rules/public-identity';
+import {defaultPublicIdentity,isPublicIdentity,type PublicIdentity} from '../rules/public-identity';
 import { buildPilotCharacterCatalog } from '../rules/character-catalogue-adapter';
 import {fighter2014Advancements} from '../rules/fighter-2014';
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft } from '../rules/character-domain';
@@ -13,22 +13,14 @@ import {ABILITY_ORDER,POINT_BUY_BUDGET,pointBuySpent,validatePointBuy,isStandard
 const {catalog,ids} = buildPilotCharacterCatalog(criadorRules,{race:criadorRefs.race,background:criadorRefs.background,class:criadorRefs.class},fighter2014Advancements);
 const KEY='compendio5e:dev:character-pilot:fighter-srd51-v2';
 const STORAGE_SCHEMA=2;
-const IDENTITY_KEY='compendio5e:dev:character-pilot:public-identity-v1';
-type SavedIdentity={schemaVersion:1;characterId:string;settings:PublicIdentitySettings};
-function restoreIdentity(characterId:string):PublicIdentitySettings {
+const IDENTITY_KEY='compendio5e:dev:character-pilot:public-identity-v2';
+type SavedIdentity={schemaVersion:1;characterId:string;identity:PublicIdentity};
+function restoreIdentity(characterId:string):PublicIdentity {
  try {
   const raw=localStorage.getItem(IDENTITY_KEY);
   if(raw){
    const saved:unknown=JSON.parse(raw);
-   if(isRecord(saved)&&saved.schemaVersion===1&&saved.characterId===characterId&&isRecord(saved.settings)){
-    const settings=saved.settings;
-    if(typeof settings.title==='string'&&typeof settings.description==='string'&&
-      (settings.imageUrl===null||typeof settings.imageUrl==='string')&&
-      ['name','surname','race','characterClass'].every(key=>isRecord(settings[key])&&
-       ['real','custom','hidden'].includes(settings[key].mode as string)&&
-       (settings[key].customValue===undefined||typeof settings[key].customValue==='string')))
-      return settings as PublicIdentitySettings;
-   }
+   if(isRecord(saved)&&saved.schemaVersion===1&&saved.characterId===characterId&&isPublicIdentity(saved.identity))return saved.identity;
   }
  }catch{/* invalid local data is discarded */}
  return defaultPublicIdentity();
@@ -88,7 +80,7 @@ function equipmentGroupsComplete(draft:CharacterDraft):boolean {
 }
 export default function CharacterPilot(){
  const [draft,setDraft]=useState<CharacterDraft>(restore);
- const [identity,setIdentity]=useState<PublicIdentitySettings>(()=>restoreIdentity(draft.id));
+ const [identity,setIdentity]=useState<PublicIdentity>(()=>restoreIdentity(draft.id));
  const [showIdentity,setShowIdentity]=useState(false);
  const [inspectedItemId,setInspectedItemId]=useState<string|null>(null);
  const [message,setMessage]=useState('');
@@ -224,12 +216,12 @@ export default function CharacterPilot(){
    <h2>Cartão de Identidade</h2>
    <p>Etapa final opcional: escolha o que outros jogadores poderão ver. Somente dados locais de demonstração.</p>
    <button type="button" onClick={()=>setShowIdentity(value=>!value)}>{showIdentity?'Fechar editor público':'Configurar identidade pública'}</button>
-   {showIdentity&&<PublicIdentityEditor key={draft.id} source={{name:draft.name,surname:'',race:'Anão',characterClass:'Guerreiro'}}
-    initialSettings={identity} onSkip={()=>setShowIdentity(false)} onSave={settings=>{
+   {showIdentity&&<PublicIdentityEditor key={draft.id} source={{name:draft.name,alias:draft.nickname??'',race:'Anão',characterClass:'Guerreiro',portrait:draft.portrait??''}}
+    initialIdentity={identity} onSkip={()=>setShowIdentity(false)} onSave={escolhida=>{
      try{
-      const record:SavedIdentity={schemaVersion:1,characterId:draft.id,settings};
+      const record:SavedIdentity={schemaVersion:1,characterId:draft.id,identity:escolhida};
       localStorage.setItem(IDENTITY_KEY,JSON.stringify(record));
-      setIdentity(settings);setShowIdentity(false);setMessage('Identidade pública salva apenas neste navegador');
+      setIdentity(escolhida);setShowIdentity(false);setMessage('Identidade pública salva apenas neste navegador');
      }catch{setMessage('Não foi possível salvar a identidade pública');}
     }}/>}
   </section>}

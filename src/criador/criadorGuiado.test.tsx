@@ -108,7 +108,8 @@ describe('criador guiado na navegação real (desktop)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Identidade pública' }));
     expect(screen.getByText(/nunca aparecem nele/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Visibilidade Classe'), { target: { value: 'hidden' } });
-    fireEvent.change(screen.getByLabelText('Título público'), { target: { value: 'O Escudo de Pedra' } });
+    fireEvent.change(screen.getByLabelText('Visibilidade Alcunha'), { target: { value: 'custom' } });
+    fireEvent.change(screen.getByLabelText('Alcunha pública'), { target: { value: 'O Escudo de Pedra' } });
     const previa = within(screen.getByRole('region', { name: 'Prévia para outros jogadores' }));
     expect(previa.queryByText(/Classe:/)).toBeNull(); expect(previa.queryByText(/Guerreiro/)).toBeNull(); expect(previa.queryByText(/nível|PV|Cota de malha/i)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Salvar identidade pública' }));
@@ -130,7 +131,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     expect(within(screen.getByRole('region', { name: 'Inventário' })).getByText('Cota de malha')).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Identidade pública' }));
     expect((screen.getByLabelText('Visibilidade Classe') as HTMLSelectElement).value).toBe('hidden');
-    expect((screen.getByLabelText('Título público') as HTMLInputElement).value).toBe('O Escudo de Pedra');
+    expect((screen.getByLabelText('Alcunha pública') as HTMLInputElement).value).toBe('O Escudo de Pedra');
     expect(screen.getByRole('button', { name: 'Salvar' }).hasAttribute('disabled')).toBe(true);   // nada pendente depois de reabrir
   });
 

@@ -37,13 +37,12 @@ beforeEach(() => { vi.stubGlobal("localStorage", memoryStorage()); window.histor
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("Início: mestre", () => {
-  it("oferece atalhos funcionais para as cinco seções", async () => {
-    const { onOpen } = await montarHome(mestre());
-    const nav = screen.getByRole("navigation", { name: "Atalhos da campanha" });
-    for (const [rotulo, ref] of [["Anotações","planejamento"],["Enciclopédia","enciclopedia"],["Compêndio","compendio"],["Personagens","personagens"],["Diário","diario"]]) {
-      fireEvent.click(within(nav).getByRole("button", { name: rotulo }));
-      expect(onOpen).toHaveBeenCalledWith({ kind: "secao", ref });
-    }
+  it("não repete no Início a navegação para as seções (já está no menu da campanha)", async () => {
+    await montarHome(mestre());
+    expect(screen.queryByRole("navigation", { name: "Atalhos da campanha" })).toBeNull();
+    for (const rotulo of ["Anotações", "Enciclopédia", "Compêndio", "Personagens", "Diário"]) expect(screen.queryByRole("button", { name: rotulo })).toBeNull();
+    expect(screen.getByText("Uma campanha em Faerûn.")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Aventureiros" })).toBeTruthy();
   });
 
   it("mostra capa vazia, nome em destaque e descrição; edita nome e descrição pela infraestrutura existente", async () => {

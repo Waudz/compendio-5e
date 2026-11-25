@@ -12,14 +12,14 @@ import { useFichas } from "../RegistrosContext";
 import { itemSpec } from "../Compendio";
 import { Aviso } from "../Diario";
 import { srdItem, srdItemIds } from "../catalogue/srd-2014-items";
-import { ERRO_CONFLITO_REVISAO } from "../fichas";
+import { ERRO_CONFLITO_REVISAO, retratoValido } from "../fichas";
 import { avisarRegistros, registrarTitulo } from "../registrosStore";
 import { buildPilotCharacterCatalog } from "../rules/character-catalogue-adapter";
 import { searchCompendium } from "../rules/compendium-query";
 import { ABILITY_ORDER, POINT_BUY_BUDGET, pointBuySpent, validatePointBuy } from "../rules/ability-generation-2014";
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft, type InventoryEntry } from "../rules/character-domain";
 import { fighter2014Advancements } from "../rules/fighter-2014";
-import { defaultPublicIdentity, type PublicIdentitySettings } from "../rules/public-identity";
+import { defaultPublicIdentity, type PublicIdentity } from "../rules/public-identity";
 import { fighterEquipmentOptions2014 } from "../rules/starting-equipment-2014";
 import { applyStartingEquipmentSelection, replaceStartingEquipmentSelection } from "../rules/starting-equipment-selection";
 import { useUnsavedGuard } from "../unsaved";
@@ -39,7 +39,7 @@ const sheet2014 = (d: CharacterDraft) => { if (!regras2014) throw new Error('Car
 const label2014 = (id: string) => regras2014?.label2014(id) ?? id;
 const featureDescription2014 = (id: string) => regras2014?.featureDescription2014(id) ?? '';
 import PublicIdentityEditor from "./identidade-publica-editor";
-import { rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
+import { origemPublica, rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
 const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
 const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
@@ -90,7 +90,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     if (previousVersion.current !== draft.catalogueVersion && modern2014(draft)) nameRef.current?.focus();
     previousVersion.current = draft.catalogueVersion;
   }, [draft.catalogueVersion]);
-  const [identity, setIdentity] = useState<PublicIdentitySettings>(defaultPublicIdentity), [publicar, setPublicar] = useState(false);
+  // Personagem novo nasce com a apresentação publicada (campos públicos da ficha); a caixa na etapa de identidade permite desligar. Os já salvos mantêm a escolha.
+  const [identity, setIdentity] = useState<PublicIdentity>(defaultPublicIdentity), [publicar, setPublicar] = useState(true);
   const [salvo, setSalvo] = useState<string | null>(null);          // retrato do último estado salvo (null = nunca salvo)
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
   const [salvando, setSalvando] = useState(false), [conflito, setConflito] = useState(false), [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
@@ -102,7 +103,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const [confirmando, setConfirmando] = useState<string[] | null>(null);   // grupos cujas escolhas substituem equipamento já concedido
   const [busca, setBusca] = useState(""), [excluindo, setExcluindo] = useState(false);
 
-  const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentitySettings; publicar: boolean; revision: number | null; somenteFicha: boolean }) => {
+  const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentity; publicar: boolean; revision: number | null; somenteFicha: boolean }) => {
     calcularFicha(p.draft);   // dado inválido/de outra versão falha aqui, não na tela
     setDraft(p.draft); setIdentity(p.identity); setPublicar(p.publicar); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha);
     setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity, publicar: p.publicar })); setEscolhas(escolhasDoInventario(p.draft));
@@ -129,7 +130,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   }, [repo, id, tentativa]);
 
   const retrato = JSON.stringify({ draft, identity, publicar });
-  const vazio = JSON.stringify({ draft: novoRascunho(id), identity: defaultPublicIdentity(), publicar: false });
+  const vazio = JSON.stringify({ draft: novoRascunho(id), identity: defaultPublicIdentity(), publicar: true });
   const sujo = carga === "pronto" && retrato !== (salvo ?? vazio) && (salvo !== null || draft.name.trim() !== "" || draft.inventory.length > 0 || draft.decisions.length > 0);
   const { sheet, erro } = useMemo(() => { try { return { sheet: calcularFicha({ ...draft, name: draft.name.trim() || "Sem nome" }), erro: "" }; }  catch (e) { return { sheet: null, erro: e instanceof Error ? e.message : String(e) }; } }, [draft]);
   const mudar = (proximo: CharacterDraft) => { setDraft(proximo); setMsg(null); };
@@ -139,13 +140,17 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     catch (e) { setErroAtrib(e instanceof Error ? e.message : 'Revise os recursos e as rolagens de PV antes de mudar o nível.'); }
   };
 
+  /** Os únicos dados da ficha que a identidade pública usa. */
+  const origem = origemPublica(draft, modern2014(draft) ? label2014(draft.raceId) : "Anão", modern2014(draft) ? label2014(draft.classId) : "Guerreiro");
+
   const salvar = useCallback(async (): Promise<boolean> => {
     if (salvando) return false;
     if (!sheet || !draft.name.trim()) { setMsg({ ok: false, t: "Informe o nome e corrija os erros antes de salvar." }); return false; }
+    if (draft.portrait && !retratoValido(draft.portrait)) { setMsg({ ok: false, t: "O retrato deve ser um endereço https:// sem espaços." }); return false; }
     const estado = { draft, identity, publicar };
     setSalvando(true);
     try {
-      const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: { name: draft.name, surname: "", race: modern2014(draft) ? label2014(draft.raceId) : "Anão", characterClass: modern2014(draft) ? label2014(draft.classId) : "Guerreiro" } });
+      const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: origem });
       const gravado = { ...draft, id: r.id };
       // A resposta confirma o snapshot enviado, não alterações feitas enquanto
       // a requisição estava em andamento. Preservar o estado mais recente da UI.
@@ -279,6 +284,9 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     {secao === "ficha" && <div className="criador-sec">
       {!modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>}
       <label>Nome do personagem<input ref={nameRef} aria-label="Nome do personagem" value={draft.name} maxLength={120} onChange={e => mudar({ ...draft, name: e.target.value })}/></label>
+      <label>Alcunha (opcional)<input aria-label="Alcunha" value={draft.nickname ?? ""} maxLength={120} onChange={e => mudar({ ...draft, nickname: e.target.value })}/></label>
+      <label>Retrato (endereço https da imagem, opcional)<input aria-label="Retrato do personagem" type="url" inputMode="url" placeholder="https://" value={draft.portrait ?? ""} maxLength={2000} onChange={e => mudar({ ...draft, portrait: e.target.value.trim() })}/></label>
+      {draft.portrait && !retratoValido(draft.portrait) && <p role="alert" className="notice err">O retrato deve ser um endereço https:// sem espaços.</p>}
       {modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>}{!modern2014(draft) && <p className="muted">Raça: Anão · Antecedente: Acólito · Classe: Guerreiro</p>}
       <fieldset><legend>Atributos-base (antes dos bônus raciais)</legend>
         <label>Método<select aria-label="Método de atributos" value={metodo} onChange={e => trocarMetodo(e.target.value as Metodo)}><option value="point-buy">Compra de pontos (27)</option><option value="standard-array">Matriz padrão</option><option value="manual">Rolagens manuais (3–18)</option>{metodo === "preserved" && <option value="preserved">Valores preservados da ficha</option>}</select></label>
@@ -351,7 +359,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       {somenteFicha ? <Aviso t="A identidade pública pertence ao dono do personagem. Como mestre, você edita a ficha, mas não altera nem lê a identidade privada dele."/> : <>
       <p className="muted">O cartão público é separado da ficha privada: nível, PV, atributos, inventário e anotações nunca aparecem nele.{servidor ? " Só o que você publicar aparece para os outros jogadores." : " Vale para a prévia local; a publicação na campanha exige conta e a API de fichas."}</p>
       {servidor && <label className="check"><input type="checkbox" aria-label="Publicar identidade na campanha" checked={publicar} onChange={e => { setPublicar(e.target.checked); setMsg(null); }}/> Publicar a identidade pública na campanha (aparece em Personagens e no Início)</label>}
-      <PublicIdentityEditor key={draft.id} source={{ name: draft.name, surname: "", race: modern2014(draft) ? label2014(draft.raceId) : "Anão", characterClass: modern2014(draft) ? label2014(draft.classId) : "Guerreiro" }} initialSettings={identity}
+      <PublicIdentityEditor key={draft.id} source={origem} initialIdentity={identity}
         onSave={s => { setIdentity(s); setMsg({ ok: true, t: "Identidade pública atualizada. Clique em Salvar para guardá-la." }); }}/></>}
     </div>}
 

@@ -17,6 +17,14 @@ export type BancoFichas = {
 };
 export const novoBancoFichas = (registros: { dados: Registro[] } = { dados: [] }): BancoFichas => ({ fichas: [], registros, rede: { caida: false }, campanhas: { ca: { mestre: "u9", jogadores: ["u1", "u2"] } } });
 
+/** Alcunha e retrato guardados na própria ficha (como o resumo real do servidor). */
+const extrasDaFicha = (d: object) => {
+  const x = d as { nickname?: unknown; portrait?: unknown };
+  return {
+    ...(typeof x.nickname === "string" && x.nickname.trim() ? { alcunha: x.nickname.trim() } : {}),
+    ...(typeof x.portrait === "string" && /^https:\/\/\S+$/.test(x.portrait) ? { retrato: x.portrait } : {}),
+  };
+};
 export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { banco: BancoFichas } {
   const mestre = (cid: string) => banco.campanhas[cid]?.mestre === uid;
   const membro = (cid: string) => mestre(cid) || !!banco.campanhas[cid]?.jogadores.includes(uid);
@@ -25,7 +33,7 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
   let n = 0;
   const agora = () => new Date(Date.now() + ++n).toISOString();
   const api: FichasApi = {
-    listar: async cid => banco.rede.caida ? semRede : { ok: true, data: banco.fichas.filter(f => f.campaignId === cid && le(f)).map(f => ({ id: f.id, ownerId: f.ownerId, nome: f.draft.name.trim() || "Sem nome", classId: f.draft.classId, nivel: f.draft.level, revision: f.revision, updatedAt: f.updatedAt })) },
+    listar: async cid => banco.rede.caida ? semRede : { ok: true, data: banco.fichas.filter(f => f.campaignId === cid && le(f)).map(f => ({ id: f.id, ownerId: f.ownerId, nome: f.draft.name.trim() || "Sem nome", ...extrasDaFicha(f.draft), classId: f.draft.classId, nivel: f.draft.level, revision: f.revision, updatedAt: f.updatedAt })) },
     carregar: async id => {
       if (banco.rede.caida) return semRede;
       const f = banco.fichas.find(x => x.id === id); if (!f || !le(f)) return { ok: true, data: null };

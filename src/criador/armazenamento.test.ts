@@ -13,7 +13,7 @@ describe('armazenamento experimental do criador', () => {
   it('é declarado experimental e faz ida e volta sem perder inventário nem identidade', () => {
     const s = memoryStorage(); const a = armazenamentoLocalExperimental('u1', 'ca', s);
     expect(a.experimental).toBe(true);
-    const r = { ...registro('p1'), identity: { ...defaultPublicIdentity(), title: 'O Escudo' } };
+    const r = { ...registro('p1'), identity: { ...defaultPublicIdentity(), alias: { mode: 'custom' as const, value: 'O Escudo' } } };
     a.salvar(r);
     expect(a.carregar('p1')).toEqual(r);
     expect(a.carregar('inexistente')).toBeNull();

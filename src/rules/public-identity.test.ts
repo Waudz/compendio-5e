@@ -1,28 +1,33 @@
 import {describe,expect,it} from 'vitest';
-import {defaultPublicIdentity,publicIdentityCard} from './public-identity';
+import {defaultPublicIdentity,isPublicIdentity,presentation,publicIdentityCard} from './public-identity';
 
-describe('public character identity',()=>{
- const source={name:'Elyra',surname:'Voss',race:'Tiefling',characterClass:'Sorcerer',level:9,hp:72,inventory:['secret']};
- it('defaults to public name/race/class but never exposes level, HP or inventory',()=>{
+describe('identidade pública do personagem',()=>{
+ const source={name:'Elyra Voss',alias:'A Andarilha',race:'Tiefling',characterClass:'Feiticeira',portrait:'https://exemplo.com/r.png',level:9,hp:72,inventory:['secret']};
+ it('por padrão usa os campos públicos da ficha e o mesmo retrato, sem nível, PV ou inventário',()=>{
   const card=publicIdentityCard(defaultPublicIdentity(),source);
-  expect(card).toMatchObject({name:'Elyra',surname:'Voss',race:'Tiefling',characterClass:'Sorcerer'});
+  expect(card).toEqual({name:'Elyra Voss',alias:'A Andarilha',race:'Tiefling',characterClass:'Feiticeira',description:'',imageUrl:'https://exemplo.com/r.png'});
   expect(JSON.stringify(card)).not.toMatch(/level|hp|inventory|secret/);
  });
- it('allows an alias, title and independent concealment of surname and class',()=>{
-  const card=publicIdentityCard({...defaultPublicIdentity(),
-   title:'Herdeira das Sombras',
-   name:{mode:'custom',customValue:'A Viajante'},
-   surname:{mode:'hidden'},
-   race:{mode:'custom',customValue:'Humana'},
-   characterClass:{mode:'hidden'},
-   description:'Uma figura envolta em mistério.'
-  },source);
-  expect(card).toEqual({imageUrl:null,title:'Herdeira das Sombras',
-   name:'A Viajante',surname:null,race:'Humana',characterClass:null,
-   description:'Uma figura envolta em mistério.'});
+ it('campo não personalizado acompanha a ficha; o personalizado permanece',()=>{
+  const identity={...defaultPublicIdentity(),name:{mode:'custom' as const,value:'A Viajante'}};
+  const card=publicIdentityCard(identity,{...source,name:'Outro Nome',alias:'Nova alcunha'});
+  expect(card.name).toBe('A Viajante');
+  expect(card.alias).toBe('Nova alcunha');
  });
- it('does not fall back to real values for an empty custom field',()=>{
-  const card=publicIdentityCard({...defaultPublicIdentity(),name:{mode:'custom',customValue:'  '}},source);
-  expect(card.name).toBeNull();
+ it('campo oculto ou personalizado vazio não revela o valor verdadeiro',()=>{
+  const card=publicIdentityCard({...defaultPublicIdentity(),name:{mode:'custom',value:'  '},alias:{mode:'hidden'},race:{mode:'hidden'}},source);
+  expect(card).toMatchObject({name:null,alias:null,race:null});
+  expect(JSON.stringify(card)).not.toMatch(/Elyra|Andarilha|Tiefling/);
+ });
+ it('mostra nome com alcunha, ou só um deles',()=>{
+  expect(presentation({name:'Thorin',alias:'O Escudo'})).toEqual({nome:'Thorin',alcunha:'O Escudo'});
+  expect(presentation({name:'Thorin',alias:null})).toEqual({nome:'Thorin',alcunha:null});
+  expect(presentation({name:null,alias:'O Escudo'})).toEqual({nome:'O Escudo',alcunha:null});
+  expect(presentation({name:null,alias:null}).nome).toBe('Identidade desconhecida');
+ });
+ it('recusa formatos desconhecidos',()=>{
+  expect(isPublicIdentity(defaultPublicIdentity())).toBe(true);
+  expect(isPublicIdentity({title:1})).toBe(false);
+  expect(isPublicIdentity({...defaultPublicIdentity(),race:{mode:'real'}})).toBe(false);
  });
 });

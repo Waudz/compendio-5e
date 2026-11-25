@@ -35,8 +35,8 @@ async function abrirExistente() {
     ],
   };
   draft.previousRulesDraft = { ...structuredClone(draft), name: 'Memória privada anterior' };
-  const identity = { ...defaultPublicIdentity(), title: 'Rosto conhecido', name: { mode: 'custom' as const, customValue: 'Viajante' }, surname: { mode: 'hidden' as const }, race: { mode: 'hidden' as const }, characterClass: { mode: 'hidden' as const } };
-  const criado = await api.criar('ca', draft, { identity, source: { name: draft.name, surname: '', race: 'Humano', characterClass: 'Guerreiro' }, publicar: true });
+  const identity = { ...defaultPublicIdentity(), alias: { mode: 'custom' as const, value: 'Rosto conhecido' }, name: { mode: 'custom' as const, value: 'Viajante' }, race: { mode: 'hidden' as const }, characterClass: { mode: 'hidden' as const } };
+  const criado = await api.criar('ca', draft, { identity, source: { name: draft.name, alias: '', race: 'Humano', characterClass: 'Guerreiro', portrait: '' }, publicar: true });
   if (!criado.ok) throw new Error(criado.error);
   const apiCampanhas = { list: async () => ({ ok: true, data: [{ role: 'jogador', campaign: { id: 'ca', name: 'Mesa de teste', description: '', created_at: '' } }] }) } as unknown as CampaignApi;
   await renderApp({ user: me, api: apiCampanhas, fichas: api, registros: registrosEmMemoria('jogador', me.id, [], banco.registros) });

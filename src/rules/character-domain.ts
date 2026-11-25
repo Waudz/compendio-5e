@@ -12,7 +12,13 @@ export type CharacterDraft = {
   level: number; decisions: StableChoice[]; hpRolls?: number[];
   inventory: InventoryEntry[]; currentHp: number; temporaryHp: number;
   spentResources: Record<string, number>;
-  currency?: { cp: number; sp: number; gp: number };
+  currency?: { cp: number; sp: number; gp: number; ep?: number; pp?: number };
+  /** Alcunha (independente do nome). */
+  nickname?: string;
+  /** Retrato único do personagem (https): ficha, Início, Compêndio, Iniciativa e Encontros usam a mesma imagem. */
+  portrait?: string;
+  /** Estado de jogo (condições, inspiração, morte, modificadores temporários...), lido por `ficha/estadoJogo.ts`. */
+  play?: unknown;
   abilityMethod?: 'point-buy' | 'standard-array' | 'manual';
   previousRulesDraft?: Omit<CharacterDraft, 'previousRulesDraft'>;
 };

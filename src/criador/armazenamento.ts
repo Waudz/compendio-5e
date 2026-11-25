@@ -7,10 +7,10 @@
  * A interface `ArmazenamentoCriador` é o ponto de troca: o adaptador do servidor implementará o mesmo contrato.
  */
 import type { CharacterDraft } from '../rules/character-domain';
-import { defaultPublicIdentity, type PublicIdentitySettings } from '../rules/public-identity';
+import { defaultPublicIdentity, isPublicIdentity, type PublicIdentity } from '../rules/public-identity';
 
 export const SCHEMA_PERSONAGEM_GUIADO = 1;
-export type PersonagemGuiado = { schemaVersion: typeof SCHEMA_PERSONAGEM_GUIADO; draft: CharacterDraft; identity: PublicIdentitySettings; savedAt: string };
+export type PersonagemGuiado = { schemaVersion: typeof SCHEMA_PERSONAGEM_GUIADO; draft: CharacterDraft; identity: PublicIdentity; savedAt: string };
 export type ResumoPersonagemGuiado = { id: string; nome: string; nivel: number; classId?: string; atualizadoEm: string };
 
 export interface ArmazenamentoCriador {
@@ -37,15 +37,11 @@ function rascunhoValido(v: unknown): v is CharacterDraft {
     && v.inventory.every(x => isRecord(x) && typeof x.id === 'string' && typeof x.itemId === 'string' && Number.isInteger(x.quantity) && Number(x.quantity) >= 1
       && typeof x.equipped === 'boolean' && (x.origin === 'starting' || x.origin === 'acquired'));
 }
-function identidadeValida(v: unknown): v is PublicIdentitySettings {
-  if (!isRecord(v) || typeof v.title !== 'string' || typeof v.description !== 'string' || !(v.imageUrl === null || typeof v.imageUrl === 'string')) return false;
-  return ['name', 'surname', 'race', 'characterClass'].every(k => { const f = v[k]; return isRecord(f) && ['real', 'custom', 'hidden'].includes(f.mode as string) && (f.customValue === undefined || typeof f.customValue === 'string'); });
-}
 /** Valida (sem consertar) um registro lido do armazenamento. */
 export function lerPersonagemGuiado(raw: string): PersonagemGuiado {
   const v: unknown = JSON.parse(raw);
   if (!isRecord(v) || v.schemaVersion !== SCHEMA_PERSONAGEM_GUIADO || !rascunhoValido(v.draft) || typeof v.savedAt !== 'string') throw new Error('Registro do personagem inválido ou de versão desconhecida.');
-  return { schemaVersion: SCHEMA_PERSONAGEM_GUIADO, draft: v.draft, identity: identidadeValida(v.identity) ? v.identity : defaultPublicIdentity(), savedAt: v.savedAt };
+  return { schemaVersion: SCHEMA_PERSONAGEM_GUIADO, draft: v.draft, identity: isPublicIdentity(v.identity) ? v.identity : defaultPublicIdentity(), savedAt: v.savedAt };
 }
 
 const seguro = (): Store | null => { try { return localStorage; } catch { return null; } };
