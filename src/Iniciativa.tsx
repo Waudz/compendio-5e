@@ -1,5 +1,5 @@
 import { BuscaCombatentes } from "./BuscaCombatentes";
-import { ChevronLeft, ChevronRight, Dices, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2, Columns2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Ellipsis, Dices, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2, Columns2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Aviso } from "./Diario";
 import { useUnsavedGuard } from "./unsaved";
@@ -67,6 +67,7 @@ export function IniciativaPanel() {
   }, [estado, statusApi, loja.nuvem]);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   const [visualizacao, setVisualizacao] = useState<VisualizacaoCombate>("cartoes"), [erroFinalizar, setErroFinalizar] = useState<string | null>(null);
+  const [menuTurno, setMenuTurno] = useState(false);
   const [separarLados, setSepararLados] = useState(true);
   const [mods, setMods] = useState<Record<string, number>>({});   // bônus de iniciativa por combatente (monstros: Destreza do catálogo)
   const [rolagens, setRolagens] = useState<Record<string, Rolagem>>({});   // última rolagem de cada um (só para mostrar; o resultado já está na iniciativa)
@@ -141,10 +142,17 @@ export function IniciativaPanel() {
       <div className="ini-turnos-topo"><FaixaTurnos ordem={ordem} turno={combate.turno} retratos={retratos}/>
       <div className="ini-barra ini-controles-turno">
         <strong role="status" className="ini-rodada">Rodada {combate.rodada}</strong>
-        <div className="ini-acoes-turno"><button className="btn-secondary" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={15} aria-hidden="true"/> Turno anterior</button>
-        <button className="btn-secondary" title="Próximo turno" onClick={() => aplicar(proximoTurno)} disabled={!ordem.length}><ChevronRight size={15} aria-hidden="true"/> Próximo turno</button>
-        <button className="btn-secondary" title="Reiniciar rodadas" onClick={() => aplicar(reiniciarRodadas)} disabled={!ordem.length}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
-        <button className="btn-secondary" title="Finalizar combate" onClick={() => void finalizar()} disabled={!ordem.length}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button></div>
+        <div className="ini-acoes-turno ini-acoes-compactas">
+          <button className="btn-secondary ini-turno-icone" aria-label="Turno anterior" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={18} aria-hidden="true"/></button>
+          <button className="btn-secondary ini-proximo-turno" aria-label="Próximo turno" title="Próximo turno" onClick={() => { setMenuTurno(false); aplicar(proximoTurno); }} disabled={!ordem.length}>Próximo turno <ChevronRight size={18} aria-hidden="true"/></button>
+          <div className="ini-menu-turno" onKeyDown={e => { if (e.key === "Escape") setMenuTurno(false); }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMenuTurno(false); }}>
+            <button className="btn-secondary ini-turno-icone" aria-label="Mais ações do combate" title="Mais ações do combate" aria-expanded={menuTurno} onClick={() => setMenuTurno(v => !v)} disabled={!ordem.length}><Ellipsis size={18} aria-hidden="true"/></button>
+            {menuTurno && <div className="ini-menu-turno-opcoes">
+              <button className="btn-secondary" onClick={() => { setMenuTurno(false); aplicar(reiniciarRodadas); }}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
+              <button className="btn-secondary ini-finalizar-turno" onClick={() => { setMenuTurno(false); void finalizar(); }}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
+            </div>}
+          </div>
+        </div>
       </div>
       </div>
       <BuscaCombatentes campaignId={campaignId} encontros={encontros.status === "pronto" ? encontros.valor : null} monstro={adicionarMonstro} personagem={adicionarPersonagem} enviar={enc => { if (!aplicar(e => enviarParaCombate(e, enc))) return; lojaEnc.aplicar(l => l.map(x => x.id === enc.id ? marcarEnviado(x, enc) : x)); }} avulso={<form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">

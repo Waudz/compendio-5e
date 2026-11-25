@@ -62,6 +62,7 @@ test('mestre: encontro → combate → turnos, dano, condição → recarregar �
   await expect(outra.getByLabel('PV de Goblin', { exact: true })).toHaveText('PV 4/7'); await outra.close();
   // 4. finaliza explicitamente; o encontro continua salvo e pode ser reutilizado
   page.once('dialog', d => d.accept());
+  await page.getByRole('button', { name: 'Mais ações do combate', exact: true }).click();
   await page.getByRole('button', { name: 'Finalizar combate', exact: true }).click();
   await expect(page.getByText('Nenhum combatente ainda')).toBeVisible();
   await navigate(page, 'Encontros');
