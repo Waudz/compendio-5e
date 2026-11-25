@@ -123,3 +123,69 @@ describe("acesso exclusivo do mestre", () => {
     expect(carregar).not.toHaveBeenCalled();
   });
 });
+
+describe("remover personagem: os PV vão para a ficha antes de ele sair", () => {
+  const comDano = async (fichas = fichasEmMemoria("u1", banco)) => {
+    render(<AventureirosContext.Provider value={personagens}><RegistrosProvider api={null} fichas={fichas}><IniciativaPanel/></RegistrosProvider></AventureirosContext.Provider>);
+    await abrirSeletor(); fireEvent.click(screen.getByRole("button", { name: "Adicionar Lydia (personagem)" }));
+    await screen.findByLabelText("PV de Lydia");
+    fireEvent.change(screen.getByLabelText("Quantidade de dano ou cura de Lydia"), { target: { value: "3" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Lydia" }));
+  };
+  const remover = () => fireEvent.click(screen.getByRole("button", { name: "Remover Lydia" }));
+
+  it("remover logo depois do dano grava só currentHp, e ao adicionar de novo vêm os PV atuais", async () => {
+    await comDano(); remover();   // sem esperar nada entre o dano e a remoção
+    expect(await screen.findByText("Nenhum combatente ainda")).toBeTruthy();
+    expect(fichaDe("p1").draft).toMatchObject({ currentHp: 2, name: "Lydia", temporaryHp: 3 }); expect(fichaDe("p1").revision).toBe(2);
+    abrirBusca("Personagens"); fireEvent.focus(screen.getByLabelText("Buscar combatentes"));
+    fireEvent.click(await screen.findByRole("button", { name: "Adicionar Lydia (personagem)" }));
+    expect((await screen.findByLabelText("PV de Lydia")).textContent).toBe(`PV 2/${MAX}`);
+  });
+  it("falha ao gravar: cancelando, ele continua no combate (inclusive após recarregar) e a nova tentativa grava", async () => {
+    await comDano(); banco.rede.caida = true;
+    const confirma = vi.spyOn(window, "confirm").mockReturnValue(false); remover();
+    expect(await screen.findByText(/continua no combate: os PV não foram gravados/)).toBeTruthy();
+    expect(confirma.mock.calls[0][0]).toMatch(/Não foi possível gravar os PV de Lydia \(2\)/);
+    expect(screen.getByLabelText("PV de Lydia").textContent).toBe(`PV 2/${MAX}`); expect(fichaDe("p1").draft.currentHp).toBe(5);
+    cleanup(); montar(); expect((await screen.findByLabelText("PV de Lydia")).textContent).toBe(`PV 2/${MAX}`);   // recarregar não perde
+    banco.rede.caida = false; remover();
+    expect(await screen.findByText("Nenhum combatente ainda")).toBeTruthy(); expect(fichaDe("p1").draft.currentHp).toBe(2);
+  });
+  it("falha ao gravar: confirmando, remove e deixa a ficha como estava", async () => {
+    await comDano(); banco.rede.caida = true; vi.spyOn(window, "confirm").mockReturnValue(true); remover();
+    expect(await screen.findByText("Nenhum combatente ainda")).toBeTruthy(); expect(fichaDe("p1").draft.currentHp).toBe(5);
+  });
+  it("alteração concorrente do dono é preservada: a gravação usa a revisão mais nova", async () => {
+    await comDano();
+    const f = fichaDe("p1"); f.draft = { ...f.draft, name: "Lydia Valenmoor", temporaryHp: 8 }; f.revision = 9;
+    remover(); await screen.findByText("Nenhum combatente ainda");
+    expect(fichaDe("p1").draft).toMatchObject({ currentHp: 2, name: "Lydia Valenmoor", temporaryHp: 8 }); expect(fichaDe("p1").revision).toBe(10);
+  });
+  it("durante a gravação a linha fica bloqueada: sem remoção dupla nem PV alterado no meio", async () => {
+    const base = fichasEmMemoria("u1", banco); let liberar!: () => void; const espera = new Promise<void>(r => { liberar = r; });
+    const salvar = vi.fn(async (...a: Parameters<typeof base.salvar>) => { await espera; return base.salvar(...a); });
+    await comDano({ ...base, salvar }); remover();
+    expect(await screen.findByText("Gravando os PV na ficha…")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Remover Lydia" }) as HTMLButtonElement).disabled).toBe(true);
+    remover(); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Lydia" }));
+    expect(screen.getByLabelText("PV de Lydia").textContent).toBe(`PV 2/${MAX}`);
+    liberar(); expect(await screen.findByText("Nenhum combatente ainda")).toBeTruthy();
+    expect(salvar).toHaveBeenCalledTimes(1); expect(fichaDe("p1").draft.currentHp).toBe(2);
+  });
+});
+
+describe("combate ativo sem participantes", () => {
+  it("continua podendo ser finalizado; só o que depende de um turno fica desabilitado", async () => {
+    montar(); await abrirSeletor(); fireEvent.click(screen.getByRole("button", { name: "Adicionar Lydia (personagem)" }));
+    await screen.findByLabelText("PV de Lydia");
+    fireEvent.click(screen.getByRole("button", { name: "Próximo turno" })); expect(screen.getByText("Rodada 2")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Remover Lydia" })); await screen.findByText("Nenhum combatente ainda");
+    expect(screen.getByText("Rodada 2")).toBeTruthy();   // o combate continua ativo, vazio
+    for (const nome of ["Próximo turno", "Turno anterior"]) expect((screen.getByRole("button", { name: nome }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
+    expect((screen.getByRole("button", { name: "Reiniciar rodadas" }) as HTMLButtonElement).disabled).toBe(true);
+    const fim = screen.getByRole("button", { name: "Finalizar combate" }) as HTMLButtonElement; expect(fim.disabled).toBe(false);
+    vi.spyOn(window, "confirm").mockReturnValue(true); fireEvent.click(fim);
+    await waitFor(() => expect(screen.getByText("Rodada 1")).toBeTruthy());
+  });
+});

@@ -90,6 +90,14 @@ describe("Iniciativa na nuvem", () => {
     await waitFor(() => expect(combate.s.finalizados).toBe(1)); expect(combate.s.linhas.has("c1")).toBe(false);
     expect(await screen.findByText("Nenhum combatente ainda")).toBeTruthy(); expect(encontros.s.linhas.get("c1")?.valor).toHaveLength(1);
   });
+  it("na nuvem, um combate que ficou sem participantes ainda é finalizado no servidor", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { combate } = montar(<IniciativaPanel/>); await screen.findByText("Nenhum combatente ainda");
+    preencher("Nome", "Goblin"); fireEvent.click(screen.getByRole("button", { name: /Adicionar/ })); await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes).toHaveLength(1));
+    fireEvent.click(screen.getByRole("button", { name: "Remover Goblin" })); await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes).toHaveLength(0));
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" })); fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
+    await waitFor(() => expect(combate.s.finalizados).toBe(1)); expect(combate.s.linhas.has("c1")).toBe(false);
+  });
   it("condições, rolar iniciativa e turno anterior", async () => {
     const combate = servidor<EstadoCombate>(vazioCombate);
     montar(<IniciativaPanel/>, combate); await screen.findByText("Nenhum combatente ainda");
