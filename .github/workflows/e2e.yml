@@ -11,6 +11,10 @@ concurrency:
   cancel-in-progress: true
 jobs:
   playwright:
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [e2e, creator, quality]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -27,19 +31,13 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verificar tipos da infraestrutura E2E
         run: npm run test:e2e:types
-      - name: Executar navegação e responsividade sem serviços externos
-        run: npm run test:e2e
-      - name: Executar criador, ficha, inventário e Compêndio
-        if: ${{ !cancelled() }}
-        run: npm run test:creator
-      - name: Executar segunda etapa de qualidade
-        if: ${{ !cancelled() }}
-        run: npm run test:quality
+      - name: Executar suíte ${{ matrix.suite }}
+        run: npm run test:${{ matrix.suite }}
       - name: Guardar relatório, capturas e traces
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.suite }}
           path: |
             playwright-report/
             test-results/
