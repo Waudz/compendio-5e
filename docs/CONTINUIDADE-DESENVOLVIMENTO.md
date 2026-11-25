@@ -386,3 +386,7 @@ Revisão visual dos artefatos de `deb8120`: retratos/centralização passaram na
 ## Otimização de CI — 24/11/2026
 
 Primeira fase: as três suítes Playwright executam em jobs paralelos com fail-fast desativado e artefatos separados; publicação usa uma instalação, testes e um único build com configuração oficial. Nenhuma cobertura removida, nenhuma alteração de banco ou permissões. O atraso de propagação do Pages permanece por causa da falha histórica documentada no workflow. Medir duração e verificar checks obrigatórios após CI; nomes dos jobs E2E mudam pela matriz. Próxima fase: classificação conservadora de impacto e prévias isoladas, sem dispensar validação de segurança de mudanças desconhecidas. Não considerar ganho medido nem deploy validado antes da execução real.
+
+## PR #142 — controles compactos de turno (25/11/2026)
+
+Causa das 2 falhas do E2E principal: a regra de container forçava a linha própria para as ações até 440 px de painel, o que deixava a faixa fixa com 237 px (limite 230) em meia tela; em três painéis o rótulo "Próximo turno" não cabia no botão. Correção: em meia tela, Rodada e ações dividem a linha; só abaixo de 300 px as ações ganham linha própria, sem o ícone e com botões de 30 px. Testes não foram alterados. Execução local do Playwright é possível com o Chrome instalado (`use.channel: 'chrome'` em uma configuração local não versionada), sem baixar navegadores.
