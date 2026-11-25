@@ -1,4 +1,4 @@
-import { rotuloClasse, rotuloRaca } from './criador/rotulos';
+import { origemPublica, rotuloClasse, rotuloRaca } from './criador/rotulos';
 // Personagens da campanha: lista (retrato, nome, classe, nível) e perfil de cada um. Qualquer participante cria o seu; só o dono edita.
 // Visível para a campanha = publicado; privado = só o dono vê. A ficha completa (atributos, magias, inventário) ainda não existe.
 import { Plus, Trash2, UserRound } from "lucide-react";
@@ -16,6 +16,7 @@ import { useUnsavedGuard } from "./unsaved";
 import { armazenamentoLocalExperimental, type ResumoPersonagemGuiado } from "./criador/armazenamento";
 import { CriadorGuiado } from "./criador/CriadorGuiado";
 import { cartaoPublico, ehGuiado } from "./fichas";
+import { presentation } from "./rules/public-identity";
 import { listarPersonagens, rotuloPrivacidade, type ListaPersonagens, type PersonagemCampanha } from "./personagensCampanha";
 import { RetratoQuadrado } from "./RetratoCombate";
 import type { TabSpec } from "./workspace";
@@ -59,7 +60,7 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
       const loc = armazenamentoLocalExperimental(userId, campanhaId); const p = loc.carregar(g.id);
       if (!p) { setAviso({ ok: false, t: "O rascunho local não foi encontrado." }); return; }
       if (!p.draft.name.trim()) { setAviso({ ok: false, t: "Dê um nome ao personagem (abra o rascunho e salve) antes de enviá-lo." }); return; }
-      const r = await fichas.criar(campanhaId, p.draft, { identity: p.identity, source: { name: p.draft.name, surname: "", race: p.draft.catalogueVersion === 'character-srd-2014-v2' ? rotuloRaca(p.draft.raceId) : 'Anão', characterClass: rotuloClasse(p.draft.classId) }, publicar: false });
+      const r = await fichas.criar(campanhaId, p.draft, { identity: p.identity, source: origemPublica(p.draft, p.draft.catalogueVersion === 'character-srd-2014-v2' ? rotuloRaca(p.draft.raceId) : 'Anão', rotuloClasse(p.draft.classId)), publicar: false });
       if (!r.ok) { setAviso({ ok: false, t: `${r.error} O rascunho continua guardado neste navegador.` }); return; }
       loc.excluir(g.id); avisarRegistros(); setTentativa(n => n + 1);
       setAviso({ ok: true, t: `“${p.draft.name}” foi enviado para a campanha e a cópia deste navegador foi removida. A identidade pública começou privada.` });
@@ -67,16 +68,16 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
     finally { setEnviando(null); }
   };
   const descartar = (g: ResumoPersonagemGuiado) => { if (!userId) return; try { armazenamentoLocalExperimental(userId, campanhaId).excluir(g.id); } catch { /* ignora */ } setDescartando(null); avisarRegistros(); setTentativa(n => n + 1); setAviso({ ok: true, t: `Rascunho “${g.nome}” removido deste navegador.` }); };
-  const cartao = (chave: string, spec: TabSpec, dica: string, retrato: React.ReactNode, nome: string, detalhe: string, notas: (string | null)[]) => <li key={chave}>
+  const cartao = (chave: string, spec: TabSpec, dica: string, retrato: React.ReactNode, nome: string, alcunha: string | null, detalhe: string, notas: (string | null)[]) => <li key={chave}>
     <button className="home-char" onClick={() => onOpenContent(spec)} onContextMenu={e => aoClicarDireito(e, spec)} title={dica}>{retrato}
-      <span><strong>{nome}</strong><small>{detalhe}</small>{notas.filter(Boolean).map(n => <small key={n} className="home-char-nota">{n}</small>)}</span></button></li>;
+      <span><strong>{nome}</strong>{alcunha && <>{" "}<em className="home-char-alcunha">{alcunha}</em></>}{" "}<small>{detalhe}</small>{notas.filter(Boolean).map(n => <small key={n} className="home-char-nota">{n}</small>)}</span></button></li>;
   const personagens = dados?.personagens ?? [];
   const soLocais = fichas ? [] : locais;   // sem API de fichas, os guiados deste navegador fazem parte da própria lista
   const vazio = !!dados && personagens.length === 0 && soLocais.length === 0;
   return <div className="content personagens">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
-    <p className="muted">Cada participante cria o próprio personagem e só o dono altera a identidade pública. A ficha completa é privada: só o dono e o mestre a leem; os demais veem apenas a identidade publicada.{fichas ? "" : " Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
+    <p className="muted">Cada participante cria o próprio personagem. A ficha é privada (dono e mestre); os outros jogadores veem só a apresentação que o dono mostrar.{fichas ? "" : " Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
     {aviso && <Aviso erro={!aviso.ok} t={aviso.t}/>}
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
     {dados?.avisoFichas && <Aviso erro t={`${dados.avisoFichas} A lista pode estar incompleta.`} onRetry={() => setTentativa(n => n + 1)}/>}
@@ -84,10 +85,10 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
     {vazio && !dados?.avisoFichas && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}
     <section className="personagens-lista" aria-label="Personagens da campanha">
       <ul className="home-party">
-        {personagens.map(p => cartao(p.id, { kind: "ficha", ref: p.id, title: p.nome }, p.comFicha || !p.guiado ? `Abrir ficha de ${p.nome}` : `Abrir identidade pública de ${p.nome}`, <RetratoDaLista p={p}/>, p.nome,
-          [p.classe, p.nivel != null ? `nível ${p.nivel}` : null, p.comFicha ? (p.meu ? "sua ficha" : "ficha de outro participante") : p.meu ? "seu" : p.guiado ? "identidade pública" : null].filter(Boolean).join(" · "),
-          [p.apresentadoComo ? `apresentado à campanha como “${p.apresentadoComo}”` : null, rotuloPrivacidade(p)]))}
-        {soLocais.map(g => cartao(g.id, { kind: "criador", ref: g.id, title: g.nome }, `Abrir personagem guiado ${g.nome}`, <RetratoQuadrado tipo="personagem" tamanho={56}/>, g.nome, `${rotuloClasse(g.classId)} · nível ${g.nivel} · guiado (neste navegador)`, []))}
+        {personagens.map(p => cartao(p.id, { kind: "ficha", ref: p.id, title: p.nome }, p.comFicha || !p.guiado ? `Abrir ficha de ${p.nome}` : `Abrir ${p.nome}`, <RetratoDaLista p={p}/>, p.nome, p.alcunha,
+          [p.classe, p.nivel != null ? `nível ${p.nivel}` : null, p.meu ? (p.comFicha ? "sua ficha" : "seu") : p.comFicha ? "ficha de outro participante" : null].filter(Boolean).join(" · "),
+          [rotuloPrivacidade(p, active.role === "mestre")]))}
+        {soLocais.map(g => cartao(g.id, { kind: "criador", ref: g.id, title: g.nome }, `Abrir personagem guiado ${g.nome}`, <RetratoQuadrado tipo="personagem" tamanho={56}/>, g.nome, null, `${rotuloClasse(g.classId)} · nível ${g.nivel} · guiado (neste navegador)`, []))}
       </ul>
     </section>
     {fichas && locais.length > 0 && <div data-testid="rascunhos-locais"><h2>Rascunhos neste navegador <small className="muted">(experimental)</small></h2>
@@ -103,10 +104,10 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
 /** Identidade pública de um personagem guiado, para quem NÃO é o dono: só o que o jogador publicou (nunca nível, PV, inventário ou escolhas). */
 function CartaoPublicoGuiado({ reg }: { reg: Registro }) {
   const c = cartaoPublico(reg.meta);
-  if (!c) return <div className="content"><h1>{reg.title}</h1><Aviso t="Identidade pública indisponível."/></div>;
-  const nome = [c.name, c.surname].filter(Boolean).join(" ");
-  return <div className="content ficha" data-testid="cartao-publico"><div className="eyebrow">PERSONAGEM · IDENTIDADE PÚBLICA</div>
-    <div className="ficha-topo"><Retrato caminho={null} nome={reg.title} tamanho={72}/><div><h1>{c.title || nome || reg.title}</h1>{c.title && nome && <p>{nome}</p>}</div></div>
+  if (!c) return <div className="content"><h1>{reg.title}</h1><Aviso t="Apresentação indisponível."/></div>;
+  const visto = presentation(c);
+  return <div className="content ficha" data-testid="cartao-publico"><div className="eyebrow">PERSONAGEM</div>
+    <div className="ficha-topo"><RetratoQuadrado tipo="personagem" src={c.imageUrl} tamanho={96}/><div><h1>{visto.nome}</h1>{visto.alcunha && <p className="identidade-alcunha"><em>{visto.alcunha}</em></p>}</div></div>
     {c.race && <p>Raça: {c.race}</p>}{c.characterClass && <p>Classe: {c.characterClass}</p>}{c.description && <p>{c.description}</p>}
     <p className="muted">Os detalhes da ficha são privados do jogador e do mestre.</p></div>;
 }

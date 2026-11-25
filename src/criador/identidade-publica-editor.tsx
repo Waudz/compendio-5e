@@ -1,45 +1,44 @@
+// Identidade pública: só a APRESENTAÇÃO do personagem aos outros jogadores. Não é outra ficha. "Usar da ficha" acompanha a ficha;
+// o que é personalizado permanece como escrito; "Ocultar" não revela o valor verdadeiro. O retrato é o mesmo da ficha.
 import {useState} from 'react';
-import {defaultPublicIdentity,publicIdentityCard,type PrivateIdentitySource,type PublicIdentityField,type PublicIdentitySettings} from '../rules/public-identity';
+import {defaultPublicIdentity,presentation,publicIdentityCard,type ChavePublica,type CampoPublico,type ModoPublico,type PublicIdentity,type SheetPublicSource} from '../rules/public-identity';
+import {RetratoQuadrado} from '../RetratoCombate';
+import {retratoValido} from '../fichas';
 
-type Props={source:PrivateIdentitySource;initialSettings?:PublicIdentitySettings;onSave:(settings:PublicIdentitySettings)=>void;onSkip?:()=>void};
-const FIELDS=[['name','Nome'],['surname','Sobrenome'],['race','Raça'],['characterClass','Classe']] as const;
-type FieldKey=typeof FIELDS[number][0];
+type Props={source:SheetPublicSource;initialIdentity?:PublicIdentity;onSave:(identity:PublicIdentity)=>void;onSkip?:()=>void};
+const FIELDS:readonly (readonly [ChavePublica,string,string])[]=[['name','Nome','Nome público'],['alias','Alcunha','Alcunha pública'],['race','Raça','Raça pública'],['characterClass','Classe','Classe pública']];
 
 /** Editor da identidade pública: nunca lê nem publica a ficha privada; recebe só os campos de origem informados. */
-export default function PublicIdentityEditor({source,initialSettings,onSave,onSkip}:Props){
- const [settings,setSettings]=useState<PublicIdentitySettings>(()=>initialSettings??defaultPublicIdentity());
- const updateField=(key:FieldKey,patch:PublicIdentityField)=>setSettings(previous=>({...previous,[key]:patch}));
- const preview=publicIdentityCard(settings,source);
- const displayedName=[preview.name,preview.surname].filter(Boolean).join(' ');
- return <section aria-label="Cartão de Identidade público">
-  <h2>Como os outros personagens veem você</h2>
-  <p>Este cartão não mostra sua ficha completa, nível ou inventário. Campos ocultos não revelam o valor verdadeiro.</p>
-  <label>Título ou alcunha <input aria-label="Título público" value={settings.title} onChange={e=>setSettings(previous=>({...previous,title:e.target.value}))}/></label>
-  {FIELDS.map(([key,label])=><fieldset key={key}>
+export default function PublicIdentityEditor({source,initialIdentity,onSave,onSkip}:Props){
+ const [identity,setIdentity]=useState<PublicIdentity>(()=>initialIdentity??defaultPublicIdentity());
+ const set=(key:ChavePublica,field:CampoPublico)=>setIdentity(previous=>({...previous,[key]:field}));
+ const card=publicIdentityCard(identity,source),shown=presentation(card);
+ const nothingToShow=!card.name&&!card.alias;
+ return <section aria-label="Cartão de Identidade público" className="identidade-publica">
+  <h2>Como os outros jogadores veem você</h2>
+  <p className="muted">Opcional: sem mudar nada, usa o que está na ficha e acompanha as alterações. O retrato é o mesmo da ficha. Atributos, PV, CA, nível e inventário nunca aparecem.</p>
+  {FIELDS.map(([key,label,customLabel])=>{const field=identity[key];return <fieldset key={key}>
    <legend>{label}</legend>
-   <label>Visibilidade de {label.toLowerCase()} <select aria-label={'Visibilidade '+label} value={settings[key].mode}
-    onChange={e=>updateField(key,{mode:e.target.value as PublicIdentityField['mode'],customValue:settings[key].customValue})}>
-    <option value="real">Mostrar verdadeiro</option>
-    <option value="custom">Mostrar personalizado</option>
+   <label>Visibilidade <select aria-label={'Visibilidade '+label} value={field.mode}
+    onChange={e=>set(key,{mode:e.target.value as ModoPublico,value:field.value})}>
+    <option value="sheet">{'Usar da ficha'+(source[key]?' ('+source[key]+')':' (vazio)')}</option>
+    <option value="custom">Personalizar</option>
     <option value="hidden">Ocultar</option>
    </select></label>
-   {settings[key].mode==='custom'&&<label>{label} público <input aria-label={label+' público'} value={settings[key].customValue??''}
-    onChange={e=>updateField(key,{mode:'custom',customValue:e.target.value})}/></label>}
-  </fieldset>)}
-  <label>Imagem pública (URL) <input aria-label="Imagem pública" value={settings.imageUrl??''}
-   onChange={e=>setSettings(previous=>({...previous,imageUrl:e.target.value||null}))}/></label>
-  <label>Descrição pública <textarea aria-label="Descrição pública" value={settings.description}
-   onChange={e=>setSettings(previous=>({...previous,description:e.target.value}))}/></label>
-  <section aria-label="Prévia para outros jogadores">
-   <h3>Prévia para outros jogadores</h3>
-   {preview.imageUrl&&<img alt="Retrato público do personagem" src={preview.imageUrl} style={{maxWidth:120,maxHeight:120}}/>}
-   <p>{preview.title||displayedName||'Identidade desconhecida'}</p>
-   {preview.title&&displayedName&&<p>{displayedName}</p>}
-   {preview.race&&<p>Raça: {preview.race}</p>}
-   {preview.characterClass&&<p>Classe: {preview.characterClass}</p>}
-   {preview.description&&<p>{preview.description}</p>}
+   {field.mode==='custom'&&<label>{customLabel} <input aria-label={customLabel} maxLength={120} value={field.value??''}
+    onChange={e=>set(key,{mode:'custom',value:e.target.value})}/></label>}
+  </fieldset>;})}
+  <label>Descrição pública <textarea aria-label="Descrição pública" rows={3} maxLength={4000} value={identity.description}
+   onChange={e=>setIdentity(previous=>({...previous,description:e.target.value}))}/></label>
+  <section aria-label="Prévia para outros jogadores" className="identidade-previa">
+   <RetratoQuadrado tipo="personagem" tamanho={72} src={retratoValido(card.imageUrl)?card.imageUrl:null}/>
+   <div><p className="identidade-nome">{shown.nome}</p>
+    {shown.alcunha&&<p className="identidade-alcunha"><em>{shown.alcunha}</em></p>}
+    {(card.race||card.characterClass)&&<p className="muted">{[card.race,card.characterClass].filter(Boolean).join(' · ')}</p>}
+    {card.description&&<p>{card.description}</p>}</div>
   </section>
-  <button type="button" onClick={()=>onSave(settings)}>Salvar identidade pública</button>
-  {onSkip&&<button type="button" onClick={onSkip}>Configurar depois</button>}
+  {nothingToShow&&<p role="alert" className="notice err">Apresente ao menos o nome ou a alcunha.</p>}
+  <button type="button" className="btn-secondary" disabled={nothingToShow} onClick={()=>onSave(identity)}>Salvar identidade pública</button>
+  {onSkip&&<button type="button" className="btn-secondary" onClick={onSkip}>Configurar depois</button>}
  </section>;
 }

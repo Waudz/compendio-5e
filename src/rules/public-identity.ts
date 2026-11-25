@@ -1,46 +1,47 @@
-/** Public identity is deliberately independent of the private character sheet.
- * Only this projection may be serialized to other players.
+/** Identidade pública: só a APRESENTAÇÃO do personagem aos outros jogadores. Não é outra ficha.
+ * Cada campo acompanha a ficha (`sheet`), é personalizado (`custom`) ou fica oculto (`hidden`). O retrato é o mesmo da ficha.
+ * Só o cartão resolvido por `publicIdentityCard` pode ser mostrado a outros jogadores.
  */
-export type PublicIdentityField = {mode:'real'|'custom'|'hidden';customValue?:string};
-export type PublicIdentitySettings = {
- imageUrl:string|null;
- title:string;
- name:PublicIdentityField;
- surname:PublicIdentityField;
- race:PublicIdentityField;
- characterClass:PublicIdentityField;
- description:string;
-};
-export type PrivateIdentitySource = {
- name:string; surname:string; race:string; characterClass:string;
-};
-export type PublicIdentityCard = {
- imageUrl:string|null; title:string; name:string|null; surname:string|null;
- race:string|null; characterClass:string|null; description:string;
-};
-export function defaultPublicIdentity():PublicIdentitySettings {
- return {
-  imageUrl:null,title:'',description:'',
-  name:{mode:'real'},surname:{mode:'real'},race:{mode:'real'},characterClass:{mode:'real'}
- };
+export type ModoPublico = 'sheet' | 'custom' | 'hidden';
+export type CampoPublico = { mode: ModoPublico; value?: string };
+export const CAMPOS_PUBLICOS = ['name', 'alias', 'race', 'characterClass'] as const;
+export type ChavePublica = (typeof CAMPOS_PUBLICOS)[number];
+export type PublicIdentity = Record<ChavePublica, CampoPublico> & { description: string };
+/** Os únicos dados da ficha que a identidade pode usar. Nunca receba a ficha inteira aqui. */
+export type SheetPublicSource = Record<ChavePublica, string> & { portrait: string };
+export type PublicIdentityCard = Record<ChavePublica, string | null> & { description: string; imageUrl: string | null };
+
+export const MODOS_PUBLICOS: readonly ModoPublico[] = ['sheet', 'custom', 'hidden'];
+export function defaultPublicIdentity(): PublicIdentity {
+ return { name: { mode: 'sheet' }, alias: { mode: 'sheet' }, race: { mode: 'sheet' }, characterClass: { mode: 'sheet' }, description: '' };
 }
-function resolveField(field:PublicIdentityField,real:string):string|null {
- if(field.mode==='hidden')return null;
- if(field.mode==='real')return real.trim()||null;
- if(field.mode==='custom')return field.customValue?.trim()||null;
+/** Valida (sem consertar) uma identidade lida do navegador. */
+export function isPublicIdentity(v: unknown): v is PublicIdentity {
+ if (typeof v !== 'object' || v === null) return false;
+ const r = v as Record<string, unknown>;
+ return typeof r.description === 'string' && CAMPOS_PUBLICOS.every(k => {
+  const f = r[k] as Partial<CampoPublico> | null | undefined;
+  return !!f && typeof f === 'object' && MODOS_PUBLICOS.includes(f.mode as ModoPublico) && (f.value === undefined || typeof f.value === 'string');
+ });
+}
+function resolver(field: CampoPublico, daFicha: string): string | null {
+ if (field.mode === 'hidden') return null;
+ if (field.mode === 'sheet') return daFicha.trim() || null;
+ if (field.mode === 'custom') return field.value?.trim() || null; // campo personalizado vazio nunca revela o valor da ficha
  throw Error('Invalid public identity mode');
 }
-/** Never accept a full CharacterDraft here: this explicit allowlist prevents
- * HP, level, equipment, secrets and private notes from leaking to other players.
- */
-export function publicIdentityCard(settings:PublicIdentitySettings,source:PrivateIdentitySource):PublicIdentityCard {
+export function publicIdentityCard(identity: PublicIdentity, source: SheetPublicSource): PublicIdentityCard {
  return {
-  imageUrl:settings.imageUrl,
-  title:settings.title.trim(),
-  name:resolveField(settings.name,source.name),
-  surname:resolveField(settings.surname,source.surname),
-  race:resolveField(settings.race,source.race),
-  characterClass:resolveField(settings.characterClass,source.characterClass),
-  description:settings.description
+  name: resolver(identity.name, source.name),
+  alias: resolver(identity.alias, source.alias),
+  race: resolver(identity.race, source.race),
+  characterClass: resolver(identity.characterClass, source.characterClass),
+  description: identity.description,
+  imageUrl: source.portrait.trim() || null,
  };
+}
+/** O que mostrar: nome em destaque e, quando ambos são públicos, a alcunha abaixo. */
+export function presentation(card: Pick<PublicIdentityCard, 'name' | 'alias'>): { nome: string; alcunha: string | null } {
+ if (card.name) return { nome: card.name, alcunha: card.alias };
+ return { nome: card.alias || 'Identidade desconhecida', alcunha: null };
 }

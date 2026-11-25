@@ -115,10 +115,10 @@ describe("API real da capa sem a migração 0012", () => {
 
 describe("retratos dos aventureiros", () => {
   it("personagem guiado mostra só a imagem PÚBLICA (https) escolhida pelo jogador; privados ficam fora", async () => {
-    const card = (imageUrl: string | null) => ({ guiado: true, identidadePublica: { card: { imageUrl, title: "", name: "Lia", surname: null, race: "Elfa", characterClass: "Barda", description: "" } } });
+    const card = (imageUrl: string | null, name = "Lia") => ({ guiado: true, identidadePublica: { card: { imageUrl, title: "", name, surname: null, race: "Elfa", characterClass: "Barda", description: "" } } });
     const reg = { list: async () => ({ ok: true, data: [
       { id: "1", title: "Lia", visibility: "campaign", meta: card("https://exemplo.test/lia.png") },
-      { id: "2", title: "Rui", visibility: "campaign", meta: card("http://inseguro.test/r.png") },
+      { id: "2", title: "Rui", visibility: "campaign", meta: card("http://inseguro.test/r.png", "Rui") },
       { id: "3", title: "Segredo", visibility: "private", meta: card("https://exemplo.test/s.png") },
     ] }) } as unknown as RegistrosApi;
     const r = await fontePersonagens(reg, null).listar("ca");

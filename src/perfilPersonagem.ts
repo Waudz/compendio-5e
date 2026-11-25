@@ -4,6 +4,7 @@ import type { Res } from "./campaigns";
 import type { CapaApi } from "./capa";
 import type { Aventureiro, FonteAventureiros } from "./inicio";
 import { cartaoPublico, ehGuiado } from "./fichas";
+import { presentation } from "./rules/public-identity";
 import type { Registro, RegistrosApi } from "./registros";
 
 export const NIVEL_MIN = 1, NIVEL_MAX = 20, MAX_CLASSE = 40;
@@ -31,7 +32,10 @@ export function fontePersonagens(api: RegistrosApi, capa: CapaApi | null): Fonte
       const r = await api.list(campanhaId, "character"); if (!r.ok) return r;
       const lista = ordenarPersonagens(r.data.filter(x => x.visibility === "campaign"));
       const out = await Promise.all(lista.map(async x => {
-        if (ehGuiado(x.meta)) { const c = cartaoPublico(x.meta); return { id: x.id, nome: x.title, classe: [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: null, retratoUrl: c?.imageUrl?.startsWith("https://") ? c.imageUrl : null }; }   // guiado: só a identidade pública (inclusive a imagem pública), sem nível
+        if (ehGuiado(x.meta)) {   // guiado: só a identidade pública (inclusive o retrato publicado), sem nível
+          const c = cartaoPublico(x.meta), visto = c ? presentation(c) : { nome: x.title, alcunha: null };
+          return { id: x.id, nome: visto.nome, ...(visto.alcunha ? { alcunha: visto.alcunha } : {}), classe: [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: null, retratoUrl: c?.imageUrl ?? null };
+        }
         const p = lerPerfil(x.meta); let retratoUrl: string | null = null;
         if (p.retrato && capa) { const u = await capa.urlDe(p.retrato); if (u.ok) retratoUrl = u.data; }   // retrato indisponível: cai na inicial, sem erro
         return { id: x.id, nome: x.title, classe: p.classe || "Sem classe", nivel: p.nivel, retratoUrl };

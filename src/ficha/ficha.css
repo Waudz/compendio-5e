@@ -1,0 +1,120 @@
+/* Ficha de jogo: adapta-se à largura do PAINEL (não só da janela), para funcionar em dois grupos lado a lado e no celular. */
+.ficha.ficha-jogo { container-type: inline-size; }
+.ficha-jogo > * { max-width: 1040px; }
+.ficha-cabecalho { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.ficha-identidade { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.ficha-nomes { min-width: 0; overflow-wrap: anywhere; }
+.ficha-jogo .ficha-nomes h1 { margin: 0; font-size: 22px; }
+.ficha-nomes p { margin: 2px 0 0; }
+.ficha-acoes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+.ficha-menu { position: relative; }
+.ficha .barra-menu.ficha-menu-lista { top: calc(100% + 4px); right: 0; min-width: 210px; max-width: min(280px, 80vw); }
+.ficha-menu-lista .barra-item { text-align: left; background: transparent; border: 0; color: var(--text); font: inherit; padding: 8px; border-radius: 6px; cursor: pointer; }
+.ficha-menu-lista .barra-item:hover { background: var(--hover); }
+.ficha-menu-lista p { margin: 4px; }
+.ficha-menu-aviso { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: max-content; max-width: min(280px, 80vw); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 0; }
+
+.ficha-vida { display: grid; grid-template-columns: auto minmax(80px, 1fr) auto; gap: 8px 12px; align-items: center; }
+.ficha-vida-total { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.ficha-vida-total strong { font-size: 20px; }
+.ficha-caido { color: var(--danger, #f87171); font-weight: 650; }
+.ficha-barra { height: 9px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+.ficha-barra > span { display: block; height: 100%; background: #22a06b; }
+.ficha-barra > span.excesso { background: #dc5656; }
+.ficha-vida-ajuste { display: flex; gap: 6px; flex-wrap: wrap; }
+.ficha .ficha-vida-ajuste input { width: 76px; }
+
+.ficha-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.ficha-numero { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.ficha-numero span, .ficha-atributo span { font-size: 11px; color: var(--text-2); }
+.ficha-numero strong { font-size: 17px; }
+.ficha-temp { color: var(--accent); font-weight: 600; font-size: 11px; }
+.ficha-etiquetas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ficha-etiquetas .ini-chip { display: inline-flex; align-items: center; gap: 4px; }
+.ficha-etiquetas .ini-chip button { background: none; border: 0; color: inherit; padding: 2px; display: flex; cursor: pointer; }
+.ficha .ficha-etiquetas select { width: auto; min-width: 0; max-width: 100%; font-size: 12px; }
+.ficha-defesas { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; }
+
+.ficha-conteudo { min-height: 60vh; }
+.ficha-colunas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+@container (min-width: 700px) { .ficha-colunas { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ficha-colunas > .ficha-larga { grid-column: 1 / -1; } }
+.ficha-bloco { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 10px 14px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.ficha-jogo .ficha-bloco h2 { font-size: 15px; margin: 0; }
+.ficha-bloco h3 { font-size: 13px; margin: 6px 0 2px; }
+.ficha-bloco p { margin: 0; }
+.ficha-bloco details > summary { cursor: pointer; padding: 5px 0; overflow-wrap: anywhere; }
+.ficha-texto { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ficha-sem-texto { padding: 3px 0; }
+.ficha-atributos { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@container (max-width: 520px) { .ficha-atributos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ficha-atributo { border: 1px solid var(--line); border-radius: 8px; padding: 6px 2px; display: flex; flex-direction: column; align-items: center; }
+.ficha-atributo strong { font-size: 20px; }
+.ficha-linhas { list-style: none; margin: 0; padding: 0; }
+.ficha-linhas > li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.ficha-linhas > li:last-child { border-bottom: 0; }
+.ficha-recurso { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ficha-usos { font-variant-numeric: tabular-nums; }
+.ficha-marca { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--text-2); margin-right: 4px; }
+.ficha-marca.ativa { background: var(--accent); border-color: var(--accent); }
+.ficha .ficha-morte { border: 1px solid var(--line); border-radius: 8px; margin: 0; padding: 6px 10px; }
+.ficha-morte > div { display: flex; gap: 10px; align-items: center; padding: 3px 0; }
+.ficha-morte > div > span { min-width: 70px; }
+.ficha-morte input { width: 18px; height: 18px; }
+.ficha-dados { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; }
+.ficha-dados dt { color: var(--text-2); }
+.ficha-dados dd { margin: 0; overflow-wrap: anywhere; }
+.ficha-form { display: flex; flex-wrap: wrap; gap: 6px; }
+.ficha .ficha-form > input, .ficha .ficha-form > select { flex: 1 1 120px; min-width: 0; width: auto; }
+.ficha .ficha-form > input[type='number'] { flex: 0 1 80px; }
+.ficha-remover { background: transparent; border: 1px solid var(--line); border-radius: 6px; color: var(--text); min-width: 30px; min-height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+
+.ficha-moedas { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.ficha .ficha-moedas input { width: 100%; min-width: 0; }
+.ficha-itens { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ficha-itens.grade { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.ficha-itens > li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; gap: 10px; align-items: center; min-width: 0; }
+.ficha-itens.lista > li { flex-wrap: wrap; }
+.ficha-itens.grade > li { flex-direction: column; text-align: center; }
+.ficha-itens > li.equipado { border-color: var(--accent); }
+.ficha-item-icone { display: inline-flex; width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--line); align-items: center; justify-content: center; flex: none; }
+.ficha-item-nome { flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.ficha-itens.grade .ficha-item-nome { flex: 0 0 auto; }
+.ficha-item-acoes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.ficha-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--text); text-align: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line); }
+.ficha-adicionar { display: flex; flex-direction: column; gap: 4px; }
+.ficha-salvamento { margin: 8px 0 0; font-size: 12px; }
+.ficha-dado { font-size: 11px; }
+.ficha-jogo .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@container (max-width: 600px) {
+  .ficha-identidade { grid-template-columns: auto minmax(0, 1fr); }
+  .ficha-identidade .retrato-q { width: 56px !important; height: 56px !important; }
+  .ficha-acoes { grid-column: 1 / -1; justify-content: flex-start; }
+  .ficha-menu .ficha-menu-lista, .ficha .barra-menu.ficha-menu-lista, .ficha-menu-aviso { right: auto; left: 0; }
+  .ficha-vida { grid-template-columns: auto minmax(0, 1fr); }
+  .ficha-vida-ajuste { grid-column: 1 / -1; }
+  .ficha-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ficha-moedas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.ficha-jogo .ficha-subnav button { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.ficha .ficha-morte { min-width: 0; }
+.ficha-morte > div { flex-wrap: wrap; }
+/* painel muito estreito (dois grupos lado a lado em janela pequena) */
+@container (max-width: 340px) {
+  .ficha-jogo .ficha-subnav { gap: 0; }
+  .ficha-jogo .ficha-subnav button { padding: 10px 4px; font-size: 12px; }
+  .ficha-cabecalho, .ficha-bloco { padding-left: 8px; padding-right: 8px; }
+  .ficha-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ficha-atributos { gap: 4px; }
+  .ficha-atributo span { font-size: 9px; }
+  .ficha-moedas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ficha-morte > div > span { min-width: 100%; }
+  .ficha-dados { grid-template-columns: minmax(0, 1fr); }
+}
+.ficha-numero, .ficha-atributo { min-width: 0; overflow-wrap: anywhere; }
+.ficha-jogo button { max-width: 100%; }
+/* o formulário genérico (.auth) estica botões; na ficha eles ficam compactos, lado a lado */
+.ficha.ficha-jogo .ficha-vida-ajuste > button, .ficha.ficha-jogo .ficha-form > button, .ficha.ficha-jogo .ficha-recurso button,
+.ficha.ficha-jogo .ficha-linhas button, .ficha.ficha-jogo .ficha-bloco > button, .ficha.ficha-jogo .ficha-acoes button, .ficha.ficha-jogo .row-between button { width: auto; margin: 0; align-self: flex-start; }
+.ficha.ficha-jogo .ficha-vida-ajuste > button, .ficha.ficha-jogo .ficha-acoes button { align-self: center; padding: 7px 12px; }
+.ficha.ficha-jogo form.ficha-vida-ajuste, .ficha.ficha-jogo form.ficha-form { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; max-width: none; margin: 0; }

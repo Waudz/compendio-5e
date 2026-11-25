@@ -33,7 +33,11 @@ Esta seção prevalece sobre os registros datados mais acima.
 - **Personagens:** uma lista, um cartão por personagem. A ficha é privada (dono e mestre); os demais veem só a identidade publicada. Guiados não publicados aparecem nos Aventureiros apenas para o dono e o mestre.
 - **Iniciativa (só o mestre):** um combate sem participantes pode ser finalizado; remover um personagem grava os PV na ficha antes de ele sair. O seletor da Iniciativa continua excluindo fichas privadas (DEC-024).
 - **Celular:** as barras somem ao descer e voltam ao subir, sem piscar no fim da página.
-- **Em redefinição, sem implementação:** navegação, identidade pública, anotações e organização da ficha do jogador. Direções já registradas em [Compêndio do jogador](docs/ESPECIFICACAO-COMPENDIO-JOGADOR.md) e [Encontros, Iniciativa e Loot](docs/ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md).
+- **Em redefinição, sem implementação:** navegação e anotações do jogador (identidade e ficha: ver "Ficha do personagem" abaixo). Direções já registradas em [Compêndio do jogador](docs/ESPECIFICACAO-COMPENDIO-JOGADOR.md) e [Encontros, Iniciativa e Loot](docs/ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md).
+
+## Ficha do personagem (25/11/2026)
+
+A ficha de jogo (D&D 5e 2014) tem um cabeçalho comum e três abas, **Ficha, Habilidades e Inventário**, com salvamento automático e controle de revisão. A **identidade pública** é só a apresentação aos outros jogadores (nome, alcunha, raça, classe, descrição), usa o **mesmo retrato** da ficha e nunca mostra mecânicas. Na Alpha não há compromisso de compatibilidade com formatos antigos. Detalhes e pendências em [DEC-027](DECISOES-E-ARQUITETURA.md) e na [continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md); direção de produto em [experiência do jogador](docs/ESPECIFICACAO-EXPERIENCIA-JOGADOR.md).
 
 ## Validação no GitHub Actions e previews
 

@@ -1,5 +1,6 @@
 import { PesquisaCatalogo } from "./PesquisaCatalogo";
 import { RetratoQuadrado } from "./RetratoCombate";
+import { CONDICOES_5E } from "./rules/condicoes-5e";
 import { Download } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
@@ -67,7 +68,7 @@ export function useArmazenado<T>(chave: string | null, ler: (bruto: string | nul
 
 export const rotuloLado: Record<Lado, string> = { aliado: "Aliado", inimigo: "Inimigo", neutro: "Neutro" };
 /** Condições do D&D 5e 2014 (a lista de cada sistema fica na interface; o domínio aceita texto livre curto). */
-export const CONDICOES_5E = ["Cego", "Enfeitiçado", "Surdo", "Amedrontado", "Agarrado", "Incapacitado", "Invisível", "Paralisado", "Petrificado", "Envenenado", "Caído", "Contido", "Atordoado", "Inconsciente", "Exaustão"];
+export { CONDICOES_5E };
 export const numero = (s: string) => (s.trim() === "" ? undefined : Number(s.replace(",", ".")));
 const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("pt-BR");
 

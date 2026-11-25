@@ -1,7 +1,7 @@
 // Início da campanha: capa, nome e descrição, prévia do Diário e Aventureiros. É a aba `campanha:<id>` (mesma entidade de sempre).
 // Capa, Diário e Personagens ainda não têm módulo/persistência: cada seção recebe uma fonte opcional (ver inicio.ts) e,
 // sem ela, mostra um estado honesto "ainda não disponível". Nada aqui inventa dados nem cria um segundo Diário.
-import { BookOpen, Library, NotebookPen, Pencil, ScrollText, Users, X } from "lucide-react";
+import { Pencil, ScrollText, Users, X } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "./AuthContext";
 import { EditorCapa, FaixaCapa, useCapaCampanha, type EstadoCapa } from "./CapaCampanha";
@@ -106,7 +106,7 @@ export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId:
   else corpo = <ul className="home-party">{st.data.map((a: Aventureiro) => <li key={a.id}>
     <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} onContextMenu={ev => aoClicarDireito(ev, { kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} title={`Abrir ficha de ${a.nome}`}>
       <RetratoQuadrado src={a.retratoUrl} tipo="personagem" tamanho={72}/>
-      <span><strong>{a.nome}</strong>{" "}<small>{a.classe}{a.nivel != null ? ` · nível ${a.nivel}` : ""}</small>{a.nota && <small className="home-char-nota">{a.nota}</small>}</span></button></li>)}</ul>;
+      <span><strong>{a.nome}</strong>{a.alcunha && <>{" "}<em className="home-char-alcunha">{a.alcunha}</em></>}{" "}<small>{a.classe}{a.nivel != null ? ` · nível ${a.nivel}` : ""}</small>{a.nota && <small className="home-char-nota">{a.nota}</small>}</span></button></li>)}</ul>;
   return <section className="home-sec" aria-label="Aventureiros"><h2><Users size={16} aria-hidden="true"/> Aventureiros</h2>{corpo}</section>;
 }
 
@@ -119,7 +119,7 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
   const mem = memberships.find(m => m.campaign.id === id);
   const regApi = useRegistros(), capaApi = useCapa(), fichasApi = useFichas(), { user } = useAuth(), fonteExplicita = useContext(AventureirosContext), versaoRegistros = useVersaoRegistros();
   // todos os personagens autorizados para quem olha: publicados, os próprios e, para o mestre, todas as fichas
-  const fonteAv = useMemo(() => fonteExplicita ?? (regApi ? fonteAventureirosDoInicio(regApi, capaApi, fichasApi, user?.id ?? null) : null), [fonteExplicita, regApi, capaApi, fichasApi, user?.id, versaoRegistros]);
+  const fonteAv = useMemo(() => fonteExplicita ?? (regApi ? fonteAventureirosDoInicio(regApi, capaApi, fichasApi, user?.id ?? null, mem?.role === "mestre") : null), [fonteExplicita, regApi, capaApi, fichasApi, user?.id, mem?.role, versaoRegistros]);
   const diarioFonte = useMemo(() => diario ?? (regApi ? fonteDiario(regApi) : undefined), [diario, regApi]);
   const [editing, setEditing] = useState(false);
   const capa = useCapaCampanha(id);
@@ -133,13 +133,6 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
     <FaixaCapa capa={capa} nome={mem.campaign.name} acao={isMaster && <button type="button" className="home-edit" aria-label="Editar informações" title="Editar campanha" aria-haspopup="dialog" onClick={() => setEditing(true)}><Pencil size={14} aria-hidden="true"/> Editar</button>}/>
     {capa.msg && !editing && <div className="notice err" role="alert">{capa.msg}</div>}
     <p className={descricao ? "home-desc" : "home-desc muted"}>{descricao || "Sem descrição."}</p>
-    {isMaster && <nav className="home-shortcuts" aria-label="Atalhos da campanha">
-      <button type="button" onClick={() => onOpen({kind:"secao",ref:"planejamento"})}><NotebookPen size={16} aria-hidden="true"/> Anotações</button>
-      <button type="button" onClick={() => onOpen({kind:"secao",ref:"enciclopedia"})}><BookOpen size={16} aria-hidden="true"/> Enciclopédia</button>
-      <button type="button" onClick={() => onOpen({kind:"secao",ref:"compendio"})}><BookOpen size={16} aria-hidden="true"/> Compêndio</button>
-      <button type="button" onClick={() => onOpen({kind:"secao",ref:"personagens"})}><Users size={16} aria-hidden="true"/> Personagens</button>
-      <button type="button" onClick={() => onOpen({kind:"secao",ref:"diario"})}><Library size={16} aria-hidden="true"/> Diário</button>
-    </nav>}
     <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/>
     <div className="home-columns">
       <DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>

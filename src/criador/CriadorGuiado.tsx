@@ -12,14 +12,14 @@ import { useFichas } from "../RegistrosContext";
 import { itemSpec } from "../Compendio";
 import { Aviso } from "../Diario";
 import { srdItem, srdItemIds } from "../catalogue/srd-2014-items";
-import { ERRO_CONFLITO_REVISAO } from "../fichas";
+import { ERRO_CONFLITO_REVISAO, retratoValido } from "../fichas";
 import { avisarRegistros, registrarTitulo } from "../registrosStore";
 import { buildPilotCharacterCatalog } from "../rules/character-catalogue-adapter";
 import { searchCompendium } from "../rules/compendium-query";
 import { ABILITY_ORDER, POINT_BUY_BUDGET, pointBuySpent, validatePointBuy } from "../rules/ability-generation-2014";
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft, type InventoryEntry } from "../rules/character-domain";
 import { fighter2014Advancements } from "../rules/fighter-2014";
-import { defaultPublicIdentity, type PublicIdentitySettings } from "../rules/public-identity";
+import { defaultPublicIdentity, type PublicIdentity } from "../rules/public-identity";
 import { fighterEquipmentOptions2014 } from "../rules/starting-equipment-2014";
 import { applyStartingEquipmentSelection, replaceStartingEquipmentSelection } from "../rules/starting-equipment-selection";
 import { useUnsavedGuard } from "../unsaved";
@@ -38,8 +38,9 @@ const modern2014 = (d: CharacterDraft) => d.catalogueVersion === 'character-srd-
 const sheet2014 = (d: CharacterDraft) => { if (!regras2014) throw new Error('Carregando regras de personagem…'); return regras2014.sheet2014(d); };
 const label2014 = (id: string) => regras2014?.label2014(id) ?? id;
 const featureDescription2014 = (id: string) => regras2014?.featureDescription2014(id) ?? '';
+const FichaJogo = lazy(async () => { await carregar2014(); return import("../ficha/FichaJogo"); });
 import PublicIdentityEditor from "./identidade-publica-editor";
-import { rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
+import { origemPublica, rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
 const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
 const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
@@ -90,19 +91,23 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     if (previousVersion.current !== draft.catalogueVersion && modern2014(draft)) nameRef.current?.focus();
     previousVersion.current = draft.catalogueVersion;
   }, [draft.catalogueVersion]);
-  const [identity, setIdentity] = useState<PublicIdentitySettings>(defaultPublicIdentity), [publicar, setPublicar] = useState(false);
+  // Personagem novo nasce com a apresentação publicada (campos públicos da ficha); a caixa na etapa de identidade permite desligar. Os já salvos mantêm a escolha.
+  const [identity, setIdentity] = useState<PublicIdentity>(defaultPublicIdentity), [publicar, setPublicar] = useState(true);
   const [salvo, setSalvo] = useState<string | null>(null);          // retrato do último estado salvo (null = nunca salvo)
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
   const [salvando, setSalvando] = useState(false), [conflito, setConflito] = useState(false), [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
   const [secao, setSecao] = useState<Secao>("ficha");
-  const [visualizando, setVisualizando] = useState(initialView);
+  // Ficha de jogo ou edição: lembrado nesta sessão, para voltar à mesma tela depois de passar por outro menu.
+  const chaveVista = `compendio5e:ficha-vista:${userId}:${campaignId}:${id}`;
+  const [visualizando, setVisualizando] = useState(() => { try { const v = sessionStorage.getItem(chaveVista); return v === null ? initialView : v === "1"; } catch { return initialView; } });
+  useEffect(() => { try { if (visualizando !== initialView) sessionStorage.setItem(chaveVista, visualizando ? "1" : "0"); else sessionStorage.removeItem(chaveVista); } catch { /* sem armazenamento: só não lembra */ } }, [chaveVista, visualizando, initialView]);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
   const [confirmando, setConfirmando] = useState<string[] | null>(null);   // grupos cujas escolhas substituem equipamento já concedido
   const [busca, setBusca] = useState(""), [excluindo, setExcluindo] = useState(false);
 
-  const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentitySettings; publicar: boolean; revision: number | null; somenteFicha: boolean }) => {
+  const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentity; publicar: boolean; revision: number | null; somenteFicha: boolean }) => {
     calcularFicha(p.draft);   // dado inválido/de outra versão falha aqui, não na tela
     setDraft(p.draft); setIdentity(p.identity); setPublicar(p.publicar); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha);
     setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity, publicar: p.publicar })); setEscolhas(escolhasDoInventario(p.draft));
@@ -129,7 +134,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   }, [repo, id, tentativa]);
 
   const retrato = JSON.stringify({ draft, identity, publicar });
-  const vazio = JSON.stringify({ draft: novoRascunho(id), identity: defaultPublicIdentity(), publicar: false });
+  const vazio = JSON.stringify({ draft: novoRascunho(id), identity: defaultPublicIdentity(), publicar: true });
   const sujo = carga === "pronto" && retrato !== (salvo ?? vazio) && (salvo !== null || draft.name.trim() !== "" || draft.inventory.length > 0 || draft.decisions.length > 0);
   const { sheet, erro } = useMemo(() => { try { return { sheet: calcularFicha({ ...draft, name: draft.name.trim() || "Sem nome" }), erro: "" }; }  catch (e) { return { sheet: null, erro: e instanceof Error ? e.message : String(e) }; } }, [draft]);
   const mudar = (proximo: CharacterDraft) => { setDraft(proximo); setMsg(null); };
@@ -139,27 +144,36 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     catch (e) { setErroAtrib(e instanceof Error ? e.message : 'Revise os recursos e as rolagens de PV antes de mudar o nível.'); }
   };
 
-  const salvar = useCallback(async (): Promise<boolean> => {
+  /** Os únicos dados da ficha que a identidade pública usa. */
+  const origem = origemPublica(draft, modern2014(draft) ? label2014(draft.raceId) : "Anão", modern2014(draft) ? label2014(draft.classId) : "Guerreiro");
+
+  /** Último estado que falhou: o salvamento automático não insiste nele (só depois de nova mudança ou do botão de tentar de novo). */
+  const falhou = useRef<string | null>(null);
+  const salvar = useCallback(async (automatico?: boolean): Promise<boolean> => {
     if (salvando) return false;
     if (!sheet || !draft.name.trim()) { setMsg({ ok: false, t: "Informe o nome e corrija os erros antes de salvar." }); return false; }
+    if (draft.portrait && !retratoValido(draft.portrait)) { setMsg({ ok: false, t: "O retrato deve ser um endereço https:// sem espaços." }); return false; }
     const estado = { draft, identity, publicar };
     setSalvando(true);
     try {
-      const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: { name: draft.name, surname: "", race: modern2014(draft) ? label2014(draft.raceId) : "Anão", characterClass: modern2014(draft) ? label2014(draft.classId) : "Guerreiro" } });
+      const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: origem });
       const gravado = { ...draft, id: r.id };
       // A resposta confirma o snapshot enviado, não alterações feitas enquanto
       // a requisição estava em andamento. Preservar o estado mais recente da UI.
       setDraft(atual => ({ ...atual, id: r.id })); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
       setSalvo(JSON.stringify({ draft: gravado, identity, publicar }));
       limparRecuperacao(userId, campaignId, id);
+      falhou.current = null;
       if (servidor && ehPersonagemNovo(id)) gravarMapaAba(userId, campaignId, id, r.id);
       registrarTitulo(id, draft.name.trim()); registrarTitulo(r.id, draft.name.trim()); avisarRegistros();
+      if (automatico === true) { setMsg(null); return true; }   // não muda de tela nem de aba
       const incompleto = sheet.pending.length || !gruposCompletos(draft);
       setMsg({ ok: true, t: servidor ? `${incompleto ? "Rascunho incompleto" : "Personagem"} salvo na campanha (revisão ${r.revision}).` : `${incompleto ? "Rascunho incompleto salvo" : "Personagem salvo"} neste navegador (armazenamento experimental).` });
       if (!incompleto) { setVisualizando(true); setSecao("ficha"); }
 
       return true;
     } catch (e) {
+      falhou.current = JSON.stringify(estado);
       const texto = e instanceof Error ? e.message : "Não foi possível salvar.";
       const guardou = servidor && gravarRecuperacao(userId, campaignId, id, { estado, baseRevisao: revisao, motivo: texto, em: new Date().toISOString() });
       if (e instanceof ErroConflito) setConflito(true);
@@ -181,7 +195,19 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   }, [servidor, carga, sujo, recuperacao, salvando, userId, campaignId, id, draft, identity, publicar, revisao]);
 
   useUnsavedGuard(`criador:${id}`, sujo, salvar);
-  const estatisticas = useMemo(() => { if (!sheet || !modern2014(draft) || !regras2014) return null; try { return regras2014.statistics2014(draft); } catch { return null; } }, [sheet, draft]);
+  // Ficha de jogo: cada mudança é salva sozinha, com a mesma revisão controlada. Conflito ou cópia de recuperação pausam tudo até a pessoa decidir.
+  const automatico = visualizando && carga === "pronto" && existe && modern2014(draft) && !!sheet && sujo && !salvando && !conflito && !recuperacao;
+  const salvarAtual = useRef(salvar); salvarAtual.current = salvar;
+  const pendente = useRef(false);
+  useEffect(() => {
+    pendente.current = false;
+    if (!automatico || falhou.current === retrato) return;
+    pendente.current = true;
+    const t = setTimeout(() => { pendente.current = false; void salvarAtual.current(true); }, 700);
+    return () => clearTimeout(t);
+  }, [automatico, retrato]);
+  // saindo da ficha antes do prazo (ex.: trocando de menu): envia o que estava pendente
+  useEffect(() => () => { if (pendente.current) { pendente.current = false; void salvarAtual.current(true); } }, []);
 
   /** Conflito de revisão: carrega a versão atual do servidor. As alterações não enviadas ficam na cópia de recuperação (restauráveis). */
   const recarregarServidor = async () => {
@@ -243,24 +269,25 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const escolhasDoNivel = (modern2014(draft) ? [] : fighter2014Advancements).flatMap(a => a.level <= draft.level ? a.choices ?? [] : []);
   const sec = (s: Secao, rotulo: string) => <button type="button" className={secao === s ? "active" : ""} aria-current={secao === s ? "true" : undefined} onClick={() => setSecao(s)}>{rotulo}</button>;
 
-  // Ficha pronta em leitura, independente das etapas do criador. Os mesmos
-  // dados derivados do motor alimentam a edição e a visualização.
-  if (visualizando && carga === "pronto" && existe && sheet) return <div className="content ficha auth wide" data-testid="ficha-guiada-leitura">
-    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
-    <div className="row-between"><h1>{draft.name || "Personagem sem nome"}</h1>
-      <button type="button" className="btn-primary" onClick={() => setVisualizando(false)}>Editar personagem</button></div>
-    <p>{modern2014(draft) ? label2014(draft.raceId) : "Anão"} · {modern2014(draft) ? label2014(draft.classId) : "Guerreiro"} · Nível {draft.level}</p>
-    {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => setVisualizando(false)}>Revisar recuperação no editor</button></div>}
-    <nav className="ficha-subnav" aria-label="Seções da ficha"><button type="button" className={secao === "ficha" ? "active" : ""} onClick={() => setSecao("ficha")}>Ficha</button><button type="button" className={secao === "inventario" ? "active" : ""} onClick={() => setSecao("inventario")}>Inventário</button></nav>
-    {secao === "ficha" && <>
-      {servidor && existe && <EstadoCombateFicha characterId={idReal}/>}
-      <section className="criador-ficha" aria-label="Atributos e combate"><h2>Atributos e combate</h2><div className="criador-atributos">{ABILITY_ORDER.map(a => <div key={a}><strong>{rotuloAtributo(a)}</strong><p>{sheet.abilities[a]}</p></div>)}</div><p><strong>PV:</strong> {draft.currentHp} / {sheet.maxHp}{draft.temporaryHp ? ` · ${draft.temporaryHp} temporários` : ""}</p>{estatisticas && <div className="criador-ficha"><p><strong>CA:</strong> {estatisticas.ac} · <strong>Iniciativa:</strong> {estatisticas.initiative >= 0 ? "+" : ""}{estatisticas.initiative} · <strong>Proficiência:</strong> +{estatisticas.prof}</p><p><strong>Deslocamento:</strong> {estatisticas.speed.toLocaleString("pt-BR")} m · <strong>Percepção passiva:</strong> {estatisticas.passivePerception}</p>{estatisticas.ambiguousArmor && <p role="note">Há mais de uma armadura equipada; revise o equipamento.</p>}{estatisticas.armorWithoutProficiency && <p role="note">Há armadura equipada sem proficiência.</p>}</div>}</section>
-      {estatisticas && <section aria-label="Salvaguardas e ataques"><h2>Salvaguardas</h2><p>{ABILITY_ORDER.map(a => `${rotuloAtributo(a)} ${estatisticas.saves[a] >= 0 ? "+" : ""}${estatisticas.saves[a]}`).join(" · ")}</p><h2>Ataques equipados</h2>{estatisticas.attacks.length ? <ul>{estatisticas.attacks.map((a,i) => <li key={a.id + i}>{a.name} · ataque {a.bonus >= 0 ? "+" : ""}{a.bonus} · dano {a.damage} {a.damageBonus >= 0 ? "+" : ""}{a.damageBonus}</li>)}</ul> : <p>Nenhuma arma equipada.</p>}{estatisticas.spellDc != null && <p><strong>CD das magias:</strong> {estatisticas.spellDc} · <strong>Ataque mágico:</strong> {estatisticas.spellAttack}</p>}</section>}
-      <section aria-label="Perícias e características"><h2>Perícias</h2>{estatisticas ? <ul>{Object.entries(estatisticas.skills).map(([id,bonus]) => <li key={id}>{rotuloPericia(id)} {bonus >= 0 ? "+" : ""}{bonus}{sheet.skills.includes(id) ? " · proficiente" : ""}</li>)}</ul> : <p>{sheet.skills.map(rotuloPericia).join(", ") || "Nenhuma"}</p>}<h2>Características</h2>{sheet.features.length ? <ul>{sheet.features.map((f,i) => <li key={f + i}><strong>{modern2014(draft) ? label2014(f) : rotuloOpcao(f)}</strong>{modern2014(draft) && featureDescription2014(f) && <p>{featureDescription2014(f)}</p>}</li>)}</ul> : <p>Nenhuma</p>}<h2>Recursos</h2><p>{Object.entries(sheet.resources).map(([k,v]) => `${rotuloOpcao(k)}: ${v.remaining}/${v.maximum}`).join(" · ") || "Nenhum"}</p><h2>Idiomas</h2><p>{sheet.languages.join(", ") || "Nenhum registrado"}</p></section>
-      {sheet.pending.length > 0 && <p className="notice" role="note">Ficha com escolhas pendentes. Use Editar personagem para concluir.</p>}
-    </>}
-    {secao === "inventario" && <section aria-label="Inventário do personagem"><h2>Inventário</h2><p><strong>Moedas:</strong> {draft.currency?.gp ?? 0} PO · {draft.currency?.sp ?? 0} PP · {draft.currency?.cp ?? 0} PC</p>{sheet.inventory.length ? <ul>{sheet.inventory.map(i => <li key={i.id}><strong>{nomeDaInstancia(i)}</strong> ×{i.quantity}{i.equipped ? " · equipado" : ""}{i.origin === "starting" ? " · equipamento inicial" : ""}{srdItem(i.itemId) && <button type="button" className="btn-secondary" aria-label={`Consultar ${nomeDaInstancia(i)} no Compêndio`} onClick={() => onOpenContent(itemSpec(i.itemId, nomeDaInstancia(i)))}>Consultar</button>}</li>)}</ul> : <p>Inventário vazio.</p>}</section>}
-  </div>;
+  const avisoConflito = conflito && <div className="notice err" role="alert" data-testid="aviso-conflito"><p>{ERRO_CONFLITO_REVISAO}</p><div className="row"><button type="button" className="btn-primary" onClick={() => void recarregarServidor()}>Carregar a versão atual</button><button type="button" className="btn-secondary" onClick={() => setConflito(false)}>Continuar editando</button></div></div>;
+
+  // Ficha de jogo (três abas), independente das etapas do criador. Os mesmos dados do motor alimentam a edição e o jogo.
+  if (visualizando && carga === "pronto" && existe && sheet) {
+    if (!modern2014(draft)) return <div className="content ficha auth wide" data-testid="ficha-guiada-leitura"><h1>{draft.name || "Personagem sem nome"}</h1>
+      <p className="notice" role="note">Este personagem usa uma versão anterior das regras. Abra a edição e atualize-o para SRD 2014 para usar a ficha de jogo.</p>
+      <button type="button" className="btn-primary" onClick={() => setVisualizando(false)}>Editar personagem</button></div>;
+    const naoSalvo = sujo && !salvando && falhou.current === retrato;
+    return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
+      <FichaJogo draft={draft} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudar} onOpenContent={onOpenContent}
+        onEditar={() => { setSecao("ficha"); setVisualizando(false); }} onProgredir={() => { setSecao("ficha"); setVisualizando(false); }}
+        salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
+          {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
+        avisos={<>{avisoConflito}
+          {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
+          {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => setVisualizando(false)}>Revisar recuperação no editor</button></div>}</>}
+        combate={servidor ? <EstadoCombateFicha characterId={idReal}/> : undefined}/>
+    </Suspense>;
+  }
 
   return <div className="content ficha auth wide criador">
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · CRIADOR GUIADO · {modern2014(draft) ? label2014(draft.classId).toLocaleUpperCase("pt-BR") : "GUERREIRO"} (SRD 2014)</div>
@@ -269,7 +296,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     {servidor
       ? <div className="notice ok" role="note" data-testid="aviso-servidor">{somenteFicha ? "Ficha de outro jogador: você a vê e edita como mestre da campanha. A identidade pública continua sendo do dono." : "Salvo na campanha: só você e o mestre leem esta ficha. Os outros jogadores veem apenas a identidade pública que você publicar."} {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>
       : <div className="notice" role="note" data-testid="aviso-armazenamento">Armazenamento <strong>experimental</strong>: o personagem fica só neste navegador, não sincroniza entre aparelhos e não é privado de quem usa o mesmo navegador. Sem conta e API de fichas não há salvamento real na campanha. {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>}
-    {conflito && <div className="notice err" role="alert" data-testid="aviso-conflito"><p>{ERRO_CONFLITO_REVISAO}</p><div className="row"><button type="button" className="btn-primary" onClick={() => void recarregarServidor()}>Carregar a versão atual</button><button type="button" className="btn-secondary" onClick={() => setConflito(false)}>Continuar editando</button></div></div>}
+    {avisoConflito}
     {recuperacao && <div className="notice" role="status" data-testid="aviso-recuperacao"><p>Há alterações deste personagem que não chegaram ao servidor ({recuperacao.motivo || "falha anterior"}), guardadas neste navegador em {new Date(recuperacao.em).toLocaleString("pt-BR")}.</p><div className="row"><button type="button" className="btn-primary" onClick={restaurar}>Restaurar essas alterações</button><button type="button" className="btn-secondary" onClick={descartarRecuperacao}>Descartar</button></div></div>}
     <nav className="ficha-subnav" aria-label="Seções do personagem">{sec("ficha", "Ficha")}{sec("equipamento", "Equipamento inicial")}{sec("inventario", "Inventário")}{sec("identidade", "Identidade pública")}</nav>
     {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
@@ -279,6 +306,9 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     {secao === "ficha" && <div className="criador-sec">
       {!modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>}
       <label>Nome do personagem<input ref={nameRef} aria-label="Nome do personagem" value={draft.name} maxLength={120} onChange={e => mudar({ ...draft, name: e.target.value })}/></label>
+      <label>Alcunha (opcional)<input aria-label="Alcunha" value={draft.nickname ?? ""} maxLength={120} onChange={e => mudar({ ...draft, nickname: e.target.value })}/></label>
+      <label>Retrato (endereço https da imagem, opcional)<input aria-label="Retrato do personagem" type="url" inputMode="url" placeholder="https://" value={draft.portrait ?? ""} maxLength={2000} onChange={e => mudar({ ...draft, portrait: e.target.value.trim() })}/></label>
+      {draft.portrait && !retratoValido(draft.portrait) && <p role="alert" className="notice err">O retrato deve ser um endereço https:// sem espaços.</p>}
       {modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>}{!modern2014(draft) && <p className="muted">Raça: Anão · Antecedente: Acólito · Classe: Guerreiro</p>}
       <fieldset><legend>Atributos-base (antes dos bônus raciais)</legend>
         <label>Método<select aria-label="Método de atributos" value={metodo} onChange={e => trocarMetodo(e.target.value as Metodo)}><option value="point-buy">Compra de pontos (27)</option><option value="standard-array">Matriz padrão</option><option value="manual">Rolagens manuais (3–18)</option>{metodo === "preserved" && <option value="preserved">Valores preservados da ficha</option>}</select></label>
@@ -351,7 +381,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       {somenteFicha ? <Aviso t="A identidade pública pertence ao dono do personagem. Como mestre, você edita a ficha, mas não altera nem lê a identidade privada dele."/> : <>
       <p className="muted">O cartão público é separado da ficha privada: nível, PV, atributos, inventário e anotações nunca aparecem nele.{servidor ? " Só o que você publicar aparece para os outros jogadores." : " Vale para a prévia local; a publicação na campanha exige conta e a API de fichas."}</p>
       {servidor && <label className="check"><input type="checkbox" aria-label="Publicar identidade na campanha" checked={publicar} onChange={e => { setPublicar(e.target.checked); setMsg(null); }}/> Publicar a identidade pública na campanha (aparece em Personagens e no Início)</label>}
-      <PublicIdentityEditor key={draft.id} source={{ name: draft.name, surname: "", race: modern2014(draft) ? label2014(draft.raceId) : "Anão", characterClass: modern2014(draft) ? label2014(draft.classId) : "Guerreiro" }} initialSettings={identity}
+      <PublicIdentityEditor key={draft.id} source={origem} initialIdentity={identity}
         onSave={s => { setIdentity(s); setMsg({ ok: true, t: "Identidade pública atualizada. Clique em Salvar para guardá-la." }); }}/></>}
     </div>}
 

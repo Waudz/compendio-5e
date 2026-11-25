@@ -2,6 +2,7 @@
 import { Skull, Swords, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
+import { useFichas } from "./RegistrosContext";
 
 export type TipoRetrato = "personagem" | "monstro" | "avulso";
 
@@ -15,15 +16,23 @@ export function RetratoQuadrado({ src, tipo = "avulso", tamanho = 44 }: { src?: 
   </span>;
 }
 
-/** Retratos dos personagens da campanha (imagens já existentes nas fichas/identidade pública), por id estável. Sem fonte ou sem imagem: mapa vazio. */
+/** Retratos dos personagens da campanha, por id estável: a MESMA imagem da ficha (para quem pode lê-la) e, para os demais, a da
+ *  apresentação publicada. Sem fonte ou sem imagem: mapa vazio. */
 export function useRetratosPersonagens(campaignId: string | null): ReadonlyMap<string, string> {
-  const fonte = useAventureiros();
+  const fonte = useAventureiros(), fichas = useFichas();
   const [mapa, setMapa] = useState<ReadonlyMap<string, string>>(new Map());
   useEffect(() => {
-    if (!fonte || !campaignId) { setMapa(new Map()); return; }
+    if (!campaignId || (!fonte && !fichas)) { setMapa(new Map()); return; }
     let vivo = true;
-    fonte.listar(campaignId).then(r => { if (vivo && r.ok) setMapa(new Map(r.data.flatMap(p => p.retratoUrl ? [[p.id, p.retratoUrl] as const] : []))); }, () => {});
+    const publicos = fonte ? fonte.listar(campaignId).then(r => (r.ok ? r.data : []), () => []) : Promise.resolve([]);
+    const dasFichas = fichas ? fichas.listar(campaignId).then(r => (r.ok ? r.data : []), () => []) : Promise.resolve([]);
+    void Promise.all([publicos, dasFichas]).then(([p, f]) => {
+      if (!vivo) return;
+      const m = new Map(p.flatMap(x => (x.retratoUrl ? [[x.id, x.retratoUrl] as const] : [])));
+      for (const x of f) if (x.retrato) m.set(x.id, x.retrato);   // a ficha é a origem do retrato
+      setMapa(m);
+    });
     return () => { vivo = false; };
-  }, [fonte, campaignId]);
+  }, [fonte, fichas, campaignId]);
   return mapa;
 }

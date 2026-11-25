@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 import { ERRO_SCHEMA } from "./campaigns";
 import { cartaoPublico, createFichasApi, ehConflitoDeRevisao, ehGuiado, ERRO_CONFLITO_REVISAO, identidadeDe, MAX_META_IDENTIDADE, projetarIdentidade } from "./fichas";
 import type { CharacterDraft } from "./rules/character-domain";
-import { defaultPublicIdentity } from "./rules/public-identity";
+import { defaultPublicIdentity, type CampoPublico } from "./rules/public-identity";
 
 const draft = { id: "x", name: "Thorin Real", level: 3, inventory: [{ id: "i", itemId: "longsword", quantity: 1, equipped: false, origin: "acquired" }] } as unknown as CharacterDraft;
-const entrada = (o: { nome?: string; modoNome?: "real" | "hidden" | "custom"; titulo?: string; publicar?: boolean } = {}) => ({
-  identity: { ...defaultPublicIdentity(), title: o.titulo ?? "", name: { mode: o.modoNome ?? "real", customValue: "Alcunha" } }, source: { name: o.nome ?? "Thorin Real", surname: "", race: "Anão", characterClass: "Guerreiro" }, publicar: o.publicar ?? false,
+const entrada = (o: { nome?: string; modoNome?: "sheet" | "hidden" | "custom"; alcunha?: string; retrato?: string; publicar?: boolean } = {}) => ({
+  identity: { ...defaultPublicIdentity(), name: { mode: o.modoNome ?? "sheet", value: "Apelido" } as CampoPublico }, source: { name: o.nome ?? "Thorin Real", alias: o.alcunha ?? "", race: "Anão", characterClass: "Guerreiro", portrait: o.retrato ?? "" }, publicar: o.publicar ?? false,
 });
 
 type Resp = { data?: unknown; error?: unknown };
@@ -36,28 +36,37 @@ describe("projeção da identidade pública (o que vai para a linha pública do 
     const p = projetarIdentidade(entrada({ modoNome: "hidden" }));
     expect(p.titulo).toBe("Personagem");
     expect(JSON.stringify(p)).not.toContain("Thorin Real");
-    expect(projetarIdentidade(entrada({ modoNome: "custom" })).titulo).toBe("Alcunha");
-    expect(projetarIdentidade(entrada({ titulo: "O Escudo" })).titulo).toBe("O Escudo");
+    expect(projetarIdentidade(entrada({ modoNome: "custom" })).titulo).toBe("Apelido");
+    expect(projetarIdentidade(entrada({ alcunha: "O Escudo" })).titulo).toBe("O Escudo");
   });
   it("o meta público tem só `identidadePublica` (configurações + cartão): sem ficha, nível, PV, inventário ou atributos", () => {
-    const e = entrada({ modoNome: "hidden" }); e.identity.race = { mode: "hidden" }; e.identity.characterClass = { mode: "hidden" };
+    const e = entrada({ modoNome: "hidden" }); e.identity.race = { mode: "hidden" }; e.identity.characterClass = { mode: "hidden" }; e.identity.alias = { mode: "hidden" };
     const p = projetarIdentidade(e);
     expect(Object.keys(p.meta)).toEqual(["identidadePublica"]);
     expect(Object.keys(p.meta.identidadePublica).sort()).toEqual(["card", "settings"]);
     expect(JSON.stringify(p.meta)).not.toMatch(/level|nivel|inventory|baseAbilities|currentHp|Guerreiro|Anão|Thorin Real/);   // raça e classe só aparecem se o jogador as mostrar (modo real/personalizado)
   });
-  it("espelha as regras do servidor (0008): imagem só https, textos dentro dos limites, imagem vazia vira nenhuma", () => {
+  it("espelha as regras do servidor (0008): retrato só https, textos dentro dos limites, sem retrato vira nenhum", () => {
     const com = (f: (e: ReturnType<typeof entrada>) => void) => { const e = entrada(); f(e); return () => projetarIdentidade(e); };
-    expect(com(e => { e.identity.imageUrl = "http://exemplo.com/a.png"; })).toThrow(/https/);
-    expect(com(e => { e.identity.imageUrl = "javascript:alert(1)"; })).toThrow(/https/);
-    expect(com(e => { e.identity.imageUrl = "https://x.com/a b.png"; })).toThrow(/https/);
-    expect(com(e => { e.identity.title = "x".repeat(121); })).toThrow(/título público passa de 120/);
+    expect(com(e => { e.source.portrait = "http://exemplo.com/a.png"; })).toThrow(/https/);
+    expect(com(e => { e.source.portrait = "javascript:alert(1)"; })).toThrow(/https/);
+    expect(com(e => { e.source.portrait = "https://x.com/a b.png"; })).toThrow(/https/);
+    expect(com(e => { e.identity.alias = { mode: "custom", value: "x".repeat(121) }; })).toThrow(/alcunha pública passa de 120/);
     expect(com(e => { e.identity.description = "x".repeat(4001); })).toThrow(/descrição pública passa de 4000/);
-    expect(com(e => { e.identity.name = { mode: "custom", customValue: "x".repeat(121) }; })).toThrow(/nome público passa de 120/);
-    expect(com(e => { e.identity.imageUrl = "https://exemplo.com/retrato.png"; })).not.toThrow();
-    const vazio = entrada(); vazio.identity.imageUrl = "   ";
-    expect(projetarIdentidade(vazio).meta.identidadePublica.card.imageUrl).toBeNull();
-    expect(projetarIdentidade(vazio).meta.identidadePublica.settings.imageUrl).toBeNull();
+    expect(com(e => { e.identity.name = { mode: "custom", value: "x".repeat(121) }; })).toThrow(/nome público passa de 120/);
+    expect(com(e => { e.source.portrait = "https://exemplo.com/retrato.png"; })).not.toThrow();
+    const vazio = projetarIdentidade(entrada({ retrato: "   " })).meta.identidadePublica;
+    expect(vazio.card.imageUrl).toBeNull();
+    expect(vazio.settings.imageUrl).toBeNull();
+  });
+  it("grava só as chaves que o banco aceita, e a leitura devolve o mesmo modelo", () => {
+    const e = entrada({ alcunha: "O Escudo", retrato: "https://exemplo.com/r.png" }); e.identity.race = { mode: "hidden" }; e.identity.characterClass = { mode: "custom", value: "Mercenário" };
+    const { meta } = projetarIdentidade(e), chaves = ["characterClass", "description", "imageUrl", "name", "race", "surname", "title"];
+    expect(Object.keys(meta.identidadePublica.card).sort()).toEqual(chaves);
+    expect(Object.keys(meta.identidadePublica.settings).sort()).toEqual(chaves);
+    const lido = identidadeDe({ guiado: true, ...meta }, true)!;
+    expect(lido.card).toEqual({ name: "Thorin Real", alias: "O Escudo", race: null, characterClass: "Mercenário", description: "", imageUrl: "https://exemplo.com/r.png" });
+    expect(lido.identity).toEqual({ ...e.identity, name: { mode: "sheet" } });
   });
   it("recusa descrição grande demais em vez de truncar (limite de 4000; o meta total cabe com folga nos 16 KiB da coluna)", () => {
     const e = entrada(); e.identity.description = "x".repeat(4001);
@@ -76,7 +85,7 @@ describe("projeção da identidade pública (o que vai para a linha pública do 
 describe("criar e salvar (RPC)", () => {
   it("criar envia a ficha e SÓ a identidade pública projetada, com a escolha explícita de publicar", async () => {
     const { client, chamadas } = falso({ rpc: { data: [{ character_id: "srv-1", revision: 1, updated_at: "t" }], error: null } });
-    const r = await createFichasApi(client).criar("ca", draft, entrada({ modoNome: "hidden", titulo: "O Escudo", publicar: true }));
+    const r = await createFichasApi(client).criar("ca", draft, entrada({ modoNome: "hidden", alcunha: "O Escudo", publicar: true }));
     expect(r).toEqual({ ok: true, data: { id: "srv-1", revision: 1, updatedAt: "t" } });
     const [nome, args] = chamadas.rpc!;
     expect(nome).toBe("create_guided_character");
@@ -89,7 +98,7 @@ describe("criar e salvar (RPC)", () => {
     const api = createFichasApi(client);
     expect(await api.salvar("srv-1", 4, draft)).toEqual({ ok: true, data: { id: "srv-1", revision: 5, updatedAt: "t" } });
     expect(Object.keys(chamadas.rpc![1]).sort()).toEqual(["p_draft", "p_expected_revision", "p_id"]);
-    await api.salvar("srv-1", 5, draft, entrada({ titulo: "Novo" }));
+    await api.salvar("srv-1", 5, draft, entrada({ alcunha: "Novo" }));
     expect(chamadas.rpc![1]).toMatchObject({ p_id: "srv-1", p_expected_revision: 5, p_title: "Novo", p_publish: false });
   });
   it("mapeia os erros do banco para mensagens em português sem expor detalhes internos", async () => {
@@ -107,7 +116,7 @@ describe("criar e salvar (RPC)", () => {
   });
   it("identidade inválida é recusada ANTES de qualquer chamada ao servidor, com a mensagem certa (criar e salvar)", async () => {
     const { client, chamadas } = falso({ rpc: { data: [], error: null } });
-    const ruim = entrada(); ruim.identity.imageUrl = "http://exemplo.com/a.png";
+    const ruim = entrada({ retrato: "http://exemplo.com/a.png" });
     const api = createFichasApi(client);
     expect(await api.criar("ca", draft, ruim)).toEqual({ ok: false, error: expect.stringMatching(/https/) });
     expect(await api.salvar("i", 1, draft, ruim)).toEqual({ ok: false, error: expect.stringMatching(/https/) });
@@ -148,8 +157,8 @@ describe("listar e carregar", () => {
     const linha = { character_id: "a", campaign_id: "ca", owner_id: "u1", revision: 3, draft, updated_at: "t" };
     const mestre = await createFichasApi(falso({ tabelas: { character_sheets: { data: linha, error: null }, notes: { data: null, error: null } } }).client).carregar("a");
     expect(mestre).toMatchObject({ ok: true, data: { ficha: { id: "a", ownerId: "u1", revision: 3 }, identidade: null } });
-    const settings = defaultPublicIdentity(), card = { imageUrl: null, title: "O Escudo", name: null, surname: null, race: null, characterClass: null, description: "" };
+    const settings = { imageUrl: null, title: "", name: { mode: "real" }, surname: { mode: "real" }, race: { mode: "real" }, characterClass: { mode: "real" }, description: "" }, card = { imageUrl: null, title: "O Escudo", name: null, surname: null, race: null, characterClass: null, description: "" };
     const dono = await createFichasApi(falso({ tabelas: { character_sheets: { data: linha, error: null }, notes: { data: { meta: { guiado: true, identidadePublica: { settings, card } }, visibility: "campaign" }, error: null } } }).client).carregar("a");
-    expect(dono).toMatchObject({ ok: true, data: { identidade: { publicada: true, card: { title: "O Escudo" } } } });
+    expect(dono).toMatchObject({ ok: true, data: { identidade: { publicada: true, card: { alias: "O Escudo" } } } });
   });
 });

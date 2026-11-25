@@ -5,10 +5,10 @@
 import type { FichasApi } from "../fichas";
 import { ehConflitoDeRevisao } from "../fichas";
 import type { CharacterDraft } from "../rules/character-domain";
-import { defaultPublicIdentity, type PrivateIdentitySource, type PublicIdentitySettings } from "../rules/public-identity";
+import { defaultPublicIdentity, type PublicIdentity, type SheetPublicSource } from "../rules/public-identity";
 import { SCHEMA_PERSONAGEM_GUIADO, type ArmazenamentoCriador } from "./armazenamento";
 
-export type EstadoPersonagem = { draft: CharacterDraft; identity: PublicIdentitySettings; publicar: boolean };
+export type EstadoPersonagem = { draft: CharacterDraft; identity: PublicIdentity; publicar: boolean };
 export type PersonagemCarregado = EstadoPersonagem & {
   id: string;
   /** Revisão do servidor (null no armazenamento local). */
@@ -16,7 +16,7 @@ export type PersonagemCarregado = EstadoPersonagem & {
   /** true quando quem abre NÃO é o dono (mestre): edita a ficha, mas a identidade pública não é dele nem é lida. */
   somenteFicha: boolean;
 };
-export type ArgsSalvar = { id: string; existe: boolean; revisao: number | null; estado: EstadoPersonagem; somenteFicha: boolean; source: PrivateIdentitySource };
+export type ArgsSalvar = { id: string; existe: boolean; revisao: number | null; estado: EstadoPersonagem; somenteFicha: boolean; source: SheetPublicSource };
 
 /** Outra gravação aconteceu antes (revisão diferente): nada foi sobrescrito. */
 export class ErroConflito extends Error { constructor(m: string) { super(m); this.name = "ErroConflito"; } }
@@ -37,7 +37,7 @@ export function repositorioServidor(api: FichasApi, campaignId: string, userId: 
       if (!r.data) return null;
       const { ficha, identidade } = r.data;
       if (ficha.campaignId !== campaignId) return null; // nunca abrir uma ficha na campanha errada, mesmo com acesso às duas
-      return { id: ficha.id, draft: ficha.draft, identity: identidade?.settings ?? defaultPublicIdentity(), publicar: identidade?.publicada ?? false, revision: ficha.revision, somenteFicha: ficha.ownerId !== userId };
+      return { id: ficha.id, draft: ficha.draft, identity: identidade?.identity ?? defaultPublicIdentity(), publicar: identidade?.publicada ?? false, revision: ficha.revision, somenteFicha: ficha.ownerId !== userId };
     },
     async salvar(a) {
       const ident = a.somenteFicha ? undefined : { identity: a.estado.identity, source: a.source, publicar: a.estado.publicar };
