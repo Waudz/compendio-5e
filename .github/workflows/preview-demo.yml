@@ -25,7 +25,12 @@ jobs:
           VITE_SUPABASE_URL: ''
           VITE_SUPABASE_ANON_KEY: ''
           VITE_COMBATE_REMOTO: '0'
-      - uses: actions/upload-artifact@v4
+      - run: npx playwright install --with-deps chromium
+      - name: Verificar preview compilado
+        run: |
+          npx vite preview --mode preview-demo --host 127.0.0.1 --port 4173 --strictPort &
+          node scripts/check-preview-demo.mjs
+      - uses: actions/upload-artifact@v7
         with:
           name: preview-demo
           path: dist
