@@ -430,3 +430,7 @@ Regressão visual após o #146: o menu encolhia até os 36 px do botão "…" e 
 A branch `feat/alpha-inicio-campanha` já estava integrada pelo PR #133 (`9be2195`, arquivos idênticos). Concluído sobre ela: DEC-026. Código: `src/CapaCampanha.tsx`, `src/CampaignHome.tsx`, `src/capa.ts`. Testes: `src/capaCampanha.test.tsx`, `supabase/capa-enquadramento.test.ts`, `e2e/inicio-campanha.spec.ts` (gera capturas em `test-results/`) e um caso novo no Supabase isolado.
 
 **Pendente de autorização:** aplicar `supabase/migrations/0012_campaign_cover_framing.sql` ao projeto 2.0 (`gwcttjlxzelzjhbuitmi`). Até lá, a capa funciona como antes (recorte destrutivo). Próxima prioridade: personagens, fichas e inventário (`PLANO-PERSONAGENS-FICHAS-INVENTARIO.md`).
+
+## Iniciativa: combate vazio e PV ao remover (25/11/2026, branch fix/iniciativa-vazia-pv)
+
+O menu e **Finalizar combate** continuam disponíveis com o combate sem participantes; só turno anterior, próximo turno e reiniciar rodadas exigem um turno. Remover um personagem grava **antes** os PV atuais em `currentHp` da ficha (mesmo `gravarPvFicha`, com revisão): a linha fica bloqueada durante a gravação; se falhar, o mestre escolhe entre manter no combate (nada se perde, inclusive ao recarregar) ou remover descartando. Reentrada continua lendo os PV da ficha. Testes em `src/iniciativaFicha.test.tsx` e `src/iniciativaNuvem.test.tsx`. Sem migração. Limite: não testado contra sessões reais hospedadas.

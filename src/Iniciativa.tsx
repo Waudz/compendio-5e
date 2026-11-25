@@ -68,6 +68,8 @@ export function IniciativaPanel() {
   }, [estado, statusApi, loja.nuvem]);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   const [visualizacao, setVisualizacao] = useState<VisualizacaoCombate>("cartoes"), [erroFinalizar, setErroFinalizar] = useState<string | null>(null);
+  const atual = useRef<{ combate: EstadoCombate | null; encontros: ReturnType<typeof useLojaEncontros>["estado"]; campaignId: string | null }>({ combate: null, encontros: { status: "carregando" }, campaignId: null });
+  const emRemocao = useRef(new Set<string>()), [removendo, setRemovendo] = useState<ReadonlySet<string>>(new Set()), [avisoRemocao, setAvisoRemocao] = useState<string | null>(null);
   const [menuTurno, setMenuTurno] = useState(false), menuTurnoRef = useRef<HTMLDivElement>(null), gatilhoTurnoRef = useRef<HTMLButtonElement>(null);
   useFecharMenu(menuTurno, menuTurnoRef, gatilhoTurnoRef, () => setMenuTurno(false));
   const [separarLados, setSepararLados] = useState(true);
@@ -100,7 +102,10 @@ export function IniciativaPanel() {
   };
   const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => { if (pvMax === undefined || pvAtual === undefined) return; aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } })); };
   const ordem = combate ? ordenar(combate.combatentes) : [];
+  // lidos por quem termina depois de uma espera (gravação na ficha): sempre o estado MAIS RECENTE, nunca o da hora do clique
+  atual.current = { combate, encontros, campaignId };
   const removerCombatente: Aplicar = fn => {
+    const { combate, encontros } = atual.current;
     if (!combate) return false;
     const proximo = fn(combate);
     const saiu = combate.combatentes.filter(c => !proximo.combatentes.some(x => x.id === c.id) && c.encontro);
@@ -111,6 +116,28 @@ export function IniciativaPanel() {
       return sincronizarComCombate(sincronizarComCombate(enc, combate), proximo);
     }));
     return ok;
+  };
+  /** Remover um personagem grava ANTES os PV atuais na ficha: se a gravação falhar (ou a página fechar no meio), ele continua no combate com os PV. */
+  const pedirRemocao = async (id: string) => {
+    const campanhaDoPedido = campaignId;
+    const achar = () => (atual.current.campaignId === campanhaDoPedido ? atual.current.combate?.combatentes.find(c => c.id === id) : undefined);
+    const alvo = achar(); if (!alvo || emRemocao.current.has(id)) return;
+    if (alvo.ref?.tipo !== "personagem" || !alvo.pvMax || !fichas) { removerCombatente(e => remover(e, id)); return; }
+    emRemocao.current.add(id); setRemovendo(new Set(emRemocao.current)); setAvisoRemocao(null);
+    try {
+      for (let c = alvo; ;) {
+        const pv = c.pv ?? c.pvMax!;
+        const g = await gravarPvFicha(fichas, c.ref!.id, pv);
+        const agora = achar(); if (!agora) return;   // já saiu (outra sessão) ou o combate mudou de campanha
+        if (!g.ok && !g.semFicha) {
+          if (!window.confirm(`Não foi possível gravar os PV de ${agora.nome} (${pv}) na ficha: ${g.erro}\n\nCancelar mantém o personagem no combate para tentar de novo. Remover mesmo assim descarta essa alteração.`)) { setAvisoRemocao(`${agora.nome} continua no combate: os PV não foram gravados na ficha. Tente remover novamente.`); return; }
+          break;
+        }
+        if ((agora.pv ?? agora.pvMax) === pv) break;
+        c = agora;   // os PV mudaram durante a gravação: grava o valor novo antes de remover
+      }
+      removerCombatente(e => remover(e, id));
+    } finally { emRemocao.current.delete(id); setRemovendo(new Set(emRemocao.current)); }
   };
   const finalizar = async () => {
     if (!window.confirm("Finalizar e descartar este combate? Os PV finais dos personagens serão gravados nas fichas. Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) return;
@@ -137,6 +164,7 @@ export function IniciativaPanel() {
     {estado.status === "erro" && (nuvem ? <Aviso erro t={estado.mensagem ?? "Não foi possível carregar o combate no servidor."} onRetry={loja.tentar}/> : <ErroArmazenamento onTentar={loja.tentar} onDescartar={loja.descartar} o="o combate"/>)}
     {estado.status === "pronto" && !nuvem && estado.falhaGravacao && <Aviso erro t="Não foi possível salvar o combate. As alterações continuam nesta tela; tente salvar novamente antes de sair." onRetry={loja.tentar}/>}
     {erroFinalizar && <Aviso erro t={erroFinalizar}/>}
+    {avisoRemocao && <Aviso erro t={avisoRemocao}/>}
     {avisoFicha && <Aviso erro t={`Ficha do jogador não atualizada: ${avisoFicha} O combate continua salvo.`}/>}
     {combate && <>
       {(!loja.nuvem || loja.sync === "falha" || loja.sync === "conflito" || loja.sync === "permissao") && <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()}/>}
@@ -148,9 +176,9 @@ export function IniciativaPanel() {
           <button className="btn-secondary ini-turno-icone" aria-label="Turno anterior" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={18} aria-hidden="true"/></button>
           <button className="btn-secondary ini-proximo-turno" aria-label="Próximo turno" title="Próximo turno" onClick={() => { setMenuTurno(false); aplicar(proximoTurno); }} disabled={!ordem.length}>Próximo turno <ChevronRight size={18} aria-hidden="true"/></button>
           <div className="ini-menu-turno" onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMenuTurno(false); }}>
-            <button ref={gatilhoTurnoRef} className="btn-secondary ini-turno-icone" aria-label="Mais ações do combate" title="Mais ações do combate" aria-expanded={menuTurno} onClick={() => setMenuTurno(v => !v)} disabled={!ordem.length}><Ellipsis size={18} aria-hidden="true"/></button>
+            <button ref={gatilhoTurnoRef} className="btn-secondary ini-turno-icone" aria-label="Mais ações do combate" title="Mais ações do combate" aria-expanded={menuTurno} onClick={() => setMenuTurno(v => !v)}><Ellipsis size={18} aria-hidden="true"/></button>
             {menuTurno && <div ref={menuTurnoRef} className="barra-menu ini-menu-turno-opcoes">
-              <button className="btn-secondary" onClick={() => { setMenuTurno(false); aplicar(reiniciarRodadas); }}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
+              <button className="btn-secondary" disabled={!ordem.length} onClick={() => { setMenuTurno(false); aplicar(reiniciarRodadas); }}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
               <button className="btn-secondary ini-finalizar-turno" onClick={() => { setMenuTurno(false); void finalizar(); }}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
             </div>}
           </div>
@@ -171,14 +199,14 @@ export function IniciativaPanel() {
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
-        : <div role="group" aria-label="Combatentes" className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: combate.combatentes.filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: combate.combatentes }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={removerCombatente} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
+        : <div role="group" aria-label="Combatentes" className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: combate.combatentes.filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: combate.combatentes }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={() => void pedirRemocao(c.id)} ocupado={removendo.has(c.id)} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
     </>}
   </div>;
 }
 type Aplicar = (fn: (e: EstadoCombate) => EstadoCombate) => boolean;
-function Linha({ c, atual, aplicar, aoRemover, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; aoRemover: Aplicar; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
+function Linha({ c, atual, aplicar, aoRemover, ocupado, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; aoRemover: () => void; ocupado: boolean; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
   const [valor, setValor] = useState("1");
-  const acao = (sinal: 1 | -1) => { const n = numero(valor); if (n && n > 0) { if (aplicar(e => alterarPv(e, c.id, sinal * n))) setValor("1"); } };
+  const acao = (sinal: 1 | -1) => { if (ocupado) return; const n = numero(valor); if (n && n > 0) { if (aplicar(e => alterarPv(e, c.id, sinal * n))) setValor("1"); } };
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
   const pct = c.pvMax ? Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100)) : 0;
   return <li className={`ini-item lado-${c.lado}${c.pvMax && c.pv === 0 ? " derrotado" : ""}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
@@ -198,6 +226,7 @@ function Linha({ c, atual, aplicar, aoRemover, bonus, retrato, rolagem, aoRolar 
       <select aria-label={`Adicionar condição a ${c.nome}`} value="" onChange={e => { if (e.target.value) aplicar(x => alternarCondicao(x, c.id, e.target.value)); }}>
         <option value="">+ condição</option>{CONDICOES_5E.filter(k => !(c.condicoes ?? []).includes(k)).map(k => <option key={k} value={k}>{k}</option>)}</select>
     </div>
-    <button className="btn-secondary ini-icone ini-remover" onClick={() => aoRemover(e => remover(e, c.id))} aria-label={`Remover ${c.nome}`}><Trash2 size={15} aria-hidden="true"/></button>
+    {ocupado && <small className="ini-gravando muted" role="status">Gravando os PV na ficha…</small>}
+    <button className="btn-secondary ini-icone ini-remover" disabled={ocupado} onClick={aoRemover} aria-label={`Remover ${c.nome}`}><Trash2 size={15} aria-hidden="true"/></button>
   </li>;
 }
