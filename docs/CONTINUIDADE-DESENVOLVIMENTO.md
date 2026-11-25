@@ -434,3 +434,7 @@ A branch `feat/alpha-inicio-campanha` já estava integrada pelo PR #133 (`9be219
 ## Ajustes do Início após o PR #149 (25/11/2026, branch feat/inicio-ajustes)
 
 Descrição e aventureiros na largura toda (todos os autorizados, sem limite); Diário e Participantes em metades, empilhados abaixo de 720 px de painel; cartões de participantes iguais; "Sair da campanha" no menu "…" **com confirmação** (antes saía sem confirmar); degradê da capa em vários passos. Enquadramento inalterado. Os atalhos do mestre que já existiam foram mantidos (nenhum novo).
+
+## Personagens: lista única e Aventureiros (25/11/2026, branch fix/personagens-unificados)
+
+Causas: o Início lia só notas publicadas (a identidade guiada nasce privada); a mensagem de vazio contava só perfis simples; o mestre não abria a ficha porque a página exigia a nota privada, que ele não lê. Agora `src/personagensCampanha.ts` junta, pelo mesmo id, `notes` e `character_sheets` já filtrados pela RLS (nenhum registro novo ou copiado). Aventureiros: publicados + guiados cuja ficha quem olha pode ler, com aviso "não publicado"; perfis simples seguem aparecendo só quando visíveis para a campanha. Personagens: uma lista, um cartão por personagem. A Iniciativa não mudou (DEC-024 exclui fichas privadas): decidir se o mestre deve poder escolher nela os guiados não publicados. Sem migração.

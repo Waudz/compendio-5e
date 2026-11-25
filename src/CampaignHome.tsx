@@ -2,13 +2,14 @@
 // Capa, Diário e Personagens ainda não têm módulo/persistência: cada seção recebe uma fonte opcional (ver inicio.ts) e,
 // sem ela, mostra um estado honesto "ainda não disponível". Nada aqui inventa dados nem cria um segundo Diário.
 import { BookOpen, Library, NotebookPen, Pencil, ScrollText, Users, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useAuth } from "./AuthContext";
 import { EditorCapa, FaixaCapa, useCapaCampanha, type EstadoCapa } from "./CapaCampanha";
 import { RetratoQuadrado } from "./RetratoCombate";
 import { useAbrirEmAba } from "./abrirEmAba";
-import { useAventureiros } from "./AventureirosContext";
-import { fontePersonagens } from "./perfilPersonagem";
-import { useCapa, useRegistros } from "./RegistrosContext";
+import { AventureirosContext } from "./AventureirosContext";
+import { fonteAventureirosDoInicio } from "./personagensCampanha";
+import { useCapa, useFichas, useRegistros } from "./RegistrosContext";
 import { fonteDiario, useVersaoRegistros } from "./registrosStore";
 import { CampaignPanel, Notice, useAction } from "./CampaignPanels";
 import { useCampaigns } from "./CampaignsContext";
@@ -96,7 +97,7 @@ export function DiarioPrevia({ campaignId, isMaster, fonte, onOpenContent }: { c
 
 export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId: string; fonte?: FonteAventureiros; onOpenContent: (s: TabSpec) => void }) {
   const { aoClicarDireito } = useAbrirEmAba();
-  const st = useFonte(campaignId, fonte ? () => fonte.listar(campaignId) : null);
+  const st = useFonte(`${campaignId}|${useVersaoRegistros()}`, fonte ? () => fonte.listar(campaignId) : null);
   let corpo;
   if (!st) corpo = <p className="muted" data-testid="aventureiros-indisponivel">Os personagens ainda não estão disponíveis nesta versão.</p>;
   else if (st.s === "carregando") corpo = <p className="muted" role="status">Carregando aventureiros…</p>;
@@ -105,7 +106,7 @@ export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId:
   else corpo = <ul className="home-party">{st.data.map((a: Aventureiro) => <li key={a.id}>
     <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} onContextMenu={ev => aoClicarDireito(ev, { kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} title={`Abrir ficha de ${a.nome}`}>
       <RetratoQuadrado src={a.retratoUrl} tipo="personagem" tamanho={72}/>
-      <span><strong>{a.nome}</strong>{" "}<small>{a.classe}{a.nivel != null ? ` · nível ${a.nivel}` : ""}</small></span></button></li>)}</ul>;
+      <span><strong>{a.nome}</strong>{" "}<small>{a.classe}{a.nivel != null ? ` · nível ${a.nivel}` : ""}</small>{a.nota && <small className="home-char-nota">{a.nota}</small>}</span></button></li>)}</ul>;
   return <section className="home-sec" aria-label="Aventureiros"><h2><Users size={16} aria-hidden="true"/> Aventureiros</h2>{corpo}</section>;
 }
 
@@ -116,8 +117,9 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
 }) {
   const { api, memberships } = useCampaigns();
   const mem = memberships.find(m => m.campaign.id === id);
-  const regApi = useRegistros(), capaApi = useCapa(), fonteCtx = useAventureiros();
-  const fonteAv = useMemo(() => fonteCtx ?? (regApi ? fontePersonagens(regApi, capaApi) : null), [fonteCtx, regApi, capaApi]);
+  const regApi = useRegistros(), capaApi = useCapa(), fichasApi = useFichas(), { user } = useAuth(), fonteExplicita = useContext(AventureirosContext), versaoRegistros = useVersaoRegistros();
+  // todos os personagens autorizados para quem olha: publicados, os próprios e, para o mestre, todas as fichas
+  const fonteAv = useMemo(() => fonteExplicita ?? (regApi ? fonteAventureirosDoInicio(regApi, capaApi, fichasApi, user?.id ?? null) : null), [fonteExplicita, regApi, capaApi, fichasApi, user?.id, versaoRegistros]);
   const diarioFonte = useMemo(() => diario ?? (regApi ? fonteDiario(regApi) : undefined), [diario, regApi]);
   const [editing, setEditing] = useState(false);
   const capa = useCapaCampanha(id);

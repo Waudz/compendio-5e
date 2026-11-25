@@ -66,7 +66,7 @@ const nomesDivergentes = (raiz: ParentNode) => [...raiz.querySelectorAll('button
 describe('criador guiado na navegação real (desktop)', () => {
   it('acessível pelo menu: Personagens oferece o criador, mostra o aviso de armazenamento experimental e a lista vazia', async () => {
     await montar(); await abrirPersonagens();
-    expect(await screen.findByTestId('guiados-vazio')).toBeTruthy();
+    expect(await screen.findByTestId('personagens-vazio')).toBeTruthy();
     await novoGuiado();
     expect(abas()).toEqual(['Mesa dos Dragões', 'Personagens', 'Novo personagem']);
     expect(screen.getByTestId('aviso-armazenamento').textContent).toMatch(/experimental.*só neste navegador.*não é privado/s);
@@ -170,7 +170,7 @@ describe('criador guiado na navegação real (desktop)', () => {
   });
   it('as demais seções do criador também não têm botões com nome acessível divergente do texto visível', async () => {
     await montar(); await abrirPersonagens();
-    expect(nomesDivergentes(await screen.findByRole('region', { name: 'Criador guiado' }))).toEqual([]);
+    expect(nomesDivergentes(await screen.findByRole('region', { name: 'Personagens da campanha' }))).toEqual([]);
     await novoGuiado(); await preencherFicha('Thorin');
     for (const sec of ['Ficha', 'Equipamento inicial', 'Inventário', 'Identidade pública']) {
       fireEvent.click(secoes().getByRole('button', { name: sec }));
@@ -200,7 +200,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     await montar(); await abrirPersonagens(); await novoGuiado(); await preencherFicha('Thorin');
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' })); await screen.findByText(/Rascunho incompleto salvo|Personagem salvo/);
     cleanup(); await montar(other); await abrirPersonagens();
-    expect(await screen.findByTestId('guiados-vazio')).toBeTruthy();
+    expect(await screen.findByTestId('personagens-vazio')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Thorin/ })).toBeNull();
     expect(clearUserLocalData(me.id)).toBeGreaterThan(0);          // logout do primeiro usuário apaga o personagem local dele
     expect(armazenamentoLocalExperimental(me.id, 'ca').listar()).toEqual([]);
