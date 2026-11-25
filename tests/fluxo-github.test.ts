@@ -10,10 +10,19 @@ const pages = read(".github/workflows/pages.yml"), validar = read(".github/workf
 const job = (txt: string, name: string) => { const m = txt.match(new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [\\w-]+:\\n|(?![\\s\\S]))`, "m")); return m ? m[1] : ""; };
 
 describe("publicação só depois da validação", () => {
-  it("o deploy depende da compilação que depende da validação e o job validar reutiliza validar.yml", () => {
+  it("o deploy depende de testes e build bem-sucedidos no mesmo job", () => {
     expect(job(pages, "deploy")).toMatch(/^    needs: compilar$/m);
-    expect(job(pages, "compilar")).toMatch(/^    needs: validar$/m);
-    expect(job(pages, "validar")).toMatch(/uses: \.\/\.github\/workflows\/validar\.yml/);
+    const compilar = job(pages, "compilar");
+    const testes = compilar.indexOf("run: npm test");
+    const build = compilar.indexOf("run: npm run build");
+    const upload = compilar.indexOf("uses: actions/upload-pages-artifact@");
+    expect(testes).toBeGreaterThanOrEqual(0);
+    expect(build).toBeGreaterThan(testes);
+    expect(upload).toBeGreaterThan(build);
+    expect(compilar).not.toMatch(/^\s+if:/m);
+    expect(job(pages, "deploy")).not.toMatch(/^\s+if:/m);
+    expect(pages.match(/npm ci/g)).toHaveLength(1);
+    expect(pages.match(/run: npm run build/g)).toHaveLength(1);
   });
   it("validar.yml é reutilizável e roda em pull_request; build e testes são obrigatórios nele", () => {
     expect(validar).toMatch(/^  workflow_call:$/m); expect(validar).toMatch(/^  pull_request:$/m);
