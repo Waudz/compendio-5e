@@ -64,6 +64,7 @@ describe("finalizar o combate: PV persistem na ficha", () => {
   };
   it("grava os PV finais na ficha (só currentHp), sobe a revisão e limpa o combate", async () => {
     await comDano(); vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     await waitFor(() => expect(fichaDe("p1").draft.currentHp).toBe(2));
     expect(fichaDe("p1").draft).toMatchObject({ name: "Lydia", temporaryHp: 3 });           // o resto da ficha intacto
@@ -74,6 +75,7 @@ describe("finalizar o combate: PV persistem na ficha", () => {
     await comDano();
     const f = fichaDe("p1"); f.draft = { ...f.draft, name: "Lydia Valenmoor", temporaryHp: 8 }; f.revision = 7;   // o dono salvou depois de o combate começar
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     await waitFor(() => expect(fichaDe("p1").draft.currentHp).toBe(2));
     expect(fichaDe("p1").draft).toMatchObject({ name: "Lydia Valenmoor", temporaryHp: 8 }); expect(fichaDe("p1").revision).toBe(8);
@@ -82,17 +84,20 @@ describe("finalizar o combate: PV persistem na ficha", () => {
     await comDano();
     banco.rede.caida = true;
     const conf = vi.spyOn(window, "confirm").mockReturnValueOnce(true).mockReturnValueOnce(false);   // 1ª: finalizar; 2ª: "finalizar mesmo assim?" = não
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     expect(await screen.findByText(/Combate mantido aberto/)).toBeTruthy();
     expect(conf.mock.calls[1][0]).toMatch(/Lydia/);
     expect(screen.getByLabelText("PV de Lydia").textContent).toBe(`PV 2/${MAX}`);              // continua no combate
     expect(fichaDe("p1").draft.currentHp).toBe(5);                                             // ficha intacta
     banco.rede.caida = false; conf.mockReturnValue(true);                                       // tenta de novo, agora com rede
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     await waitFor(() => expect(fichaDe("p1").draft.currentHp).toBe(2));
   });
   it("falha e 'finalizar mesmo assim': o combate termina e a ficha não é tocada", async () => {
     await comDano(); banco.rede.caida = true; vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     expect(await screen.findByText("Nenhum combatente ainda")).toBeTruthy();
     expect(fichaDe("p1").draft.currentHp).toBe(5);
@@ -102,6 +107,7 @@ describe("finalizar o combate: PV persistem na ficha", () => {
     abrirAvulso(); fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Goblin" } }); fireEvent.change(screen.getByLabelText("PV (opcional)"), { target: { value: "7" } });
     fireEvent.click(screen.getByRole("button", { name: "Adicionar" })); await screen.findByLabelText("PV de Goblin");
     vi.spyOn(window, "confirm").mockReturnValue(true); const antes = JSON.stringify(banco.fichas);
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ })); await screen.findByText("Nenhum combatente ainda");
     expect(JSON.stringify(banco.fichas)).toBe(antes);
   });
