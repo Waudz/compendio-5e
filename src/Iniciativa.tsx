@@ -1,4 +1,5 @@
 import { BuscaCombatentes } from "./BuscaCombatentes";
+import { useFecharMenu } from "./useFecharMenu";
 import { ChevronLeft, ChevronRight, Ellipsis, Dices, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2, Columns2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Aviso } from "./Diario";
@@ -67,7 +68,8 @@ export function IniciativaPanel() {
   }, [estado, statusApi, loja.nuvem]);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   const [visualizacao, setVisualizacao] = useState<VisualizacaoCombate>("cartoes"), [erroFinalizar, setErroFinalizar] = useState<string | null>(null);
-  const [menuTurno, setMenuTurno] = useState(false);
+  const [menuTurno, setMenuTurno] = useState(false), menuTurnoRef = useRef<HTMLDivElement>(null), gatilhoTurnoRef = useRef<HTMLButtonElement>(null);
+  useFecharMenu(menuTurno, menuTurnoRef, gatilhoTurnoRef, () => setMenuTurno(false));
   const [separarLados, setSepararLados] = useState(true);
   const [mods, setMods] = useState<Record<string, number>>({});   // bônus de iniciativa por combatente (monstros: Destreza do catálogo)
   const [rolagens, setRolagens] = useState<Record<string, Rolagem>>({});   // última rolagem de cada um (só para mostrar; o resultado já está na iniciativa)
@@ -145,9 +147,9 @@ export function IniciativaPanel() {
         <div className="ini-acoes-turno ini-acoes-compactas">
           <button className="btn-secondary ini-turno-icone" aria-label="Turno anterior" title="Turno anterior" onClick={() => aplicar(turnoAnterior)} disabled={!ordem.length}><ChevronLeft size={18} aria-hidden="true"/></button>
           <button className="btn-secondary ini-proximo-turno" aria-label="Próximo turno" title="Próximo turno" onClick={() => { setMenuTurno(false); aplicar(proximoTurno); }} disabled={!ordem.length}>Próximo turno <ChevronRight size={18} aria-hidden="true"/></button>
-          <div className="ini-menu-turno" onKeyDown={e => { if (e.key === "Escape") setMenuTurno(false); }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMenuTurno(false); }}>
-            <button className="btn-secondary ini-turno-icone" aria-label="Mais ações do combate" title="Mais ações do combate" aria-expanded={menuTurno} onClick={() => setMenuTurno(v => !v)} disabled={!ordem.length}><Ellipsis size={18} aria-hidden="true"/></button>
-            {menuTurno && <div className="ini-menu-turno-opcoes">
+          <div className="ini-menu-turno" onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setMenuTurno(false); }}>
+            <button ref={gatilhoTurnoRef} className="btn-secondary ini-turno-icone" aria-label="Mais ações do combate" title="Mais ações do combate" aria-expanded={menuTurno} onClick={() => setMenuTurno(v => !v)} disabled={!ordem.length}><Ellipsis size={18} aria-hidden="true"/></button>
+            {menuTurno && <div ref={menuTurnoRef} className="barra-menu ini-menu-turno-opcoes">
               <button className="btn-secondary" onClick={() => { setMenuTurno(false); aplicar(reiniciarRodadas); }}><RotateCcw size={15} aria-hidden="true"/> Reiniciar rodadas</button>
               <button className="btn-secondary ini-finalizar-turno" onClick={() => { setMenuTurno(false); void finalizar(); }}><Trash2 size={15} aria-hidden="true"/> Finalizar combate</button>
             </div>}

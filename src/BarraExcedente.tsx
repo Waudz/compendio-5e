@@ -2,6 +2,7 @@
 // A decisão usa a largura real do componente (ResizeObserver), não a da janela. Sem rolagem e sem corte parcial.
 import { Ellipsis } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useFecharMenu } from "./useFecharMenu";
 
 /** Quantos itens, a partir do primeiro, cabem em `disponivel`. Todos cabendo, não há "…"; senão o "…" (mais o espaçamento) é reservado. */
 export function quantosCabem(larguras: readonly number[], disponivel: number, larguraMais: number, vao: number): number {
@@ -33,13 +34,7 @@ export function BarraExcedente<T extends string>({ itens, ativo, onSelecionar, r
 
   const visiveis = itens.slice(0, cabem), ocultos = itens.slice(cabem), ativoOculto = ocultos.includes(ativo);
   useEffect(() => { if (!ocultos.length) setAberto(false); }, [ocultos.length]);
-  useEffect(() => {
-    if (!aberto) return;
-    const fora = (e: Event) => { const alvo = e.target as Node; if (!menu.current?.contains(alvo) && !mais.current?.contains(alvo)) setAberto(false); };
-    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); setAberto(false); mais.current?.focus(); } };
-    document.addEventListener("pointerdown", fora, true); document.addEventListener("keydown", tecla, true);
-    return () => { document.removeEventListener("pointerdown", fora, true); document.removeEventListener("keydown", tecla, true); };
-  }, [aberto]);
+  useFecharMenu(aberto, menu, mais, () => setAberto(false));
   // o menu abre sob o "…", puxado para a esquerda se passaria da borda do componente
   useLayoutEffect(() => {
     if (!aberto || !caixa.current || !mais.current || !menu.current) return;
