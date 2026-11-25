@@ -57,3 +57,14 @@ export async function expectNoHorizontalOverflow(page: Page) {
     return Math.max(root.scrollWidth, document.body.scrollWidth) - root.clientWidth;
   }), { message: 'A página não deve ultrapassar horizontalmente a janela' }).toBeLessThanOrEqual(1);
 }
+
+/** Escolhe uma categoria de combatentes: direto se estiver na barra; pelo menu "Mais categorias" quando o painel é estreito. */
+export async function escolherCategoria(page: Page, nome: string) {
+  const barra = page.getByRole('group', { name: 'Fontes de combatentes', exact: true });
+  const direto = barra.locator(':scope > .barra-item', { hasText: nome });
+  const mais = barra.getByRole('button', { name: /^Mais categorias/ });
+  await expect(direto.or(mais).first()).toBeVisible();
+  if (await direto.count()) { await direto.click(); return; }
+  await mais.click();
+  await barra.getByRole('group', { name: 'Categorias restantes' }).getByRole('button', { name: nome, exact: true }).click();
+}

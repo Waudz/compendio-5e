@@ -1,5 +1,5 @@
 import { expectFaixaGeometry, expectTurnControls } from './faixa-geometry';
-import { test, expect, navigate, campaignName, expectNoHorizontalOverflow } from './fixtures';
+import { test, expect, navigate, campaignName, expectNoHorizontalOverflow, escolherCategoria } from './fixtures';
 
 test('cinco goblins: líder individual, envio 4+1 e reinserção ferida persistente', async ({ page }, info) => {
   await page.goto('?demo=mestre&nuvem=1');
@@ -32,7 +32,7 @@ test('cinco goblins: líder individual, envio 4+1 e reinserção ferida persiste
   await expect(combatentes.locator('.ini-item')).toHaveCount(4);
   await expect(page.getByLabel('PV de Líder goblin', { exact: true })).toHaveText('PV 20/20');
   const enviar = async () => {
-    await page.getByRole('button', { name: 'Encontros preparados', exact: true }).click();
+    await escolherCategoria(page, 'Encontros preparados');
     await page.getByLabel('Buscar combatentes', { exact: true }).fill('QA cinco goblins');
     await page.getByRole('button', { name: 'Selecionar encontro QA cinco goblins', exact: true }).click();
     const d = page.getByRole('dialog', { name: 'Adicionar encontro preparado', exact: true });
