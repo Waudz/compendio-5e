@@ -464,20 +464,13 @@ Decisões em [DEC-027](../DECISOES-E-ARQUITETURA.md); direção de produto em [E
 - **Testes locais:** 1639 unitários, 116 E2E principal (16 pulados), 88 de qualidade e 112 do criador, build oficial sem modo de demonstração. **Não testado:** celular físico e sessão real no Supabase hospedado (a identidade nova foi validada com a API em memória; o formato gravado respeita as chaves da 0008, coberto por teste, e as regras do banco continuam em `supabase/character-sheets.test.ts`).
 - **Pendências:** nível público e nomes próprios de chaves (migração); envio de arquivo de retrato; atualização do cartão público quando o mestre edita; história/personalidade; talentos e magias concedidos; loot (distribuição, transferência, sintonização); perfis simples antigos não usam a ficha nova; Início do jogador da seção 2 da especificação; preservação de tela em outras áreas além da ficha.
 
-## RETOMAR AQUI — PR #156 (sessão encerrada em 25/11/2026 antes do merge)
+## PR #156: falha do E2E `creator, 2` resolvida (25/11/2026)
 
-**Estado:** [PR #156](https://github.com/Waudz/compendio-5e/pull/156), branch `feat/ficha-identidade-tres-abas`. **Não integrado e não publicado.** O responsável aprovou a publicação automática da apresentação de personagens novos e autorizou integrar o PR depois de todas as validações passarem, confirmando a publicação. Sem novas funcionalidades nesta etapa e sem repetir validações completas sem necessidade. Nenhuma migração no PR.
+**Teste:** `e2e/creator/ficha-jogo.creator.ts` (três abas, estouro horizontal), só na largura 701 px, onde o painel da ficha tem cerca de 230 px.
+**Causa:** o cabeçalho da ficha era uma grade com coluna implícita `auto`. A largura natural do seletor de condições depende da fonte; com a fonte do Linux no CI passava da largura do painel e alargava o cabeçalho inteiro (cortado à direita). Defeito real de layout, não do teste.
+**Correção:** `src/ficha/ficha.css`: coluna `minmax(0, 1fr)` no cabeçalho e `min-width: 0` no seletor. Reproduzido localmente alongando o texto do seletor (mesmos elementos estourando) e conferido depois da correção. Teste inalterado.
+**Diagnóstico futuro:** a suíte creator usa no CI o relator `github`; o teste e o erro aparecem como anotação pública, sem precisar baixar o log.
 
-**CI no commit `b00f0d4`:** Validar projeto, Preview experimental e Alpha Supabase isolado passaram. Em E2E, os jobs e2e, quality e creator 1 passaram; **falhou só `playwright (creator, 2)`** ([execução](https://github.com/Waudz/compendio-5e/actions/runs/45700942829), job 139510616429).
+O PR só é integrado à `main` com todos os checks verdes no HEAD exato. Nenhuma migração.
 
-**Investigação:** o teste que falhou é **desconhecido**: o log exige login no GitHub e a anotação pública traz só "exit code 1". O passo durou 111 s (95 s na `main`, que tem menos testes). Localmente, no mesmo código e com o Chrome instalado, a metade 2/2 passou duas vezes (56/56, `CI=1`, 2 workers). Com 6 workers houve 11 falhas, a maioria por limite de 30 s, o que indica sobrecarga e não reproduz o CI. Uma rodada de repetição (`--repeat-each=8` em ficha-jogo) terminou com "Page crashed" e processo encerrado; é inconclusiva. Antes do PR, um teste de ficha-jogo na largura 700 px falhou uma vez sem causa identificada. **Hipóteses não confirmadas:** teste novo `e2e/creator/ficha-jogo.creator.ts` sensível a ambiente (fontes do Linux no teste de estouro horizontal, salvamento automático); teste longo da Maga em `expansao-2014.creator.ts` perto do limite de 30 s.
-
-**Próximos passos:**
-1. O push deste registro dispara o CI de novo. Conferir o resultado no HEAD do PR.
-2. Se `creator, 2` falhar outra vez, abrir o log do job (usuário logado) ou o artefato `playwright-report-creator2` e corrigir a causa, sem reduzir cobertura nem verificações.
-3. Com todos os checks verdes no HEAD exato: `git fetch`, `git switch --detach origin/main`, `git merge --no-ff origin/feat/ficha-identidade-tres-abas -m "Merge pull request #156 from Waudz/feat/ficha-identidade-tres-abas"`, `git push origin HEAD:main`.
-4. Acompanhar o Pages e confirmar a publicação em https://waudz.github.io/compendio-5e/. O PR #155 (só documentação) está contido nesta branch.
-
-As pendências de produto estão na seção anterior e na DEC-027.
-
-**Ambiente local:** worktree `compendio-5e-ui`. As configurações `playwright.local*.config.ts` (Chrome instalado, sem vídeo) são locais e não versionadas. O outro clone, `compendio-5e`, tem alterações não commitadas de outra sessão: não mexer.
+As pendências de produto estão na seção anterior e na DEC-027. As configurações `playwright.local*.config.ts` (Chrome instalado, sem vídeo) são locais e não versionadas. O outro clone, `compendio-5e`, tem alterações não commitadas de outra sessão: não mexer.
