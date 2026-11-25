@@ -96,6 +96,7 @@ describe("telas: fim do combate e página do encontro", () => {
     await screen.findByText("Goblin 1", { selector: "strong" });
     fireEvent.change(screen.getByLabelText("Quantidade de dano ou cura de Goblin 1"), { target: { value: "7" } }); fireEvent.click(screen.getByRole("button", { name: "Causar dano a Goblin 1" }));
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     await screen.findByText("Nenhum combatente ainda");
     await waitFor(() => { const e = lerEncontros(localStorage.getItem(chaveEncontros("u1", "c1")))[0]; expect(e.estado).toBe("em_andamento"); });
