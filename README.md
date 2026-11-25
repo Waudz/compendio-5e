@@ -25,6 +25,16 @@ O loot registra preparação e andamento; marcar como distribuído **não entreg
 
 Faixa ampliada a 80 px (ativo 96 px) em painel amplo, com centralização adaptada ao workspace e controles estáveis. Busca por categoria sob demanda; PV dos personagens sempre da ficha. Salvamento automático, recuperação e erros preservados, com menos indicadores rotineiros. Loot de recipientes visível e verificado por origem/quantidade. Publicação condicionada aos três workflows verdes no HEAD final; evidências e limites em [continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Configurações da iniciativa e etapa de Personagens/Fichas/Inventário ficam para depois.
 
+## Estado em 25/11/2026 — Início, Personagens, Iniciativa e celular
+
+Esta seção prevalece sobre os registros datados mais acima.
+
+- **Início da campanha:** capa de destaque com enquadramento que preserva a imagem original (migração `0012`, aplicada em produção), um único botão "Editar" para o mestre, aventureiros com retratos, Diário e Participantes lado a lado e saída da campanha num menu com confirmação.
+- **Personagens:** uma lista, um cartão por personagem. A ficha é privada (dono e mestre); os demais veem só a identidade publicada. Guiados não publicados aparecem nos Aventureiros apenas para o dono e o mestre.
+- **Iniciativa (só o mestre):** um combate sem participantes pode ser finalizado; remover um personagem grava os PV na ficha antes de ele sair. O seletor da Iniciativa continua excluindo fichas privadas (DEC-024).
+- **Celular:** as barras somem ao descer e voltam ao subir, sem piscar no fim da página.
+- **Em redefinição, sem implementação:** navegação, identidade pública, anotações e organização da ficha do jogador. Direções já registradas em [Compêndio do jogador](docs/ESPECIFICACAO-COMPENDIO-JOGADOR.md) e [Encontros, Iniciativa e Loot](docs/ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md).
+
 ## Validação no GitHub Actions e previews
 
 Cada pull request é classificado por `scripts/ci-impact.mjs` (usa a versão da `main`; na dúvida, completo):

@@ -446,3 +446,11 @@ O menu e **Finalizar combate** continuam disponíveis com o combate sem particip
 ## Barras do celular sem oscilação (25/11/2026, branch fix/mobile-barras)
 
 Causa: ocultar as barras encolhia as linhas do grid, a área de rolagem crescia 116 px e, no fim da página, o navegador corrigia o `scrollTop`; isso era lido como "rolar para cima". Mantido o contrato (área entre as barras visíveis; tela toda quando ocultas) e o mesmo espaço volta como respiro interno da rolagem, então o limite não muda. A lógica também ignora o efeito elástico e correções por mudança de altura da janela. Como a oscilação mascarava um caso sem saída, as barras agora reaparecem ao trocar de tela e quando a página deixa de ter rolagem. Testes: `src/chromeHide.test.tsx`, `e2e/barras-mobile.spec.ts` (falha sem a correção). `navigate` dos E2E passou a subir a página antes de abrir o menu, como a pessoa faria. Não testado em celular físico (Safari e barra de endereço do Android).
+
+## Integração dos PRs #151 a #154 (25/11/2026)
+
+Integrados nesta ordem, cada um com o CI completo verde no commit exato: #151 Início (`62ea918`), #152 Personagens (`8fbc0ed`), #153 Iniciativa (`40b69da`), #154 barras do celular (`72ef5e4`). Conflitos só em blocos acrescentados no fim de `src/style.css` e deste arquivo; os dois lados foram mantidos. No #153, a primeira execução falhou em uma metade da suíte do criador; a mesma metade passou localmente (48/48) e a segunda execução, sem mudança de código, passou: tratada como intermitência **não diagnosticada** (observar se repetir).
+
+A migração `0012` **já está aplicada** em produção (informação do responsável); não reaplicar. As frases anteriores que a dão como proposta são registro histórico.
+
+Mantidos por decisão do responsável: os atalhos atuais do mestre no Início e a regra de privacidade da Iniciativa. **Não iniciar funcionalidades novas:** navegação, identidade pública, anotações e organização da ficha do jogador estão sendo redefinidas.
