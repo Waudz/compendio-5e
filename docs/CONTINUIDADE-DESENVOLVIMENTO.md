@@ -430,3 +430,7 @@ Regressão visual após o #146: o menu encolhia até os 36 px do botão "…" e 
 A branch `feat/alpha-inicio-campanha` já estava integrada pelo PR #133 (`9be2195`, arquivos idênticos). Concluído sobre ela: DEC-026. Código: `src/CapaCampanha.tsx`, `src/CampaignHome.tsx`, `src/capa.ts`. Testes: `src/capaCampanha.test.tsx`, `supabase/capa-enquadramento.test.ts`, `e2e/inicio-campanha.spec.ts` (gera capturas em `test-results/`) e um caso novo no Supabase isolado.
 
 **Pendente de autorização:** aplicar `supabase/migrations/0012_campaign_cover_framing.sql` ao projeto 2.0 (`gwcttjlxzelzjhbuitmi`). Até lá, a capa funciona como antes (recorte destrutivo). Próxima prioridade: personagens, fichas e inventário (`PLANO-PERSONAGENS-FICHAS-INVENTARIO.md`).
+
+## Personagens: lista única e Aventureiros (25/11/2026, branch fix/personagens-unificados)
+
+Causas: o Início lia só notas publicadas (a identidade guiada nasce privada); a mensagem de vazio contava só perfis simples; o mestre não abria a ficha porque a página exigia a nota privada, que ele não lê. Agora `src/personagensCampanha.ts` junta, pelo mesmo id, `notes` e `character_sheets` já filtrados pela RLS (nenhum registro novo ou copiado). Aventureiros: publicados + guiados cuja ficha quem olha pode ler, com aviso "não publicado"; perfis simples seguem aparecendo só quando visíveis para a campanha. Personagens: uma lista, um cartão por personagem. A Iniciativa não mudou (DEC-024 exclui fichas privadas): decidir se o mestre deve poder escolher nela os guiados não publicados. Sem migração.

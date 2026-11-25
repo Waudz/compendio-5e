@@ -160,7 +160,7 @@ describe("quem vê o quê", () => {
     // não publicada: não aparece
     banco.registros.dados[0].visibility = "private";
     cleanup(); await montar(other); await abrirPersonagens();
-    await screen.findByTestId("guiados-vazio");
+    await screen.findByTestId("personagens-vazio");
     expect(screen.queryByRole("button", { name: /^O Escudo/ })).toBeNull();
     // e abrir a ficha direto (aba restaurada/link) não funciona
     const id = banco.fichas[0].id;
@@ -338,5 +338,52 @@ describe("rascunhos do armazenamento local (experimental) → campanha", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^Enviar para a campanha: / }));
     expect(await screen.findByText(/Dê um nome ao personagem/)).toBeTruthy();
     expect(banco.fichas).toHaveLength(0);
+  });
+});
+
+describe("personagens guiados no Início e lista única", () => {
+  const aventureiros = async () => within(await screen.findByRole("region", { name: "Aventureiros" }));
+  const lista = async () => within(await screen.findByRole("region", { name: "Personagens da campanha" }));
+
+  it("guiado NÃO publicado aparece nos Aventureiros do dono e do mestre (com aviso), e não para outro jogador", async () => {
+    await criarPersonagem("Thorin", false);
+    cleanup(); await montar(me);
+    const doDono = await (await aventureiros()).findByRole("button", { name: /^Thorin/ });
+    expect(doDono.textContent).toMatch(/não publicado: só você e o mestre veem/); expect(doDono.textContent).toMatch(/Guerreiro · nível 1/);
+    cleanup(); await montar(mestreUser);
+    expect((await (await aventureiros()).findByRole("button", { name: /^Thorin/ })).textContent).toMatch(/não publicado/);
+    cleanup(); await montar(other);
+    expect(await (await aventureiros()).findByTestId("aventureiros-vazio")).toBeTruthy(); expect(screen.queryByText(/Thorin|O Escudo/)).toBeNull();
+  });
+
+  it("publicado: cada personagem aparece UMA vez, sem a mensagem de vazio, e os registros não são duplicados", async () => {
+    await criarPersonagem("Thorin", true);
+    cleanup(); await montar(me); await abrirPersonagens();
+    const l = await lista(); await l.findByRole("button", { name: /^Thorin/ });
+    expect(l.getAllByRole("button")).toHaveLength(1);
+    expect(l.getByRole("button").textContent).toMatch(/sua ficha.*apresentado à campanha como “O Escudo”/);
+    expect(screen.queryByTestId("personagens-vazio")).toBeNull(); expect(screen.queryByText(/Nenhum personagem ainda/)).toBeNull();
+    expect(registros.dados).toHaveLength(1); expect(banco.fichas).toHaveLength(1);
+    cleanup(); await montar(mestreUser); await abrirPersonagens();
+    const m = await lista(); await m.findByRole("button", { name: /^Thorin/ }); expect(m.getAllByRole("button")).toHaveLength(1);
+  });
+
+  it("mestre abre pela lista a ficha publicada de um jogador (ficha, não só o cartão)", async () => {
+    await criarPersonagem("Thorin", true);
+    cleanup(); await montar(mestreUser); await abrirPersonagens();
+    fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
+    expect((await nomeInput()).value).toBe("Thorin"); expect(screen.queryByTestId("cartao-publico")).toBeNull();
+  });
+
+  it("falha ao ler as fichas avisa que a lista pode estar incompleta e não afirma que não há personagens", async () => {
+    await criarPersonagem("Thorin", false);
+    cleanup();
+    const api = fichasEmMemoria(mestreUser.id, banco);
+    for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i)!; if (k.startsWith("compendio5e:workspace")) localStorage.removeItem(k); }
+    localStorage.setItem(activeKey(mestreUser.id), "ca");
+    await renderApp({ user: mestreUser, api: apiC("mestre"), registros: registrosEmMemoria("mestre", mestreUser.id, [], registros as never), fichas: { ...api, listar: async () => ({ ok: false as const, error: "Sem conexão com o servidor." }) } });
+    await abrirPersonagens();
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Sem conexão.*pode estar incompleta/);
+    expect(screen.queryByTestId("personagens-vazio")).toBeNull();
   });
 });

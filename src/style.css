@@ -1015,3 +1015,10 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .home .home-cover:not([data-com-imagem]) .home-cover-empty{margin-top:28px}
 .home .home-people ul.camp-list{flex-direction:row;align-items:flex-start}
 .home .home-people ul.camp-list li.camp{flex:0 1 auto;width:auto;justify-content:flex-start;font-size:13px}
+
+/* Personagens: lista única; aviso de privacidade discreto nos cartões. */
+.personagens .home-party{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px}
+.personagens .home-char{height:100%;gap:12px}.personagens .home-char .retrato-q{flex:none}
+.personagens .home-char>span:last-child{display:flex;flex-direction:column;min-width:0;gap:2px}
+.personagens .home-char strong{white-space:normal;overflow-wrap:anywhere}.personagens .home-char small{overflow-wrap:anywhere}
+.home-char .home-char-nota{font-size:11px;color:var(--muted);font-style:italic}
