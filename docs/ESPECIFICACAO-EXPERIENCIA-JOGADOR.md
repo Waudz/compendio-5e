@@ -72,3 +72,11 @@ Seguir ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md. Criaturas individuais com IDs
 - #151–154 corrigem problemas imediatos, não implementam toda esta especificação. Não começar funcionalidades novas enquanto Claude termina integrações e usuário define ficha.
 - Ordem de planejamento: ficha PC/mobile, inventário, ferramentas de anotações jogador, menu jogador, Início/menus mestre, anotações mestre/workspace.
 - Ordem de desenvolvimento a reavaliar após integrações: consolidar personagens/fichas/inventário, encontros/loot, Compêndio/descobertas/notificações, anotações/diário, Dice Box, segurança/offline/beta. PRs pequenos, CI verde, documentação e README atualizados, preservar dados. Aplicar decisões recentes sobre as antigas, sem assumir aprovação de propostas.
+
+## 10. Próximo sistema de RPG — Assimilação (decisão aprovada)
+Após consolidar D&D 5e, o próximo sistema de RPG a desenvolver e integrar ao Compêndio será Assimilação. Não iniciar antes de concluir as prioridades atuais. Aproveitar o PWA existente (repositório assimilacao-rpg) como referência e auditar código, regras, dados e compatibilidade antes da integração; preservar personagens e mesas existentes.
+- O Assimilador (mestre) poderá editar e personalizar assimilações e seus efeitos conforme a campanha, sem quebrar o funcionamento do sistema.
+- A personalização deve ser isolada por campanha: não alterar o catálogo/regras-base de Assimilação, outras campanhas ou D&D 5e. Preservar as regras originais como padrão.
+- Diretrizes técnicas propostas: separar regras-base, definições personalizadas e estado dos personagens; validar alterações, manter referências estáveis, tratar efeitos existentes e mudanças de versão sem perda de dados; autorização do mestre no servidor e testes de regressão. Definir posteriormente quais campos e efeitos serão editáveis, como alterações afetam personagens existentes e se haverá restauração ao padrão.
+- Reutilizar infraestrutura comum (contas, campanhas, navegação, anotações, inventário quando compatível e rolador Dice Box), mantendo mecânicas específicas de cada RPG separadas. Não forçar regras de D&D em Assimilação.
+- Escopo e interface detalhados ainda pendentes; a decisão atual fixa a prioridade do próximo sistema e a capacidade de personalização segura pelo mestre.
