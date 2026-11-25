@@ -21,7 +21,7 @@ try {
     const page = await context.newPage();
     await page.goto(url + "/?demo=" + role + "&nuvem=1");
     await page.getByText("PREVIEW EXPERIMENTAL", { exact: false }).waitFor();
-    await page.getByText("Sociedade do Véu Negro", { exact: false }).first().waitFor({ timeout: 30000 });
+    await page.getByText("Sociedade do Véu Negro", { exact: false }).filter({ visible: true }).first().waitFor({ timeout: 30000 });
     assert.equal(external.filter(u => /supabase/i.test(u)).length, 0, "Preview tentou acessar Supabase");
     await context.close();
   }
