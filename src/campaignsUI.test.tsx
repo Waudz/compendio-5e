@@ -280,8 +280,14 @@ describe("mestre único: sair e remover", () => {
     mount(api); await open("Costa Rubra");
     expect(await screen.findByText("Ana")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Remover" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Sair da campanha" }));
+    // a saída fica no menu "…" e só acontece depois de confirmada
+    const confirma = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const pedir = () => { fireEvent.click(screen.getByRole("button", { name: "Mais opções da sua participação" })); fireEvent.click(screen.getByRole("button", { name: "Sair da campanha" })); };
+    expect(screen.queryByRole("button", { name: "Sair da campanha" })).toBeNull();
+    pedir(); expect(api.removeMember).not.toHaveBeenCalled();
+    pedir(); expect(confirma).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(api.removeMember).toHaveBeenCalledWith("c2", "me"));
+    confirma.mockRestore();
   });
 
   it("mestre não sai da própria campanha, remove jogadores e pode excluir; sem opções de papel", async () => {
