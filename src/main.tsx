@@ -8,7 +8,14 @@ import { RegistrosProvider } from "./RegistrosContext";
 import "./style.css";
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
-const demo = import.meta.env.DEV ? new URLSearchParams(window.location.search).get("demo") : null;   // só em `npm run dev`; removido do build de produção
+const demo = __PREVIEW_DEMO__ ? (new URLSearchParams(window.location.search).get("demo") === "jogador" ? "jogador" : "mestre") : import.meta.env.DEV ? new URLSearchParams(window.location.search).get("demo") : null;
+if (__PREVIEW_DEMO__) {
+  document.title = "Preview experimental — Compêndio 5e";
+  const aviso = document.createElement("div");
+  aviso.textContent = "PREVIEW EXPERIMENTAL · dados simulados · não use dados reais";
+  aviso.style.cssText = "position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#704c13;color:white;text-align:center;font:12px sans-serif;padding:3px;pointer-events:none";
+  document.body.append(aviso);
+}
 if (demo === "criador-piloto") {
   void import("./dev/character-pilot").then(({ default: CharacterPilot }) => root.render(<React.StrictMode><CharacterPilot/></React.StrictMode>));
 } else if (demo === "compendio-piloto") {

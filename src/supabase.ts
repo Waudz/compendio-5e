@@ -16,7 +16,7 @@ export function isUsableConfig(u?: string, k?: string): boolean {
   return !k.startsWith("sb_secret_");
 }
 
-export const supabase: SupabaseClient | null = isUsableConfig(url, key)
+export const supabase: SupabaseClient | null = !__PREVIEW_DEMO__ && isUsableConfig(url, key)
   ? createClient(url!, key!, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce" } })
   : null;
 export const isConfigured = supabase !== null;

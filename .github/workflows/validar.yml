@@ -26,5 +26,7 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verificar TypeScript e build
         run: npm run build
+      - name: Build oficial sem modo experimental
+        run: node scripts/check-build-oficial.mjs
       - name: Executar testes
         run: npm test
