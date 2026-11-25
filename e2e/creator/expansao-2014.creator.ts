@@ -62,7 +62,7 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await activate(page);
   await nameField(page).fill('Maga 2014');
   await nameField(page).focus();
-  await page.keyboard.press('Tab');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Tab');   // Alcunha, Retrato e então Classe
   await expect(
     page.getByRole('combobox', { name: 'Classe', exact: true }),
   ).toBeFocused();
@@ -197,7 +197,9 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
       exact: true,
     })
     .click();
-  // O demo reabre um rascunho local (aba criador), não a ficha persistida do servidor.
+  // O demo reabre um rascunho local (aba criador), não a ficha persistida do servidor. A tela em que a pessoa estava (ficha de jogo) é lembrada.
+  await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
+  await page.getByRole('button', { name: 'Editar personagem', exact: true }).click();
   await expect(nameField(page)).toHaveValue('Maga 2014');
   await expect(
     page.getByRole('combobox', { name: 'Classe', exact: true }),

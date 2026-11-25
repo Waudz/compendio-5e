@@ -79,6 +79,10 @@ test('teclado: ordem do formulário e ativação das seções sem mouse', async 
   await startCreator(page);
   await nameField(page).focus(); await page.keyboard.type('Teclado E2E');
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('textbox', { name: 'Alcunha', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('textbox', { name: 'Retrato do personagem', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(page.getByRole('combobox', { name: 'Classe', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('combobox', { name: 'Raça', exact: true })).toBeFocused();
