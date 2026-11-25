@@ -381,3 +381,8 @@ Validação local: 126 arquivos e 1.541 testes aprovados; TypeScript/build aprov
 
 
 Revisão visual dos artefatos de `deb8120`: retratos/centralização passaram nas quatro resoluções e em dois/três painéis; os três workflows ficaram verdes (80 E2E principais + 4 saltos, 96 criador, 88 qualidade + 32 saltos previstos). A inspeção encontrou rótulos de controles encostados no desktop e ações cortadas no terceiro painel a 1024 px. Ajuste final permite quebra estável dos controles quando falta largura, reduz a tipografia dos rótulos e reserva espaço para o contorno azul. Regressão passa a conferir limites de TODOS os botões e overflow interno de rótulos. Validar novamente este HEAD antes de integrar; o verde anterior não aprova o ajuste final.
+
+
+## Otimização de CI — 24/11/2026
+
+Primeira fase: as três suítes Playwright executam em jobs paralelos com fail-fast desativado e artefatos separados; publicação usa uma instalação, testes e um único build com configuração oficial. Nenhuma cobertura removida, nenhuma alteração de banco ou permissões. O atraso de propagação do Pages permanece por causa da falha histórica documentada no workflow. Medir duração e verificar checks obrigatórios após CI; nomes dos jobs E2E mudam pela matriz. Próxima fase: classificação conservadora de impacto e prévias isoladas, sem dispensar validação de segurança de mudanças desconhecidas. Não considerar ganho medido nem deploy validado antes da execução real.
