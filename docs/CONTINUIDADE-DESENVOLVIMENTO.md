@@ -454,3 +454,12 @@ Integrados nesta ordem, cada um com o CI completo verde no commit exato: #151 In
 A migração `0012` **já está aplicada** em produção (informação do responsável); não reaplicar. As frases anteriores que a dão como proposta são registro histórico.
 
 Mantidos por decisão do responsável: os atalhos atuais do mestre no Início e a regra de privacidade da Iniciativa. **Não iniciar funcionalidades novas:** navegação, identidade pública, anotações e organização da ficha do jogador estão sendo redefinidas.
+
+## Identidade pública e ficha em três abas (25/11/2026, branch feat/ficha-identidade-tres-abas)
+
+Decisões em [DEC-027](../DECISOES-E-ARQUITETURA.md); direção de produto em [ESPECIFICACAO-EXPERIENCIA-JOGADOR](ESPECIFICACAO-EXPERIENCIA-JOGADOR.md) (conteúdo do PR #155 integrado nesta branch). Nova orientação do responsável: **na Alpha não há retrocompatibilidade**.
+
+- **Feito:** atalhos redundantes removidos; avisos de privacidade por papel; identidade pública redefinida com alcunha; retrato único; ficha de jogo com três abas, salvamento automático, estado preservado e gesto no celular.
+- **Banco:** nenhuma migração nova; nada aplicado em produção. A 0012 já estava aplicada.
+- **Testes locais:** 1639 unitários, 116 E2E principal (16 pulados), 88 de qualidade e 112 do criador, build oficial sem modo de demonstração. **Não testado:** celular físico e sessão real no Supabase hospedado (a identidade nova foi validada com a API em memória; o formato gravado respeita as chaves da 0008, coberto por teste, e as regras do banco continuam em `supabase/character-sheets.test.ts`).
+- **Pendências:** nível público e nomes próprios de chaves (migração); envio de arquivo de retrato; atualização do cartão público quando o mestre edita; história/personalidade; talentos e magias concedidos; loot (distribuição, transferência, sintonização); perfis simples antigos não usam a ficha nova; Início do jogador da seção 2 da especificação; preservação de tela em outras áreas além da ficha.

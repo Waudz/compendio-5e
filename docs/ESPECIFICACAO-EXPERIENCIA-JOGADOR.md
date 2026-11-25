@@ -2,6 +2,8 @@
 
 Registro das decisões posteriores aos PRs #147 e #150. Não é autorização para implementar tudo imediatamente. Decisões explícitas abaixo prevalecem sobre propostas antigas conflitantes. Preservar dados, privacidade e comportamento aprovado. Consultar também ESPECIFICACAO-COMPENDIO-JOGADOR.md, ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md, DECISOES-E-ARQUITETURA.md e CONTINUIDADE-DESENVOLVIMENTO.md.
 
+> **Atualização posterior (25/11/2026, DEC-027):** a organização da ficha (seção 7) foi definida pelo responsável e implementada, assim como parte da identidade pública (seção 3). Os atalhos redundantes do Início do mestre foram removidos. As marcas **Situação** abaixo indicam o que existe no código; o restante deste documento continua sendo decisão ou proposta registrada, sem implementação.
+
 ## 1. Navegação aprovada
 - Jogador: Início, Anotações, Ficha, Compêndio, Menu.
 - Mestre: Início, Anotações, Iniciativa, Compêndio, Menu. Iniciativa e encontros exclusivos do mestre.
@@ -32,6 +34,8 @@ Uma única entidade de personagem/ficha. Identidade pública é somente a aprese
 - Dono e mestre acessam ficha verdadeira; demais somente projeção autorizada. RLS/servidor deve garantir privacidade, inclusive acesso direto. Não duplicar registros, não perder perfis existentes.
 - A lista unificada do #152 é correção intermediária; não significa que toda a identidade acima já foi implementada. A regra de publicação e transição de fichas antigas deve ser auditada antes de alterar dados.
 
+**Situação (DEC-027):** implementados nome obrigatório, alcunha independente, usar da ficha/personalizar/ocultar para nome, alcunha, raça e classe, descrição pública e retrato único (endereço https). **Pendentes:** nível como campo público (exige migração: o banco não aceita a chave) e envio de arquivo de imagem para o retrato (só endereço https). Registros existentes mantêm a visibilidade que tinham. Como o 2.0 está em Alpha, não há adaptação de formatos antigos.
+
 ## 4. Compêndio e descobertas
 Manter especificação do #150, com atualização de nomenclatura: Compêndio é o único nome da área.
 - Campanha: Personagens, Bestiário, Locais, Organizações, Descobertas.
@@ -56,15 +60,16 @@ Esta decisão substitui a proposta anterior de abrir automaticamente a última a
 ## 6. Anotações do mestre — ADIADO
 Não alterar a estrutura atual até discussão específica. AFFiNE como referência: árvore/organização de documentos, quadro visual desktop com blocos livres (textos, imagens, referências de RPG), documento linear mobile, modo tela cheia. A hipótese de dois modos do mesmo documento com ordem de leitura independente, blocos vinculados a monstros/NPCs/magias/itens/encontros/dados, coleções/pastas e investigação do BlockSuite é proposta não aprovada. Tags descartadas na discussão. Necessita revisão do workspace PC. Não implementar quadro, editor novo ou colaboração antecipadamente.
 
-## 7. Ficha e menus — ainda a definir
-Próxima conversa começa pela ficha, aproveitando o que já existe. Proposta não aprovada: três subseções Personagem (identidade, atributos, perícias, PV, CA), Habilidades (classe, talentos, ataques, magias), Inventário (equipamento, dinheiro, identificação/sintonização). Definir organização PC/mobile e progressão antes de implementar.
-Menu jogador proposto: Minha conta, Minhas campanhas, Criar personagem, Rolador de dados, Configurações, Ajuda, Sobre, Sair. Menu mestre proposto: Minha conta, Minhas campanhas, Gerenciar campanha, Ver como jogador, Rolador de dados, Configurações, Backup/exportação, Ajuda, Sobre, Sair. Nenhum menu final aprovado. Início do mestre também pendente; proposta de abas Início/Diário/Personagens/Encontros no mobile não aprovada. Manter atalhos atuais até decisão.
+## 7. Ficha (aprovada e implementada) e menus (ainda a definir)
+**Situação (DEC-027):** o responsável aprovou exatamente três abas, iguais no computador e no celular, **Ficha | Habilidades | Inventário**, com cabeçalho compartilhado; substitui a proposta anterior de aba "Personagem". Sem aba de notas na ficha. Identificação e sintonização continuam para etapa posterior, junto da distribuição de loot.
+Menu jogador proposto: Minha conta, Minhas campanhas, Criar personagem, Rolador de dados, Configurações, Ajuda, Sobre, Sair. Menu mestre proposto: Minha conta, Minhas campanhas, Gerenciar campanha, Ver como jogador, Rolador de dados, Configurações, Backup/exportação, Ajuda, Sobre, Sair. Nenhum menu final aprovado. Início do mestre também pendente; proposta de abas Início/Diário/Personagens/Encontros no mobile não aprovada. A orientação de manter os atalhos do Início foi **substituída** em 25/11/2026: os cinco atalhos repetidos do menu (Anotações, Enciclopédia, Compêndio, Personagens, Diário) foram removidos.
 Rolador futuro: Dice Box (@3d-dice/dice-box), motor independente do RPG, overlay global, dados D4/D6/D8/D10/D12/D20/D100, rolagens livres/contextuais, modificadores, vantagem/desvantagem, histórico, temas, lazy loading, offline individual; som/animação opcionais, sincronização futura. Assimilação usa D6/D10/D12 com símbolos Lobo/Cervo/Joaninha conforme distribuição oficial, investigar temas/texturas e API antes de implementar. Não alterar geometria nem inventar distribuição. Referências: https://github.com/3d-dice/dice-box e https://github.com/3d-dice/dice-themes. Não implementar agora.
 
 ## 8. Encontros e loot — já documentado no #147
 Seguir ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md. Criaturas individuais com IDs próprios, alterações e loot persistem no encontro, nunca alteram bestiário. Modal aprovado com seleção de recompensas, destinatário, progresso, histórico, quantidades parciais, sem duplicação, entrega atômica, modal permanece após entrega parcial. Ícone mochila cinza/dourado/verde conforme estado. Duplicar configuração inicial ou estado atual; restaurar seletivamente com aviso para loot. Não redesenhar protótipo aprovado. Detalhes de UI de quantidade parcial ainda pendentes.
 
 ## 9. Estado operacional na data
+- **Atualização:** os PRs #151–#154 foram integrados à `main` (commit `efcebe1`) depois deste registro. Os itens abaixo são o retrato do momento em que foram escritos.
 - #149 integrado; migração 0012 de enquadramento aplicada e verificada em produção pelo ChatGPT, não reaplicar. #147 e #150 integrados.
 - #151 (Início), #152 (personagens), #153 (combate vazio/PV), #154 (barras mobile) abertos pelo ChatGPT. Último relato do Claude às 15:23: #151 integrado após CI verde; #152 atualizado com main, 1611 unitários, 112 E2E principal e 96 criador locais aprovados, CI em execução; #153/#154 aguardam integração sequencial. Consultar GitHub para estado real, não presumir conclusão.
 - Claude relatou combinação local das quatro branches: 1621 unitários, 116 E2E principal (16 pulados), 88 qualidade, 96 criador, build aprovado. Não houve teste em celular físico nem sessão real hospedada nessa rodada. Não alterar produção para testes.
