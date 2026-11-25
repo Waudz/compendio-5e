@@ -1,5 +1,6 @@
 name: Publicar versão de testes
-# Publica a `main` no GitHub Pages. A publicação DEPENDE da validação (needs): se TypeScript, build ou testes falharem, o deploy não roda.
+# Testes e build de publicação no mesmo job: sem instalação ou build duplicados.
+# Deploy depende de compilar; falhas de testes ou TypeScript impedem publicação.
 on:
   push:
     branches: [main]
@@ -10,14 +11,8 @@ concurrency:
   group: github-pages
   cancel-in-progress: true
 jobs:
-  validar:
-    name: Validar antes de publicar
-    uses: ./.github/workflows/validar.yml
-    permissions:
-      contents: read
   compilar:
     name: Preparar artefato do Alpha
-    needs: validar
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -29,7 +24,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
+          cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Executar testes antes de publicar
+        run: npm test
       - name: Compilar com Supabase
         run: npm run build
         env:
