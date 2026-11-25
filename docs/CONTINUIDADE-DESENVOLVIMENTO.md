@@ -424,3 +424,9 @@ Retomada de Personagens, Fichas e Inventário: [PLANO-PERSONAGENS-FICHAS-INVENTA
 ## Menu de ações do turno (25/11/2026, branch fix/menu-acoes-turno)
 
 Regressão visual após o #146: o menu encolhia até os 36 px do botão "…" e o texto vazava. Agora usa o visual de `.barra-menu` (o do menu de categorias), ancorado à direita do botão, com largura do conteúdo limitada ao painel (`100cqw`). O fechamento por clique fora e Escape passou ao gancho compartilhado `src/useFecharMenu.ts`, usado também por `BarraExcedente` (mesmo comportamento). Regressão geométrica em `e2e/iniciativa-layout.spec.ts` (falha sem a correção). Observação não corrigida: em painel forçado a 210 px, mais estreito que as divisões testadas, o número em "Rodada N" fica parcialmente sob os botões.
+
+## Início da campanha — conclusão (25/11/2026, branch feat/inicio-campanha-capa)
+
+A branch `feat/alpha-inicio-campanha` já estava integrada pelo PR #133 (`9be2195`, arquivos idênticos). Concluído sobre ela: DEC-026. Código: `src/CapaCampanha.tsx`, `src/CampaignHome.tsx`, `src/capa.ts`. Testes: `src/capaCampanha.test.tsx`, `supabase/capa-enquadramento.test.ts`, `e2e/inicio-campanha.spec.ts` (gera capturas em `test-results/`) e um caso novo no Supabase isolado.
+
+**Pendente de autorização:** aplicar `supabase/migrations/0012_campaign_cover_framing.sql` ao projeto 2.0 (`gwcttjlxzelzjhbuitmi`). Até lá, a capa funciona como antes (recorte destrutivo). Próxima prioridade: personagens, fichas e inventário (`PLANO-PERSONAGENS-FICHAS-INVENTARIO.md`).

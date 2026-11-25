@@ -180,7 +180,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .dlg .row{display:flex;gap:8px;flex-wrap:wrap}
 .empty h1{font-size:18px;margin:0 0 8px}
 
-.home{display:flex;flex-direction:column;gap:22px;max-width:960px}
+.home{display:flex;flex-direction:column;gap:22px}
 .home-cover{border-radius:12px;overflow:hidden;border:1px solid var(--line);aspect-ratio:21/6;min-height:110px;background:var(--panel);display:flex}
 .home-cover img{width:100%;height:100%;object-fit:cover}
 .home-cover-empty{margin:auto;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);text-align:center;padding:12px}
@@ -967,3 +967,51 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
    (100cqw do container "ini"). Sem estas regras ele encolhia até os 36px do botão e o texto vazava. */
 .ini-menu-turno .ini-menu-turno-opcoes{left:auto;right:0;top:calc(100% + 4px);width:max-content;max-width:100cqw}
 .iniciativa .ini-turnos-topo .ini-controles-turno .ini-menu-turno .ini-menu-turno-opcoes .btn-secondary{width:100%;height:auto;min-height:32px;padding:6px 10px;gap:6px;line-height:1.25;white-space:normal;text-align:left;justify-content:flex-start}
+
+/* Início da campanha: a capa é o destaque e vai de borda a borda do PAINEL; o restante respira conforme a largura do painel (cqw). */
+.content:has(>.home){padding:0 0 32px}
+.home{gap:16px;--home-recuo:clamp(14px,3cqw,32px)}
+.home>*:not(.home-cover-wrap):not(dialog){margin-inline:var(--home-recuo)}
+.home .home-cover{border-radius:0;height:clamp(200px,34cqw,420px);aspect-ratio:auto}
+.home .home-cover img{object-fit:cover}
+.home .home-cover::after{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 22%,transparent) 0%,color-mix(in srgb,var(--bg) 8%,transparent) 28%,color-mix(in srgb,var(--bg) 78%,transparent) 74%,var(--bg) 100%)}
+.home .home-cover:not([data-com-imagem])::after{background:linear-gradient(180deg,transparent 45%,var(--bg) 100%)}
+.home .home-cover .home-name{bottom:12px;left:var(--home-recuo);right:var(--home-recuo);font-size:clamp(22px,4.6cqw,40px);line-height:1.15;text-shadow:0 1px 2px var(--bg),0 2px 14px var(--bg);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.home .home-edit{width:auto;height:30px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;top:10px;right:10px;font:inherit;font-size:12px;background:color-mix(in srgb,var(--panel) 88%,transparent)}
+.home .home-desc{margin-block:0;color:var(--text-2)}
+.home .home-shortcuts{display:flex;flex-wrap:wrap;gap:6px;margin-block:0}
+.home .home-shortcuts button{min-height:32px;padding:5px 10px;gap:6px;font-size:13px}
+.home .home-sec h2,.home .campaign-admin h2{font-size:15px;margin:0 0 8px}
+.home .home-party{grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:10px}
+.home .home-char{padding:10px;gap:12px;min-width:0;height:100%}
+.home .home-char .retrato-q{flex:none}
+.home .home-char>span:last-child{display:flex;flex-direction:column;min-width:0;gap:2px}
+.home .home-char strong{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.home .home-char small{overflow-wrap:anywhere}
+.home .home-columns{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px}
+.home .home-people .campaign-admin{max-width:none}
+.home .home-people .camp-list{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.home .home-people .camp-list .camp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;padding:6px 10px;border-radius:8px;min-width:0;overflow-wrap:anywhere}
+@container (max-width:720px){.home .home-columns{grid-template-columns:minmax(0,1fr)}}
+.campanha-dialogo{width:min(640px,calc(100vw - 24px));max-height:90vh}
+.campanha-dialogo>header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.campanha-dialogo>header h2{margin:0;font-size:17px}
+.campanha-dialogo>section{border-top:1px solid var(--line);margin-top:14px;padding-top:10px;min-width:0}
+.campanha-dialogo h3{margin:0 0 8px;font-size:14px}
+.campanha-dialogo .home-form{max-width:none}
+.campanha-dialogo .campaign-admin{max-width:none}.campanha-dialogo .campaign-admin h2{font-size:14px;margin:12px 0 8px}
+.campanha-dialogo .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.campanha-dialogo .camp-list{padding:0;list-style:none}.campanha-dialogo .code{overflow-wrap:anywhere;white-space:normal}
+.capa-editor{display:grid;gap:10px;min-width:0}
+.capa-previa{aspect-ratio:16/6;width:100%;overflow:hidden;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;background:var(--panel)}
+.capa-previa img{width:100%;height:100%;object-fit:cover;display:block}
+.capa-editor .home-crop{display:flex;flex-wrap:wrap;gap:10px}.capa-editor .home-crop label{display:flex;flex-direction:column;gap:4px;flex:1 1 150px;font-size:13px}
+.capa-nota{margin:0;font-size:12px}
+
+/* celular: a capa também vai de borda a borda */
+.mobile-simple .mobile-screen>.content:has(>.home){padding:0 0 24px!important}
+/* sem imagem não há o que destacar: faixa baixa, sem vazio; participantes como selos compactos */
+.home .home-cover:not([data-com-imagem]){height:clamp(150px,20cqw,210px);min-height:0}
+.home .home-cover:not([data-com-imagem]) .home-cover-empty{margin-top:28px}
+.home .home-people ul.camp-list{flex-direction:row;align-items:flex-start}
+.home .home-people ul.camp-list li.camp{flex:0 1 auto;width:auto;justify-content:flex-start;font-size:13px}
