@@ -430,3 +430,7 @@ Regressão visual após o #146: o menu encolhia até os 36 px do botão "…" e 
 A branch `feat/alpha-inicio-campanha` já estava integrada pelo PR #133 (`9be2195`, arquivos idênticos). Concluído sobre ela: DEC-026. Código: `src/CapaCampanha.tsx`, `src/CampaignHome.tsx`, `src/capa.ts`. Testes: `src/capaCampanha.test.tsx`, `supabase/capa-enquadramento.test.ts`, `e2e/inicio-campanha.spec.ts` (gera capturas em `test-results/`) e um caso novo no Supabase isolado.
 
 **Pendente de autorização:** aplicar `supabase/migrations/0012_campaign_cover_framing.sql` ao projeto 2.0 (`gwcttjlxzelzjhbuitmi`). Até lá, a capa funciona como antes (recorte destrutivo). Próxima prioridade: personagens, fichas e inventário (`PLANO-PERSONAGENS-FICHAS-INVENTARIO.md`).
+
+## Ajustes do Início após o PR #149 (25/11/2026, branch feat/inicio-ajustes)
+
+Descrição e aventureiros na largura toda (todos os autorizados, sem limite); Diário e Participantes em metades, empilhados abaixo de 720 px de painel; cartões de participantes iguais; "Sair da campanha" no menu "…" **com confirmação** (antes saía sem confirmar); degradê da capa em vários passos. Enquadramento inalterado. Os atalhos do mestre que já existiam foram mantidos (nenhum novo).
