@@ -51,6 +51,21 @@ describe("permissões mínimas", () => {
   });
 });
 
+describe("preview experimental isolado", () => {
+  const preview = read(".github/workflows/preview-demo.yml");
+  it("a publicação oficial nunca usa o modo experimental e verifica o artefato", () => {
+    expect(pages).not.toMatch(/preview-demo|--mode/);
+    expect(pages).toContain("run: node scripts/check-build-oficial.mjs");
+    expect(read("vite.config.ts")).toContain('"import.meta.env.VITE_SUPABASE_URL": ' + "'\"\"'");
+    expect(read("src/supabase.ts")).toContain("!__PREVIEW_DEMO__ && isUsableConfig");
+  });
+  it("o workflow de preview não tem credenciais, não publica no Pages e só lê o repositório", () => {
+    expect(preview).toContain("VITE_SUPABASE_URL: ''\n          VITE_SUPABASE_ANON_KEY: ''");
+    expect(preview).not.toMatch(/secrets\.|sb_publishable_|supabase\.co|deploy-pages|pages: write|id-token/);
+    expect(preview).toContain("permissions:\n  contents: read"); expect(preview).toContain("persist-credentials: false");
+  });
+});
+
 describe("modelos e automações", () => {
   it("modelos de PR, de migração e de issues existem; issues em branco desligadas", () => {
     for (const f of [".github/PULL_REQUEST_TEMPLATE.md", ".github/PULL_REQUEST_TEMPLATE/migracao.md", ".github/ISSUE_TEMPLATE/bug.yml", ".github/ISSUE_TEMPLATE/funcionalidade.yml", ".github/ISSUE_TEMPLATE/tarefa.yml", ".github/CODEOWNERS"]) expect(existsSync(join(root, f)), f).toBe(true);
