@@ -5,13 +5,20 @@ on:
   pull_request:
   workflow_call:
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'   # validação completa diária (03:00 em Brasília)
 permissions:
   contents: read
 concurrency:
   group: validar-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  impacto:
+    uses: ./.github/workflows/impacto.yml
   validar:
+    needs: impacto
+    # se a classificação falhar, a saída fica vazia e TUDO é validado
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -24,9 +31,15 @@ jobs:
           cache: npm
       - name: Instalar dependências
         run: npm ci --no-audit --no-fund
+      - name: Checagens de documentação e governança
+        if: needs.impacto.outputs.nivel == 'quick'
+        run: npx vitest run tests/
       - name: Verificar TypeScript e build
+        if: needs.impacto.outputs.nivel != 'quick'
         run: npm run build
       - name: Build oficial sem modo experimental
+        if: needs.impacto.outputs.nivel != 'quick'
         run: node scripts/check-build-oficial.mjs
       - name: Executar testes
+        if: needs.impacto.outputs.nivel != 'quick'
         run: npm test

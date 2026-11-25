@@ -66,6 +66,23 @@ describe("preview experimental isolado", () => {
   });
 });
 
+describe("validação proporcional ao impacto", () => {
+  const impacto = read(".github/workflows/impacto.yml");
+  it("falha fechada: sem classificação válida, tudo é validado; o classificador vem da base do PR", () => {
+    expect(impacto).toContain("nivel=full"); expect(impacto).toContain('git show "$BASE:scripts/ci-impact.mjs"');
+    for (const f of ["validar.yml", "e2e.yml", "alpha-supabase.yml", "preview-demo.yml"]) {
+      const w = read(".github/workflows/" + f);
+      expect(w, f).toContain("uses: ./.github/workflows/impacto.yml");
+      expect(w, f).toContain("if: ${{ !cancelled() }}");
+      expect(w, f).not.toMatch(/nivel == 'full'|nivel == 'functional'|continue-on-error|paths-ignore|paths:\n  /);   // nada é pulado por igualdade nem por filtro de caminho
+    }
+  });
+  it("há validação completa diária e a publicação continua testando tudo", () => {
+    for (const f of ["validar.yml", "e2e.yml", "alpha-supabase.yml"]) expect(read(".github/workflows/" + f), f).toContain("schedule:\n    - cron:");
+    expect(pages).not.toContain("impacto.yml");
+  });
+});
+
 describe("modelos e automações", () => {
   it("modelos de PR, de migração e de issues existem; issues em branco desligadas", () => {
     for (const f of [".github/PULL_REQUEST_TEMPLATE.md", ".github/PULL_REQUEST_TEMPLATE/migracao.md", ".github/ISSUE_TEMPLATE/bug.yml", ".github/ISSUE_TEMPLATE/funcionalidade.yml", ".github/ISSUE_TEMPLATE/tarefa.yml", ".github/CODEOWNERS"]) expect(existsSync(join(root, f)), f).toBe(true);
