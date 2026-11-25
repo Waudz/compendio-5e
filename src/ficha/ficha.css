@@ -96,3 +96,25 @@
   .ficha-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ficha-moedas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+.ficha-jogo .ficha-subnav button { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.ficha .ficha-morte { min-width: 0; }
+.ficha-morte > div { flex-wrap: wrap; }
+/* painel muito estreito (dois grupos lado a lado em janela pequena) */
+@container (max-width: 340px) {
+  .ficha-jogo .ficha-subnav { gap: 0; }
+  .ficha-jogo .ficha-subnav button { padding: 10px 4px; font-size: 12px; }
+  .ficha-cabecalho, .ficha-bloco { padding-left: 8px; padding-right: 8px; }
+  .ficha-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ficha-atributos { gap: 4px; }
+  .ficha-atributo span { font-size: 9px; }
+  .ficha-moedas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ficha-morte > div > span { min-width: 100%; }
+  .ficha-dados { grid-template-columns: minmax(0, 1fr); }
+}
+.ficha-numero, .ficha-atributo { min-width: 0; overflow-wrap: anywhere; }
+.ficha-jogo button { max-width: 100%; }
+/* o formulário genérico (.auth) estica botões; na ficha eles ficam compactos, lado a lado */
+.ficha.ficha-jogo .ficha-vida-ajuste > button, .ficha.ficha-jogo .ficha-form > button, .ficha.ficha-jogo .ficha-recurso button,
+.ficha.ficha-jogo .ficha-linhas button, .ficha.ficha-jogo .ficha-bloco > button, .ficha.ficha-jogo .ficha-acoes button, .ficha.ficha-jogo .row-between button { width: auto; margin: 0; align-self: flex-start; }
+.ficha.ficha-jogo .ficha-vida-ajuste > button, .ficha.ficha-jogo .ficha-acoes button { align-self: center; padding: 7px 12px; }
+.ficha.ficha-jogo form.ficha-vida-ajuste, .ficha.ficha-jogo form.ficha-form { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; max-width: none; margin: 0; }

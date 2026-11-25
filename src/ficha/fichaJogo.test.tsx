@@ -57,7 +57,7 @@ const abrirFicha = async (user: User = me) => {
 const abas = () => within(screen.getByRole("navigation", { name: "Seções da ficha" }));
 const irPara = (nome: string) => fireEvent.click(abas().getByRole("button", { name: nome }));
 const draftSalvo = () => banco.fichas[0].draft;
-const numero = (rotulo: string) => within(screen.getByRole("banner", { name: "Resumo do personagem" })).getByText(rotulo).parentElement!.querySelector("strong")!.textContent;
+const numero = (rotulo: string) => within(screen.getByRole("region", { name: "Resumo do personagem" })).getByText(rotulo).parentElement!.querySelector("strong")!.textContent;
 const salvou = (verifica: () => void) => waitFor(verifica, { timeout: 4000 });
 
 describe("ficha de jogo", () => {
@@ -65,7 +65,7 @@ describe("ficha de jogo", () => {
     await semear();
     const ficha = await abrirFicha();
     expect(abas().getAllByRole("button").map(b => b.textContent)).toEqual(["Ficha", "Habilidades", "Inventário"]);
-    const topo = within(screen.getByRole("banner", { name: "Resumo do personagem" }));
+    const topo = within(screen.getByRole("region", { name: "Resumo do personagem" }));
     expect(topo.getByRole("heading", { name: "Thorin" })).toBeTruthy();
     expect(topo.getByText("Escudo de Pedra").tagName).toBe("EM");
     expect(ficha.querySelector(".ficha-identidade img")?.getAttribute("src")).toBe(RETRATO);

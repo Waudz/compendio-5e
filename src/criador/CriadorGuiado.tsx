@@ -97,7 +97,10 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
   const [salvando, setSalvando] = useState(false), [conflito, setConflito] = useState(false), [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
   const [secao, setSecao] = useState<Secao>("ficha");
-  const [visualizando, setVisualizando] = useState(initialView);
+  // Ficha de jogo ou edição: lembrado nesta sessão, para voltar à mesma tela depois de passar por outro menu.
+  const chaveVista = `compendio5e:ficha-vista:${userId}:${campaignId}:${id}`;
+  const [visualizando, setVisualizando] = useState(() => { try { const v = sessionStorage.getItem(chaveVista); return v === null ? initialView : v === "1"; } catch { return initialView; } });
+  useEffect(() => { try { if (visualizando !== initialView) sessionStorage.setItem(chaveVista, visualizando ? "1" : "0"); else sessionStorage.removeItem(chaveVista); } catch { /* sem armazenamento: só não lembra */ } }, [chaveVista, visualizando, initialView]);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});

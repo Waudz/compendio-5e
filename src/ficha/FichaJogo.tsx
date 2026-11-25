@@ -115,7 +115,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
 
   return <div ref={raiz} className="content ficha auth wide ficha-jogo" data-testid="ficha-guiada-leitura" {...gesto}>
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
-    <header className="ficha-cabecalho" aria-label="Resumo do personagem">
+    <section className="ficha-cabecalho" aria-label="Resumo do personagem">
       <div className="ficha-identidade">
         <RetratoQuadrado tipo="personagem" tamanho={72} src={retratoValido(draft.portrait) ? draft.portrait : null}/>
         <div className="ficha-nomes"><h1>{draft.name.trim() || "Personagem sem nome"}</h1>
@@ -140,7 +140,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
         </select>
       </div>
       {defesas.length > 0 && <p className="ficha-defesas">{(Object.keys(ROTULO_DEFESA) as (keyof typeof ROTULO_DEFESA)[]).flatMap(tipo => { const l = defesas.filter(d => d.tipo === tipo).map(d => d.texto); return l.length ? [<span key={tipo}><strong>{ROTULO_DEFESA[tipo]}:</strong> {[...new Set(l)].join(", ")}</span>] : []; })}</p>}
-    </header>
+    </section>
     {salvamento}
     {avisos}
     {combate}
