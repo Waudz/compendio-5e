@@ -25,6 +25,18 @@ O loot registra preparação e andamento; marcar como distribuído **não entreg
 
 Faixa ampliada a 80 px (ativo 96 px) em painel amplo, com centralização adaptada ao workspace e controles estáveis. Busca por categoria sob demanda; PV dos personagens sempre da ficha. Salvamento automático, recuperação e erros preservados, com menos indicadores rotineiros. Loot de recipientes visível e verificado por origem/quantidade. Publicação condicionada aos três workflows verdes no HEAD final; evidências e limites em [continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Configurações da iniciativa e etapa de Personagens/Fichas/Inventário ficam para depois.
 
+## Validação no GitHub Actions e previews
+
+Cada pull request é classificado por `scripts/ci-impact.mjs` (usa a versão da `main`; na dúvida, completo):
+
+| Nível | Quando | O que roda |
+|---|---|---|
+| quick | só documentação | checagens de `tests/` |
+| functional | CSS e componentes isolados, sem acesso a dados | build, todos os testes unitários, E2E e preview; sem a pilha Supabase |
+| full | todo o resto | tudo |
+
+Os jobs continuam existindo em todos os níveis (só os passos são pulados), há validação completa diária e a publicação sempre roda testes e build. Previews no navegador: [docs/PREVIEW.md](docs/PREVIEW.md). Para rodar o Playwright sem baixar navegadores, use uma configuração local não versionada com `use.channel: 'chrome'`.
+
 ## Desenvolvimento
 
 ```bash

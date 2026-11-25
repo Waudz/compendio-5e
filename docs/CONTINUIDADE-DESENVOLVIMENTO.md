@@ -393,3 +393,23 @@ Causa das 2 falhas do E2E principal: a regra de container forçava a linha próp
 ## PR #144 — build experimental isolado (25/11/2026)
 
 `vite build --mode preview-demo` gera um artefato estático em `/` que entra direto como mestre (`?demo=jogador` para jogador), com dados fictícios e faixa "PREVIEW EXPERIMENTAL". Isolamento em três camadas: `supabase.ts` nunca cria o cliente nesse modo; `vite.config.ts` apaga URL, chave e `VITE_COMBATE_REMOTO` na compilação (mesmo que existam no ambiente); `scripts/check-preview-demo.mjs` recusa credencial/projeto real no artefato e qualquer requisição para fora, em celular e desktop, para mestre e jogador, sem erros de página. O build oficial é verificado por `scripts/check-build-oficial.mjs` (sem faixa nem dados da demonstração), em `validar.yml` e `pages.yml`; `tests/fluxo-github.test.ts` cobre as garantias. PWA: o 2.0 hoje não tem manifesto nem service worker (só `index.html` e assets), então não há cache offline a validar.
+
+## PR #145 e otimização do CI (25/11/2026)
+
+Classificador com efeito real (níveis no README), classificador lido da base do PR, falha fechada, suíte do criador em duas metades, agenda diária 06:00 UTC e pilha Supabase isolada sem serviços ociosos.
+
+Tempos **medidos** (duração do workflow, uma execução cada; há variação entre runners):
+
+| Workflow (PR, nível completo) | Antes (3dd06df / e8fd540) | Depois (b177b29) |
+|---|---|---|
+| E2E e responsividade | 204 s / 239 s | 171 s |
+| Alpha Supabase isolado (subida da pilha) | 202 s (87 s) / 198 s (79 s) | 189 s (73 s) |
+| Validar projeto | 103 s / 93 s | 113 s (inclui a classificação) |
+| Preview experimental | 54 s / 51 s | 58 s |
+| Workflow mais longo do PR | 204 s / 239 s | 189 s |
+
+Publicação (push na `main`): 143 s em 07d8dff e 152 s em c04f340, sem mudança neste PR. A diferença da pilha Supabase está dentro da variação observada; não declarar ganho. Os 91–93 s do teste do Supabase isolado vêm de um token com validade de 60 s, parte do cenário testado. **Não medidos:** níveis quick e functional (nenhum PR desses níveis rodou ainda).
+
+Avaliado e não implementado: cache dos navegadores Playwright (a instalação mediu 14–39 s e a parte de dependências do sistema continuaria; ganho não demonstrado) e merge automático (a `main` não tem proteção de branch; exige configuração do dono no GitHub). Reexecutar só o que falhou já é nativo ("Re-run failed jobs"; a matriz não cancela as outras suítes) e execuções obsoletas já são canceladas por `concurrency`.
+
+Retomada de Personagens, Fichas e Inventário: [PLANO-PERSONAGENS-FICHAS-INVENTARIO.md](PLANO-PERSONAGENS-FICHAS-INVENTARIO.md).
