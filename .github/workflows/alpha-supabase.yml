@@ -2,13 +2,20 @@ name: Alpha Supabase isolado
 on:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'   # validação completa diária (03:00 em Brasília)
 permissions:
   contents: read
 concurrency:
   group: alpha-supabase-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  impacto:
+    uses: ./.github/workflows/impacto.yml
   auth-rest-rls:
+    needs: impacto
+    # se a classificação falhar, a saída fica vazia e TUDO é validado
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -21,6 +28,7 @@ jobs:
       - name: Validar barreiras contra produção
         run: node --test scripts/alpha/local-only.test.mjs
       - name: Preparar projeto descartável sem vínculo remoto
+        if: needs.impacto.outputs.nivel != 'quick' && needs.impacto.outputs.nivel != 'functional'
         shell: bash
         run: |
           set -euo pipefail
@@ -31,17 +39,20 @@ jobs:
           python3 scripts/alpha/prepare-local.py "$alpha_workdir"
           # as migrações 0009–0011 (combate, encontros, status das fichas) já vêm de supabase/migrations: nada de fixture separada
       - name: Iniciar Auth, PostgREST e PostgreSQL locais
+        if: needs.impacto.outputs.nivel != 'quick' && needs.impacto.outputs.nivel != 'functional'
         shell: bash
         run: |
           set -euo pipefail
           umask 077
-          npx --yes --package=supabase@3.2.0 supabase start --workdir "$ALPHA_WORKDIR" > "$ALPHA_WORKDIR/start.log" 2>&1 || { node scripts/alpha/start-diagnostics.mjs "$ALPHA_WORKDIR/start.log"; exit 1; }
+          npx --yes --package=supabase@3.2.0 supabase start --workdir "$ALPHA_WORKDIR" -x studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor > "$ALPHA_WORKDIR/start.log" 2>&1 || { node scripts/alpha/start-diagnostics.mjs "$ALPHA_WORKDIR/start.log"; exit 1; }
           npx --yes --package=supabase@3.2.0 supabase status --workdir "$ALPHA_WORKDIR" --output json > "$ALPHA_STATUS_FILE"
       - name: Testar contas reais locais, JWT, RLS e persistência
+        if: needs.impacto.outputs.nivel != 'quick' && needs.impacto.outputs.nivel != 'functional'
         env:
           ALPHA_LOCAL_TESTS: '1'
         run: node scripts/alpha/run-local.mjs
       - name: Publicar somente relatório sem credenciais
+        if: needs.impacto.outputs.nivel != 'quick' && needs.impacto.outputs.nivel != 'functional'
         uses: actions/upload-artifact@v4
         with:
           name: alpha-local-report

@@ -8,7 +8,12 @@ concurrency:
   group: preview-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  impacto:
+    uses: ./.github/workflows/impacto.yml
   preview:
+    needs: impacto
+    # se a classificação falhar, a saída fica vazia e TUDO é validado
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -20,17 +25,22 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
+        if: needs.impacto.outputs.nivel != 'quick'
       - run: npx vite build --mode preview-demo
+        if: needs.impacto.outputs.nivel != 'quick'
         env:
           VITE_SUPABASE_URL: ''
           VITE_SUPABASE_ANON_KEY: ''
           VITE_COMBATE_REMOTO: '0'
       - run: npx playwright install --with-deps chromium
+        if: needs.impacto.outputs.nivel != 'quick'
       - name: Verificar preview compilado
+        if: needs.impacto.outputs.nivel != 'quick'
         run: |
           npx vite preview --mode preview-demo --host 127.0.0.1 --port 4173 --strictPort &
           node scripts/check-preview-demo.mjs
       - uses: actions/upload-artifact@v7
+        if: needs.impacto.outputs.nivel != 'quick'
         with:
           name: preview-demo
           path: dist

@@ -1,28 +1,35 @@
 name: Classificar impacto
+# Reutilizado pelos fluxos de validação. Fora de pull request (agenda, main, manual) o nível é sempre "full".
 on:
-  pull_request:
+  workflow_call:
+    outputs:
+      nivel:
+        value: ${{ jobs.classificar.outputs.nivel }}
 permissions:
   contents: read
-concurrency:
-  group: impacto-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
-  impacto:
+  classificar:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      nivel: ${{ steps.c.outputs.nivel }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-      - name: Classificar alterações
+      - id: c
+        name: Classificar alterações
         env:
+          EVENTO: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          level=$(node scripts/ci-impact.mjs "$BASE" "$HEAD")
-          printf 'Impacto: %s\n' "$level" >> "$GITHUB_STEP_SUMMARY"
-          printf 'Classificação informativa; todos os checks permanecem ativos.\n' >> "$GITHUB_STEP_SUMMARY"
+          nivel=full
+          # o classificador usado é o da BASE: um PR não consegue afrouxar a própria validação
+          if [ "$EVENTO" = "pull_request" ] && git show "$BASE:scripts/ci-impact.mjs" > "$RUNNER_TEMP/ci-impact.mjs" 2>/dev/null; then
+            nivel=$(node "$RUNNER_TEMP/ci-impact.mjs" "$BASE" "$HEAD" || echo full)
+          fi
+          case "$nivel" in quick|functional|full) ;; *) nivel=full ;; esac
+          echo "nivel=$nivel" >> "$GITHUB_OUTPUT"
+          echo "Impacto: $nivel" >> "$GITHUB_STEP_SUMMARY"
