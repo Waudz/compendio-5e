@@ -52,6 +52,15 @@ try {
     const promote = await api('/rest/v1/rpc/set_member_role', {token: p, method: 'POST', body: {p_campaign_id: a, p_user_id: player.user.id, p_role: 'mestre'}});
     assert.equal(promote.ok, false);
   });
+  await check('cover framing (0012): master saves, members read, player cannot write, invalid rejected', async () => {
+    const framing = {zoom: 1.5, x: 20, y: 80};
+    await ok(`/rest/v1/campaigns?id=eq.${a}`, {token: m, method: 'PATCH', body: {cover_framing: framing}});
+    assert.deepEqual((await ok(`/rest/v1/campaigns?id=eq.${a}&select=cover_framing`, {token: p}))[0].cover_framing, framing);
+    const denied = await api(`/rest/v1/campaigns?id=eq.${a}`, {token: p, method: 'PATCH', body: {cover_framing: {zoom: 3, x: 0, y: 0}}});
+    assert.ok(!denied.ok || denied.data.length === 0, 'player must not update framing');
+    assert.equal((await api(`/rest/v1/campaigns?id=eq.${a}`, {token: m, method: 'PATCH', body: {cover_framing: {zoom: 9, x: 0, y: 0}}})).ok, false);
+    assert.deepEqual((await ok(`/rest/v1/campaigns?id=eq.${a}&select=cover_framing`, {token: m}))[0].cover_framing, framing);
+  });
   const [note] = await ok('/rest/v1/notes', {token: p, method: 'POST', body: {campaign_id: a, title: 'Private fixture'}});
   await check('private notes hidden even from master; sharing explicit; foreign campaign hidden', async () => {
     assert.equal(note.visibility, 'private');

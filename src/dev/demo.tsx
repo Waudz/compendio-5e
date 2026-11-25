@@ -11,7 +11,7 @@ import { AuthProvider } from "../AuthContext";
 import { CampaignsProvider } from "../CampaignsContext";
 import type { CampaignApi, Invite, Member, Membership, Role } from "../campaigns";
 import type { Registro, RegistrosApi } from "../registros";
-import type { CapaApi } from "../capa";
+import { ENQUADRAMENTO_PADRAO, lerEnquadramento, type CapaApi } from "../capa";
 import { RegistrosProvider } from "../RegistrosContext";
 
 const CAMP = { id: "11111111-1111-4111-8111-111111111111", name: "Sociedade do Véu Negro", description: "Um festival em Daggerford vira um banho de sangue com a revelação de um culto que assola a região.", created_at: "2026-01-01T00:00:00Z" };
@@ -76,13 +76,15 @@ function criarCampanhas(papel: Role): CampaignApi {
   }) as unknown as CampaignApi;
 }
 
-const CAPA_KEY = "demo:capa:v1";
+const CAPA_KEY = "demo:capa:v1", ENQ_KEY = "demo:capa:enquadramento:v1";
 const lerArquivo = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(f); });
 /** Capa de demonstração: guarda a imagem como data URL no localStorage (o app real usa o bucket campaign-assets). */
 const capaDemo: CapaApi = {
+  enquadramento: async () => { let v: unknown = null; try { v = JSON.parse(localStorage.getItem(ENQ_KEY) ?? "null"); } catch { /* padrão */ } return { ok: true, data: { suportado: new URLSearchParams(window.location.search).get("semEnquadramento") !== "1", valor: v ? lerEnquadramento(v) : ENQUADRAMENTO_PADRAO } }; },
+  salvarEnquadramento: async (_c, e) => { localStorage.setItem(ENQ_KEY, JSON.stringify(e)); return { ok: true, data: true }; },
   obter: async () => ({ ok: true, data: localStorage.getItem(CAPA_KEY) }),
-  definir: async (_c, f) => { try { const u = await lerArquivo(f); localStorage.setItem(CAPA_KEY, u); return { ok: true, data: u }; } catch { return { ok: false, error: "Imagem grande demais para o modo de demonstração." }; } },
-  remover: async () => { localStorage.removeItem(CAPA_KEY); return { ok: true, data: true }; },
+  definir: async (_c, f) => { try { const u = await lerArquivo(f); localStorage.setItem(CAPA_KEY, u); localStorage.removeItem(ENQ_KEY); return { ok: true, data: u }; } catch { return { ok: false, error: "Imagem grande demais para o modo de demonstração." }; } },
+  remover: async () => { localStorage.removeItem(CAPA_KEY); localStorage.removeItem(ENQ_KEY); return { ok: true, data: true }; },
   enviar: async () => ({ ok: false, error: "Envio de retrato indisponível no modo de demonstração." }),
   urlDe: async () => ({ ok: false, error: "sem imagem" }),
   apagar: async () => ({ ok: true, data: true }),
