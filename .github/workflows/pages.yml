@@ -34,6 +34,8 @@ jobs:
           VITE_SUPABASE_URL: https://gwcttjlxzelzjhbuitmi.supabase.co
           VITE_SUPABASE_ANON_KEY: sb_publishable_Xq4BrPx_YkYGki7Ti2XUzA_ocr-zTWn
           VITE_COMBATE_REMOTO: '1'
+      - name: Garantir que o build oficial não tem o modo experimental
+        run: node scripts/check-build-oficial.mjs
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
