@@ -43,6 +43,10 @@ export async function openDemo(page: Page, role: DemoRole = 'mestre') {
 export async function navigate(page: Page, name: string) {
   const mobile = (page.viewportSize()?.width ?? 1440) <= 700;
   if (mobile) {
+    if (await page.locator('.app.chrome-hidden').count()) {
+      await page.locator('.mobile-screen').evaluate(tela => { tela.scrollTop = Math.max(0, tela.scrollTop - 80); });
+      await expect(page.locator('.app.chrome-hidden')).toHaveCount(0);
+    }
     await page.getByRole('button', { name: 'Abrir menu', exact: true }).click();
     await page.getByRole('dialog', { name: 'Menu de navegação' }).getByRole('button', { name, exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Menu de navegação' })).toBeHidden();
