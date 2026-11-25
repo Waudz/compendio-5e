@@ -38,6 +38,7 @@ const modern2014 = (d: CharacterDraft) => d.catalogueVersion === 'character-srd-
 const sheet2014 = (d: CharacterDraft) => { if (!regras2014) throw new Error('Carregando regras de personagem…'); return regras2014.sheet2014(d); };
 const label2014 = (id: string) => regras2014?.label2014(id) ?? id;
 const featureDescription2014 = (id: string) => regras2014?.featureDescription2014(id) ?? '';
+const FichaJogo = lazy(async () => { await carregar2014(); return import("../ficha/FichaJogo"); });
 import PublicIdentityEditor from "./identidade-publica-editor";
 import { origemPublica, rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
@@ -143,7 +144,9 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   /** Os únicos dados da ficha que a identidade pública usa. */
   const origem = origemPublica(draft, modern2014(draft) ? label2014(draft.raceId) : "Anão", modern2014(draft) ? label2014(draft.classId) : "Guerreiro");
 
-  const salvar = useCallback(async (): Promise<boolean> => {
+  /** Último estado que falhou: o salvamento automático não insiste nele (só depois de nova mudança ou do botão de tentar de novo). */
+  const falhou = useRef<string | null>(null);
+  const salvar = useCallback(async (automatico?: boolean): Promise<boolean> => {
     if (salvando) return false;
     if (!sheet || !draft.name.trim()) { setMsg({ ok: false, t: "Informe o nome e corrija os erros antes de salvar." }); return false; }
     if (draft.portrait && !retratoValido(draft.portrait)) { setMsg({ ok: false, t: "O retrato deve ser um endereço https:// sem espaços." }); return false; }
@@ -157,14 +160,17 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       setDraft(atual => ({ ...atual, id: r.id })); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
       setSalvo(JSON.stringify({ draft: gravado, identity, publicar }));
       limparRecuperacao(userId, campaignId, id);
+      falhou.current = null;
       if (servidor && ehPersonagemNovo(id)) gravarMapaAba(userId, campaignId, id, r.id);
       registrarTitulo(id, draft.name.trim()); registrarTitulo(r.id, draft.name.trim()); avisarRegistros();
+      if (automatico === true) { setMsg(null); return true; }   // não muda de tela nem de aba
       const incompleto = sheet.pending.length || !gruposCompletos(draft);
       setMsg({ ok: true, t: servidor ? `${incompleto ? "Rascunho incompleto" : "Personagem"} salvo na campanha (revisão ${r.revision}).` : `${incompleto ? "Rascunho incompleto salvo" : "Personagem salvo"} neste navegador (armazenamento experimental).` });
       if (!incompleto) { setVisualizando(true); setSecao("ficha"); }
 
       return true;
     } catch (e) {
+      falhou.current = JSON.stringify(estado);
       const texto = e instanceof Error ? e.message : "Não foi possível salvar.";
       const guardou = servidor && gravarRecuperacao(userId, campaignId, id, { estado, baseRevisao: revisao, motivo: texto, em: new Date().toISOString() });
       if (e instanceof ErroConflito) setConflito(true);
@@ -186,7 +192,19 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   }, [servidor, carga, sujo, recuperacao, salvando, userId, campaignId, id, draft, identity, publicar, revisao]);
 
   useUnsavedGuard(`criador:${id}`, sujo, salvar);
-  const estatisticas = useMemo(() => { if (!sheet || !modern2014(draft) || !regras2014) return null; try { return regras2014.statistics2014(draft); } catch { return null; } }, [sheet, draft]);
+  // Ficha de jogo: cada mudança é salva sozinha, com a mesma revisão controlada. Conflito ou cópia de recuperação pausam tudo até a pessoa decidir.
+  const automatico = visualizando && carga === "pronto" && existe && modern2014(draft) && !!sheet && sujo && !salvando && !conflito && !recuperacao;
+  const salvarAtual = useRef(salvar); salvarAtual.current = salvar;
+  const pendente = useRef(false);
+  useEffect(() => {
+    pendente.current = false;
+    if (!automatico || falhou.current === retrato) return;
+    pendente.current = true;
+    const t = setTimeout(() => { pendente.current = false; void salvarAtual.current(true); }, 700);
+    return () => clearTimeout(t);
+  }, [automatico, retrato]);
+  // saindo da ficha antes do prazo (ex.: trocando de menu): envia o que estava pendente
+  useEffect(() => () => { if (pendente.current) { pendente.current = false; void salvarAtual.current(true); } }, []);
 
   /** Conflito de revisão: carrega a versão atual do servidor. As alterações não enviadas ficam na cópia de recuperação (restauráveis). */
   const recarregarServidor = async () => {
@@ -248,24 +266,25 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const escolhasDoNivel = (modern2014(draft) ? [] : fighter2014Advancements).flatMap(a => a.level <= draft.level ? a.choices ?? [] : []);
   const sec = (s: Secao, rotulo: string) => <button type="button" className={secao === s ? "active" : ""} aria-current={secao === s ? "true" : undefined} onClick={() => setSecao(s)}>{rotulo}</button>;
 
-  // Ficha pronta em leitura, independente das etapas do criador. Os mesmos
-  // dados derivados do motor alimentam a edição e a visualização.
-  if (visualizando && carga === "pronto" && existe && sheet) return <div className="content ficha auth wide" data-testid="ficha-guiada-leitura">
-    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
-    <div className="row-between"><h1>{draft.name || "Personagem sem nome"}</h1>
-      <button type="button" className="btn-primary" onClick={() => setVisualizando(false)}>Editar personagem</button></div>
-    <p>{modern2014(draft) ? label2014(draft.raceId) : "Anão"} · {modern2014(draft) ? label2014(draft.classId) : "Guerreiro"} · Nível {draft.level}</p>
-    {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => setVisualizando(false)}>Revisar recuperação no editor</button></div>}
-    <nav className="ficha-subnav" aria-label="Seções da ficha"><button type="button" className={secao === "ficha" ? "active" : ""} onClick={() => setSecao("ficha")}>Ficha</button><button type="button" className={secao === "inventario" ? "active" : ""} onClick={() => setSecao("inventario")}>Inventário</button></nav>
-    {secao === "ficha" && <>
-      {servidor && existe && <EstadoCombateFicha characterId={idReal}/>}
-      <section className="criador-ficha" aria-label="Atributos e combate"><h2>Atributos e combate</h2><div className="criador-atributos">{ABILITY_ORDER.map(a => <div key={a}><strong>{rotuloAtributo(a)}</strong><p>{sheet.abilities[a]}</p></div>)}</div><p><strong>PV:</strong> {draft.currentHp} / {sheet.maxHp}{draft.temporaryHp ? ` · ${draft.temporaryHp} temporários` : ""}</p>{estatisticas && <div className="criador-ficha"><p><strong>CA:</strong> {estatisticas.ac} · <strong>Iniciativa:</strong> {estatisticas.initiative >= 0 ? "+" : ""}{estatisticas.initiative} · <strong>Proficiência:</strong> +{estatisticas.prof}</p><p><strong>Deslocamento:</strong> {estatisticas.speed.toLocaleString("pt-BR")} m · <strong>Percepção passiva:</strong> {estatisticas.passivePerception}</p>{estatisticas.ambiguousArmor && <p role="note">Há mais de uma armadura equipada; revise o equipamento.</p>}{estatisticas.armorWithoutProficiency && <p role="note">Há armadura equipada sem proficiência.</p>}</div>}</section>
-      {estatisticas && <section aria-label="Salvaguardas e ataques"><h2>Salvaguardas</h2><p>{ABILITY_ORDER.map(a => `${rotuloAtributo(a)} ${estatisticas.saves[a] >= 0 ? "+" : ""}${estatisticas.saves[a]}`).join(" · ")}</p><h2>Ataques equipados</h2>{estatisticas.attacks.length ? <ul>{estatisticas.attacks.map((a,i) => <li key={a.id + i}>{a.name} · ataque {a.bonus >= 0 ? "+" : ""}{a.bonus} · dano {a.damage} {a.damageBonus >= 0 ? "+" : ""}{a.damageBonus}</li>)}</ul> : <p>Nenhuma arma equipada.</p>}{estatisticas.spellDc != null && <p><strong>CD das magias:</strong> {estatisticas.spellDc} · <strong>Ataque mágico:</strong> {estatisticas.spellAttack}</p>}</section>}
-      <section aria-label="Perícias e características"><h2>Perícias</h2>{estatisticas ? <ul>{Object.entries(estatisticas.skills).map(([id,bonus]) => <li key={id}>{rotuloPericia(id)} {bonus >= 0 ? "+" : ""}{bonus}{sheet.skills.includes(id) ? " · proficiente" : ""}</li>)}</ul> : <p>{sheet.skills.map(rotuloPericia).join(", ") || "Nenhuma"}</p>}<h2>Características</h2>{sheet.features.length ? <ul>{sheet.features.map((f,i) => <li key={f + i}><strong>{modern2014(draft) ? label2014(f) : rotuloOpcao(f)}</strong>{modern2014(draft) && featureDescription2014(f) && <p>{featureDescription2014(f)}</p>}</li>)}</ul> : <p>Nenhuma</p>}<h2>Recursos</h2><p>{Object.entries(sheet.resources).map(([k,v]) => `${rotuloOpcao(k)}: ${v.remaining}/${v.maximum}`).join(" · ") || "Nenhum"}</p><h2>Idiomas</h2><p>{sheet.languages.join(", ") || "Nenhum registrado"}</p></section>
-      {sheet.pending.length > 0 && <p className="notice" role="note">Ficha com escolhas pendentes. Use Editar personagem para concluir.</p>}
-    </>}
-    {secao === "inventario" && <section aria-label="Inventário do personagem"><h2>Inventário</h2><p><strong>Moedas:</strong> {draft.currency?.gp ?? 0} PO · {draft.currency?.sp ?? 0} PP · {draft.currency?.cp ?? 0} PC</p>{sheet.inventory.length ? <ul>{sheet.inventory.map(i => <li key={i.id}><strong>{nomeDaInstancia(i)}</strong> ×{i.quantity}{i.equipped ? " · equipado" : ""}{i.origin === "starting" ? " · equipamento inicial" : ""}{srdItem(i.itemId) && <button type="button" className="btn-secondary" aria-label={`Consultar ${nomeDaInstancia(i)} no Compêndio`} onClick={() => onOpenContent(itemSpec(i.itemId, nomeDaInstancia(i)))}>Consultar</button>}</li>)}</ul> : <p>Inventário vazio.</p>}</section>}
-  </div>;
+  const avisoConflito = conflito && <div className="notice err" role="alert" data-testid="aviso-conflito"><p>{ERRO_CONFLITO_REVISAO}</p><div className="row"><button type="button" className="btn-primary" onClick={() => void recarregarServidor()}>Carregar a versão atual</button><button type="button" className="btn-secondary" onClick={() => setConflito(false)}>Continuar editando</button></div></div>;
+
+  // Ficha de jogo (três abas), independente das etapas do criador. Os mesmos dados do motor alimentam a edição e o jogo.
+  if (visualizando && carga === "pronto" && existe && sheet) {
+    if (!modern2014(draft)) return <div className="content ficha auth wide" data-testid="ficha-guiada-leitura"><h1>{draft.name || "Personagem sem nome"}</h1>
+      <p className="notice" role="note">Este personagem usa uma versão anterior das regras. Abra a edição e atualize-o para SRD 2014 para usar a ficha de jogo.</p>
+      <button type="button" className="btn-primary" onClick={() => setVisualizando(false)}>Editar personagem</button></div>;
+    const naoSalvo = sujo && !salvando && falhou.current === retrato;
+    return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
+      <FichaJogo draft={draft} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudar} onOpenContent={onOpenContent}
+        onEditar={() => { setSecao("ficha"); setVisualizando(false); }} onProgredir={() => { setSecao("ficha"); setVisualizando(false); }}
+        salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
+          {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
+        avisos={<>{avisoConflito}
+          {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
+          {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => setVisualizando(false)}>Revisar recuperação no editor</button></div>}</>}
+        combate={servidor ? <EstadoCombateFicha characterId={idReal}/> : undefined}/>
+    </Suspense>;
+  }
 
   return <div className="content ficha auth wide criador">
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · CRIADOR GUIADO · {modern2014(draft) ? label2014(draft.classId).toLocaleUpperCase("pt-BR") : "GUERREIRO"} (SRD 2014)</div>
@@ -274,7 +293,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     {servidor
       ? <div className="notice ok" role="note" data-testid="aviso-servidor">{somenteFicha ? "Ficha de outro jogador: você a vê e edita como mestre da campanha. A identidade pública continua sendo do dono." : "Salvo na campanha: só você e o mestre leem esta ficha. Os outros jogadores veem apenas a identidade pública que você publicar."} {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>
       : <div className="notice" role="note" data-testid="aviso-armazenamento">Armazenamento <strong>experimental</strong>: o personagem fica só neste navegador, não sincroniza entre aparelhos e não é privado de quem usa o mesmo navegador. Sem conta e API de fichas não há salvamento real na campanha. {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>}
-    {conflito && <div className="notice err" role="alert" data-testid="aviso-conflito"><p>{ERRO_CONFLITO_REVISAO}</p><div className="row"><button type="button" className="btn-primary" onClick={() => void recarregarServidor()}>Carregar a versão atual</button><button type="button" className="btn-secondary" onClick={() => setConflito(false)}>Continuar editando</button></div></div>}
+    {avisoConflito}
     {recuperacao && <div className="notice" role="status" data-testid="aviso-recuperacao"><p>Há alterações deste personagem que não chegaram ao servidor ({recuperacao.motivo || "falha anterior"}), guardadas neste navegador em {new Date(recuperacao.em).toLocaleString("pt-BR")}.</p><div className="row"><button type="button" className="btn-primary" onClick={restaurar}>Restaurar essas alterações</button><button type="button" className="btn-secondary" onClick={descartarRecuperacao}>Descartar</button></div></div>}
     <nav className="ficha-subnav" aria-label="Seções do personagem">{sec("ficha", "Ficha")}{sec("equipamento", "Equipamento inicial")}{sec("inventario", "Inventário")}{sec("identidade", "Identidade pública")}</nav>
     {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
