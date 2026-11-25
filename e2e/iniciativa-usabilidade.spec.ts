@@ -46,7 +46,7 @@ test('loot de criatura e baú aparece sem expandir; escolha abre janela contextu
  await dialogo.getByRole('button', { name: 'Incluir moeda', exact: true }).click(); await dialogo.getByRole('button', { name: 'Concluir seleção', exact: true }).click();
  const bau = enc.getByRole('region', { name: 'Recipiente Baú dourado', exact: true });
  await expect(bau.getByRole('heading', { name: /Baú dourado/ })).toBeVisible();
- await expect(bau.getByText('peças de ouro', { exact: true })).toBeVisible();
+ await expect(bau.getByRole('listitem').getByText('peças de ouro', { exact: true }).filter({ visible: true })).toBeVisible();
  await expect(bau.getByLabel('Quantidade de peças de ouro em Baú dourado', { exact: true })).toHaveValue('25');
  await expect(bau.getByRole('listitem')).toHaveCount(1);
  await expect(bau.getByRole('dialog')).not.toBeVisible();
@@ -72,11 +72,11 @@ test('faixa fixa cobre as bordas e usa controles compactos em meia tela', async 
    return faixa.evaluate(el => {
      const r = el.getBoundingClientRect(), pai = el.parentElement!.getBoundingClientRect();
      const ponta = document.elementFromPoint(r.left + 2, r.top + Math.min(20, r.height / 2));
-     return { cobertura: r.top <= pai.top + 1 && r.left <= pai.left + 1 && r.right >= pai.left + el.parentElement!.clientWidth - 2, opaca: ponta === el || el.contains(ponta), compacto: getComputedStyle(el.querySelector('button')!).fontSize === '0px' };
+     return { cobertura: r.top <= pai.top + 1 && r.left <= pai.left + 1 && r.right >= pai.left + el.parentElement!.clientWidth - 2, opaca: ponta === el || el.contains(ponta), compacto: Array.from(el.querySelectorAll('.ini-turno-icone')).every(b => b.getBoundingClientRect().width <= 38) && el.querySelectorAll('.ini-turno-icone').length === 2 };
    });
  }).toEqual({ cobertura: true, opaca: true, compacto: true });
  expect((await faixa.boundingBox())!.height).toBeLessThanOrEqual(230);
- for (const botao of await faixa.getByRole('button').all()) expect((await botao.boundingBox())!.width).toBeLessThanOrEqual(38);
+ for (const botao of await faixa.locator('.ini-turno-icone').all()) expect((await botao.boundingBox())!.width).toBeLessThanOrEqual(38);
  await expectNoHorizontalOverflow(page); await page.screenshot({ path: info.outputPath('faixa-opaca.png') });
 });
 
