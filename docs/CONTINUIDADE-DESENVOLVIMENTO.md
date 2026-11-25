@@ -420,3 +420,7 @@ Retomada de Personagens, Fichas e Inventário: [PLANO-PERSONAGENS-FICHAS-INVENTA
 - Categorias da busca: componente reutilizável `src/BarraExcedente.tsx` (ResizeObserver sobre a largura do componente). O que não cabe vai para o menu "Mais categorias", colado ao último filtro visível; sem rolagem horizontal. Fecha ao escolher, clicar fora ou Escape; a seleção oculta fica marcada.
 - Testes: `src/barraExcedente.test.tsx` e `e2e/iniciativa-layout.spec.ts`. Specs antigos passaram a escolher categorias por `escolherCategoria` (abre o menu em telas estreitas); nenhuma verificação foi removida.
 - Desenvolvido em uma worktree separada porque o clone principal tinha alterações em andamento de outra sessão em `supabase/`.
+
+## Menu de ações do turno (25/11/2026, branch fix/menu-acoes-turno)
+
+Regressão visual após o #146: o menu encolhia até os 36 px do botão "…" e o texto vazava. Agora usa o visual de `.barra-menu` (o do menu de categorias), ancorado à direita do botão, com largura do conteúdo limitada ao painel (`100cqw`). O fechamento por clique fora e Escape passou ao gancho compartilhado `src/useFecharMenu.ts`, usado também por `BarraExcedente` (mesmo comportamento). Regressão geométrica em `e2e/iniciativa-layout.spec.ts` (falha sem a correção). Observação não corrigida: em painel forçado a 210 px, mais estreito que as divisões testadas, o número em "Rodada N" fica parcialmente sob os botões.

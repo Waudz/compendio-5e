@@ -89,3 +89,63 @@ test('em divisão real do workspace os controles seguem a largura do painel', as
   await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
   await medirControles(page); await medirCategorias(page); await expectNoHorizontalOverflow(page);
 });
+
+/** O menu "…" do turno e cada texto/ícone dentro dele ficam inteiros dentro do painel, abaixo do botão, sem corte nem rolagem. */
+async function medirMenuDoTurno(page: Page) {
+  const gatilho = page.getByRole('button', { name: 'Mais ações do combate', exact: true });
+  await gatilho.click();
+  await expect(page.locator('.ini-menu-turno-opcoes')).toBeVisible();
+  await expect.poll(() => page.locator('.ini-menu-turno-opcoes').evaluate(menu => {
+    const r = (e: Element) => e.getBoundingClientRect(), m = r(menu), painel = r(menu.closest('.content')!);
+    const botao = r(menu.parentElement!.querySelector(':scope > button')!);
+    const botoes = [...menu.querySelectorAll('button')];
+    const textos = botoes.flatMap(b => {
+      const partes: DOMRect[] = [];
+      for (const no of b.childNodes) if (no.nodeType === 3 && no.textContent!.trim()) { const faixa = document.createRange(); faixa.selectNodeContents(no); partes.push(...faixa.getClientRects()); }
+      return [...partes, ...[...b.querySelectorAll('svg')].map(r)].map(c => ({ c, b: r(b) }));
+    });
+    const dentro = (c: DOMRect, limite: DOMRect) => c.left >= limite.left - 0.5 && c.right <= limite.right + 0.5;
+    return {
+      noPainel: dentro(m, painel) && m.left >= 0 && m.right <= window.innerWidth + 0.5,
+      abaixoDoBotao: m.top >= botao.bottom - 0.5,
+      alinhadoADireita: Math.abs(m.right - botao.right) <= 1.5,
+      cresceParaAEsquerda: m.width > botao.width * 2,
+      botoesNoMenu: botoes.length === 2 && botoes.every(b => dentro(r(b), m) && r(b).top >= m.top - 0.5 && r(b).bottom <= m.bottom + 0.5),
+      textosEIconesNoBotao: textos.length >= 4 && textos.every(x => dentro(x.c, x.b) && dentro(x.c, m)),
+      semCorte: [menu, ...botoes].every(e => (e as HTMLElement).scrollWidth <= (e as HTMLElement).clientWidth + 1),
+      fundo: getComputedStyle(menu).backgroundColor !== 'rgba(0, 0, 0, 0)',
+      vermelho: getComputedStyle(botoes[1]).color === 'rgb(239, 68, 68)',
+    };
+  })).toEqual({ noPainel: true, abaixoDoBotao: true, alinhadoADireita: true, cresceParaAEsquerda: true, botoesNoMenu: true, textosEIconesNoBotao: true, semCorte: true, fundo: true, vermelho: true });
+  await expectNoHorizontalOverflow(page);
+}
+
+test('menu de ações do turno cabe no painel (tela cheia e celular) e fecha por fora, Escape e escolha', async ({ page }, info) => {
+  await preparar(page);
+  const menu = page.locator('.ini-menu-turno-opcoes'), gatilho = page.getByRole('button', { name: 'Mais ações do combate', exact: true });
+  await medirMenuDoTurno(page);
+  await page.screenshot({ path: info.outputPath('menu-turno.png') });
+  await page.getByRole('heading', { name: 'Iniciativa', exact: true }).click(); await expect(menu).toHaveCount(0);
+  await gatilho.click(); await page.keyboard.press('Escape'); await expect(menu).toHaveCount(0); await expect(gatilho).toBeFocused();
+  await gatilho.click(); await gatilho.click(); await expect(menu).toHaveCount(0);
+  // escolher fecha o menu e preserva a confirmação de finalizar
+  await gatilho.click(); await page.getByRole('button', { name: 'Reiniciar rodadas', exact: true }).click(); await expect(menu).toHaveCount(0);
+  await gatilho.click(); page.once('dialog', d => d.dismiss()); await page.getByRole('button', { name: 'Finalizar combate', exact: true }).click();
+  await expect(menu).toHaveCount(0); await expect(page.getByRole('button', { name: 'Abrir ficha completa de Goblin', exact: true })).toBeVisible();
+});
+
+test('menu de ações do turno em painéis estreitos e em tela dividida', async ({ page }, info) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 1024, 'Redimensiona e divide o painel no desktop.');
+  await preparar(page);
+  const painel = (largura: string) => page.locator('.content.iniciativa').evaluate((el, w) => { (el as HTMLElement).style.maxWidth = w; }, largura);
+  for (const largura of ['520px', '360px', '240px', '210px']) {
+    await painel(largura); await medirMenuDoTurno(page);
+    await page.screenshot({ path: info.outputPath(`menu-turno-${largura}.png`) });
+    await page.keyboard.press('Escape');
+  }
+  await painel('');
+  await page.getByRole('tab', { name: /^Iniciativa/ }).click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
+  await medirControles(page); await medirMenuDoTurno(page);
+  await page.screenshot({ path: info.outputPath('menu-turno-dividido.png') });
+});
