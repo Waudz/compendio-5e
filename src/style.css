@@ -917,3 +917,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 /* Cabeçalho compacto de combate e preparação; faixa fixa inalterada. */
 .iniciativa > .eyebrow{margin-bottom:2px}
 .iniciativa > h1{font-size:20px;line-height:1.25;margin:0 0 6px}
+
+/* Controles compactos: prioridade ao avanço, ações raras em menu. */
+.iniciativa .ini-controles-turno .ini-acoes-compactas{justify-content:flex-end;min-width:0;flex:1 1 auto}
+.iniciativa .ini-controles-turno .ini-acoes-compactas .btn-secondary{height:36px;font-size:13px;gap:5px;padding:6px 10px;flex:0 0 auto;width:auto}
+.iniciativa .ini-controles-turno .ini-acoes-compactas .ini-turno-icone{width:36px;min-width:36px;padding:0}
+.iniciativa .ini-controles-turno .ini-acoes-compactas .ini-proximo-turno{background:#2563eb;color:#fff;border-color:#2563eb;flex:1 1 auto;max-width:180px}
+.ini-menu-turno{position:relative;flex:0 0 36px}
+.ini-menu-turno-opcoes{position:absolute;right:0;top:calc(100% + 4px);z-index:20;display:grid;gap:4px;padding:6px;background:var(--panel,#20242c);border:1px solid var(--border,#777);border-radius:8px;box-shadow:0 4px 16px #0004}
+.iniciativa .ini-controles-turno .ini-menu-turno-opcoes .btn-secondary{width:100%;justify-content:flex-start}
+.ini-menu-turno-opcoes .ini-finalizar-turno{color:#ef4444}
