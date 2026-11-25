@@ -85,6 +85,7 @@ describe("Iniciativa na nuvem", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     montar(<IniciativaPanel/>, combate, encontros); await screen.findByText("Nenhum combatente ainda");
     preencher("Nome", "Goblin"); fireEvent.click(screen.getByRole("button", { name: "Adicionar" })); await waitFor(() => expect(combate.s.linhas.has("c1")).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     await waitFor(() => expect(combate.s.finalizados).toBe(1)); expect(combate.s.linhas.has("c1")).toBe(false);
     expect(await screen.findByText("Nenhum combatente ainda")).toBeTruthy(); expect(encontros.s.linhas.get("c1")?.valor).toHaveLength(1);
@@ -133,6 +134,7 @@ describe("Encontros na nuvem", () => {
     await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].estado).toBe("em_combate"));
     await waitFor(() => expect(combate.s.linhas.get("c1")?.valor.combatentes[0]?.encontro).toEqual({ encontroId: "e1", criaturaId: "p#1" }));
     expect((await screen.findAllByText("Em combate")).length).toBeGreaterThan(0);                   // o painel Encontros também já vê
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ }));
     await waitFor(() => expect(encontros.s.linhas.get("c1")?.valor[0].estado).toBe("em_andamento"));
     expect(encontros.s.linhas.get("c1")?.valor[0].atual?.criaturas.map(c => [c.id, c.pv, c.noCombate])).toEqual([["p#1", 7, undefined], ["p#2", 7, undefined]]);
@@ -220,6 +222,7 @@ describe("sincronização de PV e condições com a ficha (fluxo autorizado)", (
     fireEvent.click(screen.getByRole("button", { name: "Remover Lydia Valenmoor" }));
     await waitFor(() => expect(st.chamadas.at(-1)).toEqual({ id: "pj1", hp: null, max: null, condicoes: [] }));
     await adicionarLydia(); await waitFor(() => expect(screen.getByLabelText("PV de Lydia Valenmoor")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do combate" }));
     fireEvent.click(screen.getByRole("button", { name: /Finalizar combate/ })); await waitFor(() => expect(st.limpos()).toBe(1));
   });
   it("falha ao sincronizar a ficha avisa o mestre e não perde o combate", async () => {
