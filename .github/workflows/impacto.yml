@@ -1,0 +1,28 @@
+name: Classificar impacto
+on:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: impacto-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  impacto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Classificar alterações
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          level=$(node scripts/ci-impact.mjs "$BASE" "$HEAD")
+          printf 'Impacto: %s\n' "$level" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Classificação informativa; todos os checks permanecem ativos.\n' >> "$GITHUB_STEP_SUMMARY"
