@@ -1044,3 +1044,14 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .personagens .home-char>span:last-child{display:flex;flex-direction:column;min-width:0;gap:2px}
 .personagens .home-char strong{white-space:normal;overflow-wrap:anywhere}.personagens .home-char small{overflow-wrap:anywhere}
 .home-char .home-char-nota{font-size:11px;color:var(--muted);font-style:italic}
+/* Celular: ocultar as barras NÃO pode mudar o limite da rolagem. Ao encolher as linhas do grid a área cresce 116px; sem compensação o navegador
+   puxava o scrollTop no fim da página e isso era lido como "rolando para cima" (barras piscando). O mesmo espaço volta como respiro interno da
+   rolagem (52px em cima, 64px embaixo), na mesma transição: o limite fica igual e o conteúdo não salta quando o cabeçalho some. */
+@media(max-width:700px){
+  .mobile-simple .mobile-screen{transition:padding .22s ease}
+  .chrome-hidden .mobile-simple .mobile-screen{padding-top:52px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  /* o cabeçalho fixo da Iniciativa continua colado ao topo visível */
+  .mobile-simple .iniciativa .ini-turnos-topo{transition:top .22s ease}
+  .chrome-hidden .mobile-simple .iniciativa .ini-turnos-topo{top:-74px}
+}
+@media(max-width:700px) and (prefers-reduced-motion:reduce){.mobile-simple .mobile-screen,.mobile-simple .iniciativa .ini-turnos-topo{transition:none}}

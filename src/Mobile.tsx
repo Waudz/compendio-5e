@@ -1,3 +1,4 @@
+import { EVENTO_TELA } from "./chromeHide";
 import { useEffect, useRef, useState } from "react";
 import { type Model, TabNode } from "flexlayout-react";
 import { ArrowLeft, BookOpen, Castle, House, Menu, NotebookPen, Swords, UserRound, ScrollText, X } from "lucide-react";
@@ -125,7 +126,7 @@ export function Mobile(_props: Props) {
     window.addEventListener("popstate", aoVoltar);
     return () => window.removeEventListener("popstate", aoVoltar);
   }, []);
-  useEffect(() => restaurarRolagem(scroll.current, positions.current.get(current) ?? 0), [current]);
+  useEffect(() => { window.dispatchEvent(new Event(EVENTO_TELA)); return restaurarRolagem(scroll.current, positions.current.get(current) ?? 0); }, [current]);
   /** Botão "Ficha" do jogador: abre A ficha (a usada por último, ou a mais recente dele), não só a lista; sem ficha ainda, abre a lista para criar. */
   const abrirMinhaFicha = async () => {
     setMenuOpen(false);
