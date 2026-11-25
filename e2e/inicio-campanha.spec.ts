@@ -104,3 +104,39 @@ test('larguras de painel, tela dividida e histórico', async ({ page }, info) =>
   await navigate(page, 'Compêndio'); await page.goBack();
   await expect(page.getByRole('heading', { name: campaignName, exact: true }).first()).toBeVisible();
 });
+
+test('layout aprovado: descrição e aventureiros na largura toda; Diário e Participantes em metades, empilhados quando estreito', async ({ page }, info) => {
+  await openDemo(page);
+  const medir = () => page.locator('[data-testid="campanha-inicio"]').evaluate(home => {
+    const r = (e: Element) => e.getBoundingClientRect();
+    const diario = r(home.querySelector('.home-columns > .home-sec')!), gente = r(home.querySelector('.home-columns > .home-people')!);
+    const desc = r(home.querySelector('.home-desc')!), grade = r(home.querySelector('.home-party')!), cartoes = [...home.querySelectorAll('.home-party > li')].map(r);
+    const membros = [...home.querySelectorAll('.home-people li.camp')].map(r);
+    const util = r(home).width - 2 * (desc.left - r(home).left);
+    return {
+      lado: Math.abs(diario.top - gente.top) < 2, metades: Math.abs(diario.width - gente.width) <= 1.5, empilhado: gente.top >= diario.bottom - 1,
+      descricaoNaLargura: Math.abs(desc.width - util) <= 2,
+      aventureirosNaLargura: Math.abs(grade.width - util) <= 2 && Math.abs(Math.max(...cartoes.map(c => c.right)) - grade.right) <= 2,
+      todos: cartoes.length === 3,
+      membrosIguais: membros.length === 2 && membros.every(m => Math.abs(m.width - membros[0].width) < 1 && Math.abs(m.height - membros[0].height) < 1),
+    };
+  });
+  const larga = (page.viewportSize()?.width ?? 0) >= 1024;
+  await expect.poll(medir).toMatchObject({ descricaoNaLargura: true, aventureirosNaLargura: true, todos: true, membrosIguais: true, ...(larga ? { lado: true, metades: true } : { empilhado: true }) });
+  await expectNoHorizontalOverflow(page); await foto(page, info, 'layout-aprovado');
+  if (larga) { await page.locator('.content:has(>.home)').evaluate(el => { (el as HTMLElement).style.maxWidth = '600px'; }); await expect.poll(medir).toMatchObject({ empilhado: true, membrosIguais: true }); }
+  await page.goto('?demo=jogador');
+  await expect(page.getByRole('button', { name: 'Sair da campanha' })).toHaveCount(0);
+  const mais = page.getByRole('button', { name: 'Mais opções da sua participação' });
+  await mais.scrollIntoViewIfNeeded(); await mais.click();
+  const sair = page.getByRole('button', { name: 'Sair da campanha' });
+  await sair.scrollIntoViewIfNeeded();
+  const caixa = (await sair.boundingBox())!, painel = (await page.locator('.content:has(>.home)').boundingBox())!;
+  expect(caixa.x).toBeGreaterThanOrEqual(painel.x); expect(caixa.x + caixa.width).toBeLessThanOrEqual(painel.x + painel.width + 1);
+  // nada por cima: no ponto central do botão está o próprio botão (não a barra inferior do celular)
+  expect(await sair.evaluate(b => { const r = b.getBoundingClientRect(); const alvo = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return alvo === b || b.contains(alvo); })).toBe(true);
+  await expect.poll(medir).toMatchObject({ membrosIguais: true });
+  await foto(page, info, 'menu-participante');
+  page.once('dialog', d => d.dismiss()); await sair.click();
+  await expect(sair).toHaveCount(0); await expect(mais).toBeVisible();
+});

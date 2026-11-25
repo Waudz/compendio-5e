@@ -1015,3 +1015,32 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .home .home-cover:not([data-com-imagem]) .home-cover-empty{margin-top:28px}
 .home .home-people ul.camp-list{flex-direction:row;align-items:flex-start}
 .home .home-people ul.camp-list li.camp{flex:0 1 auto;width:auto;justify-content:flex-start;font-size:13px}
+
+/* Ajustes aprovados do Início: descrição e aventureiros na largura toda; Diário e Participantes dividem o painel ao meio. */
+.home .home-desc{max-width:none;white-space:pre-wrap;overflow-wrap:anywhere}
+.home .home-sec,.home .home-people{text-align:left;min-width:0}
+.home .home-party{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+.home .home-columns{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.home .home-diario-entry p{max-width:none}
+@container (max-width:720px){.home .home-columns{grid-template-columns:minmax(0,1fr)}}
+/* participantes: cartões iguais, um por linha, nome à esquerda, papel e menu à direita */
+.home .home-people ul.camp-list{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;align-items:stretch}
+.home .home-people ul.camp-list li.camp{display:grid;grid-template-columns:minmax(0,1fr) 32px;align-items:center;gap:8px;width:100%;min-height:48px;box-sizing:border-box;padding:6px 8px 6px 12px;font-size:13px}
+.home .home-people li.camp>div:first-child{display:flex;align-items:center;gap:8px;min-width:0}
+.home .home-people li.camp>div:first-child strong{min-width:0;overflow-wrap:anywhere}
+.home .home-people li.camp .badge{margin-left:auto;flex:none}
+.home .home-people li.camp>.row{margin:0;justify-content:flex-end}
+.menu-participante{position:relative;display:flex}
+.menu-participante .ini-icone{width:32px;height:32px;min-width:32px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+/* abre para CIMA: a lista fica no fim da página, perto da barra inferior do celular */
+.barra-menu.menu-participante-opcoes{right:0;left:auto;top:auto;bottom:calc(100% + 4px);width:max-content;max-width:min(260px,80vw)}
+.menu-participante-opcoes .menu-sair{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px;color:#ef4444}
+/* degradê inferior longo e suave (como no Compêndio 1.0): vários passos até a cor de fundo, sem faixa marcada */
+.home .home-cover::after{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 24%,transparent) 0%,color-mix(in srgb,var(--bg) 14%,transparent) 14%,color-mix(in srgb,var(--bg) 20%,transparent) 28%,color-mix(in srgb,var(--bg) 34%,transparent) 42%,color-mix(in srgb,var(--bg) 52%,transparent) 55%,color-mix(in srgb,var(--bg) 69%,transparent) 67%,color-mix(in srgb,var(--bg) 83%,transparent) 78%,color-mix(in srgb,var(--bg) 93%,transparent) 88%,var(--bg) 100%)}
+.home .home-cover:not([data-com-imagem])::after{background:linear-gradient(180deg,transparent 25%,color-mix(in srgb,var(--bg) 60%,transparent) 65%,var(--bg) 100%)}
+/* Personagens: lista única; aviso de privacidade discreto nos cartões. */
+.personagens .home-party{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px}
+.personagens .home-char{height:100%;gap:12px}.personagens .home-char .retrato-q{flex:none}
+.personagens .home-char>span:last-child{display:flex;flex-direction:column;min-width:0;gap:2px}
+.personagens .home-char strong{white-space:normal;overflow-wrap:anywhere}.personagens .home-char small{overflow-wrap:anywhere}
+.home-char .home-char-nota{font-size:11px;color:var(--muted);font-style:italic}

@@ -431,6 +431,14 @@ A branch `feat/alpha-inicio-campanha` já estava integrada pelo PR #133 (`9be219
 
 **Pendente de autorização:** aplicar `supabase/migrations/0012_campaign_cover_framing.sql` ao projeto 2.0 (`gwcttjlxzelzjhbuitmi`). Até lá, a capa funciona como antes (recorte destrutivo). Próxima prioridade: personagens, fichas e inventário (`PLANO-PERSONAGENS-FICHAS-INVENTARIO.md`).
 
+## Ajustes do Início após o PR #149 (25/11/2026, branch feat/inicio-ajustes)
+
+Descrição e aventureiros na largura toda (todos os autorizados, sem limite); Diário e Participantes em metades, empilhados abaixo de 720 px de painel; cartões de participantes iguais; "Sair da campanha" no menu "…" **com confirmação** (antes saía sem confirmar); degradê da capa em vários passos. Enquadramento inalterado. Os atalhos do mestre que já existiam foram mantidos (nenhum novo).
+
+## Personagens: lista única e Aventureiros (25/11/2026, branch fix/personagens-unificados)
+
+Causas: o Início lia só notas publicadas (a identidade guiada nasce privada); a mensagem de vazio contava só perfis simples; o mestre não abria a ficha porque a página exigia a nota privada, que ele não lê. Agora `src/personagensCampanha.ts` junta, pelo mesmo id, `notes` e `character_sheets` já filtrados pela RLS (nenhum registro novo ou copiado). Aventureiros: publicados + guiados cuja ficha quem olha pode ler, com aviso "não publicado"; perfis simples seguem aparecendo só quando visíveis para a campanha. Personagens: uma lista, um cartão por personagem. A Iniciativa não mudou (DEC-024 exclui fichas privadas): decidir se o mestre deve poder escolher nela os guiados não publicados. Sem migração.
+
 ## Iniciativa: combate vazio e PV ao remover (25/11/2026, branch fix/iniciativa-vazia-pv)
 
 O menu e **Finalizar combate** continuam disponíveis com o combate sem participantes; só turno anterior, próximo turno e reiniciar rodadas exigem um turno. Remover um personagem grava **antes** os PV atuais em `currentHp` da ficha (mesmo `gravarPvFicha`, com revisão): a linha fica bloqueada durante a gravação; se falhar, o mestre escolhe entre manter no combate (nada se perde, inclusive ao recarregar) ou remover descartando. Reentrada continua lendo os PV da ficha. Testes em `src/iniciativaFicha.test.tsx` e `src/iniciativaNuvem.test.tsx`. Sem migração. Limite: não testado contra sessões reais hospedadas.
