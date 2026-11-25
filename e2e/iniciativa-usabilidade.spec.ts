@@ -1,5 +1,5 @@
 import { expectFaixaGeometry, expectTurnControls } from './faixa-geometry';
-import { test, expect, openDemo, navigate, expectNoHorizontalOverflow } from './fixtures';
+import { test, expect, openDemo, navigate, expectNoHorizontalOverflow, escolherCategoria } from './fixtures';
 
 test('próximo turno conserva posição com nomes longos; busca única inclui personagens reais do demo', async ({ page }, info) => {
  await openDemo(page); await navigate(page, 'Iniciativa');
@@ -8,7 +8,7 @@ test('próximo turno conserva posição com nomes longos; busca única inclui pe
  await expect(page.getByRole('button', { name: 'Adicionar Lydia Valenmoor (personagem)', exact: true })).toBeVisible();
  await page.screenshot({ path: info.outputPath('busca-unica.png') });
  for (const [nome, iniciativa] of [['A', '20'], ['Guardião ancestral dos salões de prata e sombras', '10']]) {
-   await page.getByRole('button', { name: 'Combatente avulso', exact: true }).click();
+   await escolherCategoria(page, 'Combatente avulso');
    const form = page.getByRole('form', { name: 'Adicionar combatente' });
    await form.getByLabel('Nome', { exact: true }).fill(nome); await form.getByLabel('Iniciativa', { exact: true }).fill(iniciativa);
    await form.getByLabel('PV (opcional)', { exact: true }).fill('10'); await form.getByRole('button', { name: 'Adicionar', exact: true }).click();

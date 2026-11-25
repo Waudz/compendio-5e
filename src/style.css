@@ -850,8 +850,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .iniciativa .ini-controles-turno .btn-secondary{width:100%;height:38px;min-width:0;box-sizing:border-box;justify-content:center;white-space:nowrap}
 .iniciativa .ini-visualizacao{display:flex;justify-content:flex-end;gap:4px;margin:8px 0 4px}
 .iniciativa .ini-visualizacao .btn-secondary{width:30px;height:30px;min-height:30px;min-width:30px;padding:6px;font-size:0;gap:0;justify-content:center}
-.ini-busca-unica{margin:12px 0;min-width:0}.ini-fontes{display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;max-width:100%;padding:2px 0 8px;scrollbar-width:thin}
-.ini-fontes button{flex:none;font-size:12px;padding:5px 8px;white-space:nowrap}.ini-fontes button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
+.ini-busca-unica{margin:12px 0;min-width:0}.ini-fontes{padding:2px 0 8px}
+.ini-fontes .barra-item{font-size:12px;padding:5px 8px}
 .iniciativa .ini-resultados-unicos{max-height:min(420px,55vh)}.ini-resultados-unicos .ini-seletor{margin:0;padding:6px;border:0}
 .ini-resultados-unicos .ini-seletor>strong{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
 .loot-secao-cabecalho{display:flex;align-items:center;justify-content:space-between;gap:8px}.loot-secao-cabecalho h4{margin:8px 0}
@@ -928,12 +928,38 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .iniciativa .ini-controles-turno .ini-menu-turno-opcoes .btn-secondary{width:100%;justify-content:flex-start}
 .ini-menu-turno-opcoes .ini-finalizar-turno{color:#ef4444}
 
-/* Meia tela: Rodada e ações dividem a mesma linha (faixa baixa). Só em painéis muito estreitos as ações ganham linha própria,
-   sem o ícone do "Próximo turno", para o rótulo caber inteiro. */
-@container ini (max-width:300px){
- .iniciativa .ini-controles-turno .ini-acoes-compactas{flex:1 0 100%;min-width:0;justify-content:center;gap:4px}
- .iniciativa .ini-controles-turno .ini-acoes-compactas .ini-turno-icone{width:30px;min-width:30px}
- .ini-menu-turno{flex-basis:30px}
- .iniciativa .ini-controles-turno .ini-acoes-compactas .ini-proximo-turno{min-width:0;flex:1 1 auto;padding:6px 2px;font-size:12px}
- .iniciativa .ini-controles-turno .ini-acoes-compactas .ini-proximo-turno svg{display:none}
+
+/* Categorias em uma linha, com menu de excedentes (BarraExcedente). */
+.barra-excedente{position:relative;display:flex;flex-wrap:nowrap;gap:4px;align-items:stretch;width:100%;min-width:0}
+.iniciativa .barra-excedente .barra-item,.barra-excedente .barra-item{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;line-height:1.25;min-height:32px;width:auto;margin:0;box-sizing:border-box}
+.barra-excedente .barra-item[aria-pressed=true],.barra-excedente .barra-mais[data-ativo]{border-color:var(--accent);color:var(--accent)}
+.barra-excedente .barra-mais[data-ativo]{box-shadow:inset 0 -2px 0 var(--accent)}
+.barra-menu{position:absolute;top:calc(100% - 4px);z-index:30;display:grid;gap:4px;padding:6px;width:max-content;max-width:100%;box-sizing:border-box;background:var(--panel,#20242c);border:1px solid var(--line,#777);border-radius:8px;box-shadow:0 4px 16px #0004}
+.iniciativa .barra-excedente .barra-menu .barra-item,.barra-excedente .barra-menu .barra-item{justify-content:flex-start;width:100%;white-space:normal;text-align:left}
+.barra-regua{position:absolute;left:0;top:0;width:100%;height:0;overflow:hidden;visibility:hidden;pointer-events:none}
+.barra-regua>div{display:flex;width:max-content}
+.barra-regua span[data-rotulo]::before{content:attr(data-rotulo)}
+
+/* Controles de turno: Rodada à esquerda e o grupo no extremo direito do painel, na mesma linha (largura do PAINEL, via container "ini"). */
+.iniciativa .ini-turnos-topo .ini-barra.ini-controles-turno{display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:center;gap:8px;width:100%;max-width:none}
+.iniciativa .ini-turnos-topo .ini-barra.ini-controles-turno .ini-rodada{flex:0 1 auto;min-width:0;white-space:nowrap;line-height:36px;margin:0}
+.iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-turno.ini-acoes-compactas{display:flex;flex:0 0 auto;min-width:0;margin-left:auto;justify-content:flex-end;align-items:center;gap:6px}
+.iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-compactas .btn-secondary{display:inline-flex;align-items:center;justify-content:center;height:36px;min-height:36px;line-height:1;margin:0;box-sizing:border-box}
+.iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-compactas .btn-secondary svg{display:block;flex:none;width:18px;height:18px}
+.iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-compactas .ini-turno-icone{flex:0 0 36px;width:36px;min-width:36px;padding:0;font-size:0}
+.iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-compactas .ini-proximo-turno{flex:0 0 auto;width:auto;min-width:0;max-width:none;gap:5px;padding:0 10px 0 14px;font-size:13px;white-space:nowrap}
+.iniciativa .ini-turnos-topo .ini-controles-turno .ini-menu-turno{flex:0 0 36px;display:flex}
+.iniciativa .ini-turnos-topo .ini-controles-turno .ini-menu-turno-opcoes .btn-secondary{justify-content:flex-start;font-size:13px;white-space:nowrap}
+.iniciativa .ini-turnos-topo .ini-controles-turno .ini-menu-turno-opcoes .btn-secondary svg{width:15px;height:15px}
+/* sem espaço para o rótulo: o botão azul fica só com a seta (o nome acessível não muda) */
+@container ini (max-width:330px){
+ .iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-compactas .ini-proximo-turno{flex:0 0 44px;width:44px;min-width:44px;padding:0;gap:0;font-size:0}
+}
+@container ini (max-width:200px){
+ .iniciativa .ini-turnos-topo .ini-barra.ini-controles-turno{gap:4px}
+ .iniciativa .ini-turnos-topo .ini-barra.ini-controles-turno .ini-rodada{font-size:12px}
+ .iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-turno.ini-acoes-compactas{gap:3px}
+ .iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-compactas .ini-turno-icone{flex-basis:30px;width:30px;min-width:30px}
+ .iniciativa .ini-turnos-topo .ini-controles-turno .ini-menu-turno{flex-basis:30px}
+ .iniciativa .ini-turnos-topo .ini-controles-turno .ini-acoes-compactas .ini-proximo-turno{flex-basis:34px;width:34px;min-width:34px}
 }

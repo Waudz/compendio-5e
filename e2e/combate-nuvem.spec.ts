@@ -1,4 +1,4 @@
-import { test, expect, navigate, campaignName, expectNoHorizontalOverflow } from './fixtures';
+import { test, expect, navigate, campaignName, expectNoHorizontalOverflow, escolherCategoria } from './fixtures';
 
 // Interface do modo NUVEM exercitada com o servidor FALSO do modo de demonstração (`?demo=mestre&nuvem=1`, só em dev). Isto valida a tela, o salvamento automático e a retomada;
 // a segurança do banco é validada à parte (supabase/*-rls.test.ts em PostgreSQL isolado) e o Supabase hospedado NÃO é tocado.
@@ -28,7 +28,7 @@ test('mestre: encontro → combate → turnos, dano, condição → recarregar �
   await expect(page.getByRole('heading', { name: 'Iniciativa', exact: true })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Combatentes' }).getByText('Goblin', { exact: true })).toBeVisible();
   // a aba Encontros continua aberta (o menu não substitui abas): escopo no formulário do combate
-  await page.getByRole('button', { name: 'Combatente avulso', exact: true }).click();
+  await escolherCategoria(page, 'Combatente avulso');
   const form = page.getByRole('form', { name: 'Adicionar combatente' });
   await form.getByLabel('Nome', { exact: true }).fill('Lydia');
   await form.getByRole('textbox', { name: 'Iniciativa', exact: true }).fill('18');

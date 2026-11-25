@@ -413,3 +413,10 @@ Publicação (push na `main`): 143 s em 07d8dff e 152 s em c04f340, sem mudança
 Avaliado e não implementado: cache dos navegadores Playwright (a instalação mediu 14–39 s e a parte de dependências do sistema continuaria; ganho não demonstrado) e merge automático (a `main` não tem proteção de branch; exige configuração do dono no GitHub). Reexecutar só o que falhou já é nativo ("Re-run failed jobs"; a matriz não cancela as outras suítes) e execuções obsoletas já são canceladas por `concurrency`.
 
 Retomada de Personagens, Fichas e Inventário: [PLANO-PERSONAGENS-FICHAS-INVENTARIO.md](PLANO-PERSONAGENS-FICHAS-INVENTARIO.md).
+
+## Refinamentos visuais da Iniciativa (25/11/2026, branch fix/iniciativa-alinhamento-filtros)
+
+- Controles de turno: Rodada à esquerda e o grupo no extremo direito do painel, na mesma linha (o limite antigo de 780 px na barra e a regra que jogava as ações para outra linha foram removidos). Abaixo de 330 px de painel o botão azul mostra só a seta, com o mesmo nome acessível.
+- Categorias da busca: componente reutilizável `src/BarraExcedente.tsx` (ResizeObserver sobre a largura do componente). O que não cabe vai para o menu "Mais categorias", colado ao último filtro visível; sem rolagem horizontal. Fecha ao escolher, clicar fora ou Escape; a seleção oculta fica marcada.
+- Testes: `src/barraExcedente.test.tsx` e `e2e/iniciativa-layout.spec.ts`. Specs antigos passaram a escolher categorias por `escolherCategoria` (abre o menu em telas estreitas); nenhuma verificação foi removida.
+- Desenvolvido em uma worktree separada porque o clone principal tinha alterações em andamento de outra sessão em `supabase/`.

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { SeletorMonstro, SeletorPersonagem } from "./CombateCompartilhado";
+import { BarraExcedente } from "./BarraExcedente";
 import { SeletorEncontro } from "./SeletorEncontro";
 import type { Encontro } from "./combate";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
@@ -15,7 +16,7 @@ export function BuscaCombatentes({ campaignId, encontros, monstro, personagem, e
   const [selecionado, setSelecionado] = useState<Encontro | null>(null);
   const visivel = (v: typeof aba) => aba === v || (aba === "Todos" && busca.trim().length > 0);
   return <section className="ini-busca-unica" aria-label="Adicionar ao combate">
-    <div className="ini-fontes" role="group" aria-label="Fontes de combatentes">{abas.map(v => <button key={v} type="button" className="btn-secondary" aria-pressed={aba === v} onClick={() => { setAba(v); setBusca(""); setAberto(false); }}>{v}</button>)}</div>
+    <BarraExcedente className="ini-fontes" rotulo="Fontes de combatentes" itens={abas} ativo={aba} onSelecionar={v => { setAba(v); setBusca(""); setAberto(false); }}/>
     {aba === "Combatente avulso" ? <><p className="muted">Crie um combatente que não está no catálogo.</p>{avulso}</> : <div className="pesquisa-catalogo" onFocus={e => { if (e.target instanceof HTMLInputElement) setAberto(true); }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setAberto(false); }} onKeyDown={e => { if (e.key === "Escape") { setAberto(false); e.stopPropagation(); } }}>
       <label>Buscar combatentes<input type="search" value={busca} placeholder="Personagens, monstros ou encontros…" onChange={e => { setBusca(e.target.value); setAberto(true); }}/></label>
       {aberto && (aba !== "Todos" || busca.trim().length > 0) && <div className="pesquisa-resultados ini-resultados-unicos">
