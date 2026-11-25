@@ -1,4 +1,6 @@
+import { Ellipsis, LogOut } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useFecharMenu } from "./useFecharMenu";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
 import { MAX_DESCRIPTION, MAX_NAME, validateCampaign, validateCode, type Invite, type Member, type Res } from "./campaigns";
@@ -127,6 +129,16 @@ export function CampaignsPanel({ onOpen }: { onOpen: (s: TabSpec, mode?: NavMode
   </div>;
 }
 
+/** Ações do próprio participante, recolhidas num menu "…" (mesmo visual e fechamento dos outros menus). */
+function MenuParticipante({ sair, desativado }: { sair: () => void; desativado: boolean }) {
+  const [aberto, setAberto] = useState(false), menu = useRef<HTMLDivElement>(null), gatilho = useRef<HTMLButtonElement>(null);
+  useFecharMenu(aberto, menu, gatilho, () => setAberto(false));
+  return <div className="menu-participante">
+    <button ref={gatilho} type="button" className="btn-secondary ini-icone" aria-label="Mais opções da sua participação" title="Mais opções" aria-expanded={aberto} disabled={desativado} onClick={() => setAberto(a => !a)}><Ellipsis size={16} aria-hidden="true"/></button>
+    {aberto && <div ref={menu} className="barra-menu menu-participante-opcoes"><button type="button" className="btn-secondary menu-sair" onClick={() => { setAberto(false); sair(); }}><LogOut size={15} aria-hidden="true"/> Sair da campanha</button></div>}
+  </div>;
+}
+
 /** Detalhes de uma campanha: dados básicos, participantes e convites. */
 export function CampaignPanel({ id, onOpen, embedded = false, readOnly = false }: { id: string; onOpen: (s: TabSpec, mode?: NavMode) => void; embedded?: boolean; readOnly?: boolean }) {
   const { api, memberships, activeId, setActive, refresh } = useCampaigns();
@@ -184,7 +196,7 @@ export function CampaignPanel({ id, onOpen, embedded = false, readOnly = false }
       <div className="row">
         {isMaster && !readOnly && m.user_id !== user?.id && <>
           <button className="btn-secondary" disabled={people.busy} onClick={() => leave(m.user_id)}>Remover</button></>}
-        {m.user_id === user?.id && !isMaster && <button className="btn-secondary" disabled={people.busy} onClick={() => leave(m.user_id)}>Sair da campanha</button>}
+        {m.user_id === user?.id && !isMaster && <MenuParticipante desativado={people.busy} sair={() => { if (window.confirm(`Sair da campanha "${c.name}"? Você deixará de ter acesso a ela e precisará de um novo convite para voltar.`)) void leave(m.user_id); }}/>}
       </div></li>)}</ul>
     <Notice m={people.msg}/>
 
