@@ -45,6 +45,7 @@ const raca = async (page: Parameters<typeof startCreator>[0], nome: string) => {
 test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder versão/inventário', async ({
   page,
 }, info) => {
+  test.setTimeout(60_000);   // jornada completa (criação, ficha, recarregamento e edição): cerca de 25 s sozinha, acima de 30 s em paralelo
   await activate(page);
   await irEtapa(page, 'Identidade'); await nameField(page).fill('Maga 2014');
   await changeClass(page, 'Mago');
@@ -100,7 +101,8 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await expectInsidePanel(page);
   await salvarParaFicha(page);
   await abaDaFicha(page, 'Habilidades').click();
-  await expect(page.getByRole('list', { name: 'Conjuração' })).toContainText('CD de magia 13');
+  const conjuracao = page.getByRole('region', { name: 'Conjuração', exact: true });
+  await expect(conjuracao.getByRole('list', { name: 'Atributo, CD e ataque' })).toContainText(/INT\s*CD\s*13\s*Ataque/);
   await page.reload();
   await navigate(page, 'Personagens');
   await page.getByRole('button', { name: /^Maga 2014/ }).click();
