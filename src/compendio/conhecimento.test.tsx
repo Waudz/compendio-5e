@@ -211,7 +211,7 @@ describe("Compêndio unificado", () => {
       { id: "p2", title: "Portador B" },
     ]);
     vi.mocked(codex.list).mockResolvedValue([{ ...entry }]);
-    avisarConhecimento();
+    act(() => avisarConhecimento());
     expect(await screen.findByText("Com: Portador B")).toBeTruthy();
     expect(screen.queryByText("Com: Portador A")).toBeNull();
   });
