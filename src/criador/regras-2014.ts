@@ -1278,6 +1278,8 @@ export function statistics2014(d: CharacterDraft) {
   const armorWithoutProficiency = equipped.some(
     (i) =>
       i.armadura &&
+      // "todas as armaduras" (guerreiro, paladino) vale para leves, médias e pesadas; escudos são à parte
+      !(i.armadura.categoria !== 'shield' && proficiency.has('armor: all-armor')) &&
       !proficiency.has(
         'armor: ' +
           (i.armadura.categoria === 'shield'

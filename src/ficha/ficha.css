@@ -135,37 +135,69 @@
 .ficha .ficha-form > input[type='number'] { flex: 0 1 80px; }
 .ficha-remover { background: transparent; border: 1px solid var(--line); border-radius: 6px; color: var(--text); min-width: 30px; min-height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 
-.moedas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.moeda { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
-.moeda-nome { overflow-wrap: anywhere; }
-.moeda-controle { display: inline-flex; align-items: center; gap: 4px; }
-.ficha .moeda-controle input { width: 78px; min-width: 0; text-align: right; padding: 5px 6px; font-variant-numeric: tabular-nums; }
-.ficha .moeda-controle button.ficha-remover { width: 30px; margin: 0; padding: 0; }
+/* moedas lado a lado e a carga logo abaixo, no mesmo bloco */
+.ficha-moedas-carga { gap: 10px; }
+.ficha-moedas-area { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.moedas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+.moeda { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "icone nome" "controle controle"; align-items: center; gap: 4px 8px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+.moeda > .icone-moeda { grid-area: icone; }
+.moeda-nome { grid-area: nome; overflow-wrap: anywhere; font-size: 13px; }
+.moeda-controle { grid-area: controle; display: grid; grid-template-columns: 28px minmax(0, 1fr) 28px; align-items: center; gap: 4px; }
+.ficha .moeda-controle input { width: 100%; min-width: 0; text-align: center; padding: 4px; font-variant-numeric: tabular-nums; }
+.ficha .moeda-controle button.ficha-remover { width: 28px; min-width: 28px; margin: 0; padding: 0; }
 .icone-moeda { flex: none; }
 .moedas-total { display: flex; align-items: center; gap: 6px; margin: 0; }
+.moedas-total > svg { color: var(--dnd-ouro, var(--accent)); }
 .ficha-bloco .moedas-nota { font-size: 12px; }
-.ficha-resumo-inv { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.ficha-carga { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+.ficha-carga-rotulo { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); margin-right: 4px; }
 .ficha-barra-itens { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .ficha-vistas { display: inline-flex; gap: 4px; }
 .ficha.ficha-jogo button.ficha-compacto { width: auto; margin: 0; padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; }
 .ficha-filtros { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .ficha .ficha-filtros input, .ficha .ficha-filtros select { min-width: 0; width: 100%; }
-.ficha-item-imagem { width: 44px; height: 44px; object-fit: contain; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); flex: none; }
-.ficha-itens.grade .ficha-item-imagem { width: 100%; height: 96px; }
-.ficha-item-info { color: var(--text); }
-.ficha-itens.lista { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
-@container (max-width: 400px) { .ficha-filtros { grid-template-columns: minmax(0, 1fr); } .ficha .moeda-controle input { width: 62px; } }
+@container (max-width: 400px) { .ficha-filtros { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------------------------------------------------------------- itens */
 .ficha-itens { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.ficha-itens.grade { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-.ficha-itens > li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; gap: 10px; align-items: center; min-width: 0; }
-.ficha-itens.lista > li { flex-wrap: wrap; }
-.ficha-itens.grade > li { flex-direction: column; text-align: center; }
-.ficha-itens > li.equipado { border-color: var(--accent); }
-.ficha-item-icone { display: inline-flex; width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--line); align-items: center; justify-content: center; flex: none; }
-.ficha-item-nome { flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; overflow-wrap: anywhere; }
-.ficha-itens.grade .ficha-item-nome { flex: 0 0 auto; }
-.ficha-item-acoes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
-.ficha-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--text); text-align: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line); }
+.item-cartao { position: relative; border: 1px solid var(--line); border-radius: 10px; min-width: 0; background: color-mix(in srgb, var(--bg) 45%, transparent); }
+.item-cartao.equipado { border-color: var(--dnd-ouro, var(--accent)); box-shadow: inset 0 0 0 1px var(--dnd-ouro, var(--accent)); }
+.ficha.ficha-jogo button.item-abrir { background: none; border: 0; color: var(--text); font: inherit; cursor: pointer; margin: 0; padding: 0; width: 100%; min-width: 0; text-align: left; border-radius: inherit; }
+.item-imagem { display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; color: var(--text-2); flex: none; }
+.item-imagem img { width: 100%; height: 100%; object-fit: contain; }
+.item-quantidade { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; pointer-events: none; }
+.item-equipado { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--dnd-ouro, var(--accent)); color: #17120a; pointer-events: none; }
+/* grade: cartões quadrados; nome, quantidade, indicador e menu sempre nos mesmos cantos */
+.ficha-itens.grade { grid-template-columns: repeat(auto-fill, minmax(min(100%, 118px), 1fr)); }
+.ficha-itens.grade .item-cartao { aspect-ratio: 1 / 1; overflow: visible; }
+.ficha.ficha-jogo .ficha-itens.grade button.item-abrir { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 4px; padding: 26px 6px 6px; }
+.ficha-itens.grade .item-imagem { flex: 1 1 0; min-height: 0; width: 100%; }
+.ficha-itens.grade .item-imagem img { max-height: 100%; }
+.ficha-itens.grade .item-imagem svg { width: 40%; height: 60%; }
+.ficha-itens.grade .item-texto { width: 100%; height: 2.5em; flex: none; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 12px; line-height: 1.25; }
+.ficha-itens.grade .item-nome { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.ficha-itens.grade .item-quantidade { position: absolute; left: 5px; top: 5px; }
+.ficha-itens.grade .item-equipado { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); }
+.ficha-itens.grade .item-menu { position: absolute; right: 3px; top: 3px; }
+.ficha-itens .menu-acoes-gatilho { width: 26px; height: 26px; }
+/* lista: mesma ordem em todas as linhas */
+.ficha-itens.lista { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.ficha-itens.lista .item-cartao { display: grid; grid-template-columns: minmax(0, 1fr) auto 20px 30px; align-items: center; gap: 8px; padding: 6px 8px; }
+.ficha.ficha-jogo .ficha-itens.lista button.item-abrir { display: flex; align-items: center; gap: 10px; }
+.ficha-itens.lista .item-imagem { width: 44px; height: 44px; border: 1px solid var(--line); background: var(--bg); }
+.ficha-itens.lista .item-texto { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.ficha-itens.lista .item-nome { font-weight: 600; }
+.ficha-itens.lista .item-info { font-size: 12px; color: var(--text-2); }
+.ficha-itens.lista .item-quantidade { grid-column: 2; }
+.ficha-itens.lista .item-equipado { grid-column: 3; }
+.ficha-itens.lista .item-menu { grid-column: 4; }
+@container (max-width: 300px) {
+  .ficha-itens.grade { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .ficha-itens.lista .item-cartao { grid-template-columns: minmax(0, 1fr) auto 30px; }
+  .ficha-itens.lista .item-imagem { display: none; }
+  .ficha-itens.lista .item-equipado { display: none; }
+  .ficha-itens.lista .item-menu { grid-column: 3; }
+}
 .ficha-adicionar { display: flex; flex-direction: column; gap: 6px; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; }
 .ficha-salvamento { margin: 8px 0 0; font-size: 12px; }
 .ficha-dado { font-size: 11px; }

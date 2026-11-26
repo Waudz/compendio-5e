@@ -1,5 +1,5 @@
 // Moedas do personagem: só as que a campanha usa, cada uma com ícone, nome, quantidade editável e − / +, e o patrimônio em PO.
-import { Minus, Plus } from "lucide-react";
+import { Coins, Minus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { IconeMoeda } from "./IconeMoeda";
 import { formatarOuro, MOEDAS, totalEmOuro, type Carteira, type ChaveMoeda } from "./moedas";
@@ -7,11 +7,11 @@ import { formatarOuro, MOEDAS, totalEmOuro, type Carteira, type ChaveMoeda } fro
 export const MAX_MOEDAS = 10_000_000;
 
 export function CartaoMoedas({ carteira, ativas, onDefinir }: { carteira: Carteira | undefined; ativas: readonly ChaveMoeda[]; onDefinir: (chave: ChaveMoeda, n: number) => void }) {
-  const ocultas = MOEDAS.some(m => !ativas.includes(m.chave) && (carteira?.[m.chave] ?? 0) > 0);
+  const desativadas = MOEDAS.map(m => m.chave).filter(c => !ativas.includes(c) && (carteira?.[c] ?? 0) > 0);
   return <>
     <ul className="moedas">{MOEDAS.filter(m => ativas.includes(m.chave)).map(m => <Linha key={m.chave} chave={m.chave} nome={m.nome} sigla={m.sigla} valor={carteira?.[m.chave] ?? 0} onDefinir={n => onDefinir(m.chave, n)}/>)}</ul>
-    <p className="moedas-total"><IconeMoeda tipo="gp" tamanho={16}/> Patrimônio: <strong data-testid="patrimonio">{formatarOuro(totalEmOuro(carteira, ativas))}</strong></p>
-    {ocultas && <p className="muted moedas-nota">Há valores antigos em moedas que a campanha não usa. Eles continuam guardados na ficha e não entram no total.</p>}
+    <p className="moedas-total"><Coins size={16} aria-hidden="true"/> Patrimônio: <strong data-testid="patrimonio">{formatarOuro(totalEmOuro(carteira, ativas))}</strong></p>
+    {desativadas.length > 0 && <p className="muted moedas-nota" data-testid="saldo-desativado">Guardado em moedas que a campanha não usa ({MOEDAS.filter(m => desativadas.includes(m.chave)).map(m => `${carteira![m.chave]} ${m.sigla}`).join(", ")}): {formatarOuro(totalEmOuro(carteira, desativadas))}, fora do patrimônio.</p>}
   </>;
 }
 

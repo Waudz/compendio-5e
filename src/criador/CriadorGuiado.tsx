@@ -156,7 +156,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const sujo = carga === "pronto" && retrato !== (salvo ?? vazio) && (salvo !== null || draft.name.trim() !== "" || draft.inventory.length > 0 || draft.decisions.length > 0);
   const { sheet, erro } = useMemo(() => { try { return { sheet: calcularFicha({ ...draft, name: draft.name.trim() || "Sem nome" }), erro: "" }; }  catch (e) { return { sheet: null, erro: e instanceof Error ? e.message : String(e) }; } }, [draft]);
   const mudar = (proximo: CharacterDraft) => { setDraft(proximo); setMsg(null); };
-  const moedas = useMoedasDaCampanha(campaignId).ativas;
+  const configMoedas = useMoedasDaCampanha(campaignId), moedas = configMoedas.ativas;
   /** Fluxos que ENTREGAM dinheiro (equipamento inicial, origem): o valor chega nas moedas que a campanha usa. */
   const mudarComEntrega = (proximo: CharacterDraft) => mudar(proximo.currency === draft.currency ? proximo : { ...proximo, currency: { cp: 0, sp: 0, gp: 0, ...entregarNasAtivas(draft.currency, proximo.currency, moedas) } });
 
@@ -426,7 +426,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     const naoSalvo = sujo && !salvando && falhou.current === retrato;
     return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
       <FichaJogo draft={draftTela} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudarNaFicha} vital={vital} usarItem={usarItem} transferir={transferir} personagemId={idReal} campaignId={campaignId} onOpenContent={onOpenContent}
-        onEditar={editar} onProgredir={editar} podeConceder={mestre} moedas={moedas}
+        onEditar={editar} onProgredir={editar} podeConceder={mestre} moedas={configMoedas.pronto ? moedas : null}
         salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
           {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
         avisos={<>{avisoConflito}

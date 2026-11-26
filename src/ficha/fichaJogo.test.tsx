@@ -60,6 +60,9 @@ const irPara = (nome: string) => fireEvent.click(abas().getByRole("button", { na
 const draftSalvo = () => banco.fichas[0].draft;
 const numero = (rotulo: string) => within(screen.getByRole("region", { name: "Resumo do personagem" })).getByText(rotulo).parentElement!.querySelector("strong")!.textContent;
 const salvou = (verifica: () => void) => waitFor(verifica, { timeout: 4000 });
+/** As ações de um item ficam no menu de reticências dele. */
+const acaoDoItem = (item: string, acao: string) => { fireEvent.click(screen.getByRole("button", { name: `Ações de ${item}` })); fireEvent.click(screen.getByRole("menuitem", { name: acao })); };
+const acoesDe = (item: string) => { fireEvent.click(screen.getByRole("button", { name: `Ações de ${item}` })); const nomes = screen.getAllByRole("menuitem").map(m => m.textContent!.trim()); fireEvent.keyDown(document, { key: "Escape" }); return nomes; };
 
 describe("ficha de jogo", () => {
   it("tem exatamente três abas e um cabeçalho com retrato, nome, alcunha e os números de combate", async () => {
@@ -108,10 +111,10 @@ describe("ficha de jogo", () => {
     await semear();
     await abrirFicha();
     irPara("Inventário");
-    expect(screen.queryByRole("checkbox", { name: "Equipar Mochila" })).toBeNull();
-    fireEvent.click(screen.getByRole("checkbox", { name: "Equipar Cota de malha" }));
+    expect(acoesDe("Mochila")).not.toContain("Equipar");
+    acaoDoItem("Cota de malha", acoesDe("Cota de malha").includes("Equipar") ? "Equipar" : "Desequipar");
     expect(numero("CA")).toBe("16");
-    fireEvent.click(screen.getByRole("checkbox", { name: "Equipar Espada longa" }));
+    acaoDoItem("Espada longa", "Equipar");
     irPara("Habilidades");
     const ataques = within(screen.getByRole("region", { name: "Ataques" }));
     expect(ataques.getByText("Espada longa")).toBeTruthy();
@@ -143,11 +146,16 @@ describe("ficha de jogo", () => {
     fireEvent.click(screen.getByRole("button", { name: "Adicionar item" }));
     fireEvent.change(screen.getByLabelText("Adicionar item do catálogo"), { target: { value: "adaga" } });
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Adaga" }));
-    fireEvent.click(screen.getByRole("button", { name: "Aumentar Adaga" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ações de Adaga" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Alterar quantidade" }));
+    fireEvent.change(within(screen.getByRole("dialog", { name: "Quantidade de Adaga" })).getByLabelText("Quantidade"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar quantidade" }));
     fireEvent.change(screen.getByLabelText("Filtrar inventário"), { target: { value: "armas" } });
     const itens = within(screen.getByRole("region", { name: "Inventário do personagem" }));
     expect(itens.queryByText("Mochila")).toBeNull();
-    expect(itens.getByRole("button", { name: "Consultar Adaga no Compêndio" })).toBeTruthy();
+    fireEvent.click(itens.getByRole("button", { name: "Detalhes de Adaga" }));
+    expect(within(screen.getByRole("dialog", { name: "Adaga" })).getByRole("button", { name: "Consultar Adaga no Compêndio" })).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Adaga" })).getByRole("button", { name: "Fechar" }));
     fireEvent.click(screen.getByRole("button", { name: "Ver em grade" }));
     expect(document.querySelector(".ficha-itens.grade")).toBeTruthy();
     expect(screen.getByTestId("carga").textContent).toMatch(/kg de 105 kg/);
@@ -249,8 +257,8 @@ describe("ficha de jogo", () => {
     const publicoAntes = publico();
     await abrirFicha(mestreUser);
     irPara("Inventário");
-    expect(screen.getByRole("checkbox", { name: "Equipar Cota de malha" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("checkbox", { name: "Equipar Cota de malha" }));
+    expect(screen.getByRole("button", { name: "Ações de Cota de malha" })).toBeTruthy();
+    acaoDoItem("Cota de malha", acoesDe("Cota de malha").includes("Equipar") ? "Equipar" : "Desequipar");
     await salvou(() => expect(banco.fichas[0].revision).toBe(2));
     expect(banco.fichas[0].ownerId).toBe(me.id);
     expect(publico()).toBe(publicoAntes);   // o conteúdo público não muda quando o mestre mexe só em dados privados
@@ -388,7 +396,7 @@ describe("inventário: moedas da campanha, poções e informações dos itens", 
     expect(moedas.queryByLabelText("Moedas de electro (PE)")).toBeNull();
     expect(moedas.getAllByRole("listitem")).toHaveLength(3);
     expect(moedas.getByTestId("patrimonio").textContent).toBe("12,05 PO");
-    expect(moedas.getByText(/continuam guardados/)).toBeTruthy();
+    expect(moedas.getByTestId("saldo-desativado").textContent).toMatch(/7 PE, 3 PL\): 33,5 PO, fora do patrimônio/);
     fireEvent.click(moedas.getByRole("button", { name: "Adicionar 1 moeda de ouro (PO)" }));
     await salvou(() => expect(draftSalvo().currency).toEqual({ cp: 5, sp: 20, ep: 7, gp: 11, pp: 3 }));
   });
@@ -431,5 +439,68 @@ describe("habilidades: filtros por ação, favoritos e detalhes sem perder a fic
     // cada grupo mantém a sua aba selecionada: a ficha de um lado, a magia do outro (a visibilidade real é conferida no Playwright)
     const selecionadas = [...document.querySelectorAll(".flexlayout__tab_button--selected .flexlayout__tab_button_content")].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ""));
     expect(selecionadas.sort()).toEqual(["Raio de Fogo", "Thorin"]);
+  });
+});
+
+describe("itens: usar, transferir e excluir", () => {
+  const comInventario = async (extra: { itemId: string; id: string; quantity: number }[]) => {
+    const id = await semear();
+    banco.fichas[0].draft.inventory = [...banco.fichas[0].draft.inventory, ...extra.map(x => ({ ...x, equipped: false, origin: "acquired" as const }))];
+    banco.fichas[0].draft.currentHp = 5;
+    await abrirFicha(); irPara("Inventário");
+    return id;
+  };
+  const POCAO = "Poção de Cura";
+
+  it("usar a poção pede o resultado da rolagem, cura até o máximo, baixa uma unidade e registra no histórico, uma única vez", async () => {
+    await comInventario([{ id: "pocao", itemId: "potion-of-healing-common", quantity: 2 }]);
+    const nome = screen.getByRole("listitem", { name: /Poção de [Cc]ura/ }).getAttribute("aria-label")!;
+    acaoDoItem(nome, "Usar");
+    const janela = within(screen.getByRole("dialog", { name: `Usar ${nome}` }));
+    const confirmar = janela.getByRole("button", { name: "Usar e curar" }) as HTMLButtonElement;
+    expect(confirmar.disabled).toBe(true);                                   // sem resultado não há consumo
+    const campo = janela.getByLabelText(/Resultado da rolagem de 2d4\+2 \(de 4 a 10\)/);
+    fireEvent.change(campo, { target: { value: "11" } }); expect(confirmar.disabled).toBe(true);
+    fireEvent.change(campo, { target: { value: "7" } });
+    fireEvent.click(confirmar); fireEvent.click(confirmar);                    // clique duplo não consome duas vezes
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(draftSalvo().currentHp).toBe(12);
+    expect(draftSalvo().inventory.find(i => i.id === "pocao")!.quantity).toBe(1);
+    await waitFor(() => expect(screen.getByTestId("ficha-pv").textContent).toMatch(/^12 \//));
+    expect(screen.getByText(new RegExp(`Usou .*: \\+7 PV`))).toBeTruthy();
+    expect(screen.queryByTestId("aviso-conflito")).toBeNull();
+    void POCAO;
+  });
+
+  it("transferir move a quantidade para outro personagem da campanha e a ficha de origem se atualiza", async () => {
+    const outra = await fichasEmMemoria(me.id, banco).criar("ca", { ...rascunho, name: "Lydia", inventory: [] }, { identity: defaultPublicIdentity(), source: { name: "Lydia", alias: "", race: "Humana", characterClass: "Clériga", level: "3", portrait: "" } });
+    if (!outra.ok) throw new Error(outra.error);
+    const origem = await semear();
+    banco.fichas.reverse();                                                   // a ficha de Thorin volta a ser a primeira
+    banco.fichas[0].draft.inventory = [{ id: "f", itemId: "arrow", quantity: 20, equipped: false, origin: "acquired" }];
+    await abrirFicha(); irPara("Inventário");
+    acaoDoItem("Flecha", "Transferir");
+    const janela = within(screen.getByRole("dialog", { name: "Transferir Flecha" }));
+    fireEvent.change(await janela.findByLabelText("Para quem"), { target: { value: outra.data.id } });
+    fireEvent.change(janela.getByLabelText(/Quantidade/), { target: { value: "21" } });
+    expect((janela.getByRole("button", { name: "Transferir" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(janela.getByLabelText(/Quantidade/), { target: { value: "5" } });
+    fireEvent.click(janela.getByRole("button", { name: "Transferir" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(banco.fichas.find(f => f.id === origem)!.draft.inventory).toMatchObject([{ id: "f", quantity: 15 }]);
+    expect(banco.fichas.find(f => f.id === outra.data.id)!.draft.inventory).toMatchObject([{ itemId: "arrow", quantity: 5, equipped: false }]);
+    expect(screen.getByRole("listitem", { name: "Flecha" }).textContent).toContain("×15");
+  });
+
+  it("excluir pede confirmação; cancelar mantém o item", async () => {
+    await comInventario([{ id: "corda", itemId: "rope-hempen-50-feet", quantity: 1 }]);
+    const nome = screen.getAllByRole("listitem").map(l => l.getAttribute("aria-label") ?? "").find(n => /Corda/.test(n))!;
+    acaoDoItem(nome, "Excluir");
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancelar" }));
+    expect(screen.getByRole("listitem", { name: nome })).toBeTruthy();
+    acaoDoItem(nome, "Excluir");
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Excluir" }));
+    expect(screen.queryByRole("listitem", { name: nome })).toBeNull();
+    await salvou(() => expect(draftSalvo().inventory.some(i => i.id === "corda")).toBe(false));
   });
 });

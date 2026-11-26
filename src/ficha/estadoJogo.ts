@@ -13,7 +13,7 @@ export const ROTULO_DEFESA: Record<TipoDefesa, string> = { resistencia: "Resist�
 export type ModTemporario = { id: string; nome: string; alvo: AlvoMod; valor: number };
 export type Defesa = { id: string; tipo: TipoDefesa; texto: string };
 export type AtaquePersonalizado = { id: string; nome: string; bonus: string; dano: string; notas?: string };
-export type Movimento = { em: string; texto: string };
+export type Movimento = { em: string; texto: string; /** Nas operações do servidor, `{item}` no texto é este item do catálogo. */ itemId?: string };
 export type TipoConcedido = "talento" | "magia" | "habilidade";
 export const ATRIBUTOS_CONJ = ["str", "dex", "con", "int", "wis", "cha"] as const;
 /** Talento, magia ou habilidade entregue pelo mestre ou ligada a um item do inventário (`itemInstancia`). */
@@ -48,7 +48,7 @@ export function lerEstadoJogo(draft: { play?: unknown }): EstadoJogo {
     modificadores: lista(p.modificadores, 20, x => (texto(x.id, 60) && typeof x.alvo === "string" && x.alvo in ROTULO_ALVO && typeof x.valor === "number" ? { id: texto(x.id, 60), nome: texto(x.nome, 60), alvo: x.alvo as AlvoMod, valor: inteiro(x.valor, -30, 30) } : null)),
     defesas: lista(p.defesas, 30, x => (texto(x.id, 60) && typeof x.tipo === "string" && x.tipo in ROTULO_DEFESA && texto(x.texto, 80).trim() ? { id: texto(x.id, 60), tipo: x.tipo as TipoDefesa, texto: texto(x.texto, 80) } : null)),
     ataques: lista(p.ataques, 20, x => (texto(x.id, 60) && texto(x.nome, 60).trim() ? { id: texto(x.id, 60), nome: texto(x.nome, 60), bonus: texto(x.bonus, 20), dano: texto(x.dano, 60), ...(texto(x.notas, 200) ? { notas: texto(x.notas, 200) } : {}) } : null)),
-    historico: lista(p.historico, MAX_HISTORICO, x => (texto(x.texto, 160) ? { em: texto(x.em, 30), texto: texto(x.texto, 160) } : null)),
+    historico: lista(p.historico, MAX_HISTORICO, x => (texto(x.texto, 160) ? { em: texto(x.em, 30), texto: texto(x.texto, 160), ...(texto(x.itemId, 80) ? { itemId: texto(x.itemId, 80) } : {}) } : null)),
     concedidos: lista(p.concedidos, MAX_CONCEDIDOS, lerConcedido),
     favoritos: Array.isArray(p.favoritos) ? [...new Set(p.favoritos.filter((x): x is string => typeof x === "string" && !!x && x.length <= 120))].slice(0, MAX_FAVORITOS) : [],
   };

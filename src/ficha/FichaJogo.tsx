@@ -55,8 +55,8 @@ export type FichaJogoProps = {
   memoria: string;
   onChange: (d: CharacterDraft) => void; onOpenContent: (s: TabSpec) => void;
   onEditar: () => void; onProgredir: () => void;
-  /** Moedas em uso na campanha. */
-  moedas?: readonly ChaveMoeda[];
+  /** Moedas em uso na campanha (`null` enquanto carregam). */
+  moedas?: readonly ChaveMoeda[] | null;
   /** O mestre pode entregar talentos, magias e habilidades. */
   podeConceder?: boolean;
   /** Estado do salvamento e avisos (conflito, recuperação, sincronização). */

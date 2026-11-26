@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classes2014, races2014, raceTraits2014, resourceLabel2014, sheet2014, shortId, spells2014 } from "../criador/regras-2014";
+import { classes2014, races2014, raceTraits2014, resourceLabel2014, sheet2014, shortId, spells2014, statistics2014 } from "../criador/regras-2014";
 import type { CharacterDraft } from "../rules/character-domain";
 import { concedidosAtivos, lerEstadoJogo, type Concedido } from "./estadoJogo";
 import { caracteristicasDaFicha, dadosDaArma, dadosDaMagia, formulaDano, magiasDaFicha } from "./regrasFicha";
@@ -78,5 +78,12 @@ describe("traduções e cartões", () => {
     }
     const d = escolher(base({ level: 3 }), "subclass", ["evocation"]);
     expect(caracteristicasDaFicha(d, sheet2014(d)).filter(c => !c.descricao && !c.valores.length && !c.recursos.length && c.nome === "Evocação")).toEqual([]);
+  });
+});
+
+describe("armadura sem proficiência", () => {
+  it("quem tem todas as armaduras (guerreiro, paladino) não recebe o aviso; o mago recebe", () => {
+    const veste = (classId: string) => statistics2014(base({ classId, inventory: [{ id: "a", itemId: "chain-mail", quantity: 1, equipped: true, origin: "starting" }] })).armorWithoutProficiency;
+    expect(veste("fighter")).toBe(false); expect(veste("paladin")).toBe(false); expect(veste("wizard")).toBe(true);
   });
 });
