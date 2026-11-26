@@ -66,6 +66,8 @@ export function UsarItem({ item, vida, maximo, nomeProprio, campaignId, personag
   const { lista } = useDestinos(faixa ? campaignId : undefined, personagemId);
   const [rolagem, setRolagem] = useState(""), [ocupado, setOcupado] = useState(false), [erro, setErro] = useState<string | null>(null);
   const n = Number(rolagem), valido = !faixa || (rolagem.trim() !== "" && Number.isInteger(n) && n >= faixa.min && n <= faixa.max);
+  // a rolagem é o que os dados deram; a cura aplicada para no PV máximo (a mesma regra da operação no servidor)
+  const aplicada = faixa && valido ? Math.max(0, Math.min(maximo - vida, n)) : 0;
   const confirmar = async () => {
     if (!valido || ocupado) return;
     setOcupado(true); setErro(null);
@@ -79,11 +81,15 @@ export function UsarItem({ item, vida, maximo, nomeProprio, campaignId, personag
     {faixa ? <form onSubmit={e => { e.preventDefault(); void confirmar(); }}>
       <Opcoes rotulo="Utilizar em" nome="alvo-da-cura" valor="proprio" onEscolher={() => {}} opcoes={[{ id: "proprio", rotulo: `${nomeProprio} (você)` }, ...outros.map(p => ({ id: p.id, rotulo: p.nome, desabilitada: true }))]}/>
       {outros.length > 0 && <p className="janela-pendente">Curar outro personagem ainda não está disponível.</p>}
-      <label>Resultado da cura ({d!.cura}: de {faixa.min} a {faixa.max})<input type="number" inputMode="numeric" min={faixa.min} max={faixa.max} value={rolagem} onChange={e => setRolagem(e.target.value)}/></label>
-      <p>PV agora: {vida} de {maximo}{valido ? `. Depois: ${Math.min(maximo, vida + (vida < maximo ? n : 0))} de ${maximo}.` : "."} Uma unidade sai do seu inventário.</p>
+      <label>Resultado da rolagem ({d!.cura}: de {faixa.min} a {faixa.max})<input type="number" inputMode="numeric" min={faixa.min} max={faixa.max} value={rolagem} onChange={e => setRolagem(e.target.value)}/></label>
+      <dl className="ficha-dados" data-testid="previa-da-cura">
+        <div className="ficha-par"><dt>Cura aplicada</dt><dd>{valido ? `${aplicada} PV${aplicada < n ? ` (${n - aplicada} da rolagem passam do máximo)` : ""}` : "informe a rolagem"}</dd></div>
+        <div className="ficha-par"><dt>PV</dt><dd>{valido ? `${vida} → ${vida + aplicada} de ${maximo}` : `${vida} de ${maximo}`}</dd></div>
+      </dl>
+      <p>Uma unidade sai do seu inventário{valido && aplicada === 0 ? ", mesmo sem recuperar PV" : ""}.</p>
     </form> : <p>Este item não tem efeito automatizado no catálogo. Uma unidade sai do inventário; aplique o efeito na mesa.</p>}
     {erro && <p role="alert" className="notice err">{erro}</p>}
-    <button type="button" className="btn-primary janela-principal" disabled={!valido || ocupado} onClick={() => void confirmar()}>{ocupado ? "Usando…" : !faixa ? "Confirmar consumo" : valido ? `Curar ${nomeProprio} em ${n} PV` : `Curar ${nomeProprio}`}</button>
+    <button type="button" className="btn-primary janela-principal" disabled={!valido || ocupado} onClick={() => void confirmar()}>{ocupado ? "Usando…" : !faixa ? "Confirmar consumo" : valido ? `Curar ${nomeProprio} em ${aplicada} PV` : `Curar ${nomeProprio}`}</button>
   </Modal>;
 }
 

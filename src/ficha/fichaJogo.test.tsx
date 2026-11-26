@@ -507,7 +507,7 @@ describe("itens: usar, transferir e excluir", () => {
     const janela = within(screen.getByRole("dialog", { name: `Usar ${nome}` }));
     const confirmar = janela.getByRole("button", { name: "Curar Thorin" }) as HTMLButtonElement;
     expect(confirmar.disabled).toBe(true);                                   // sem resultado não há consumo
-    const campo = janela.getByLabelText(/Resultado da cura \(2d4\+2: de 4 a 10\)/);
+    const campo = janela.getByLabelText(/Resultado da rolagem \(2d4\+2: de 4 a 10\)/);
     fireEvent.change(campo, { target: { value: "11" } }); expect(confirmar.disabled).toBe(true);
     fireEvent.change(campo, { target: { value: "7" } });
     expect(confirmar.textContent).toBe("Curar Thorin em 7 PV");
@@ -519,6 +519,17 @@ describe("itens: usar, transferir e excluir", () => {
     expect(screen.getByText(new RegExp(`Usou .*: \\+7 PV`))).toBeTruthy();
     expect(screen.queryByTestId("aviso-conflito")).toBeNull();
     void POCAO;
+  });
+
+  it("separa o resultado da rolagem da cura aplicada, que para no PV máximo", async () => {
+    await comInventario([{ id: "pocao", itemId: "potion-of-healing-common", quantity: 1 }]);
+    const maximo = Number(screen.getByTestId("ficha-pv").textContent!.split(" / ")[1]);
+    acaoDoItem(screen.getByRole("listitem", { name: /Poção de [Cc]ura/ }).getAttribute("aria-label")!, "Usar");
+    const janela = within(screen.getByRole("dialog"));
+    fireEvent.change(janela.getByLabelText(/Resultado da rolagem/), { target: { value: "10" } });
+    const aplicada = Math.min(maximo - 5, 10);
+    expect(janela.getByTestId("previa-da-cura").textContent).toContain(`5 → ${5 + aplicada} de ${maximo}`);
+    expect(janela.getByRole("button", { name: /^Curar Thorin/ }).textContent).toBe(`Curar Thorin em ${aplicada} PV`);
   });
 
   it("transferir move a quantidade para outro personagem da campanha e a ficha de origem se atualiza", async () => {
