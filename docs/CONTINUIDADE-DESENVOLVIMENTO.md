@@ -768,3 +768,27 @@ rodada. Não confundir o Preview aprovado com aprovação do build oficial.
 aplicativo e E2E aprovados; **1742 testes em 144 arquivos aprovados**. O workflow de
 CI do próximo commit é a evidência exigida para Playwright e stack real. Aguardar
 seus resultados antes de integrar/publicar; validação física/F11 continua pendente.
+
+As categorias agora são destinos `categoria:<id>` do histórico global, preservando
+as verificações de campanha e a projeção de jogador. Voltar/Avançar alcançam tanto
+índice → categoria quanto categoria → registro; menus e gestos continuam explícitos.
+Os títulos restaurados vêm das definições atuais, e a seção ativa segue a página
+exibida, não o ID original da aba. Os 39 testes de Compêndio/catálogo/bloqueio passaram;
+novo build e bateria completa: **1742/1742, 144 arquivos**, sem falhas.
+Na rodada CI de `aa85842`, as duas metades do Creator passaram; Quality ainda procurava
+a ordem antiga do contexto lateral. Corrigido mantendo as verificações de foco e
+setas para as três ações atuais. Conferir o próximo SHA para o conjunto final.
+
+A rodada Base de `aa85842` identificou uma corrida após salvar registros: o editor
+limpava a antiga chave de guarda, mas a guarda agora tem identidade própria. A
+liberação passa a ser explícita e exclusiva do editor confirmado pelo servidor,
+antes da navegação; teste de regressão incluído. Voltar/navegar localmente consultam
+as guardas da aba afetada, sem bloquear por edições preservadas em outra aba.
+A cobertura lateral da faixa sticky também exigiu eliminar a diferença de referência
+entre percentuais de padding e margem negativa: recuo calculado em comprimento e
+compartilhado, mantendo as verificações geométricas existentes.
+
+**Último check local consolidado:** build e tipos de aplicativo/E2E aprovados;
+**1743 testes aprovados em 144 arquivos**, incluindo a regressão da guarda liberada
+após salvar. A próxima execução do CI precisa confirmar as correções de navegador e
+geometria; não há autorização de merge/deploy ou migração de produção nesta sessão.

@@ -173,7 +173,6 @@ describe('lista, grade e detalhe', () => {
     await montar(); await abrirCompendio(); categoria('Magias'); await waitFor(() => expect(contagem()).toBe('319'));
     pesquisar('bola de fogo'); filtro('escola', 'evocation');
     categoria('Monstros'); await waitFor(() => expect(contagem()).toBe('323'));
-    fireEvent.click(screen.getByRole('button', {name:'Voltar na aba'}));
     expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('');
     expect(screen.queryByLabelText('Filtrar por escola')).toBeNull(); expect(screen.getByLabelText('Filtrar por tipo')).toBeTruthy();
     categoria('Itens'); expect(contagem()).toBe('578');

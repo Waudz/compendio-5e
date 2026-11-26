@@ -1,3 +1,4 @@
+import {tituloDe,useVersaoRegistros} from "./registrosStore";
 import { VoltarPaginaContext } from "./voltarPagina";
 import { SinoNotificacoes } from "./compendio/Notificacoes";
 import { EVENTO_TELA } from "./chromeHide";
@@ -74,6 +75,8 @@ export function Mobile(_props: Props) {
   }, [menuOpen]);
   const scroll = useRef<HTMLDivElement>(null);
   const positions = useRef(new Map<string, number>());
+  useVersaoRegistros();
+  const pageTitle=["documento","ficha","criador"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
   const current = tabId(screen);
   const currentRef=useRef(current);currentRef.current=current;
   const menuRef=useRef(menuOpen);menuRef.current=menuOpen;
@@ -123,7 +126,7 @@ export function Mobile(_props: Props) {
       const state=event.state as {compendioMobileEntry?:string;compendioMobileScope?:string}|null;
       if(state?.compendioMobileScope!==scope||!state.compendioMobileEntry)return;
       const target=snapshots.current.get(state.compendioMobileEntry);if(!target)return;
-      if(menuRef.current){setMenuOpen(false);return;}
+      if(menuRef.current){setMenuOpen(false);window.history.pushState({compendioMobile:true,compendioMobileEntry:entry.current,compendioMobileScope:scope},"",window.location.href);return;}
       const nextId=state.compendioMobileEntry;
       positions.current.set(currentRef.current,scroll.current?.scrollTop??0);
       void unsaved.confirmAll().then(allowed=>{
@@ -182,7 +185,7 @@ export function Mobile(_props: Props) {
   return <AbrirEmAbaContext.Provider value={{navegar:s=>navigate(s),abrir:s=>navigate(s),mostrar:(_x,_y,s)=>navigate(s)}}><div className="mobile mobile-simple">
     {!fichaPropria && !meus && <header className="mobile-topbar">
       <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
-      <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{defaultTitle(screen)}</span></div>
+      <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{pageTitle}</span></div>
       <SinoNotificacoes onOpenContent={navigate}/><button className="mobile-icon-btn" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/></button>
     </header>}
     <div className="mobile-screen" ref={scroll}>

@@ -1,5 +1,5 @@
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
-import { MonstroPagina } from "./Compendio";
+import { CategoriaCompendio, MonstroPagina } from "./Compendio";
 import { BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
@@ -23,6 +23,7 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   onOpen: (s: TabSpec, mode?: NavMode) => void;   // abertura administrativa/de menu (modo explícito; padrão: reutilizar a aba)
   onOpenContent: (s: TabSpec) => void;            // link interno: navega na página atual; nova aba/grupo é uma ação explícita
 }) {
+  if (kind === "categoria") return <CategoriaCompendio id={id} onOpenContent={onOpenContent}/>;
   if (kind === "nova") return <NovaAba onOpen={onOpenContent}/>;
   if (kind === "registro") return <RegistroCompendioPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "identidade") return <IdentidadePagina id={id} onOpenContent={onOpenContent}/>;

@@ -2,7 +2,7 @@ import { Modal } from "../ui/Modal";
 import { EditorEnquadramento } from "../imagem/EditorEnquadramento";
 import { ENQUADRAMENTO_PADRAO, juntar, type Enquadramento } from "../imagem/enquadramento";
 import { CAMPOS } from "./campos";
-import { useUnsaved, useUnsavedGuard } from "../unsaved";
+import { useUnsavedGuard } from "../unsaved";
 import { useContext } from "react";
 import { OrigemAbaContext } from "../abrirEmAba";
 import { useEffect, useRef, useState } from "react";
@@ -188,8 +188,7 @@ export function EditorConhecimento({
   const [crop,setCrop]=useState(false),[preview,setPreview]=useState<string>();
   useEffect(()=>{let alive=true,url:string|undefined;if(file){url=URL.createObjectURL(file);setPreview(url);}else if(entry?.imagePath&&api)void api.image(entry.imagePath).then(blob=>{url=URL.createObjectURL(blob);if(alive)setPreview(url);else URL.revokeObjectURL(url);},()=>{});return()=>{alive=false;if(url)URL.revokeObjectURL(url);};},[file,entry?.imagePath,api]);
   const origin = useContext(OrigemAbaContext);
-  const unsaved = useUnsaved();
-  useUnsavedGuard(
+  const releaseGuard=useUnsavedGuard(
     origin ?? "secao:compendio",
     title !== (entry?.title ?? reference?.nome ?? "") ||
       text !== deBlocos(entry?.description ?? []) ||
@@ -235,7 +234,7 @@ export function EditorConhecimento({
           knowledge: level,
         });
       } else id=await api.save(active.campaign.id, id, version, data);
-      unsaved.register(origin ?? "secao:compendio", null);
+      releaseGuard();
       avisarConhecimento();
       onDone(id??undefined);
     } catch (e) {

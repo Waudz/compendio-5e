@@ -23,6 +23,7 @@ export function useUnsavedGuard(tabId: string, dirty: boolean, save?: UnsavedEnt
   const api = useUnsaved(), origin=useContext(OrigemAbaContext), source=useId();
   const key=`${origin??tabId}::guard:${source}`;
   useEffect(() => { api.register(key, { dirty, save }); return () => api.register(key, null); }, [api, key, dirty, save]);
+  return () => api.register(key,null);
 }
 
 type Pending = { ids: string[]; proceed: () => void; cancel?: () => void; error?: string };

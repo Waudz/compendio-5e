@@ -37,9 +37,11 @@ test('menu contextual abre por teclado e oferece setas para navegar', async ({ p
   const trigger = page.getByRole('navigation', { name: 'Menu principal' }).getByRole('button', { name: 'Diário', exact: true });
   await trigger.focus(); await page.keyboard.press('Shift+F10');
   const menu = page.getByRole('menu'); await expect(menu).toBeVisible();
-  await expect(menu.getByRole('menuitem', { name: 'Abrir nesta aba', exact: true })).toBeFocused();
-  await page.keyboard.press('ArrowDown');
   await expect(menu.getByRole('menuitem', { name: 'Abrir em nova aba', exact: true })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(menu.getByRole('menuitem', { name: 'Abrir em novo grupo', exact: true })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(menu.getByRole('menuitem', { name: 'Abrir', exact: true })).toBeFocused();
 });
 
 test('Escape fecha o menu contextual e devolve foco ao acionador', async ({ page }) => {

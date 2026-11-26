@@ -1,3 +1,4 @@
+import {tituloCategoria} from "./Compendio";
 import { PageViewport } from "./PageViewport";
 import logo from "../compendio-logo.svg";
 import { VoltarPaginaContext } from "./voltarPagina";
@@ -237,7 +238,7 @@ function Workspace({ userId }: { userId: string }) {
   const visit = useCallback((s: TabSpec, origin?: string) => {
     const id=origin??model.getActiveTabset()?.getSelectedNode()?.getId();
     if(!id)return;
-    unsaved.api.guard("all",()=>{
+    unsaved.api.guard([id],()=>{
       let existing:TabNode|undefined;
       model.visitNodes(n=>{if(n instanceof TabNode&&n.getId()!==id&&tabId(currentPage(n))===tabId(s))existing=n;});
       abrindo(s);
@@ -251,7 +252,7 @@ function Workspace({ userId }: { userId: string }) {
     if(tab.id&&findTab(model,tab.id)){model.doAction(Actions.selectTab(tab.id));}else model.doAction(Actions.addTab(tab,g.getId(),DockLocation.CENTER,-1,true));
     onModelChange(model);
   },[model,onModelChange]);
-  const step = useCallback((id:string,index:number)=>unsaved.api.guard("all",()=>{stepHistory(model,id,index);onModelChange(model);}),[model,unsaved.api,onModelChange]);
+  const step = useCallback((id:string,index:number)=>unsaved.api.guard([id],()=>{stepHistory(model,id,index);onModelChange(model);}),[model,unsaved.api,onModelChange]);
   useEffect(()=>{
     if(mobile)return;
     const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="t"){e.preventDefault();reopen();return;}if(!e.altKey||e.ctrlKey||e.metaKey||!["ArrowLeft","ArrowRight"].includes(e.key))return;
@@ -270,6 +271,7 @@ function Workspace({ userId }: { userId: string }) {
   const titleOf = useCallback((n: TabNode) => {
     const c = currentPage(n);
     const fallback = (n.getConfig() as {history?:unknown}).history ? defaultTitle(c) : n.getName();
+    if(c.kind==="categoria")return tituloCategoria(c.ref);
     if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? fallback;
     if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
     if (c?.kind === "registro" && c.ref) return conhecidosCatalogo.find(x=>x.id===c.ref)?.title??"Registro";
@@ -295,7 +297,10 @@ function Workspace({ userId }: { userId: string }) {
     if (isPinned(n)) v.leading = <Pin size={12} className="pin-icon" aria-hidden="true"/>;
   }, [titleOf]);
   const activeTab = model.getActiveTabset()?.getSelectedNode();
-  const activeId = activeTab instanceof TabNode ? activeTab.getId() : "";
+  const activePage=activeTab instanceof TabNode?currentPage(activeTab):null;
+  const activeId=activePage?tabId(activePage):"";
+  const sectionId=activePage&&["categoria","registro","identidade","monstro","regra","item","magia"].includes(activePage.kind)?"secao:compendio"
+    :activePage&&["ficha","criador"].includes(activePage.kind)?"secao:personagens":activeId;
   // Painel vazio (criado por divisão): clicar nele o torna o painel ativo, para onde vai a próxima seção aberta pelo menu.
   const placeholder = useCallback((g: TabSetNode) => <div className="empty" onPointerDown={() => { model.doAction(Actions.setActiveTabset(g.getId())); refresh(); }}>
     <h1>Painel vazio</h1><p>Escolha uma seção no menu lateral ou arraste uma aba para cá.</p></div>, [model, refresh]);
@@ -337,7 +342,7 @@ function Workspace({ userId }: { userId: string }) {
           <HomeIcon size={19}/>{<span className={collapsed?"sr-only":undefined}>Início</span>}
         </NavItem>}
         {(mobile ? [campaignsHub, ...visibleSections(active?.role === "mestre")] : desktopSections(active?.role ?? null)).map(({ page, title, icon: Icon }) =>
-        <NavItem key={page} spec={{ kind: "secao", ref: page }} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} title={title} onNavigate={openMenu} onMenu={showNavMenu}>
+        <NavItem key={page} spec={{ kind: "secao", ref: page }} className={sectionId === `secao:${page}` ? "nav-item selected" : "nav-item"} title={title} onNavigate={openMenu} onMenu={showNavMenu}>
           <Icon size={19}/>{<span className={collapsed?"sr-only":undefined}>{title}</span>}
         </NavItem>)}
         <NavItem spec={{ kind: "conta", ref: "perfil" }} className={activeId === "conta:perfil" ? "nav-item account selected" : "nav-item account"} title="Conta" onNavigate={openMenu} onMenu={showNavMenu}>

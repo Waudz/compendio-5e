@@ -1,3 +1,4 @@
+import {VoltarPaginaContext} from "./voltarPagina";
 import { RetratoQuadrado } from "./RetratoCombate";
 import { imagemDoMonstro } from "./ficha/imagensCatalogo";
 import { registrarTitulo } from "./registrosStore";
@@ -6,8 +7,7 @@ import { RevelarReferencia } from "./compendio/RegistrosCampanha";
 import { PesquisaGlobal } from "./compendio/PesquisaGlobal";
 import { ListaCampanha } from "./compendio/ListaCampanha";
 import { useNotificacoes } from "./compendio/Notificacoes";
-import { useUnsaved } from "./unsaved";
-import { OrigemAbaContext } from "./abrirEmAba";
+import { useAbrirEmAba, OrigemAbaContext } from "./abrirEmAba";
 import {
   DetalheConhecido,
 } from "./compendio/RegistrosCampanha";
@@ -171,7 +171,7 @@ const grupos = {
 };
 const sessoes = new WeakMap<
   object,
-  Map<string, { grupo: keyof typeof grupos; categoria: string | null; query?:string }>
+  Map<string, { grupo: keyof typeof grupos; query?:string }>
 >();
 function CompendioInicio({
   onOpenContent,
@@ -184,7 +184,7 @@ function CompendioInicio({
     if (!client)
       return new Map<
         string,
-        { grupo: keyof typeof grupos; categoria: string | null; query?:string }
+        { grupo: keyof typeof grupos; query?:string }
       >();
     let n = sessoes.get(client);
     if (!n) {
@@ -199,27 +199,17 @@ function CompendioInicio({
   const [grupo, setGrupo] = useState<keyof typeof grupos>(
     inicial?.grupo ?? "Campanha",
   );
-  const [categoria, setCategoria] = useState<string | null>(
-    inicial?.categoria ?? null,
-  );
-  useEffect(() => {
-    navegacao.set(scope, { grupo, categoria });
-  }, [scope, grupo, categoria]);
-  const unsaved = useUnsaved(),
-    origin = useContext(OrigemAbaContext);
-  const voltar = () =>
-    unsaved.guard([origin ?? "secao:compendio"], () => setCategoria(null));
-  const abrir = (id: string) => setCategoria(id);
+  const links=useAbrirEmAba();
+  const categoriaSpec=(id:string):TabSpec=>({kind:"categoria",ref:id,title:tituloCategoria(id)});
   const toque = useRef<{x:number;y:number}|null>(null), root=useRef<HTMLDivElement>(null);
   const [wide,setWide]=useState(false),[query,setQuery]=useState(inicial&&'query' in inicial?String(inicial.query??''):'');
   const notices=useNotificacoes();
-  useEffect(()=>{const el=root.current;if(!el||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(entries=>setWide((entries[0]?.contentRect.width??0)>=760));observer.observe(el);return()=>observer.disconnect();},[categoria]);
-  useEffect(()=>{navegacao.set(scope,{grupo,categoria,query});},[scope,grupo,categoria,query]);
-  if(categoria)return ['personagens','locais','organizacoes','descobertas'].includes(categoria)||(categoria==='monstros'&&active?.role!=='mestre')?<ListaCampanha key={`${scope}:${categoria}`} category={categoria} onBack={voltar} onOpenContent={onOpenContent}/>:<CompendioCatalogo key={`${scope}:${categoria}`} categoriaInicial={categoria} onVoltar={voltar} onOpenContent={onOpenContent}/>;
+  useEffect(()=>{const el=root.current;if(!el||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(entries=>setWide((entries[0]?.contentRect.width??0)>=760));observer.observe(el);return()=>observer.disconnect();},[]);
+  useEffect(()=>{navegacao.set(scope,{grupo,query});},[scope,grupo,query]);
   return <div className="content compendio-inicio cd-home" ref={root} data-wide={wide} onTouchStart={e=>{if((e.target as HTMLElement).closest('input,textarea,select'))return;const t=e.touches[0];toque.current={x:t.clientX,y:t.clientY};}} onTouchCancel={()=>{toque.current=null;}} onTouchEnd={e=>{const start=toque.current;toque.current=null;if(!start||wide)return;const t=e.changedTouches[0],dx=t.clientX-start.x,dy=t.clientY-start.y;if(Math.abs(dx)>65&&Math.abs(dx)>1.4*Math.abs(dy))setGrupo(dx<0?'Regras':'Campanha');}}>
    <h1>Compêndio</h1><PesquisaGlobal query={query} onQuery={setQuery} onOpenContent={onOpenContent}/>
    {!query.trim()&&<>{!wide&&<div className="cat-categorias" role="group" aria-label="Áreas do Compêndio">{(['Campanha','Regras'] as const).map(g=><button key={g} aria-pressed={grupo===g} onClick={()=>setGrupo(g)}>{g}</button>)}</div>}
-   <div className="cd-home-groups">{(wide?['Campanha','Regras'] as const:[grupo]).map(g=><section key={g} aria-label={g}><h2>{g}</h2><div className="compendio-portais">{grupos[g].map(({id,nome,descricao,Icon})=><button key={id} className="compendio-portal" onClick={()=>abrir(id)}><span><strong>{nome}{id==='descobertas'&&notices.feed.discoveries>0&&<span className="cd-badge">{notices.feed.discoveries}<span className="sr-only"> {notices.feed.discoveries===1?'novidade':'novidades'}</span></span>}</strong>{' '}<small>{descricao}</small></span><Icon className="compendio-portal-arte" aria-hidden="true"/><ChevronRight size={18} aria-hidden="true"/></button>)}</div></section>)}</div></>}
+   <div className="cd-home-groups">{(wide?['Campanha','Regras'] as const:[grupo]).map(g=><section key={g} aria-label={g}><h2>{g}</h2><div className="compendio-portais">{grupos[g].map(({id,nome,descricao,Icon})=><button key={id} className="compendio-portal" onClick={e=>{const s=categoriaSpec(id);if(!links.aoClicar(e,s))onOpenContent(s);}} onAuxClick={e=>links.aoBotaoDoMeio(e,categoriaSpec(id))} onContextMenu={e=>links.aoClicarDireito(e,categoriaSpec(id))}><span><strong>{nome}{id==='descobertas'&&notices.feed.discoveries>0&&<span className="cd-badge">{notices.feed.discoveries}<span className="sr-only"> {notices.feed.discoveries===1?'novidade':'novidades'}</span></span>}</strong>{' '}<small>{descricao}</small></span><Icon className="compendio-portal-arte" aria-hidden="true"/><ChevronRight size={18} aria-hidden="true"/></button>)}</div></section>)}</div></>}
   </div>;
 }
 
@@ -301,3 +291,17 @@ export function MonstroPagina({id,onOpenContent}:{id:string;onOpenContent:(s:Tab
  const m=data?.id===id?data.monster:undefined;
  return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RevelarReferencia category="monster" id={id} nome={m.nome}/></div></header><article aria-label={`Detalhes de ${m.nome}`}><DetalheMonstro monstro={m} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></article></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
 }
+
+/** Categorias são destinos do mesmo histórico, não páginas escondidas dentro do índice. */
+export function CategoriaCompendio({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
+ const {active}=useCampaigns(),back=useContext(VoltarPaginaContext);
+ const gate=useCatalogueCampaign(onOpenContent);if(gate)return gate;
+ const definition=Object.values(grupos).flat().find(c=>c.id===id);
+ if(!definition)return <div className="content"><Aviso t="Categoria indisponível."/></div>;
+ const voltar=()=>back?back():onOpenContent({kind:"secao",ref:"compendio"});
+ return ['personagens','locais','organizacoes','descobertas'].includes(id)||(id==='monstros'&&active?.role!=='mestre')
+  ?<ListaCampanha category={id} onBack={voltar} onOpenContent={onOpenContent}/>
+  :<CompendioCatalogo categoriaInicial={id} onVoltar={voltar} onOpenContent={onOpenContent}/>;
+}
+
+export const tituloCategoria=(id:string)=>Object.values(grupos).flat().find(c=>c.id===id)?.nome??"Compêndio";

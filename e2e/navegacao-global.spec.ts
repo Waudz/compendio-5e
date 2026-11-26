@@ -14,6 +14,8 @@ test('consulta normal preserva grupo e retorna à pesquisa pelo navegador',async
  await adaga(page).click();await expect(page.getByRole('heading',{name:'Adaga',exact:true})).toBeVisible();
  if(desktop(page))await expect(page.locator('.flexlayout__tabset')).toHaveCount(1);
  await page.goBack();await expect(page.getByRole('searchbox',{name:'Pesquisar no Compêndio'})).toHaveValue('adaga');
+ await page.goBack();await expect(page.getByRole('heading',{name:'Compêndio',exact:true})).toBeVisible();
+ await page.goForward();await expect(page.getByRole('searchbox',{name:'Pesquisar no Compêndio'})).toHaveValue('adaga');
  await page.goForward();await expect(page.getByRole('heading',{name:'Adaga',exact:true})).toBeVisible();
 });
 test('contexto na ordem aprovada, grupo explícito e recuperação da aba',async({page})=>{

@@ -13,3 +13,9 @@ it('guardas de editores seguem a aba real sem sobrescrever o outro editor',()=>{
  fireEvent.click(screen.getByRole('button',{name:'Cancelar'}));expect(closed).not.toHaveBeenCalled();
  fireEvent.click(screen.getByRole('button',{name:'Fechar'}));fireEvent.click(screen.getByRole('button',{name:'Descartar alterações'}));expect(closed).toHaveBeenCalledTimes(1);
 });
+it('libera só a guarda salva antes de navegar após confirmação do servidor',()=>{
+ const done=vi.fn();
+ function Saved({proceed}:{proceed:()=>void}){const release=useUnsavedGuard('registro:r',true);return <button onClick={()=>{release();proceed();}}>Servidor confirmou</button>;}
+ function Workspace(){const registry=useUnsavedRegistry(()=> 'Registro');return <UnsavedContext.Provider value={registry.api}><OrigemAbaContext.Provider value="aba"><Saved proceed={()=>registry.api.guard(['aba'],done)}/></OrigemAbaContext.Provider>{registry.dialog}</UnsavedContext.Provider>;}
+ render(<Workspace/>);fireEvent.click(screen.getByRole('button',{name:'Servidor confirmou'}));expect(done).toHaveBeenCalledTimes(1);expect(screen.queryByRole('alertdialog')).toBeNull();
+});
