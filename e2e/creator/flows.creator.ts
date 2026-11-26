@@ -95,6 +95,7 @@ test('alterações não salvas: salvar pelo diálogo, reabrir e cancelar a ediç
   await startCreator(page); await chooseFighter(page); await leaveCreator(page);
   await page.getByRole('alertdialog', { name: 'Alterações não salvas', exact: true }).getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByRole('alertdialog')).toBeHidden();
+  await navigate(page,'Personagens');
   await page.getByRole('button', { name: /^Guerreira E2E/ }).click();
   await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
   await openEditor(page);

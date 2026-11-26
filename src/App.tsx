@@ -25,7 +25,7 @@ import { Panel } from "./Panel";
 import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
 import { srdItem } from "./catalogue/srd-2014-items";
-import { defaultTitle, closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type Kind, type TabSpec } from "./workspace";
+import { defaultTitle, closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
 const allowedActions = new Set([Actions.GROUP, Actions.ADD_TAB, Actions.DELETE_TAB, Actions.SELECT_TAB, Actions.MOVE_NODE, Actions.DELETE_TABSET, Actions.SET_ACTIVE_TABSET, Actions.ADJUST_WEIGHTS]);
@@ -128,15 +128,15 @@ function Workspace({ userId }: { userId: string }) {
     return prepareMove(model, a);   // recusa/ajusta movimentos (divisão com aba única)
   }, [model, unsaved.api]);
   // Navegação: o menu seleciona uma aba existente ou cria outra, sem substituir conteúdo aberto.
-  // Duas portas: openMenu preserva as abas; openContentLink abre consulta no grupo mais à direita (até dois grupos automáticos).
+  // O menu preserva abas; visit navega localmente; openContentLink só abre consultas explicitamente.
   // Depois de recarregar, a aba de um personagem criado nela (`criador:novo-…`) continua sendo a aba dele.
   const lembrarCriados = useCallback(() => model.visitNodes(n => {
-    const c = n instanceof TabNode ? n.getConfig() as { kind?: Kind; ref?: string } : null;
+    const c = n instanceof TabNode ? currentPage(n) : null;
     if (c?.kind !== "criador" || !c.ref || !campaignId) return;
     const real = lerMapaAba(userId, campaignId, c.ref); if (real) registrarAliasPersonagem(real, c.ref);
   }), [model, userId, campaignId]);
   const abrindo = useCallback((s: TabSpec) => { if (s.kind === "ficha" || s.kind === "criador") { lembrarCriados(); pedirFicha(s.ref); } }, [lembrarCriados]);
-  const openMenu = useCallback((s: TabSpec, mode: NavMode = "new") => { const go=()=>{abrindo(s); navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model);};
+  const openMenu = useCallback((s: TabSpec, mode: NavMode = "reuse") => { const go=()=>{abrindo(s); navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model);};
     go(); }, [model, onModelChange, unsaved.api, abrindo]);
   const openContentLink = useCallback((s: TabSpec, originTabId?: string, noGrupoDaOrigem?: boolean) => { abrindo(s); openContent(model, s, originTabId, mobile, noGrupoDaOrigem); onModelChange(model); }, [model, onModelChange, mobile, abrindo]);
   useEffect(() => {
@@ -301,12 +301,12 @@ function Workspace({ userId }: { userId: string }) {
     <h1>Painel vazio</h1><p>Escolha uma seção no menu lateral ou arraste uma aba para cá.</p></div>, [model, refresh]);
   const renderSet = useCallback((node: TabSetNode | { getType(): string }, v: { buttons: ReactNode[] }) => {
     if(node instanceof TabSetNode){
-      v.buttons.push(<button key="new" className="grp-close" aria-label="Nova aba" onClick={()=>{model.doAction(Actions.setActiveTabset(node.getId()));openMenu({kind:"nova",ref:crypto.randomUUID(),title:"Nova aba"});}}><Plus size={14}/></button>);
-      v.buttons.push(<button key="reopen" className="grp-close" aria-label="Reabrir aba fechada" disabled={!closed.current.length} onClick={reopen}><RotateCcw size={14}/></button>);
-      v.buttons.push(<button key="full" className="grp-close" aria-label="Alternar tela cheia" onClick={()=>{const app=document.querySelector<HTMLElement>(".app");void (document.fullscreenElement?document.exitFullscreen?.():app?.requestFullscreen?.())?.catch(()=>{});}}><Maximize size={14}/></button>);
+      v.buttons.push(<button key="new" className="grp-close" title="Nova aba" aria-label="Nova aba" onClick={()=>{model.doAction(Actions.setActiveTabset(node.getId()));openMenu({kind:"nova",ref:crypto.randomUUID(),title:"Nova aba"});}}><Plus size={14}/></button>);
+      v.buttons.push(<button key="reopen" className="grp-close" title="Reabrir aba fechada" aria-label="Reabrir aba fechada" disabled={!closed.current.length} onClick={reopen}><RotateCcw size={14}/></button>);
+      v.buttons.push(<button key="full" className="grp-close" title="Alternar tela cheia" aria-label="Alternar tela cheia" onClick={()=>{const app=document.querySelector<HTMLElement>(".app");void (document.fullscreenElement?document.exitFullscreen?.():app?.requestFullscreen?.())?.catch(()=>{});}}><Maximize size={14}/></button>);
     }
     if(node instanceof TabSetNode){const tab=node.getSelectedNode();if(tab instanceof TabNode){const h=historyOf(tab);
-      v.buttons.unshift(<span className="workspace-history" key="history"><button aria-label="Voltar na aba" disabled={h.index===0} onClick={()=>step(tab.getId(),h.index-1)}><ArrowLeft size={14}/></button><button aria-label="Avançar na aba" disabled={h.index===h.pages.length-1} onClick={()=>step(tab.getId(),h.index+1)}><ArrowRight size={14}/></button></span>);
+      v.buttons.unshift(<span className="workspace-history" key="history"><button title="Voltar na aba" aria-label="Voltar na aba" disabled={h.index===0} onClick={()=>step(tab.getId(),h.index-1)}><ArrowLeft size={14}/></button><button title="Avançar na aba" aria-label="Avançar na aba" disabled={h.index===h.pages.length-1} onClick={()=>step(tab.getId(),h.index+1)}><ArrowRight size={14}/></button></span>);
     }}
     if (node instanceof TabSetNode && groupCount(model) > 1)
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={guarded(node.getChildren().map(c => c.getId()), () => closeGroup(model, node.getId()))}><X size={14}/></button>);
@@ -329,7 +329,7 @@ function Workspace({ userId }: { userId: string }) {
           ariaLabel={collapsed ? (active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar") : undefined} onNavigate={openMenu} onMenu={showNavMenu}>
           {collapsed && <Castle size={19} aria-hidden="true"/>}<span className={collapsed?"sr-only":undefined}><small>CAMPANHA ATIVA</small>{" "}<strong>{active ? active.campaign.name : "Nenhuma"}</strong></span>
         </NavItem>
-        {<button className="campaign-switch" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
+        {<button className="campaign-switch" title="Trocar ou gerenciar campanhas" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
           onClick={e => { const r = e.currentTarget.getBoundingClientRect(); showCampaignMenu(r.left, r.bottom); }}><ChevronsUpDown size={16} aria-hidden="true"/></button>}
       </div>
       <nav aria-label="Menu principal">

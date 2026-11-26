@@ -124,12 +124,12 @@ describe("cartão simplificado: texto no cartão, salvamento automático", () =>
     registros.update = async (id, v, p) => (falhar ? { ok: false as const, error: SEM_CONEXAO } : real(id, v, p));
     render(<UnsavedContext.Provider value={api}><Par api={registros}><PlanningPanel/></Par></UnsavedContext.Provider>);
     fireEvent.change(await editarCartao("Julkoun"), { target: { value: "x" } });
-    await waitFor(() => expect(register).toHaveBeenLastCalledWith("secao:planejamento", expect.objectContaining({ dirty: true })));
+    await waitFor(() => expect(register).toHaveBeenLastCalledWith(expect.stringMatching(/^secao:planejamento::guard:/), expect.objectContaining({ dirty: true })));
     falhar = false;
     const entrada = register.mock.calls.at(-1)![1] as { save: () => Promise<boolean> };
     await act(async () => { expect(await entrada.save()).toBe(true); });
     expect(cenaDe(registros, "s1").content[0]).toMatchObject({ content: [{ text: "x" }] });
-    await waitFor(() => expect(register).toHaveBeenLastCalledWith("secao:planejamento", expect.objectContaining({ dirty: false })));
+    await waitFor(() => expect(register).toHaveBeenLastCalledWith(expect.stringMatching(/^secao:planejamento::guard:/), expect.objectContaining({ dirty: false })));
   });
   it("excluir cartão não pede confirmação mesmo com alteração pendente", async () => {
     const registros = registrosEmMemoria("mestre", me.id, dados());

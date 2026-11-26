@@ -726,3 +726,33 @@ histórico Avançar do navegador/mobile, foco por teclado e restauração de edi
 retorno; atualizar testes E2E que exigem a divisão automática anterior. Conhecimento
 granular, vínculos tipados e Descobertas continuam como próxima etapa, sem nova
 migração nesta revisão. Nenhum acesso de escrita em produção, merge ou deploy.
+
+### Continuação da revisão (#161)
+
+PR https://github.com/Waudz/compendio-5e/pull/161, rascunho. Commit inicial `266c09c`.
+Depois do registro acima, a suíte local completa passou: **1741 testes/143 arquivos**;
+os quatro testes dos scripts e os tipos de aplicativo/E2E também passaram.
+No CI desse commit, Validar projeto, Preview e Alpha Supabase isolado passaram;
+Quality falhou em quatro seletores do nome antigo da campanha, Base em duas
+verificações da faixa fixa (regressão real de altura/rolagem do contêiner).
+
+Correções seguintes, aguardando novo CI: contêiner preserva `.content` como rolagem
+única; guardas seguem o ID real da aba e cada editor tem registro próprio (61 testes
+focados aprovados); Voltar **e Avançar** no mobile usam snapshots da navegação, com
+cancelamento de resposta antiga após mudança de campanha (16 testes aprovados).
+Consulta de criatura usa página local `monstro`, sem a referência obsoleta `item:monstro`.
+Cenários E2E novos cobrem consulta sem split, contexto ordenado, recuperação e gestos;
+os antigos agora retornam pelo histórico antes de verificar os filtros preservados.
+Não se declara E2E aprovado antes da nova execução. Nenhum teste foi pulado por falha.
+
+A primeira rodada E2E terminou com Quality 4 falhas, Base 2 falhas e Creator segunda
+metade 26 falhas (a primeira metade passou). As causas localizadas: seletor antigo
+da campanha; contêiner sem altura limitando rolagem/sticky; guardas registradas pelo
+personagem em vez da aba que agora o hospeda; retorno tentando selecionar uma aba
+que passou a ser uma página do histórico; área Regras tratada sempre como botão,
+mesmo quando o painel largo mostra as duas áreas. Corrigidos código e pontos de
+entrada dos testes, mantendo limites, verificações de dados e acessibilidade.
+Após o isolamento das guardas, a bateria local teve 1739 aprovações e 3 expectativas
+antigas de chave de guarda; as três foram ajustadas para exigir o prefixo da aba e
+identidade única do editor, e os 83 testes afetados passaram. Confirmar o conjunto
+no novo SHA. Não foram alterados prazos nem anunciado lançamento da Alpha.

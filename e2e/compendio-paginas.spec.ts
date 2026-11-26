@@ -27,7 +27,7 @@ test('pesquisa global ignora acentos, abre página própria e mantém consulta a
  const rules=page.getByRole('group',{name:'Áreas do Compêndio'}).getByRole('button',{name:'Regras',exact:true});if(await rules.count())await rules.click();
  const search=page.getByRole('searchbox',{name:'Pesquisar em todo o Compêndio',exact:true});await search.fill('JÚLKOÙN');await expect(page.getByRole('heading',{name:'Campanha · Locais',exact:true})).toBeVisible();await page.locator('.cd-result').filter({hasText:'Julkoun'}).click();await expect(page.getByRole('heading',{name:'Julkoun',exact:true})).toBeVisible();
  if((page.viewportSize()?.width??0)<=700)await page.getByRole('button',{name:'Voltar',exact:true}).click();
- else await page.getByRole('navigation',{name:'Menu principal'}).getByRole('button',{name:'Compêndio',exact:true}).click();
+ else await page.getByRole('button',{name:'Voltar na aba',exact:true}).click();
  await expect(search).toHaveValue('JÚLKOÙN');await search.fill('rapieira');await expect(page.getByRole('heading',{name:'Regras · Itens',exact:true})).toBeVisible();await expect(page.locator('.cd-result').filter({hasText:'Rapieira'})).toBeVisible();await expectNoHorizontalOverflow(page);
 });
 

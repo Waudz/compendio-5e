@@ -88,7 +88,7 @@ test('nomes acessíveis acompanham texto visível e títulos não entram na pers
   await expect(hero).toBeVisible();
   await expect(hero).toHaveAttribute('title','Abrir ficha de Lydia Valenmoor');
   if (!mobile(page)) {
-    await expect(page.getByRole('button', {name:'CAMPANHA ATIVA Sociedade do Véu Negro',exact:true})).toBeVisible();
+    await expect(page.getByRole('button', {name:'Campanha ativa: Sociedade do Véu Negro',exact:true})).toBeVisible();
     await expect(page.getByRole('tab', {name:'Sociedade do Véu Negro',exact:true})).toBeVisible();
   }
   await navigate(page,'Conta'); await navigate(page,'Início');

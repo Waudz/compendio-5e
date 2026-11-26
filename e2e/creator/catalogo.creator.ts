@@ -19,9 +19,10 @@ test('Compêndio: link da conjuração do monstro abre a magia, a ficha continua
   await info.attach('magia-aberta-pelo-monstro', { body: await page.screenshot(), contentType: 'image/png' });
   const celular = (page.viewportSize()?.width ?? 1440) <= 700;
   if (celular) await page.getByRole('button', { name: 'Voltar', exact: true }).click();
-  else await page.getByRole('tab', { name: /^Arquimago/ }).click();
+  else await page.getByRole('button', {name:'Voltar na aba',exact:true}).click();
   await expect(ficha).toBeVisible();
   if (celular) await page.getByRole('button', { name: 'Voltar', exact: true }).click();
+  else await page.getByRole('button', {name:'Voltar na aba',exact:true}).click();
   await expect(busca).toHaveValue('arquimago');
   await expectNoHorizontalOverflow(page);
 });

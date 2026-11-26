@@ -153,9 +153,9 @@ describe("Início: edição protegida", () => {
     await screen.findByRole("heading", { name: "Mesa dos Dragões" });
     fireEvent.click(screen.getByRole("button", { name: "Editar informações" }));
     fireEvent.change(screen.getByLabelText("Nome"), { target: { value: "Outro" } });
-    await waitFor(() => expect(register).toHaveBeenLastCalledWith("campanha:ca", expect.objectContaining({ dirty: true })));
+    await waitFor(() => expect(register).toHaveBeenLastCalledWith(expect.stringMatching(/^campanha:ca::guard:/), expect.objectContaining({ dirty: true })));
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
-    await waitFor(() => expect(register).toHaveBeenLastCalledWith("campanha:ca", expect.objectContaining({ dirty: false })));
+    await waitFor(() => expect(register).toHaveBeenLastCalledWith(expect.stringMatching(/^campanha:ca::guard:/), expect.objectContaining({ dirty: false })));
   });
 });
 

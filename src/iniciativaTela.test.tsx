@@ -145,9 +145,9 @@ describe("proteção de navegação com gravação pendente", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new Error("quota"); });
     preencher("Nome", "Combate pendente");
     fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
-    expect(register).toHaveBeenLastCalledWith("secao:iniciativa", expect.objectContaining({ dirty: true, save: expect.any(Function) }));
+    expect(register).toHaveBeenLastCalledWith(expect.stringMatching(/^secao:iniciativa::guard:/), expect.objectContaining({ dirty: true, save: expect.any(Function) }));
     fireEvent.click(within(screen.getByRole("alert")).getByRole("button", { name: "Tentar de novo" }));
-    await waitFor(() => expect(register).toHaveBeenLastCalledWith("secao:iniciativa", expect.objectContaining({ dirty: false })));
+    await waitFor(() => expect(register).toHaveBeenLastCalledWith(expect.stringMatching(/^secao:iniciativa::guard:/), expect.objectContaining({ dirty: false })));
   });
 });
 

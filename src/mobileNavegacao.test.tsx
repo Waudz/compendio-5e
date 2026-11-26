@@ -2,7 +2,7 @@
 // Celular (visão simples, independente do FlexLayout): barras por papel, histórico, rolagem, proteção de alterações,
 // botão "Ficha" do jogador e Inventário dentro da Ficha. O desktop (FlexLayout) é coberto nos demais arquivos.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { CampaignApi, Membership } from "./campaigns";
 import { activeKey } from "./CampaignsContext";
 import type { Registro } from "./registros";
@@ -66,8 +66,10 @@ describe("celular: estrutura independente do FlexLayout", () => {
     await montar(mestre);
     fireEvent.click(barra().getByRole("button", { name: "Anotações" }));
     await waitFor(() => expect(titulo()).toBe("Anotações"));
-    fireEvent.popState(window);
+    act(()=>window.history.back());
     await waitFor(() => expect(titulo()).toBe(camp.name));
+    act(()=>window.history.forward());
+    await waitFor(() => expect(titulo()).toBe("Anotações"));
     expect(document.querySelector(".mobile-simple")).toBeTruthy();
   });
   it("restaura a posição de rolagem ao voltar para uma tela", async () => {

@@ -21,7 +21,7 @@ import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   kind: Kind; entity: string;
   onOpen: (s: TabSpec, mode?: NavMode) => void;   // abertura administrativa/de menu (modo explícito; padrão: reutilizar a aba)
-  onOpenContent: (s: TabSpec) => void;            // link interno de conteúdo: sempre aba permanente, sem substituir a origem
+  onOpenContent: (s: TabSpec) => void;            // link interno: navega na página atual; nova aba/grupo é uma ação explícita
 }) {
   if (kind === "nova") return <NovaAba onOpen={onOpenContent}/>;
   if (kind === "registro") return <RegistroCompendioPagina id={id} onOpenContent={onOpenContent}/>;
