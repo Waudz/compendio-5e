@@ -756,3 +756,15 @@ Após o isolamento das guardas, a bateria local teve 1739 aprovações e 3 expec
 antigas de chave de guarda; as três foram ajustadas para exigir o prefixo da aba e
 identidade única do editor, e os 83 testes afetados passaram. Confirmar o conjunto
 no novo SHA. Não foram alterados prazos nem anunciado lançamento da Alpha.
+
+O Diário também passou a abrir registros pelo histórico da aba, mantendo o retorno
+protegido ao Diário. O menu contextual lateral agora usa as mesmas três ações e a
+mesma ordem do conteúdo; a fixação permanece no menu da própria aba. Os 38 testes
+focados de Diário/navegação passaram. O segundo commit (`0d06931`) teve falha de
+TypeScript por atributo `title` duplicado em um tooltip; corrigido antes da próxima
+rodada. Não confundir o Preview aprovado com aprovação do build oficial.
+
+**Verificação local consolidada após essas correções:** build oficial, tipos do
+aplicativo e E2E aprovados; **1742 testes em 144 arquivos aprovados**. O workflow de
+CI do próximo commit é a evidência exigida para Playwright e stack real. Aguardar
+seus resultados antes de integrar/publicar; validação física/F11 continua pendente.

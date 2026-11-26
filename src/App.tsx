@@ -181,11 +181,11 @@ function Workspace({ userId }: { userId: string }) {
   const closeMenu = useCallback(() => setMenu(null), []);
   const guarded = (ids: string[], fn: () => void) => () => unsaved.api.guard(ids, () => { fn(); onModelChange(model); });
   /** Menu dos itens de navegação (botão direito, tecla de menu ou toque prolongado). */
-  const showNavMenu = useCallback((s: TabSpec, x: number, y: number) => setMenu({ x, y, items: [
-    { label: "Abrir nesta aba", onSelect: () => openMenu(s, "reuse") },
-    { label: "Abrir em nova aba", onSelect: () => openMenu(s, "new") },
-    { label: "Abrir em nova aba fixada", onSelect: () => openMenu(s, "newPinned") },
-  ] }), [openMenu]);
+  const showNavMenu = (s:TabSpec,x:number,y:number) => setMenu({x,y,items:[
+    {label:"Abrir em nova aba",onSelect:()=>openContentLink(s,undefined,true)},
+    ...(!mobile?[{label:"Abrir em novo grupo",onSelect:()=>openContentLink(s,undefined,false)}]:[]),
+    {label:"Abrir",onSelect:()=>visit(s)},
+  ]});
 
   const homeSpec: TabSpec = active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: campaignsHub.page };
   /** Seletor discreto junto à campanha ativa: trocar (protegendo alterações não salvas) e acesso à gestão de campanhas. Cada campanha tem o seu layout. */
@@ -329,7 +329,7 @@ function Workspace({ userId }: { userId: string }) {
           ariaLabel={collapsed ? (active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar") : undefined} onNavigate={openMenu} onMenu={showNavMenu}>
           {collapsed && <Castle size={19} aria-hidden="true"/>}<span className={collapsed?"sr-only":undefined}><small>CAMPANHA ATIVA</small>{" "}<strong>{active ? active.campaign.name : "Nenhuma"}</strong></span>
         </NavItem>
-        {<button className="campaign-switch" title="Trocar ou gerenciar campanhas" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
+        {<button className="campaign-switch" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
           onClick={e => { const r = e.currentTarget.getBoundingClientRect(); showCampaignMenu(r.left, r.bottom); }}><ChevronsUpDown size={16} aria-hidden="true"/></button>}
       </div>
       <nav aria-label="Menu principal">

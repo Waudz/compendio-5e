@@ -74,12 +74,13 @@ describe("menu lateral: gestos (desktop)", () => {
   it("botão direito: três opções; cada uma faz o que diz", async () => {
     await renderApp();
     fireEvent.contextMenu(nav("Iniciativa"));
-    expect(menuItems()).toEqual(["Abrir nesta aba", "Abrir em nova aba", "Abrir em nova aba fixada"]);
-    pick("Abrir nesta aba"); expect(tabs()).toEqual(["Personagens", "Iniciativa"]);
-    fireEvent.contextMenu(nav("Encontros")); pick("Abrir em nova aba"); expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
-    fireEvent.contextMenu(nav("Diário")); pick("Abrir em nova aba fixada");
-    expect(rawTabs()).toEqual(["Personagens", "Iniciativa", "Encontros", "Diário (fixada)"]);
-    expect(saved().layout.children[0].children.map((t: { id: string; pinned?: boolean }) => [t.id, !!t.pinned])).toEqual([["secao:personagens", false], ["secao:iniciativa", false], ["secao:encontros", false], ["secao:diario", true]]);
+    expect(menuItems()).toEqual(["Abrir em nova aba", "Abrir em novo grupo", "Abrir"]);
+    pick("Abrir"); expect(tabs()).toEqual(["Iniciativa"]);
+    fireEvent.contextMenu(nav("Encontros")); pick("Abrir em nova aba"); expect(tabs()).toEqual(["Iniciativa", "Encontros"]);
+    fireEvent.contextMenu(nav("Diário")); pick("Abrir em novo grupo");
+    expect(rawTabs()).toEqual(["Iniciativa", "Encontros", "Diário"]);
+    expect(saved().layout.children).toHaveLength(2);
+    expect(saved().layout.children[1].children[0].id).toBe("secao:diario");
   });
   it("o menu fecha com Esc e ao clicar fora, e nunca sai da tela", async () => {
     await renderApp();
