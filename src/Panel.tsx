@@ -1,3 +1,9 @@
+import { useContext, useState, useRef, useLayoutEffect } from "react";
+import { VoltarPaginaContext } from "./voltarPagina";
+import { useCampaigns } from "./CampaignsContext";
+import { ehPaginaDoCompendio } from "./compendio/navegacao";
+import { useUnsaved } from "./unsaved";
+import { OrigemAbaContext } from "./abrirEmAba";
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
 import { MonstroPagina } from "./Compendio";
 import { BookOpen } from "lucide-react";
@@ -16,7 +22,7 @@ import { EncontrosPanel, IniciativaPanel } from "./Iniciativa";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
-export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
+function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   kind: Kind; entity: string;
   onOpen: (s: TabSpec, mode?: NavMode) => void;   // abertura administrativa/de menu (modo explícito; padrão: reutilizar a aba)
   onOpenContent: (s: TabSpec) => void;            // link interno de conteúdo: sempre aba permanente, sem substituir a origem
@@ -46,4 +52,32 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
     <p>Este módulo ainda não foi desenvolvido e <strong>não faz parte da Alpha</strong>.</p>
     <div className="placeholder"><BookOpen size={30}/><strong>{title}</strong><span>Em desenvolvimento: nenhuma funcionalidade disponível aqui ainda.{id === "enciclopedia" ? " Para registros da campanha use o Diário; para suas próprias notas, Anotações." : id === "documentos" ? " Suas notas e planejamentos ficam em Anotações; os registros da campanha, no Diário." : ""}</span></div>
   </div>;
+}
+
+type PanelProps = Parameters<typeof ConteudoPanel>[0];
+export function Panel(props: PanelProps) {
+  const {active}=useCampaigns();
+  const mobileBack=useContext(VoltarPaginaContext);
+  const local=ehPaginaDoCompendio({kind:props.kind,ref:props.entity}) || (props.kind==="secao" && props.entity==="compendio");
+  if (!local || mobileBack) return <ConteudoPanel {...props}/>;
+  return <CompendioLocal key={`${active?.campaign.id}:${props.kind}:${props.entity}`} {...props}/>;
+}
+function CompendioLocal(props:PanelProps) {
+  const [pages,setPages]=useState<TabSpec[]>([{kind:props.kind,ref:props.entity}]);
+  const root=useRef<HTMLDivElement>(null);
+  const positions=useRef<number[]>([]);
+  const origin=useContext(OrigemAbaContext);
+  const unsaved=useUnsaved();
+  const page=pages[pages.length-1];
+  const scroller=()=>{let el=root.current?.parentElement;while(el){if(/auto|scroll/.test(getComputedStyle(el).overflowY))return el;el=el.parentElement;}return null;};
+  useLayoutEffect(()=>{const el=scroller();if(el)el.scrollTop=positions.current[pages.length-1]??0;},[pages]);
+  const guard=(fn:()=>void)=>unsaved.guard([origin??"secao:compendio"],fn);
+  const back=()=>guard(()=>{if(pages.length>1){positions.current.length=pages.length-1;setPages(p=>p.slice(0,-1));}else if(page.kind!=="secao"){positions.current=[];setPages([{kind:"secao",ref:"compendio"}]);}});
+  const open=(s:TabSpec)=>{
+    if(!ehPaginaDoCompendio(s)&&!(s.kind==="secao"&&s.ref==="compendio")){props.onOpenContent(s);return;}
+    if(s.kind===page.kind&&s.ref===page.ref)return;
+    if(s.kind==="secao"){back();return;}
+    guard(()=>{positions.current[pages.length-1]=scroller()?.scrollTop??0;setPages(p=>[...p,s]);});
+  };
+  return <div ref={root}><VoltarPaginaContext.Provider value={back}>{pages.map((p,i)=><div key={i+":"+p.kind+":"+p.ref} hidden={i!==pages.length-1}><ConteudoPanel {...props} kind={p.kind} entity={p.ref} onOpenContent={open}/></div>)}</VoltarPaginaContext.Provider></div>;
 }
