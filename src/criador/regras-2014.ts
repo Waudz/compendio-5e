@@ -1413,6 +1413,7 @@ export function grantBackground2014(
       ...d,
       inventory,
       currency: {
+        ...d.currency,
         cp: d.currency?.cp ?? 0,
         sp: d.currency?.sp ?? 0,
         gp: (d.currency?.gp ?? 0) + 15,

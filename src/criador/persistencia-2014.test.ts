@@ -27,7 +27,6 @@ it('grava e reabre a versão 2014 na campanha pelo mesmo repositório do servido
   const state = {
     draft: d,
     identity: defaultPublicIdentity(),
-    publicar: false,
   };
   const r = await repo.salvar({
     id: d.id,
@@ -41,10 +40,11 @@ it('grava e reabre a versão 2014 na campanha pelo mesmo repositório do servido
       portrait: '',
       race: 'Humano',
       characterClass: 'Mago',
+      level: '1',
     },
   });
   const p = await repo.carregar(r.id);
-  expect(p?.draft).toEqual({ ...d, id: r.id });
+  expect(p?.draft).toEqual({ ...d, id: r.id, publicLabels: { race: 'Humano', characterClass: 'Mago' } });
   expect(bank.fichas[0].campaignId).toBe('ca');
   expect(
     await repositorioServidor(
@@ -65,6 +65,7 @@ it('grava e reabre a versão 2014 na campanha pelo mesmo repositório do servido
       portrait: '',
       race: 'Humano',
       characterClass: 'Mago',
+      level: '1',
     },
   });
   expect(r2.revision).toBe(2);
@@ -81,6 +82,7 @@ it('grava e reabre a versão 2014 na campanha pelo mesmo repositório do servido
       portrait: '',
         race: 'Humano',
         characterClass: 'Mago',
+        level: '1',
       },
     }),
   ).rejects.toBeInstanceOf(ErroConflito);
@@ -94,7 +96,7 @@ it('não cria personagem sem participação em uma campanha', async () => {
       id: draft.id,
       existe: false,
       revisao: null,
-      estado: { draft, identity: defaultPublicIdentity(), publicar: false },
+      estado: { draft, identity: defaultPublicIdentity() },
       somenteFicha: false,
       source: {
         name: 'Maga',
@@ -102,6 +104,7 @@ it('não cria personagem sem participação em uma campanha', async () => {
       portrait: '',
         race: 'Humano',
         characterClass: 'Mago',
+        level: '1',
       },
     }),
   ).rejects.toThrow();

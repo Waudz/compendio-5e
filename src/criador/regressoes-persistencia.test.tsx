@@ -36,7 +36,7 @@ async function abrirExistente() {
   };
   draft.previousRulesDraft = { ...structuredClone(draft), name: 'Memória privada anterior' };
   const identity = { ...defaultPublicIdentity(), alias: { mode: 'custom' as const, value: 'Rosto conhecido' }, name: { mode: 'custom' as const, value: 'Viajante' }, race: { mode: 'hidden' as const }, characterClass: { mode: 'hidden' as const } };
-  const criado = await api.criar('ca', draft, { identity, source: { name: draft.name, alias: '', race: 'Humano', characterClass: 'Guerreiro', portrait: '' }, publicar: true });
+  const criado = await api.criar('ca', draft, { identity, source: { name: draft.name, alias: '', race: 'Humano', characterClass: 'Guerreiro', level: '3', portrait: '' } });
   if (!criado.ok) throw new Error(criado.error);
   const apiCampanhas = { list: async () => ({ ok: true, data: [{ role: 'jogador', campaign: { id: 'ca', name: 'Mesa de teste', description: '', created_at: '' } }] }) } as unknown as CampaignApi;
   await renderApp({ user: me, api: apiCampanhas, fichas: api, registros: registrosEmMemoria('jogador', me.id, [], banco.registros) });
@@ -111,7 +111,7 @@ it('renomear mantém IDs e duas instâncias do mesmo item, sem republicar dados 
   await screen.findByTestId('ficha-guiada-leitura');
   expect(banco.fichas).toHaveLength(1);
   expect(banco.fichas[0]).toMatchObject({ id, campaignId: ficha.campaignId, ownerId: ficha.ownerId });
-  expect(banco.fichas[0].draft).toEqual({ ...ficha.draft, name: 'Lira revisada' });
+  expect(banco.fichas[0].draft).toEqual({ ...ficha.draft, name: 'Lira revisada', publicLabels: { race: expect.any(String), characterClass: expect.any(String) } });
   expect(banco.fichas[0].draft.inventory.map(item => item.id)).toEqual(['instancia-inicial', 'instancia-adquirida']);
   expect(banco.registros.dados).toHaveLength(1);
   expect(banco.registros.dados[0]).toMatchObject({ id: publico.id, title: publico.title, meta: publico.meta });

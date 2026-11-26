@@ -20,7 +20,7 @@ import { searchCompendium } from "../rules/compendium-query";
 import { ABILITY_ORDER, POINT_BUY_BUDGET, pointBuySpent, validatePointBuy } from "../rules/ability-generation-2014";
 import { addInventoryInstance, changeInventoryInstanceQuantity, createCharacterSheet, type CharacterDraft, type InventoryEntry } from "../rules/character-domain";
 import { fighter2014Advancements } from "../rules/fighter-2014";
-import { defaultPublicIdentity, type PublicIdentity } from "../rules/public-identity";
+import { defaultPublicIdentity, publicIdentityCard, type PublicIdentity } from "../rules/public-identity";
 import { fighterEquipmentOptions2014 } from "../rules/starting-equipment-2014";
 import { applyStartingEquipmentSelection, replaceStartingEquipmentSelection } from "../rules/starting-equipment-selection";
 import { useUnsavedGuard } from "../unsaved";
@@ -42,6 +42,8 @@ const label2014 = (id: string) => regras2014?.label2014(id) ?? id;
 const featureDescription2014 = (id: string) => regras2014?.featureDescription2014(id) ?? '';
 const FichaJogo = lazy(async () => { await carregar2014(); return import("../ficha/FichaJogo"); });
 import PublicIdentityEditor from "./identidade-publica-editor";
+import { CampoRetrato } from "./CampoRetrato";
+import { CAMPOS_HISTORIA } from "../ficha/campos";
 import { origemPublica, rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
 const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
@@ -93,8 +95,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     if (previousVersion.current !== draft.catalogueVersion && modern2014(draft)) nameRef.current?.focus();
     previousVersion.current = draft.catalogueVersion;
   }, [draft.catalogueVersion]);
-  // Personagem novo nasce com a apresentação publicada (campos públicos da ficha); a caixa na etapa de identidade permite desligar. Os já salvos mantêm a escolha.
-  const [identity, setIdentity] = useState<PublicIdentity>(defaultPublicIdentity), [publicar, setPublicar] = useState(true);
+  // A apresentação pública é automática: segue a ficha, salvo o que o dono personalizar ou ocultar.
+  const [identity, setIdentity] = useState<PublicIdentity>(defaultPublicIdentity);
   const [salvo, setSalvo] = useState<string | null>(null);          // retrato do último estado salvo (null = nunca salvo)
   const idRealRef = useRef(id);
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
@@ -103,7 +105,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   // Ficha de jogo ou edição é estado desta tela, nunca da navegação: abrir um personagem já salvo mostra sempre a ficha.
   const [visualizando, setVisualizando] = useState(initialView);
   /** Estado no momento em que "Editar personagem" foi usado: é para onde Cancelar volta. `null` na criação. */
-  const [base, setBase] = useState<{ draft: CharacterDraft; identity: PublicIdentity; publicar: boolean } | null>(null);
+  const [base, setBase] = useState<{ draft: CharacterDraft; identity: PublicIdentity } | null>(null);
   const [saida, setSaida] = useState<"cancelar" | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
@@ -111,10 +113,10 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const [confirmando, setConfirmando] = useState<string[] | null>(null);   // grupos cujas escolhas substituem equipamento já concedido
   const [busca, setBusca] = useState(""), [excluindo, setExcluindo] = useState(false);
 
-  const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentity; publicar: boolean; revision: number | null; somenteFicha: boolean }) => {
+  const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentity; revision: number | null; somenteFicha: boolean }) => {
     calcularFicha(p.draft);   // dado inválido/de outra versão falha aqui, não na tela
-    setDraft(p.draft); setIdentity(p.identity); setPublicar(p.publicar); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha);
-    setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity, publicar: p.publicar })); setEscolhas(escolhasDoInventario(p.draft));
+    setDraft(p.draft); setIdentity(p.identity); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha);
+    setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity })); setEscolhas(escolhasDoInventario(p.draft));
     setMetodo(metodoPreservado(p.draft.baseAbilities, p.draft.abilityMethod));
     setBase(null); setSaida(null);
     if (p.id !== id) registrarAliasPersonagem(p.id, id);
@@ -140,8 +142,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   }, [repo, id, tentativa]);
 
   idRealRef.current = idReal;
-  const retrato = JSON.stringify({ draft, identity, publicar });
-  const vazio = JSON.stringify({ draft: novoRascunho(id), identity: defaultPublicIdentity(), publicar: true });
+  const retrato = JSON.stringify({ draft, identity });
+  const vazio = JSON.stringify({ draft: novoRascunho(id), identity: defaultPublicIdentity() });
   const sujo = carga === "pronto" && retrato !== (salvo ?? vazio) && (salvo !== null || draft.name.trim() !== "" || draft.inventory.length > 0 || draft.decisions.length > 0);
   const { sheet, erro } = useMemo(() => { try { return { sheet: calcularFicha({ ...draft, name: draft.name.trim() || "Sem nome" }), erro: "" }; }  catch (e) { return { sheet: null, erro: e instanceof Error ? e.message : String(e) }; } }, [draft]);
   const mudar = (proximo: CharacterDraft) => { setDraft(proximo); setMsg(null); };
@@ -162,8 +164,10 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const salvar = useCallback(async (automatico?: boolean): Promise<boolean> => {
     if (salvando) return false;
     if (!sheet || !draft.name.trim()) { setMsg({ ok: false, t: "Informe o nome e corrija os erros antes de salvar." }); return false; }
-    if (draft.portrait && !retratoValido(draft.portrait)) { setMsg({ ok: false, t: "O retrato deve ser um endereço https:// sem espaços." }); return false; }
-    const estado = { draft, identity, publicar };
+    if (draft.portrait && !retratoValido(draft.portrait)) { setMsg({ ok: false, t: "O endereço do retrato deve começar com https:// e não ter espaços." }); return false; }
+    const apresentado = publicIdentityCard(identity, origem);
+    if (!somenteFicha && !apresentado.name && !apresentado.alias) { setMsg({ ok: false, t: "Na identidade pública, apresente ao menos o nome ou a alcunha." }); return false; }
+    const estado = { draft, identity };
     setSalvando(true);
     try {
       const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: origem });
@@ -171,14 +175,14 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       // A resposta confirma o snapshot enviado, não alterações feitas enquanto
       // a requisição estava em andamento. Preservar o estado mais recente da UI.
       setDraft(atual => ({ ...atual, id: r.id })); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
-      setSalvo(JSON.stringify({ draft: gravado, identity, publicar }));
+      setSalvo(JSON.stringify({ draft: gravado, identity }));
       limparRecuperacao(userId, campaignId, id);
       falhou.current = null;
       if (servidor && ehPersonagemNovo(id)) { gravarMapaAba(userId, campaignId, id, r.id); registrarAliasPersonagem(r.id, id); }
       registrarTitulo(id, draft.name.trim()); registrarTitulo(r.id, draft.name.trim()); avisarRegistros();
       if (automatico === true) { setMsg(null); return true; }   // não muda de tela nem de aba
       const incompleto = sheet.pending.length || !gruposCompletos(draft);
-      setMsg({ ok: true, t: servidor ? `${incompleto ? "Rascunho incompleto" : "Personagem"} salvo na campanha (revisão ${r.revision}).` : `${incompleto ? "Rascunho incompleto salvo" : "Personagem salvo"} neste navegador (armazenamento experimental).` });
+      setMsg({ ok: true, t: servidor ? `${incompleto ? "Rascunho incompleto" : "Personagem"} salvo na campanha.` : `${incompleto ? "Rascunho incompleto salvo" : "Personagem salvo"} neste navegador (armazenamento experimental).` });
       if (!incompleto || base) { setBase(null); setSaida(null); setVisualizando(true); setSecao("ficha"); }
 
       return true;
@@ -190,7 +194,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       setMsg({ ok: false, t: `${texto} Suas alterações continuam na tela${guardou ? " e foram guardadas neste navegador" : ""}.` });
       return false;
     } finally { setSalvando(false); }
-  }, [salvando, sheet, draft, identity, publicar, repo, idReal, existe, revisao, somenteFicha, servidor, userId, campaignId, id, base]);
+  }, [salvando, sheet, draft, identity, repo, idReal, existe, revisao, somenteFicha, servidor, userId, campaignId, id, base]);
   // Proteção local contínua do rascunho: a aba pode ser desmontada ao alternar
   // para outro conteúdo sem que o usuário pressione Salvar. Nunca enviamos
   // essas alterações automaticamente ao servidor: restauração é explícita.
@@ -199,10 +203,10 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   useEffect(() => {
     if (!servidor || carga !== "pronto" || !sujo || recuperacao || salvando) return;
     gravarRecuperacao(userId, campaignId, id, {
-      estado: { draft, identity, publicar }, baseRevisao: revisao,
+      estado: { draft, identity }, baseRevisao: revisao,
       motivo: "Rascunho não salvo recuperado deste navegador", em: new Date().toISOString(),
     });
-  }, [servidor, carga, sujo, recuperacao, salvando, userId, campaignId, id, draft, identity, publicar, revisao]);
+  }, [servidor, carga, sujo, recuperacao, salvando, userId, campaignId, id, draft, identity, revisao]);
 
   useUnsavedGuard(`criador:${id}`, sujo, salvar);
   // Ficha de jogo: cada mudança é salva sozinha, com a mesma revisão controlada. Conflito ou cópia de recuperação pausam tudo até a pessoa decidir.
@@ -224,7 +228,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const marca = `edicao:${id}`, ignorarVoltar = useRef(false);
   const editar = () => {
     falhou.current = null;
-    setBase({ draft, identity, publicar }); setSecao("ficha"); setVisualizando(false); setMsg(null);
+    setBase({ draft, identity }); setSecao("ficha"); setVisualizando(false); setMsg(null);
     window.history.pushState({ ...window.history.state, compendioEdicao: marca }, "");   // o Voltar do navegador retorna à ficha
   };
   /** Retira do histórico a entrada criada ao editar, quando a saída foi por um botão da tela. */
@@ -237,11 +241,11 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const descartarEdicao = () => {
     setSaida(null); setMsg(null); setErroAtrib(""); limparRecuperacao(userId, campaignId, id); setRecuperacao(null);
     if (!existe) {
-      const novo = novoRascunho(id); setDraft(novo); setIdentity(defaultPublicIdentity()); setPublicar(true); setEscolhas(escolhasDoInventario(novo));
+      const novo = novoRascunho(id); setDraft(novo); setIdentity(defaultPublicIdentity()); setEscolhas(escolhasDoInventario(novo));
       pedirFechamento(`criador:${id}`); return;
     }
-    const volta = base ?? (salvo ? JSON.parse(salvo) as { draft: CharacterDraft; identity: PublicIdentity; publicar: boolean } : null);
-    if (volta) { setDraft(volta.draft); setIdentity(volta.identity); setPublicar(volta.publicar); setEscolhas(escolhasDoInventario(volta.draft)); setMetodo(metodoPreservado(volta.draft.baseAbilities, volta.draft.abilityMethod)); }
+    const volta = base ?? (salvo ? JSON.parse(salvo) as { draft: CharacterDraft; identity: PublicIdentity } : null);
+    if (volta) { setDraft(volta.draft); setIdentity(volta.identity); setEscolhas(escolhasDoInventario(volta.draft)); setMetodo(metodoPreservado(volta.draft.baseAbilities, volta.draft.abilityMethod)); }
     setBase(null); setVisualizando(true); setSecao("ficha");
   };
   const cancelarEdicao = () => { if (alteradoNaEdicao) setSaida("cancelar"); else { consumirEntradaDoHistorico(); descartarEdicao(); } };
@@ -281,7 +285,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     catch (e) { setMsg({ ok: false, t: e instanceof Error ? e.message : "Não foi possível recarregar." }); }
   };
   const restaurar = async () => { if (!recuperacao) return; try { if (modern2014(recuperacao.estado.draft) && !regras2014) await carregar2014(); calcularFicha(recuperacao.estado.draft); } catch { setMsg({ ok: false, t: "A cópia guardada é inválida e não pôde ser restaurada." }); return; }
-    setDraft({ ...recuperacao.estado.draft, id: idReal }); setMetodo(metodoPreservado(recuperacao.estado.draft.baseAbilities, recuperacao.estado.draft.abilityMethod)); setIdentity(recuperacao.estado.identity); setPublicar(recuperacao.estado.publicar); setEscolhas(escolhasDoInventario(recuperacao.estado.draft)); limparRecuperacao(userId, campaignId, id); setRecuperacao(null); setMsg({ ok: true, t: "Alterações restauradas. Revise e clique em Salvar." }); };
+    setDraft({ ...recuperacao.estado.draft, id: idReal }); setMetodo(metodoPreservado(recuperacao.estado.draft.baseAbilities, recuperacao.estado.draft.abilityMethod)); setIdentity(recuperacao.estado.identity); setEscolhas(escolhasDoInventario(recuperacao.estado.draft)); limparRecuperacao(userId, campaignId, id); setRecuperacao(null); setMsg({ ok: true, t: "Alterações restauradas. Revise e clique em Salvar." }); };
   const descartarRecuperacao = () => { limparRecuperacao(userId, campaignId, id); setRecuperacao(null); };
 
   if (carga === "carregando") return <div className="content"><p className="muted" role="status">Carregando personagem…</p></div>;
@@ -369,21 +373,25 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
         <button type="button" className="btn-secondary" disabled={salvando} onClick={() => void salvarEdicao()}>Salvar e voltar</button>
         <button type="button" className="btn-secondary danger" onClick={() => { consumirEntradaDoHistorico(); descartarEdicao(); }}>Descartar alterações</button></div></div>}
     {servidor
-      ? <div className="notice ok" role="note" data-testid="aviso-servidor">{somenteFicha ? "Ficha de outro jogador: você a vê e edita como mestre da campanha. A identidade pública continua sendo do dono." : "Salvo na campanha: só você e o mestre leem esta ficha. Os outros jogadores veem apenas a identidade pública que você publicar."} {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>
-      : <div className="notice" role="note" data-testid="aviso-armazenamento">Armazenamento <strong>experimental</strong>: o personagem fica só neste navegador, não sincroniza entre aparelhos e não é privado de quem usa o mesmo navegador. Sem conta e API de fichas não há salvamento real na campanha. {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>}
+      ? <p className="muted" role="note" data-testid="aviso-servidor">{somenteFicha ? "Ficha de outro jogador: você a edita como mestre. As escolhas da identidade pública continuam sendo do dono." : "A ficha é privada (você e o mestre). Os outros jogadores veem só a apresentação da aba Identidade pública."}</p>
+      : <div className="notice" role="note" data-testid="aviso-armazenamento">Armazenamento <strong>experimental</strong>: o personagem fica só neste navegador, não sincroniza entre aparelhos e não é privado de quem usa o mesmo navegador.</div>}
     {avisoConflito}
     {recuperacao && <div className="notice" role="status" data-testid="aviso-recuperacao"><p>Há alterações deste personagem que não chegaram ao servidor ({recuperacao.motivo || "falha anterior"}), guardadas neste navegador em {new Date(recuperacao.em).toLocaleString("pt-BR")}.</p><div className="row"><button type="button" className="btn-primary" onClick={restaurar}>Restaurar essas alterações</button><button type="button" className="btn-secondary" onClick={descartarRecuperacao}>Descartar</button></div></div>}
-    <nav className="ficha-subnav" aria-label="Seções do personagem">{sec("ficha", "Ficha")}{sec("equipamento", "Equipamento inicial")}{sec("inventario", "Inventário")}{sec("identidade", "Identidade pública")}</nav>
+    <nav className="ficha-subnav criador-abas" aria-label="Seções do personagem">{sec("ficha", "Ficha")}{sec("equipamento", "Equipamento inicial")}{sec("inventario", "Inventário")}{sec("identidade", "Identidade pública")}</nav>
     {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
     {erro && <Aviso erro t={erro}/>}
     {sujo && <p className="muted" role="status">Alterações não salvas.</p>}
 
     {secao === "ficha" && <div className="criador-sec">
       {!modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudarComEntrega}/></Suspense>}
-      <label>Nome do personagem<input ref={nameRef} aria-label="Nome do personagem" value={draft.name} maxLength={120} onChange={e => mudar({ ...draft, name: e.target.value })}/></label>
-      <label>Alcunha (opcional)<input aria-label="Alcunha" value={draft.nickname ?? ""} maxLength={120} onChange={e => mudar({ ...draft, nickname: e.target.value })}/></label>
-      <label>Retrato (endereço https da imagem, opcional)<input aria-label="Retrato do personagem" type="url" inputMode="url" placeholder="https://" value={draft.portrait ?? ""} maxLength={2000} onChange={e => mudar({ ...draft, portrait: e.target.value.trim() })}/></label>
-      {draft.portrait && !retratoValido(draft.portrait) && <p role="alert" className="notice err">O retrato deve ser um endereço https:// sem espaços.</p>}
+      <section className="criador-principal" aria-label="Identificação">
+        <CampoRetrato valor={draft.portrait ?? ""} campaignId={campaignId} onChange={portrait => mudar({ ...draft, portrait })}/>
+        <div className="criador-campos">
+          <label>Nome do personagem<input ref={nameRef} aria-label="Nome do personagem" value={draft.name} maxLength={120} onChange={e => mudar({ ...draft, name: e.target.value })}/></label>
+          <label>Alcunha (opcional)<input aria-label="Alcunha" value={draft.nickname ?? ""} maxLength={120} onChange={e => mudar({ ...draft, nickname: e.target.value })}/></label>
+          <label>Nível<select aria-label="Nível" value={draft.level} onChange={e => alterarNivel(Number(e.target.value))}>{(modern2014(draft) ? Array.from({ length: 20 }, (_, i) => i + 1) : [1, 2, 3, 4, 5, 6]).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
+        </div>
+      </section>
       {modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudarComEntrega}/></Suspense>}{!modern2014(draft) && <p className="muted">Raça: Anão · Antecedente: Acólito · Classe: Guerreiro</p>}
       <fieldset><legend>Atributos-base (antes dos bônus raciais)</legend>
         <label>Método<select aria-label="Método de atributos" value={metodo} onChange={e => trocarMetodo(e.target.value as Metodo)}><option value="point-buy">Compra de pontos (27)</option><option value="standard-array">Matriz padrão</option><option value="manual">Rolagens manuais (3–18)</option>{metodo === "preserved" && <option value="preserved">Valores preservados da ficha</option>}</select></label>
@@ -396,7 +404,6 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
           {metodo === "point-buy" && <button type="button" className="btn-secondary" aria-label={"+ Aumentar " + rotuloAtributo(a)} disabled={draft.baseAbilities[a] >= 15 || pointBuySpent({ ...draft.baseAbilities, [a]: draft.baseAbilities[a] + 1 }) > POINT_BUY_BUDGET} onClick={() => alterarAtributo(a, draft.baseAbilities[a] + 1)}>+</button>}</label>)}</div>
         {erroAtrib && <p role="alert" className="notice err">{erroAtrib}</p>}
       </fieldset>
-      <label>Nível<select aria-label="Nível" value={draft.level} onChange={e => alterarNivel(Number(e.target.value))}>{(modern2014(draft) ? Array.from({ length: 20 }, (_, i) => i + 1) : [1, 2, 3, 4, 5, 6]).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
       {escolhasDoNivel.map(ch => ch.count > 1
         ? <fieldset key={ch.id}><legend>Perícias do Guerreiro (escolha {ch.count})</legend>
           <div className="criador-pericias">{ch.options.map(o => { const marcadas = draft.decisions.find(d => d.id === ch.id)?.optionIds ?? [];
@@ -406,6 +413,9 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
           <select aria-label={ch.id === "fighter-asi-4" ? "Melhoria de atributo" : ch.id} value={draft.decisions.find(d => d.id === ch.id)?.optionIds[0] ?? ""}
             onChange={e => mudar({ ...draft, decisions: [...draft.decisions.filter(d => d.id !== ch.id), ...(e.target.value ? [{ id: ch.id, optionIds: [e.target.value] }] : [])] })}>
             <option value="">Selecione uma opção</option>{ch.options.map(o => <option key={o.id} value={o.id}>{rotuloOpcao(o.id)}</option>)}</select></label>)}
+      <fieldset className="criador-historia"><legend>História e personalidade (opcional, privado)</legend>
+        {CAMPOS_HISTORIA.map(([chave, rotulo]) => <label key={chave} className={chave === "historia" ? "criador-largo" : undefined}>{rotulo}<textarea aria-label={rotulo} rows={chave === "historia" ? 6 : 3} maxLength={chave === "historia" ? 8000 : 1500} value={draft.story?.[chave] ?? ""} onChange={e => mudar({ ...draft, story: { ...draft.story, [chave]: e.target.value } })}/></label>)}
+      </fieldset>
       {sheet && <section aria-label="Ficha calculada" className="criador-ficha">
         <h2>Ficha calculada</h2>
         <p>{ABILITY_ORDER.map(a => `${rotuloAtributo(a)} ${sheet.abilities[a]}`).join(" · ")}</p>
@@ -454,10 +464,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
 
     {secao === "identidade" && <div className="criador-sec">
       {somenteFicha ? <Aviso t="A identidade pública pertence ao dono do personagem. Como mestre, você edita a ficha, mas não altera nem lê a identidade privada dele."/> : <>
-      <p className="muted">O cartão público é separado da ficha privada: nível, PV, atributos, inventário e anotações nunca aparecem nele.{servidor ? " Só o que você publicar aparece para os outros jogadores." : " Vale para a prévia local; a publicação na campanha exige conta e a API de fichas."}</p>
-      {servidor && <label className="check"><input type="checkbox" aria-label="Publicar identidade na campanha" checked={publicar} onChange={e => { setPublicar(e.target.checked); setMsg(null); }}/> Publicar a identidade pública na campanha (aparece em Personagens e no Início)</label>}
-      <PublicIdentityEditor key={draft.id} source={origem} initialIdentity={identity}
-        onSave={s => { setIdentity(s); setMsg({ ok: true, t: "Identidade pública atualizada. Clique em Salvar para guardá-la." }); }}/></>}
+      <PublicIdentityEditor key={draft.id} source={origem} initialIdentity={identity} onChange={x => { setIdentity(x); setMsg(null); }}/></>}
     </div>}
 
     <div className="row criador-rodape">

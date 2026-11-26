@@ -21,6 +21,8 @@ export type PersonagemCampanha = {
 };
 export type ListaPersonagens = { personagens: PersonagemCampanha[]; avisoFichas: string | null };
 
+const nivelPublico = (v: string | null | undefined) => (v && Number.isInteger(Number(v)) ? Number(v) : null);
+
 export async function listarPersonagens(campaignId: string, de: { registros: RegistrosApi; fichas: FichasApi | null; userId: string | null }): Promise<Res<ListaPersonagens>> {
   const [r, f] = await Promise.all([de.registros.list(campaignId, "character"), de.fichas ? de.fichas.listar(campaignId) : Promise.resolve(null)]);
   if (!r.ok) return r;
@@ -31,9 +33,9 @@ export async function listarPersonagens(campaignId: string, de: { registros: Reg
     const publicado = nota.visibility === "campaign", meu = (ficha?.ownerId ?? nota.ownerId) === de.userId;
     if (ehGuiado(nota.meta)) {
       const c = cartaoPublico(nota.meta);
-      // quem lê a ficha vê o personagem como ele é; os demais, só a apresentação publicada (nunca nível)
+      // quem lê a ficha vê o personagem como ele é; os demais, só a apresentação (o que o dono não ocultou)
       const visto = ficha ? { nome: ficha.nome, alcunha: ficha.alcunha ?? null } : c ? presentation(c) : { nome: nota.title, alcunha: null };
-      return { id: nota.id, nome: visto.nome, alcunha: visto.alcunha, classe: ficha ? classeDaFicha(ficha) : [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: ficha?.nivel ?? null,
+      return { id: nota.id, nome: visto.nome, alcunha: visto.alcunha, classe: ficha ? classeDaFicha(ficha) : [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: ficha ? ficha.nivel : nivelPublico(c?.level),
         retratoUrl: (ficha ? ficha.retrato : c?.imageUrl) ?? null, retratoCaminho: null, guiado: true, comFicha: !!ficha, meu, publicado };
     }
     const p = lerPerfil(nota.meta);

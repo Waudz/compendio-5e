@@ -106,14 +106,15 @@ describe('criador guiado na navegação real (desktop)', () => {
     // volta ao criador: o rascunho continua intacto; identidade pública separada da ficha privada
     fireEvent.click(screen.getByText('Novo personagem', { selector: strip }));
     fireEvent.click(await screen.findByRole('button', { name: 'Identidade pública' }));
-    expect(screen.getByText(/nunca aparecem nele/)).toBeTruthy();
+    expect(screen.getByText(/nunca aparecem/)).toBeTruthy();
+    expect(screen.queryByRole('checkbox', { name: /Publicar/ })).toBeNull();
     fireEvent.change(screen.getByLabelText('Visibilidade Classe'), { target: { value: 'hidden' } });
     fireEvent.change(screen.getByLabelText('Visibilidade Alcunha'), { target: { value: 'custom' } });
     fireEvent.change(screen.getByLabelText('Alcunha pública'), { target: { value: 'O Escudo de Pedra' } });
     const previa = within(screen.getByRole('region', { name: 'Prévia para outros jogadores' }));
-    expect(previa.queryByText(/Classe:/)).toBeNull(); expect(previa.queryByText(/Guerreiro/)).toBeNull(); expect(previa.queryByText(/nível|PV|Cota de malha/i)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar identidade pública' }));
-    expect(await screen.findByText(/Identidade pública atualizada/)).toBeTruthy();
+    expect(previa.queryByText(/Classe:/)).toBeNull(); expect(previa.queryByText(/Guerreiro/)).toBeNull(); expect(previa.queryByText(/PV|Cota de malha/i)).toBeNull(); expect(previa.getByText(/Nível 1/)).toBeTruthy();
+
+
 
     // salvar
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));

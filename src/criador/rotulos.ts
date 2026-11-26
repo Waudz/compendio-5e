@@ -28,6 +28,6 @@ export function rotuloOpcao(id: string): string {
 }
 
 /** Os únicos dados da ficha que a identidade pública pode usar. `raca`/`classe` já em português. */
-export const origemPublica = (d: { name: string; nickname?: string; portrait?: string }, raca: string, classe: string) => ({ name: d.name, alias: d.nickname ?? '', race: raca, characterClass: classe, portrait: d.portrait ?? '' });
+export const origemPublica = (d: { name: string; nickname?: string; portrait?: string; level: number }, raca: string, classe: string) => ({ name: d.name, alias: d.nickname ?? '', race: raca, characterClass: classe, level: String(d.level), portrait: d.portrait ?? '' });
 export function rotuloClasse(id?:string){const classes:Record<string,string>={barbarian:'Bárbaro',bard:'Bardo',cleric:'Clérigo',druid:'Druida',fighter:'Guerreiro',monk:'Monge',paladin:'Paladino',ranger:'Patrulheiro',rogue:'Ladino',sorcerer:'Feiticeiro',warlock:'Bruxo',wizard:'Mago'};const key=id?.includes(':')?id.split(':').at(-2):id;return classes[key??'fighter']??'Personagem';}
 export function rotuloRaca(id:string){const races:Record<string,string>={'hill-dwarf':'Anão da Colina','high-elf':'Elfo Alto','lightfoot-halfling':'Halfling Pés Leves','rock-gnome':'Gnomo da Rocha',human:'Humano',dragonborn:'Draconato','half-elf':'Meio-elfo','half-orc':'Meio-orc',tiefling:'Tiefling'};return races[id]??'Anão';}

@@ -32,9 +32,9 @@ export function fontePersonagens(api: RegistrosApi, capa: CapaApi | null): Fonte
       const r = await api.list(campanhaId, "character"); if (!r.ok) return r;
       const lista = ordenarPersonagens(r.data.filter(x => x.visibility === "campaign"));
       const out = await Promise.all(lista.map(async x => {
-        if (ehGuiado(x.meta)) {   // guiado: só a identidade pública (inclusive o retrato publicado), sem nível
+        if (ehGuiado(x.meta)) {   // guiado: só a identidade pública (retrato e, se o dono não ocultar, o nível)
           const c = cartaoPublico(x.meta), visto = c ? presentation(c) : { nome: x.title, alcunha: null };
-          return { id: x.id, nome: visto.nome, ...(visto.alcunha ? { alcunha: visto.alcunha } : {}), classe: [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: null, retratoUrl: c?.imageUrl ?? null };
+          return { id: x.id, nome: visto.nome, ...(visto.alcunha ? { alcunha: visto.alcunha } : {}), classe: [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: c?.level && Number.isInteger(Number(c.level)) ? Number(c.level) : null, retratoUrl: c?.imageUrl ?? null };
         }
         const p = lerPerfil(x.meta); let retratoUrl: string | null = null;
         if (p.retrato && capa) { const u = await capa.urlDe(p.retrato); if (u.ok) retratoUrl = u.data; }   // retrato indisponível: cai na inicial, sem erro

@@ -67,26 +67,23 @@ const preencher = async (nome: string) => {
   }
   fireEvent.click(await screen.findByRole("button", { name: "Confirmar equipamentos SRD 2014" }));
 };
-const caixaPublicar = () => screen.getByLabelText("Publicar identidade na campanha") as HTMLInputElement;
-const identidade = (publicar: boolean, alcunha = "O Escudo") => {
+const identidade = (alcunha = "O Escudo") => {
   fireEvent.click(secoes().getByRole("button", { name: "Identidade pública" }));
   fireEvent.change(screen.getByLabelText("Visibilidade Classe"), { target: { value: "hidden" } });
   fireEvent.change(screen.getByLabelText("Visibilidade Raça"), { target: { value: "hidden" } });
   fireEvent.change(screen.getByLabelText("Visibilidade Alcunha"), { target: { value: "custom" } });
   fireEvent.change(screen.getByLabelText("Alcunha pública"), { target: { value: alcunha } });
-  fireEvent.click(screen.getByRole("button", { name: "Salvar identidade pública" }));
-  if (caixaPublicar().checked !== publicar) fireEvent.click(caixaPublicar());
 };
-const salvar = async (revisao: number) => { fireEvent.click(screen.getByRole("button", { name: "Salvar" })); expect(await screen.findByText(new RegExp(`salvo na campanha \\(revisão ${revisao}\\)`))).toBeTruthy(); const editar = screen.queryByRole("button", { name: "Editar personagem" }); if (editar) fireEvent.click(editar); };
+const salvar = async (revisao: number) => { fireEvent.click(screen.getByRole("button", { name: "Salvar" })); await waitFor(() => expect(banco.fichas[banco.fichas.length - 1]?.revision).toBe(revisao)); expect(await screen.findByText(/salvo na campanha[.]/)).toBeTruthy(); const editar = screen.queryByRole("button", { name: "Editar personagem" }); if (editar) fireEvent.click(editar); };
 /** Cria e salva um personagem como `user` pela interface. */
-async function criarPersonagem(nome = "Thorin", publicar = false, user: User = me) {
-  await montar(user); await abrirPersonagens(); await novoGuiado(); await preencher(nome); identidade(publicar); await salvar(1);
+async function criarPersonagem(nome = "Thorin", user: User = me) {
+  await montar(user); await abrirPersonagens(); await novoGuiado(); await preencher(nome); identidade(); await salvar(1);
 }
 const chavesLocais = (prefixo: string) => [...Array(localStorage.length).keys()].map(i => localStorage.key(i)!).filter(k => k.startsWith(prefixo));
 
 describe("salvar e reabrir (servidor)", () => {
   it("cria, salva e reabre sem perder nada; na campanha só vai a identidade pública (nunca ficha, inventário ou atributos)", async () => {
-    await criarPersonagem("Thorin", true);
+    await criarPersonagem("Thorin");
     expect(banco.fichas).toHaveLength(1);
     expect(banco.fichas[0]).toMatchObject({ ownerId: "u1", revision: 1, draft: expect.objectContaining({ name: "Thorin", id: banco.fichas[0].id }) });
     expect(banco.fichas[0].draft.inventory.map(i => i.itemId)).toContain("chain-mail");
@@ -104,12 +101,11 @@ describe("salvar e reabrir (servidor)", () => {
     fireEvent.click(secoes().getByRole("button", { name: "Identidade pública" }));
     expect((screen.getByLabelText("Alcunha pública") as HTMLInputElement).value).toBe("O Escudo");
     expect((screen.getByLabelText("Visibilidade Classe") as HTMLSelectElement).value).toBe("hidden");
-    expect((screen.getByLabelText("Publicar identidade na campanha") as HTMLInputElement).checked).toBe(true);
     expect(screen.getByTestId("exclusao-indisponivel")).toBeTruthy();                       // sem botão de excluir: segue o fluxo narrativo
   });
 
   it("editar o inventário dentro da ficha e salvar grava nova revisão; a identidade pública continua igual", async () => {
-    await criarPersonagem("Thorin", true);
+    await criarPersonagem("Thorin");
     cleanup(); await montar(); await abrirPersonagens();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ })); await nomeInput();
     fireEvent.click(secoes().getByRole("button", { name: "Inventário" }));
@@ -122,7 +118,7 @@ describe("salvar e reabrir (servidor)", () => {
   });
 
   it("outro dispositivo com a mesma conta (armazenamento local vazio) abre a mesma ficha a partir do servidor", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     cleanup(); vi.stubGlobal("localStorage", memoryStorage());          // aparelho novo: nada local
     await montar(); await abrirPersonagens();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
@@ -132,14 +128,14 @@ describe("salvar e reabrir (servidor)", () => {
   });
 
   it("a aba do personagem novo reabre o mesmo personagem depois de recarregar (sem duplicar)", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     cleanup(); await montar(me, false);                                  // layout salvo mantido: a aba `criador:novo-…` volta
     expect((await nomeInput()).value).toBe("Thorin");
     expect(banco.fichas).toHaveLength(1);
   });
 
   it("ficha inexistente ou sem acesso (ex.: saiu da campanha) mostra erro e NUNCA abre um editor vazio capaz de duplicar", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     const id = banco.fichas[0].id;
     banco.campanhas.ca.jogadores = banco.campanhas.ca.jogadores.filter(u => u !== "u1");       // u1 saiu da campanha
     cleanup(); localStorage.setItem(`compendio5e:workspace:v2:u1:ca:navegador`, JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", id: "grupo-1", weight: 100, active: true, selected: 0, children: [{ type: "tab", id: `criador:${id}` }] }] } }));
@@ -151,15 +147,16 @@ describe("salvar e reabrir (servidor)", () => {
 });
 
 describe("quem vê o quê", () => {
-  it("outro jogador da campanha vê só a identidade pública publicada (sem nível, PV, inventário nem ficha) e nada se não foi publicada", async () => {
-    await criarPersonagem("Thorin", true);
+  it("outro jogador da campanha vê só a apresentação (sem PV, inventário nem ficha); um registro ainda privado não aparece", async () => {
+    await criarPersonagem("Thorin");
     cleanup(); await montar(other); await abrirPersonagens();
     expect(screen.queryByRole("button", { name: /sua ficha|ficha de outro participante/ })).toBeNull();            // não lê a ficha de ninguém
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin O Escudo/ }));
     const cartao = await screen.findByTestId("cartao-publico");
     expect(cartao.textContent).toMatch(/Thorin.*O Escudo/);
-    expect(cartao.textContent).not.toMatch(/nível|PV|Cota de malha|Guerreiro|Anão|atributo/i);
-    // não publicada: não aparece
+    expect(cartao.textContent).not.toMatch(/PV|Cota de malha|Guerreiro|Anão|atributo/i);
+    expect(cartao.textContent).toContain("Nível: 1");
+    // registro gravado antes da apresentação automática (ainda privado no banco): continua invisível até a próxima gravação
     banco.registros.dados[0].visibility = "private";
     cleanup(); await montar(other); await abrirPersonagens();
     await screen.findByTestId("personagens-vazio");
@@ -171,15 +168,16 @@ describe("quem vê o quê", () => {
     expect(await screen.findByText(/Personagem não encontrado, removido ou sem acesso/)).toBeTruthy();
   });
 
-  it("início da campanha mostra o personagem guiado publicado só com a identidade (sem nível)", async () => {
-    await criarPersonagem("Thorin", true);
+  it("início da campanha mostra o personagem guiado só com a apresentação, que inclui o nível", async () => {
+    await criarPersonagem("Thorin");
     cleanup(); await montar(other);
     const card = await screen.findByRole("button", { name: /^Thorin O Escudo/ });
-    expect(card.textContent).not.toMatch(/nível/);
+    expect(card.textContent).toMatch(/nível 1/);
+    expect(card.textContent).not.toMatch(/Guerreiro|Anão|PV/);
   });
 
   it("o mestre vê e edita a ficha de outro jogador, mas não vê a identidade privada nem a altera", async () => {
-    await criarPersonagem("Thorin", false);                               // identidade NÃO publicada (privada)
+    await criarPersonagem("Thorin");
     cleanup(); await montar(mestreUser); await abrirPersonagens();
     expect(screen.queryByRole("button", { name: /^Thorin O Escudo/ })).toBeNull();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
@@ -193,8 +191,9 @@ describe("quem vê o quê", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^Adicionar Adaga$/ }));
     await salvar(2);
     expect(banco.fichas[0]).toMatchObject({ ownerId: "u1", revision: 2 });
-    expect((registros.dados[0] as { title: string; visibility: string }).visibility).toBe("private");   // identidade intacta
-    expect((registros.dados[0] as { title: string }).title).toBe("O Escudo");
+    expect((registros.dados[0] as { visibility: string }).visibility).toBe("campaign");
+    expect((registros.dados[0] as { title: string }).title).toBe("O Escudo");                          // as escolhas do dono continuam valendo
+    expect(JSON.stringify(registros.dados[0])).not.toMatch(/Guerreiro|Anão|Adaga|dagger/);
   });
 });
 
@@ -202,13 +201,13 @@ describe("identidade pública inválida", () => {
   it("retrato que não é https: o salvamento é recusado com a mensagem certa, nada vai ao servidor e a tela mantém o que foi digitado", async () => {
     await montar(); await abrirPersonagens(); await novoGuiado(); await preencher("Thorin");
     fireEvent.click(secoes().getByRole("button", { name: "Ficha" }));
-    fireEvent.change(screen.getByLabelText("Retrato do personagem"), { target: { value: "http://exemplo.com/retrato.png" } });
+    fireEvent.change(screen.getByLabelText("Endereço do retrato"), { target: { value: "http://exemplo.com/retrato.png" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
-    expect((await screen.findAllByText(/O retrato deve ser um endereço https/)).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/deve começar com https/)).length).toBeGreaterThan(0);
     expect(banco.fichas).toHaveLength(0); expect(registros.dados).toHaveLength(0);
     expect(screen.getByText("Alterações não salvas.")).toBeTruthy();
     // corrigindo a URL, salva
-    fireEvent.change(screen.getByLabelText("Retrato do personagem"), { target: { value: "https://exemplo.com/retrato.png" } });
+    fireEvent.change(screen.getByLabelText("Endereço do retrato"), { target: { value: "https://exemplo.com/retrato.png" } });
     await salvar(1);
     expect(banco.fichas).toHaveLength(1);
   });
@@ -216,7 +215,7 @@ describe("identidade pública inválida", () => {
 
 describe("conflito de revisão", () => {
   it("edição do mestre durante a do dono: o dono recebe aviso, nada é sobrescrito, e pode carregar a versão atual e restaurar as próprias alterações", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     cleanup(); await montar(); await abrirPersonagens();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     fireEvent.change(await nomeInput(), { target: { value: "Thorin B" } });
@@ -240,7 +239,7 @@ describe("conflito de revisão", () => {
 
 describe("falhas de rede e recuperação", () => {
   it("salvar sem conexão preserva a tela e guarda uma cópia; ao reabrir oferece restaurar e, depois de salvar, a cópia some", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     banco.rede.caida = true;
     fireEvent.click(secoes().getByRole("button", { name: "Ficha" }));
     fireEvent.change(await nomeInput(), { target: { value: "Thorin Editado" } });
@@ -261,7 +260,7 @@ describe("falhas de rede e recuperação", () => {
   });
 
   it("falha ao abrir (rede) mostra o erro com 'Tentar de novo' e recupera quando a conexão volta", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     cleanup(); await montar(); await abrirPersonagens();
     const botao = await screen.findByRole("button", { name: /^Thorin/ });
     banco.rede.caida = true; fireEvent.click(botao);
@@ -271,7 +270,7 @@ describe("falhas de rede e recuperação", () => {
   });
 
   it("a lista de fichas informa a falha de rede e permite tentar de novo", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     banco.rede.caida = true; cleanup(); await montar(); await abrirPersonagens();
     expect(await screen.findByText(/Sem conexão com o servidor/)).toBeTruthy();
     banco.rede.caida = false; fireEvent.click(screen.getAllByRole("button", { name: "Tentar de novo" })[0]);
@@ -279,7 +278,7 @@ describe("falhas de rede e recuperação", () => {
   });
 
   it("a cópia de recuperação de um usuário não aparece para outro no mesmo navegador", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     banco.rede.caida = true;
     fireEvent.click(secoes().getByRole("button", { name: "Ficha" }));
     fireEvent.change(await nomeInput(), { target: { value: "Rascunho do u1" } }); fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
@@ -303,7 +302,8 @@ describe("rascunhos do armazenamento local (experimental) → campanha", () => {
     fireEvent.click(secao.getByRole("button", { name: "Enviar para a campanha: Velho Rascunho" }));
     expect(await screen.findByText(/foi enviado para a campanha e a cópia deste navegador foi removida/)).toBeTruthy();
     expect(banco.fichas).toHaveLength(1); expect(banco.fichas[0].draft).toMatchObject({ name: "Velho Rascunho", id: banco.fichas[0].id });
-    expect((registros.dados[0] as { visibility: string }).visibility).toBe("private");        // identidade começa privada
+    expect((registros.dados[0] as { visibility: string }).visibility).toBe("campaign");       // apresentação automática
+    expect(JSON.stringify(registros.dados[0])).not.toMatch(/inventory|baseAbilities|currentHp/);
     expect(armazenamentoLocalExperimental("u1", "ca").listar()).toEqual([]);
     expect(screen.queryByTestId("rascunhos-locais")).toBeNull();
     expect(await screen.findByRole("button", { name: /^Velho Rascunho/ })).toBeTruthy();
@@ -346,8 +346,9 @@ describe("personagens guiados no Início e lista única", () => {
   const aventureiros = async () => within(await screen.findByRole("region", { name: "Aventureiros" }));
   const lista = async () => within(await screen.findByRole("region", { name: "Personagens da campanha" }));
 
-  it("guiado NÃO publicado aparece nos Aventureiros do dono e do mestre (com aviso), e não para outro jogador", async () => {
-    await criarPersonagem("Thorin", false);
+  it("guiado ainda privado no banco aparece nos Aventureiros do dono e do mestre (com aviso), e não para outro jogador", async () => {
+    await criarPersonagem("Thorin");
+    banco.registros.dados[0].visibility = "private";   // registro anterior à apresentação automática
     cleanup(); await montar(me);
     const doDono = await (await aventureiros()).findByRole("button", { name: /^Thorin/ });
     expect(doDono.textContent).toMatch(/só você e o mestre veem/); expect(doDono.textContent).toMatch(/Guerreiro · nível 1/);
@@ -359,7 +360,7 @@ describe("personagens guiados no Início e lista única", () => {
   });
 
   it("publicado: cada personagem aparece UMA vez, sem a mensagem de vazio, e os registros não são duplicados", async () => {
-    await criarPersonagem("Thorin", true);
+    await criarPersonagem("Thorin");
     cleanup(); await montar(me); await abrirPersonagens();
     const l = await lista(); await l.findByRole("button", { name: /^Thorin/ });
     expect(l.getAllByRole("button")).toHaveLength(1);
@@ -371,14 +372,14 @@ describe("personagens guiados no Início e lista única", () => {
   });
 
   it("mestre abre pela lista a ficha publicada de um jogador (ficha, não só o cartão)", async () => {
-    await criarPersonagem("Thorin", true);
+    await criarPersonagem("Thorin");
     cleanup(); await montar(mestreUser); await abrirPersonagens();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     expect((await nomeInput()).value).toBe("Thorin"); expect(screen.queryByTestId("cartao-publico")).toBeNull();
   });
 
   it("falha ao ler as fichas avisa que a lista pode estar incompleta e não afirma que não há personagens", async () => {
-    await criarPersonagem("Thorin", false);
+    await criarPersonagem("Thorin");
     cleanup();
     const api = fichasEmMemoria(mestreUser.id, banco);
     for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i)!; if (k.startsWith("compendio5e:workspace")) localStorage.removeItem(k); }

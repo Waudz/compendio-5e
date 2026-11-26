@@ -117,7 +117,6 @@ describe('local creator vertical slice',()=>{
   fireEvent.change(screen.getByLabelText('Visibilidade Nome'),{target:{value:'custom'}});
   fireEvent.change(screen.getByLabelText('Nome público'),{target:{value:'A Sombra'}});
   fireEvent.change(screen.getByLabelText('Visibilidade Classe'),{target:{value:'hidden'}});
-  fireEvent.click(screen.getByRole('button',{name:'Salvar identidade pública'}));
   expect(screen.getByRole('status').textContent).toContain('Identidade pública salva');
   expect(localStorage.getItem('compendio5e:dev:character-pilot:fighter-srd51-v2')).toBeNull();
   fireEvent.click(screen.getByRole('button',{name:'Salvar rascunho local'}));

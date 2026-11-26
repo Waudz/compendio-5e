@@ -38,8 +38,8 @@ const rascunho: CharacterDraft = { id: "novo", name: "Thorin", nickname: "Escudo
     { id: "malha", itemId: "chain-mail", quantity: 1, equipped: false, origin: "acquired" },
     { id: "mochila", itemId: "backpack", quantity: 1, equipped: false, origin: "acquired" },
   ], currentHp: 20, temporaryHp: 0, spentResources: {} };
-const semear = async (publicar = true) => {
-  const r = await fichasEmMemoria(me.id, banco).criar("ca", rascunho, { identity: defaultPublicIdentity(), source: { name: "Thorin", alias: "Escudo de Pedra", race: "Anão da Colina", characterClass: "Guerreiro", portrait: RETRATO }, publicar });
+const semear = async () => {
+  const r = await fichasEmMemoria(me.id, banco).criar("ca", rascunho, { identity: defaultPublicIdentity(), source: { name: "Thorin", alias: "Escudo de Pedra", race: "Anão da Colina", characterClass: "Guerreiro", level: "3", portrait: RETRATO } });
   if (!r.ok) throw new Error(r.error);
   return r.data.id;
 };
@@ -223,25 +223,27 @@ describe("ficha de jogo", () => {
   });
 
   it("o mestre consulta e altera a ficha completa sem tocar na identidade pública do dono", async () => {
-    await semear(false);
-    const publicoAntes = JSON.stringify(registros.dados[0]);
+    await semear();
+    const publico = () => { const { title, visibility, meta } = registros.dados[0] as unknown as { title: string; visibility: string; meta: unknown }; return JSON.stringify({ title, visibility, meta }); };
+    const publicoAntes = publico();
     await abrirFicha(mestreUser);
     irPara("Inventário");
     expect(screen.getByRole("checkbox", { name: "Equipar Cota de malha" })).toBeTruthy();
     fireEvent.click(screen.getByRole("checkbox", { name: "Equipar Cota de malha" }));
     await salvou(() => expect(banco.fichas[0].revision).toBe(2));
     expect(banco.fichas[0].ownerId).toBe(me.id);
-    expect(JSON.stringify(registros.dados[0])).toBe(publicoAntes);
+    expect(publico()).toBe(publicoAntes);   // o conteúdo público não muda quando o mestre mexe só em dados privados
   });
 
   it("outro jogador vê só a apresentação (nome, alcunha e o mesmo retrato), sem PV, CA, atributos ou inventário", async () => {
-    await semear(true);
+    await semear();
     await montar(other); await abrirLista();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin Escudo de Pedra/ }));
     const cartao = await screen.findByTestId("cartao-publico");
     expect(cartao.querySelector("img")?.getAttribute("src")).toBe(RETRATO);
     expect(cartao.textContent).toMatch(/Thorin.*Escudo de Pedra/);
-    expect(cartao.textContent).not.toMatch(/PV \d|CA \d|Força|Cota de malha|Mochila|Nível/);
+    expect(cartao.textContent).not.toMatch(/PV \d|CA \d|Força|Cota de malha|Mochila/);
+    expect(cartao.textContent).toContain("Nível: 3");   // o nível faz parte da apresentação; o dono pode ocultá-lo
     expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
   });
 });

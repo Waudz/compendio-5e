@@ -8,7 +8,7 @@ import type { CharacterDraft } from "../rules/character-domain";
 import { defaultPublicIdentity, type PublicIdentity, type SheetPublicSource } from "../rules/public-identity";
 import { SCHEMA_PERSONAGEM_GUIADO, type ArmazenamentoCriador } from "./armazenamento";
 
-export type EstadoPersonagem = { draft: CharacterDraft; identity: PublicIdentity; publicar: boolean };
+export type EstadoPersonagem = { draft: CharacterDraft; identity: PublicIdentity };
 export type PersonagemCarregado = EstadoPersonagem & {
   id: string;
   /** Revisão do servidor (null no armazenamento local). */
@@ -37,11 +37,13 @@ export function repositorioServidor(api: FichasApi, campaignId: string, userId: 
       if (!r.data) return null;
       const { ficha, identidade } = r.data;
       if (ficha.campaignId !== campaignId) return null; // nunca abrir uma ficha na campanha errada, mesmo com acesso às duas
-      return { id: ficha.id, draft: ficha.draft, identity: identidade?.identity ?? defaultPublicIdentity(), publicar: identidade?.publicada ?? false, revision: ficha.revision, somenteFicha: ficha.ownerId !== userId };
+      return { id: ficha.id, draft: ficha.draft, identity: identidade?.identity ?? defaultPublicIdentity(), revision: ficha.revision, somenteFicha: ficha.ownerId !== userId };
     },
     async salvar(a) {
-      const ident = a.somenteFicha ? undefined : { identity: a.estado.identity, source: a.source, publicar: a.estado.publicar };
-      const r = a.existe ? await api.salvar(a.id, a.revisao ?? 0, a.estado.draft, ident) : await api.criar(campaignId, a.estado.draft, { identity: a.estado.identity, source: a.source, publicar: a.estado.publicar });
+      const ident = a.somenteFicha ? undefined : { identity: a.estado.identity, source: a.source };
+      // os nomes em português de raça e classe vão na ficha: o servidor os usa para refazer a apresentação quando o mestre salva
+      const draft = { ...a.estado.draft, publicLabels: { race: a.source.race, characterClass: a.source.characterClass } };
+      const r = a.existe ? await api.salvar(a.id, a.revisao ?? 0, draft, ident) : await api.criar(campaignId, draft, { identity: a.estado.identity, source: a.source });
       if (!r.ok) throw ehConflitoDeRevisao(r) ? new ErroConflito(r.error) : new Error(r.error);
       return { id: r.data.id, revision: r.data.revision };
     },
@@ -53,7 +55,7 @@ export function repositorioLocal(store: ArmazenamentoCriador): RepositorioPerson
     tipo: "local-experimental",
     async carregar(id) {
       const p = store.carregar(id);
-      return p ? { id, draft: p.draft, identity: p.identity, publicar: false, revision: null, somenteFicha: false } : null;
+      return p ? { id, draft: p.draft, identity: p.identity, revision: null, somenteFicha: false } : null;
     },
     async salvar(a) {
       store.salvar({ schemaVersion: SCHEMA_PERSONAGEM_GUIADO, draft: a.estado.draft, identity: a.estado.identity, savedAt: new Date().toISOString() });

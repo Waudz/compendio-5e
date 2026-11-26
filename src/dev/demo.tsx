@@ -87,8 +87,8 @@ const capaDemo: CapaApi = {
   obter: async () => ({ ok: true, data: localStorage.getItem(CAPA_KEY) }),
   definir: async (_c, f) => { try { const u = await lerArquivo(f); localStorage.setItem(CAPA_KEY, u); localStorage.removeItem(ENQ_KEY); return { ok: true, data: u }; } catch { return { ok: false, error: "Imagem grande demais para o modo de demonstração." }; } },
   remover: async () => { localStorage.removeItem(CAPA_KEY); localStorage.removeItem(ENQ_KEY); return { ok: true, data: true }; },
-  enviar: async () => ({ ok: false, error: "Envio de retrato indisponível no modo de demonstração." }),
-  urlDe: async () => ({ ok: false, error: "sem imagem" }),
+  enviar: async (_c, f) => { try { const caminho = `demo/${crypto.randomUUID()}`; localStorage.setItem(`demo:retrato:${caminho}`, await lerArquivo(f)); return { ok: true, data: caminho }; } catch { return { ok: false, error: "Imagem grande demais para o modo de demonstração." }; } },
+  urlDe: async caminho => { const d = localStorage.getItem(`demo:retrato:${caminho}`); return d ? { ok: true, data: d } : { ok: false, error: "sem imagem" }; },
   apagar: async () => ({ ok: true, data: true }),
 };
 

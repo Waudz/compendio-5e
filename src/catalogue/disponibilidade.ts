@@ -6,7 +6,11 @@ import { srdItem } from "./srd-2014-items";
 /** Itens com raridade que o jogador pode adicionar: as poções comuns. */
 export const LIBERADOS_COM_RARIDADE: readonly string[] = ["potion-of-healing-common", "potion-of-climbing"];
 
+/** Itens do equipamento de origem que não são linhas do catálogo (`grantBackground2014`). */
+export const ITENS_DE_ORIGEM: readonly string[] = ["background-prayer-book", "background-incense", "background-vestments"];
+
 export function jogadorPodeAdicionar(itemId: string): boolean {
+  if (ITENS_DE_ORIGEM.includes(itemId)) return true;
   const d = srdItem(itemId);
   if (!d) return false;
   if (LIBERADOS_COM_RARIDADE.includes(d.id)) return true;

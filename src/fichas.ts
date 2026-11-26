@@ -13,7 +13,7 @@ export type FichaServidor = { id: string; campaignId: string; ownerId: string; r
 export type ResumoFicha = { id: string; ownerId: string; nome: string; nivel: number | null; classId?: string; alcunha?: string; retrato?: string; revision: number; updatedAt: string };
 /** Identidade pública lida de `notes.meta.identidadePublica`: as escolhas (sem nenhum valor privado) e o cartão já resolvido. */
 export type IdentidadeGravada = { identity: PublicIdentity; card: PublicIdentityCard; publicada: boolean };
-export type EntradaIdentidade = { identity: PublicIdentity; source: SheetPublicSource; publicar: boolean };
+export type EntradaIdentidade = { identity: PublicIdentity; source: SheetPublicSource };
 
 export type FichasApi = {
   /** Fichas que o usuário pode LER (as próprias; todas as da campanha para o mestre). A RLS decide; nada aqui filtra por segurança. */
@@ -33,8 +33,8 @@ export const MAX_META_IDENTIDADE = 12000;   // a coluna notes.meta aceita 16 KiB
 /** Formato aceito pelo banco (migração 0008, `private.identidade_meta_valida`). É o ÚNICO ponto que conhece essas chaves:
  *  a alcunha usa `card.title` (resolvida) e `settings.surname` (escolha). Imagem e título digitado não existem no modelo e vão vazios. */
 type CampoBanco = { mode: "real" | "custom" | "hidden"; customValue?: string };
-export type ConfiguracaoBanco = { imageUrl: string | null; title: string; name: CampoBanco; surname: CampoBanco; race: CampoBanco; characterClass: CampoBanco; description: string };
-export type CartaoBanco = { imageUrl: string | null; title: string; name: string | null; surname: string | null; race: string | null; characterClass: string | null; description: string };
+export type ConfiguracaoBanco = { imageUrl: string | null; title: string; name: CampoBanco; surname: CampoBanco; race: CampoBanco; characterClass: CampoBanco; level: CampoBanco; description: string };
+export type CartaoBanco = { imageUrl: string | null; title: string; name: string | null; surname: string | null; race: string | null; characterClass: string | null; level: string | null; description: string };
 const paraCampoBanco = (c: CampoPublico): CampoBanco => (c.mode === "custom" ? { mode: "custom", customValue: c.value ?? "" } : { mode: c.mode === "sheet" ? "real" : "hidden" });
 const doCampoBanco = (c: unknown): CampoPublico | null => {
   const x = c as Partial<CampoBanco> | null | undefined;
@@ -42,8 +42,8 @@ const doCampoBanco = (c: unknown): CampoPublico | null => {
   return x.mode === "custom" ? { mode: "custom", value: typeof x.customValue === "string" ? x.customValue : "" } : { mode: x.mode === "real" ? "sheet" : "hidden" };
 };
 
-/** Retrato aceito: endereço https sem espaços (a mesma regra da imagem pública no banco). */
-export const retratoValido = (u: unknown): u is string => typeof u === "string" && u.length <= 2000 && /^https:\/\/\S+$/.test(u);
+/** Retrato aceito: endereço https sem espaços, ou arquivo enviado (`storage:<campanha>/<arquivo>`), como no banco. */
+export const retratoValido = (u: unknown): u is string => typeof u === "string" && u.length <= 2000 && /^(https:\/\/\S+|storage:[\w-]{1,64}\/[\w-]{1,64})$/.test(u);
 
 /** Mesmas regras do servidor: ele recusa o que passar daqui, mas o jogador recebe a mensagem certa antes de enviar. */
 export function validarIdentidade(identity: PublicIdentity, card: PublicIdentityCard) {
@@ -51,15 +51,15 @@ export function validarIdentidade(identity: PublicIdentity, card: PublicIdentity
   texto(card.name, 120, "O nome público"); texto(card.alias, 120, "A alcunha pública");
   texto(card.race, 120, "A raça pública"); texto(card.characterClass, 120, "A classe pública"); texto(card.description, 4000, "A descrição pública");
   for (const chave of CAMPOS_PUBLICOS) texto(identity[chave].value, 120, "O valor personalizado");
-  if (card.imageUrl !== null && !retratoValido(card.imageUrl)) throw new Error("O retrato deve ser um endereço https:// sem espaços (até 2000 caracteres).");
+  if (card.imageUrl !== null && !retratoValido(card.imageUrl)) throw new Error("O retrato deve ser uma imagem enviada ou um endereço https:// sem espaços (até 2000 caracteres).");
 }
 
 /** Título e meta da linha PÚBLICA do personagem. Parte SÓ da identidade e dos campos de origem: nunca recebe a ficha. */
-export function projetarIdentidade(e: EntradaIdentidade): { titulo: string; meta: { identidadePublica: { settings: ConfiguracaoBanco; card: CartaoBanco } } } {
+export function projetarIdentidade(e: Pick<EntradaIdentidade, "identity" | "source">): { titulo: string; meta: { identidadePublica: { settings: ConfiguracaoBanco; card: CartaoBanco } } } {
   const card = publicIdentityCard(e.identity, e.source);
   validarIdentidade(e.identity, card);
-  const settings: ConfiguracaoBanco = { imageUrl: null, title: "", name: paraCampoBanco(e.identity.name), surname: paraCampoBanco(e.identity.alias), race: paraCampoBanco(e.identity.race), characterClass: paraCampoBanco(e.identity.characterClass), description: e.identity.description };
-  const gravado: CartaoBanco = { imageUrl: card.imageUrl, title: card.alias ?? "", name: card.name, surname: null, race: card.race, characterClass: card.characterClass, description: card.description };
+  const settings: ConfiguracaoBanco = { imageUrl: null, title: "", name: paraCampoBanco(e.identity.name), surname: paraCampoBanco(e.identity.alias), race: paraCampoBanco(e.identity.race), characterClass: paraCampoBanco(e.identity.characterClass), level: paraCampoBanco(e.identity.level), description: e.identity.description };
+  const gravado: CartaoBanco = { imageUrl: card.imageUrl, title: card.alias ?? "", name: card.name, surname: null, race: card.race, characterClass: card.characterClass, level: card.level, description: card.description };
   const meta = { identidadePublica: { settings, card: gravado } };
   if (JSON.stringify(meta).length > MAX_META_IDENTIDADE) throw new Error("A identidade pública está grande demais. Reduza a descrição.");
   return { titulo: (gravado.title || gravado.name || "Personagem").slice(0, 120), meta };   // a mesma derivação do servidor
@@ -71,7 +71,7 @@ export function cartaoPublico(meta: Record<string, unknown> | undefined): Public
   const c = (meta as { identidadePublica?: { card?: unknown } } | undefined)?.identidadePublica?.card as Partial<CartaoBanco> | undefined;
   if (!c || typeof c !== "object" || typeof c.title !== "string" || typeof c.description !== "string") return null;
   const t = (v: unknown) => (typeof v === "string" && v ? v : null);
-  return { name: t(c.name), alias: t(c.title), race: t(c.race), characterClass: t(c.characterClass), description: c.description, imageUrl: retratoValido(c.imageUrl) ? c.imageUrl : null };
+  return { name: t(c.name), alias: t(c.title), race: t(c.race), characterClass: t(c.characterClass), level: t(c.level), description: c.description, imageUrl: retratoValido(c.imageUrl) ? c.imageUrl : null };
 }
 export function identidadeDe(meta: Record<string, unknown> | undefined, publicada: boolean): IdentidadeGravada | null {
   const g = (meta as { identidadePublica?: { settings?: Partial<ConfiguracaoBanco> } } | undefined)?.identidadePublica?.settings;
@@ -79,7 +79,7 @@ export function identidadeDe(meta: Record<string, unknown> | undefined, publicad
   if (!g || !card) return null;
   const name = doCampoBanco(g.name), alias = doCampoBanco(g.surname), race = doCampoBanco(g.race), characterClass = doCampoBanco(g.characterClass);
   if (!name || !alias || !race || !characterClass) return null;
-  return { identity: { name, alias, race, characterClass, description: typeof g.description === "string" ? g.description : "" }, card, publicada };
+  return { identity: { name, alias, race, characterClass, level: doCampoBanco(g.level) ?? { mode: "sheet" }, description: typeof g.description === "string" ? g.description : "" }, card, publicada };
 }
 
 type FichaRow = { character_id: string; campaign_id: string; owner_id: string; revision: number; draft: CharacterDraft; updated_at: string };
@@ -101,7 +101,8 @@ const run = async <T,>(fn: () => PromiseLike<{ data: T | null; error: unknown }>
 };
 
 export function createFichasApi(client: SupabaseClient): FichasApi {
-  const params = (e: EntradaIdentidade) => { const p = projetarIdentidade(e); return { p_title: p.titulo, p_meta: p.meta, p_publish: e.publicar }; };
+  // a apresentação é sempre da campanha; o banco (0013) recalcula o cartão a partir da ficha e destas escolhas
+  const params = (e: EntradaIdentidade) => { const p = projetarIdentidade(e); return { p_title: p.titulo, p_meta: p.meta, p_publish: true }; };
   return {
     listar: campaignId => run<ResumoFicha[]>(async () => {
       const r = await client.from("character_sheets").select("character_id, owner_id, revision, updated_at, nome:draft->>name, nivel:draft->>level, classe:draft->>classId, alcunha:draft->>nickname, retrato:draft->>portrait").eq("campaign_id", campaignId).order("updated_at", { ascending: false });

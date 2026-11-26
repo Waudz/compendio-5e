@@ -6,10 +6,10 @@ import type { CharacterDraft } from '../rules/character-domain';
 import { ehPersonagemNovo, gravarMapaAba, gravarRecuperacao, lerMapaAba, lerRecuperacao, limparRecuperacao } from './recuperacao';
 
 const draft = { id: 'p1', name: 'Thorin', ruleset: '5e-2014', catalogueVersion: 'v', baseAbilities: { str: 15, dex: 12, con: 14, int: 10, wis: 12, cha: 8 }, raceId: 'r', backgroundId: 'b', classId: 'c', level: 1, decisions: [], inventory: [], currentHp: 13, temporaryHp: 0, spentResources: {} } as CharacterDraft;
-const rec = { estado: { draft, identity: defaultPublicIdentity(), publicar: true }, baseRevisao: 3, motivo: 'Sem conexão', em: '2026-11-21T10:00:00Z' };
+const rec = { estado: { draft, identity: defaultPublicIdentity() }, baseRevisao: 3, motivo: 'Sem conexão', em: '2026-11-21T10:00:00Z' };
 
 describe('cópia de recuperação local', () => {
-  it('faz ida e volta (inclui a revisão-base e a escolha de publicar) e some ao limpar', () => {
+  it('faz ida e volta (inclui a revisão-base e as escolhas da identidade) e some ao limpar', () => {
     const s = memoryStorage();
     expect(gravarRecuperacao('u1', 'ca', 'p1', rec, s)).toBe(true);
     expect(lerRecuperacao('u1', 'ca', 'p1', s)).toEqual(rec);

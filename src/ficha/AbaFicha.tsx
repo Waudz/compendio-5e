@@ -7,10 +7,9 @@ import { class2014, label2014, proficiency2014, proficiencyLabel2014, raceTraits
 import { rotuloAtributo, rotuloPericia } from "../criador/rotulos";
 import { ABILITY_ORDER } from "../rules/ability-generation-2014";
 import { comEstado, ROTULO_ALVO, ROTULO_DEFESA, sentidosEspeciais, somaTemporaria, usarRecurso, type AlvoMod, type TipoDefesa } from "./estadoJogo";
+import { CAMPOS_HISTORIA } from "./campos";
 import { Marcadores } from "./Marcadores";
 import { novoId, sinal, type PropsAba } from "./tipos";
-
-export const CAMPOS_HISTORIA = [["personalidade", "Traços de personalidade"], ["ideais", "Ideais"], ["vinculos", "Vínculos"], ["defeitos", "Defeitos"], ["historia", "História"]] as const;
 
 export function AbaFicha({ draft, sheet, stats, estado, onChange }: PropsAba) {
   const profs = proficiency2014(draft).filter(p => !p.startsWith("save:"));
