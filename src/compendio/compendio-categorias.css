@@ -37,7 +37,8 @@
 .cd-home-groups { display:grid; gap:18px; }
 .cd-home[data-wide=true] .cd-home-groups { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
 .cd-home-groups h2 { font-size:16px; margin:0 0 12px; }
-.cd-home .compendio-portais { gap:8px; }
+.cd-home .compendio-portais { gap:8px; grid-auto-rows:1fr; }
+.cd-home .compendio-portais > .compendio-portal { align-self:stretch; }
 .cd-home .compendio-portal { height:auto; min-height:74px; padding:12px 14px; border-color:transparent; background:var(--active,#24364e); border-radius:9px; }
 .cd-home .compendio-portal-arte { width:34px; height:34px; right:28px; opacity:.5; mask-image:none; }
 .cd-home .compendio-portal > span { padding-right:40px; }
