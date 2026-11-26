@@ -1,3 +1,15 @@
 .compendio-lista .cat-retrato { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
 .compendio-lista.grade .cat-retrato { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
 .compendio-lista .cat-retrato[hidden] { display: none; }
+
+.compendio-inicio { min-width: 0; }
+.compendio-inicio .cat-categorias, .compendio-portais { width: 100%; max-width: 860px; margin-inline: auto; }
+.compendio-portais { display: grid; gap: 10px; }
+.compendio-portal { position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 88px; width: 100%; text-align: left; padding: 14px; border: 1px solid currentColor; border-radius: 10px; background: linear-gradient(100deg, #17273e 30%, #28496e); color: #eef5ff; }
+.compendio-portal span { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.compendio-portal strong { font-size: 1rem; }
+.compendio-portal small { color: #c6d8ed; }
+.compendio-portal-arte { position: absolute; right: 12%; width: 72px; height: 72px; opacity: .16; z-index: -1; }
+.compendio-portal:disabled { opacity: .65; cursor: default; }
+.compendio-portal:focus-visible { outline: 2px solid #91bfff; outline-offset: 2px; }
+.compendio-portal > svg:last-child { flex-shrink: 0; }
