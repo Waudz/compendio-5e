@@ -6,7 +6,7 @@
 | Origem | Conteúdo | Situação no 2.0 |
 |---|---|---|
 | Catálogo global do 1.0: bucket público `catalogos` do Supabase do 1.0, associação por `tipo` + `chave` (`catalogo_publicado.dados.globais`, lida pela função pública `catalogo_imagens_publicas()`) | 77 itens e 52 monstros em 25/11/2026 | **Associadas e exibidas** (todas com correspondência) |
-| Fotos publicadas no repositório do 1.0 (`fotos/`) | 4 monstros | 1 usada (`adult-gold-dragon`); os outros 3 já têm imagem no catálogo global |
+| Fotos publicadas no repositório do 1.0 (`fotos/`) | 4 monstros | 3 já têm imagem no catálogo global. A remoção de `adult-gold-dragon` foi respeitada |
 | Imagens que o administrador **removeu** no 1.0 | 2 registros | Respeitada a remoção; listadas em `removidasNo1` |
 | Acervo pessoal guardado **no aparelho** (IndexedDB `img` e biblioteca local de imagens de itens, `inventario-imagens.js`) | Desconhecido: só existe no navegador de quem cadastrou | **Pendente de importação** |
 | Fotos embutidas em fichas de monstro e itens personalizados do 1.0 (`data:` na conta ou no aparelho) | Desconhecido (dados privados) | **Pendente de importação** (essas criações ainda não existem no 2.0) |
