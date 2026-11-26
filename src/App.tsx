@@ -75,7 +75,7 @@ function Workspace({ userId }: { userId: string }) {
   const modelRef = useRef(model); modelRef.current = model;
   const [modelKey, setModelKey] = useState(scopeKey);
   const [, redraw] = useState(0);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const registrosV = useVersaoRegistros();   // títulos de registros abertos mudam o rótulo das abas
   const mobile = useMobile();
