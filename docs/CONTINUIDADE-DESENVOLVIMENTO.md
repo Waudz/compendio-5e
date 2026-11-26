@@ -506,16 +506,32 @@ Decisões em [DEC-029](../DECISOES-E-ARQUITETURA.md). **Não mesclar nem publica
 ### Aplicar a 0014 (responsável pela revisão)
 1. `supabase/verificacao/0014_antes.sql` (somente leitura): exigir `pre_requisitos_ok = sim` e `ja_aplicada = não`; guardar as impressões digitais.
 2. Aplicar `supabase/migrations/0014_vitais_inventario_atomicos.sql` dentro de `begin; ... commit;` (não reaplicar as anteriores).
-3. `supabase/verificacao/0014_depois.sql`: todas as linhas `ok_*` = sim e as digitais iguais às de antes (comparar antes de alguém usar o app).
-4. Integrar o PR **logo em seguida** e confirmar o Pages. O aplicativo antigo, com a 0014 aplicada, não consegue mais mudar PV ao salvar a ficha (o banco preserva o estado vital): não deixar o intervalo aberto.
+3. `supabase/verificacao/0014_depois.sql`: todas as linhas `ok_*` = sim (inclui `ok_protecoes_pv_e_app_antigo`) e as digitais iguais às de antes (comparar antes de alguém usar o app).
+4. Integrar o PR **logo em seguida** e confirmar o Pages. **Ordem obrigatória: banco primeiro, depois o aplicativo.** Publicar antes da 0014 deixa PV, uso e transferência de itens com erro (funções inexistentes). No intervalo depois da 0014, o aplicativo antigo recebe erro ao tentar mudar PV (não perde nada em silêncio).
 Reversão: `supabase/rollback/0014_vitais_inventario_atomicos_down.sql` junto com a volta do aplicativo anterior.
 
 ### Limites e pendências reais
 - Tempo real: a interface foi exercitada com as fichas de demonstração (duas abas) e a API em memória; as funções do banco em PGlite e no Supabase isolado do CI. **Não testado** com sessões reais no projeto hospedado nem em celular físico.
-- O máximo de PV é calculado no aplicativo e enviado nas operações de cura (o banco não conhece as regras); quem já pode editar a própria ficha poderia informar um máximo maior.
+- O máximo de PV é calculado no aplicativo; o servidor o limita ao teto de 30 × nível (DEC-029). Um jogador ainda pode informar um máximo maior que o real dentro desse teto; validar o valor exato exigiria as regras no banco.
 - Regras: raças e classes são as do SRD 5.1; **uma subclasse por classe** (o 1.0 tem 8 extras com resumos próprios, ainda não trazidas); sem multiclasse; talentos só como melhoria já suportada pelo motor ou concessão do mestre.
 - Origens além do Acólito: dados mecânicos e resumos próprios do 1.0; o texto das características e variantes oficiais não é distribuído.
 - Imagens: seguem no armazenamento do 1.0 ([IMAGENS-V1](IMAGENS-V1.md)); falta cópia própria e a importação do acervo guardado nos aparelhos. Envio de imagem própria só existe para retrato e capa; itens, monstros, NPCs, locais e organizações ainda não aceitam envio (o editor está pronto para reutilizar).
 - Arquivos de retrato substituídos não são apagados do bucket.
 - A tabela `character_combat_status` e suas funções (0011) permanecem no banco, sem uso pelo aplicativo.
 
+### Revisão final antes do PR (26/11/2026)
+
+**Corrigido nesta revisão:**
+- **Capa da campanha:** o novo editor abria atrás da janela "Editar campanha" (modal) e ficava sem clique nem teclado; o mestre não conseguia enquadrar. Agora abre dentro da janela, e Escape fecha só o editor.
+- **Janela da campanha:** o campo de arquivo nativo aparecia cru e estourava a largura no celular (o estilo que o esconde só valia no criador).
+- **Menu de ações do item:** perto do fim da tela ficava atrás da barra inferior; agora abre para cima. "Deslocamento" não quebra mais no meio a 320 px.
+- **0014:** teto de PV no servidor e recusa visível da gravação do aplicativo antigo (DEC-029). Sem isso, o fim de combate numa aba antiga responderia "salvo" e perderia os PV.
+- **Testes:** E2E da capa migrado para o editor único (mesmas verificações, mais clique real e Escape); teclado do criador decide pela navegação visível (a 700 px o painel mostra a coluna de etapas); a demonstração segura a trava entre abas até o `localStorage` se propagar (duas operações simultâneas perdiam uma só no simulador; no banco quem garante é o bloqueio de linha).
+
+**Compatibilidade com o aplicativo antigo:** o 2.0 **não tem service worker nem manifest**: não há PWA instalada com cache próprio. O risco é de abas abertas ou do pacote em cache do navegador (GitHub Pages usa cache curto no HTML). Com a recusa acima, a aba antiga mostra erro; recarregar resolve. Ela também não mostra retratos com enquadramento (`#enq=`), só o ícone.
+
+**0014 em isolamento:** PGlite (aplicação sobre 0001–0013, conferências antes e depois com impressões digitais iguais, autorização, atomicidade, idempotência, reversão e reaplicação). Auth/REST/JWT/RLS no Supabase isolado: roda no CI do PR (`Alpha Supabase isolado`), não nesta máquina. **Nada aplicado em produção.**
+
+**Fidelidade ao Compêndio 1.0 (só referência, não alterado):** reaproveitados a geometria do enquadramento, o popup de edição de imagem, os dados e resumos das origens, os textos de condições e as regras de dano, cura, descanso e carga. Um único componente de enquadramento (retrato e capa); modal, menu de ações, etapas e moedas compartilhados. **Diferenças de organização:** ficha em três abas (1.0: Principal, Combate, Magias, Inventário, Personagem, Notas; decisão aprovada, DEC-027); criação em Identidade, Raça, Classe, Origem, Atributos, Equipamentos, Revisão (1.0: Classe e Nível, Raça, Origem, Atributos, Perícias, Magias, Equipamento, Revisão), com perícias e magias dentro de Classe (DEC-029). Confirmar com o responsável se a ordem do 1.0 for desejada.
+
+**Validação local do estado final:** tipos, 1712 unitários (139 arquivos), build oficial sem demonstração, Playwright Creator 140 (4 pulados), Base 116 (16 pulados) e Quality 88 (32 pulados), com Chrome instalado. **Não testado:** celular físico e sessão real no Supabase hospedado.
