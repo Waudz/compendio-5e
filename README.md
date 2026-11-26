@@ -202,3 +202,6 @@ A revisão da navegação global está em validação na branch
 `fix/compendio-navegacao-granular`: histórico por aba, abertura local sem divisão
 automática e controles compactos. Estado, evidências e limites em
 [Continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md#revisão-da-navegação-global--26112026-em-validação).
+
+A pesquisa direta na janela de vínculos está preparada em branch dependente da revisão
+de navegação: [escopo e limites](docs/VINCULOS-PESQUISA-DIRETA.md).
