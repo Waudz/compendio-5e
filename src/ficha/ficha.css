@@ -1,6 +1,7 @@
 /* Ficha de jogo: adapta-se à largura do PAINEL (não só da janela), para funcionar em dois grupos lado a lado e no celular. */
 .ficha.ficha-jogo { container-type: inline-size; }
-.ficha-jogo > * { max-width: 1280px; }
+/* usa a largura do grupo; num grupo muito largo o conteúdo fica centralizado, com margens iguais dos dois lados */
+.ficha-jogo > * { width: 100%; max-width: 1600px; margin-inline: auto; }
 .ficha-cabecalho { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .ficha-identidade { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
 .ficha-nomes { min-width: 0; overflow-wrap: anywhere; }
