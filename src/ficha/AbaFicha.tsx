@@ -9,6 +9,7 @@ import { ABILITY_ORDER } from "../rules/ability-generation-2014";
 import { comEstado, ROTULO_ALVO, ROTULO_DEFESA, sentidosEspeciais, somaTemporaria, usarRecurso, type AlvoMod, type TipoDefesa } from "./estadoJogo";
 import { CAMPOS_HISTORIA } from "./campos";
 import { Marcadores } from "./Marcadores";
+import { MolduraAtributo } from "../dnd/elementos";
 import { novoId, sinal, type PropsAba } from "./tipos";
 
 export function AbaFicha({ draft, sheet, stats, estado, onChange, vital }: PropsAba) {
@@ -16,7 +17,7 @@ export function AbaFicha({ draft, sheet, stats, estado, onChange, vital }: Props
   const grupo = (prefixo: string) => [...new Set(profs.filter(p => p.startsWith(prefixo)).map(proficiencyLabel2014))];
   const salvasTemp = somaTemporaria(estado, "saves");
   const sentidos = sentidosEspeciais(raceTraits2014(draft));
-  const dados = sheet.resources["hit-dice"];
+  const dados = sheet.resources["hit-dice"], dadoDeVida = class2014(draft).data.hitDie;
   const idiomas = [...sheet.languages.map(label2014), ...grupo("language:")];
   const morte = (chave: "sucessos" | "falhas", n: number) => vital({ tipo: "morte", ...estado.morte, [chave]: estado.morte[chave] === n ? n - 1 : n });
   const historia = CAMPOS_HISTORIA.flatMap(([chave, rotulo]) => { const texto = draft.story?.[chave]?.trim(); return texto ? [[rotulo, texto] as const] : []; });
@@ -24,7 +25,7 @@ export function AbaFicha({ draft, sheet, stats, estado, onChange, vital }: Props
   return <div className="ficha-grade">
     <section className="ficha-bloco ficha-area-atributos" aria-label="Atributos">
       <h2>Atributos</h2>
-      <div className="ficha-atributos">{ABILITY_ORDER.map(a => <div key={a} className="ficha-atributo"><span>{rotuloAtributo(a)}</span><strong>{sinal(Math.floor((sheet.abilities[a] - 10) / 2))}</strong><small>{sheet.abilities[a]}</small></div>)}</div>
+      <div className="ficha-atributos">{ABILITY_ORDER.map(a => <MolduraAtributo key={a} nome={rotuloAtributo(a)} valor={sheet.abilities[a]} modificador={Math.floor((sheet.abilities[a] - 10) / 2)}/>)}</div>
     </section>
 
     <div className="ficha-area-lateral ficha-pilha">
@@ -36,10 +37,10 @@ export function AbaFicha({ draft, sheet, stats, estado, onChange, vital }: Props
       <section className="ficha-bloco" aria-label="Jogo">
         <h2>Durante o jogo</h2>
         <label className="check"><input type="checkbox" checked={estado.inspiracao} onChange={e => onChange(comEstado(draft, { inspiracao: e.target.checked }))}/> Inspiração</label>
-        {dados && <div className="ficha-recurso"><span>Dados de vida (d{class2014(draft).data.hitDie})</span>
-          <Marcadores rotulo="dado de vida" maximo={dados.maximum} disponiveis={dados.remaining} onUsar={d => onChange(usarRecurso(draft, sheet, "hit-dice", d))}/></div>}
+        {dados && <div className="ficha-recurso"><span>Dados de vida (d{dadoDeVida})</span>
+          <Marcadores rotulo="dado de vida" lados={dadoDeVida} maximo={dados.maximum} disponiveis={dados.remaining} onUsar={d => onChange(usarRecurso(draft, sheet, "hit-dice", d))}/></div>}
         <fieldset className="ficha-morte"><legend>Salvaguardas contra a morte</legend>
-          {(["sucessos", "falhas"] as const).map(k => <div key={k}><span>{k === "sucessos" ? "Sucessos" : "Falhas"}</span>{[1, 2, 3].map(n => <input key={n} type="checkbox" aria-label={`${k === "sucessos" ? "Sucesso" : "Falha"} ${n}`} checked={estado.morte[k] >= n} onChange={() => morte(k, n)}/>)}</div>)}
+          {(["sucessos", "falhas"] as const).map(k => <div key={k}><span>{k === "sucessos" ? "Sucessos" : "Falhas"}</span>{[1, 2, 3].map(n => <input key={n} type="checkbox" className={"ficha-circulo-morte " + k} aria-label={`${k === "sucessos" ? "Sucesso" : "Falha"} ${n}`} checked={estado.morte[k] >= n} onChange={() => morte(k, n)}/>)}</div>)}
         </fieldset>
       </section>
     </div>
@@ -53,11 +54,12 @@ export function AbaFicha({ draft, sheet, stats, estado, onChange, vital }: Props
       <section className="ficha-bloco" aria-label="Sentidos, idiomas e proficiências">
         <h2>Sentidos, idiomas e proficiências</h2>
         <dl className="ficha-dados">
-          <dt>Sentidos especiais</dt><dd>{sentidos.join(", ") || "Nenhum"}</dd>
+          <dt>Percepção passiva</dt><dd>{stats.passivePerception + somaTemporaria(estado, "passivePerception")}</dd>
+          {sentidos.length > 0 && <><dt>Sentidos especiais</dt><dd>{sentidos.join(", ")}</dd></>}
           <dt>Idiomas</dt><dd>{[...new Set(idiomas)].join(", ") || "Nenhum registrado"}</dd>
-          <dt>Armaduras</dt><dd>{grupo("armor:").join(", ") || "Nenhuma"}</dd>
-          <dt>Armas</dt><dd>{grupo("weapon:").join(", ") || "Nenhuma"}</dd>
-          <dt>Ferramentas</dt><dd>{grupo("tool:").map(t => t.replace(/^Ferramenta: /, "")).join(", ") || "Nenhuma"}</dd>
+          {grupo("armor:").length > 0 && <><dt>Armaduras</dt><dd>{grupo("armor:").join(", ")}</dd></>}
+          {grupo("weapon:").length > 0 && <><dt>Armas</dt><dd>{grupo("weapon:").join(", ")}</dd></>}
+          {grupo("tool:").length > 0 && <><dt>Ferramentas</dt><dd>{grupo("tool:").map(t => t.replace(/^Ferramenta: /, "")).join(", ")}</dd></>}
         </dl>
       </section>
 
@@ -82,7 +84,7 @@ function Temporarios({ draft, estado, onChange }: Pick<PropsAba, "draft" | "esta
   return <section className="ficha-bloco" aria-label="Modificadores temporários">
     <div className="ficha-titulo"><h2>Efeitos temporários</h2>
       {!aberto && <button type="button" className="ficha-mais" aria-label="Adicionar efeito temporário" disabled={estado.modificadores.length >= 20} onClick={() => setAberto(true)}><Plus size={14} aria-hidden="true"/></button>}</div>
-    {estado.modificadores.length === 0 ? !aberto && <p className="muted">Nenhum. Magias, bênçãos e ajustes do mestre entram aqui.</p>
+    {estado.modificadores.length === 0 ? null
       : <ul className="ficha-chips">{estado.modificadores.map(m => <li key={m.id} className="ficha-chip"><span>{m.nome || "Efeito"} · {ROTULO_ALVO[m.alvo]} {sinal(m.valor)}</span>
         <button type="button" aria-label={`Remover modificador ${m.nome || ROTULO_ALVO[m.alvo]}`} onClick={() => onChange(comEstado(draft, { modificadores: estado.modificadores.filter(x => x.id !== m.id) }))}><X size={12} aria-hidden="true"/></button></li>)}</ul>}
     {aberto && <form className="ficha-campos" onSubmit={e => { e.preventDefault(); if (!valido) return; onChange(comEstado(draft, { modificadores: [...estado.modificadores, { id: novoId(), nome: nome.trim(), alvo, valor: n }] })); setNome(""); setAberto(false); }}>
@@ -99,7 +101,7 @@ function Defesas({ draft, estado, onChange }: Pick<PropsAba, "draft" | "estado" 
   return <section className="ficha-bloco" aria-label="Defesas anotadas">
     <div className="ficha-titulo"><h2>Defesas anotadas</h2>
       {!aberto && <button type="button" className="ficha-mais" aria-label="Anotar defesa" disabled={estado.defesas.length >= 30} onClick={() => setAberto(true)}><Plus size={14} aria-hidden="true"/></button>}</div>
-    {estado.defesas.length === 0 ? !aberto && <p className="muted">As de raça e classe aparecem no topo. Anote as de itens ou do mestre.</p>
+    {estado.defesas.length === 0 ? null
       : <ul className="ficha-chips">{estado.defesas.map(d => <li key={d.id} className="ficha-chip"><span>{ROTULO_DEFESA[d.tipo]}: {d.texto}</span>
         <button type="button" aria-label={`Remover ${ROTULO_DEFESA[d.tipo]} ${d.texto}`} onClick={() => onChange(comEstado(draft, { defesas: estado.defesas.filter(x => x.id !== d.id) }))}><X size={12} aria-hidden="true"/></button></li>)}</ul>}
     {aberto && <form className="ficha-campos" onSubmit={e => { e.preventDefault(); if (!texto.trim()) return; onChange(comEstado(draft, { defesas: [...estado.defesas, { id: novoId(), tipo, texto: texto.trim() }] })); setTexto(""); setAberto(false); }}>

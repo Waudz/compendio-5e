@@ -6,7 +6,9 @@ import { AuthProvider } from "./AuthContext";
 import { CampaignsProvider } from "./CampaignsContext";
 import { RegistrosProvider } from "./RegistrosContext";
 import "./style.css";
+import { iniciarTema } from "./tema";
 
+iniciarTema();
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 const demo = __PREVIEW_DEMO__ ? (new URLSearchParams(window.location.search).get("demo") === "jogador" ? "jogador" : "mestre") : import.meta.env.DEV ? new URLSearchParams(window.location.search).get("demo") : null;
 if (__PREVIEW_DEMO__) {

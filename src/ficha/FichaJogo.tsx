@@ -2,9 +2,10 @@
 // celular. Os cálculos vêm do motor `regras-2014`; o que muda durante o jogo é guardado no próprio rascunho (`estadoJogo`). A aba, a
 // rolagem de cada aba e a exibição do inventário são lembradas nesta sessão do navegador, por personagem.
 import './ficha.css';
-import { Minus, MoreHorizontal, Pencil, Plus, X } from "lucide-react";
+import { ChevronsUp, Minus, MoreHorizontal, Pencil, Plus, X } from "lucide-react";
+import { D20Nivel, EscudoCA, Indicador, IndicadorPV } from "../dnd/elementos";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { class2014, label2014, raceTraits2014, selected2014, sheet2014, statistics2014 } from "../criador/regras-2014";
+import { label2014, raceTraits2014, selected2014, sheet2014, statistics2014 } from "../criador/regras-2014";
 import { retratoValido } from "../fichas";
 import { RetratoQuadrado } from "../RetratoCombate";
 import { CONDICOES_5E, CONDICOES_TEXTO } from "../rules/condicoes-5e";
@@ -124,29 +125,35 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
   const stats = base;
   const raca = label2014(draft.raceId), subclasse = selected2014(draft, "subclass")[0];
   const defesas = [...defesasDerivadas(draft, raceTraits2014(draft), selected2014(draft, "dragon-ancestry")[0]), ...estado.defesas];
-  const numero = (rotulo: string, valor: string, alvo?: AlvoMod) => <div className="ficha-numero"><span>{rotulo}</span><strong>{valor}</strong>{alvo && temp(alvo) !== 0 && <small className="ficha-temp">{sinal(temp(alvo))} temp.</small>}</div>;
+  const extra = (alvo: AlvoMod) => (temp(alvo) !== 0 ? <small className="ficha-temp">{sinal(temp(alvo))} temp.</small> : null);
   const propsAba = { draft, sheet, stats, estado, onChange, onOpenContent, vital };
 
-  return <div ref={raiz} className="content ficha auth wide ficha-jogo" data-testid="ficha-guiada-leitura" {...gesto}>
+  const origem = label2014(draft.backgroundId);
+  return <div ref={raiz} className="content ficha auth wide ficha-jogo sistema-dnd" data-testid="ficha-guiada-leitura" {...gesto}>
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
     <section className="ficha-cabecalho" aria-label="Resumo do personagem">
       <div className="ficha-identidade">
-        <RetratoQuadrado tipo="personagem" tamanho={72} src={retratoValido(draft.portrait) ? draft.portrait : null}/>
+        <span className="dnd-retrato"><RetratoQuadrado tipo="personagem" tamanho={96} src={retratoValido(draft.portrait) ? draft.portrait : null}/><D20Nivel nivel={draft.level} tamanho={46}/></span>
         <div className="ficha-nomes"><h1>{draft.name.trim() || "Personagem sem nome"}</h1>
           {draft.nickname?.trim() && <p className="identidade-alcunha"><em>{draft.nickname.trim()}</em></p>}
-          <p className="muted">{[raca, label2014(draft.classId) + (subclasse ? ` (${label2014(subclasse)})` : ""), `Nível ${draft.level}`, label2014(draft.backgroundId)].join(" · ")}</p></div>
-        <div className="ficha-acoes"><button type="button" className="btn-secondary ficha-botao" aria-label="Editar personagem" onClick={onEditar}><Pencil size={14} aria-hidden="true"/> Editar<span className="ficha-so-largo"> personagem</span></button>
-          <MenuAcoes draft={draft} maximo={sheet.maxHp} onChange={onChange} vital={vital} onProgredir={onProgredir}/></div>
+          <p className="muted">{[raca, label2014(draft.classId) + (subclasse ? ` (${label2014(subclasse)})` : ""), origem].join(" · ")}</p></div>
+        <div className="ficha-acoes">
+          <button type="button" className="btn-secondary ficha-botao" aria-label="Editar personagem" onClick={onEditar}><Pencil size={14} aria-hidden="true"/> Editar<span className="ficha-so-largo"> personagem</span></button>
+          <button type="button" className="btn-secondary ficha-botao" aria-label="Subir de nível" disabled={draft.level >= 20} onClick={onProgredir}><ChevronsUp size={14} aria-hidden="true"/> Subir<span className="ficha-so-largo"> de nível</span></button>
+          <MenuAcoes draft={draft} maximo={sheet.maxHp} onChange={onChange} vital={vital}/></div>
       </div>
-      <Vida draft={draft} maximo={sheet.maxHp} vital={vital}/>
       <div className="ficha-numeros">
-        {numero("CA", String(stats.ac + temp("ac")), "ac")}
-        {numero("Iniciativa", sinal(stats.initiative + temp("initiative")), "initiative")}
-        {numero("Deslocamento", metros(Math.max(0, stats.speed + temp("speed"))), "speed")}
-        {numero("Percepção passiva", String(stats.passivePerception + temp("passivePerception")), "passivePerception")}
-        {numero("Proficiência", sinal(stats.prof))}
+        <EscudoCA valor={stats.ac + temp("ac")} extra={extra("ac")}/>
+        <IndicadorPV atual={draft.currentHp} maximo={sheet.maxHp} temporarios={draft.temporaryHp}/>
+        <Indicador tipo="iniciativa" rotulo="Iniciativa" valor={sinal(stats.initiative + temp("initiative"))} extra={extra("initiative")}/>
+        <Indicador tipo="percepcao" rotulo="Percepção passiva" valor={stats.passivePerception + temp("passivePerception")} extra={extra("passivePerception")}/>
+        <Indicador tipo="deslocamento" rotulo="Deslocamento" valor={metros(Math.max(0, stats.speed + temp("speed")))} extra={extra("speed")}/>
+        <Indicador tipo="proficiencia" rotulo="Proficiência" valor={sinal(stats.prof)}/>
       </div>
-      <Condicoes draft={draft} vital={vital}/>
+      <div className="dnd-controles">
+        <Vida draft={draft} maximo={sheet.maxHp} vital={vital}/>
+        <Condicoes draft={draft} vital={vital}/>
+      </div>
       {defesas.length > 0 && <p className="ficha-defesas">{(Object.keys(ROTULO_DEFESA) as (keyof typeof ROTULO_DEFESA)[]).flatMap(tipo => { const l = defesas.filter(d => d.tipo === tipo).map(d => d.texto); return l.length ? [<span key={tipo}><strong>{ROTULO_DEFESA[tipo]}:</strong> {[...new Set(l)].join(", ")}</span>] : []; })}</p>}
     </section>
     {salvamento}
@@ -158,24 +165,21 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
       {mem.aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder} filtro={mem.filtroHab} onFiltro={filtroHab => mudarMemoria({ filtroHab })}/>}
       {mem.aba === "inventario" && <AbaInventario {...propsAba} usarItem={usarItem} transferir={transferir} personagemId={personagemId} campaignId={campaignId} moedas={moedas} mestre={podeConceder} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
     </div>
-    <p className="muted ficha-dado">Dado de vida d{class2014(draft).data.hitDie} · cálculos das regras SRD 5.1 (2014).</p>
+    <p className="muted ficha-dado">Cálculos das regras SRD 5.1 (2014).</p>
   </div>;
 }
 
+/** Ajuste de PV: campo vazio vale 1 ao executar uma ação. */
 function Vida({ draft, maximo, vital }: { draft: CharacterDraft; maximo: number; vital: (a: AcaoVital) => void }) {
   const [valor, setValor] = useState("1");
-  const n = Number(valor), inteiro = valor.trim() !== "" && Number.isSafeInteger(n) && n >= 0 && n <= 999, valido = inteiro && n > 0;
+  const n = valor.trim() === "" ? 1 : Number(valor), inteiro = Number.isSafeInteger(n) && n >= 0 && n <= 999, valido = inteiro && n > 0 && !!draft;
   const aplicar = (a: AcaoVital) => { vital(a); setValor("1"); };
-  return <div className="ficha-vida">
-    <div className="ficha-vida-total"><span>PV</span><strong data-testid="ficha-pv">{draft.currentHp} / {maximo}</strong>{draft.temporaryHp > 0 && <small className="ficha-pv-temp" data-testid="ficha-pv-temp">+{draft.temporaryHp} temporários</small>}{draft.currentHp === 0 && <small className="ficha-caido">caído</small>}</div>
-    <div className="ficha-barra" role="meter" aria-label="Pontos de vida" aria-valuemin={0} aria-valuemax={maximo} aria-valuenow={Math.min(draft.currentHp, maximo)}><span style={{ width: `${Math.min(100, maximo ? (draft.currentHp / maximo) * 100 : 0)}%` }} className={draft.currentHp <= maximo / 4 ? "excesso" : ""}/></div>
-    <form className="ficha-vida-ajuste" onSubmit={e => e.preventDefault()}>
-      <button type="button" className="ficha-passo dano" disabled={!valido} aria-label="Aplicar dano" title="Aplicar dano" onClick={() => aplicar({ tipo: "dano", valor: n })}><Minus size={16} aria-hidden="true"/></button>
-      <input type="number" inputMode="numeric" min={0} max={999} aria-label="Quantidade de pontos de vida" value={valor} onFocus={e => e.target.select()} onChange={e => setValor(e.target.value)} onBlur={() => { if (!inteiro) setValor("1"); }}/>
-      <button type="button" className="ficha-passo cura" disabled={!valido} aria-label="Curar" title="Curar (até o máximo)" onClick={() => aplicar({ tipo: "cura", valor: n, maximo })}><Plus size={16} aria-hidden="true"/></button>
-      <button type="button" className="ficha-temp-botao" disabled={!inteiro} title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" onClick={() => aplicar({ tipo: "temporarios", valor: n })}>PV temporários</button>
-    </form>
-  </div>;
+  return <form className="ficha-vida-ajuste" onSubmit={e => e.preventDefault()}>
+    <button type="button" className="ficha-passo dano" disabled={!valido} aria-label="Aplicar dano" title="Aplicar dano" onClick={() => aplicar({ tipo: "dano", valor: n })}><Minus size={16} aria-hidden="true"/></button>
+    <input type="number" inputMode="numeric" min={0} max={999} placeholder="1" aria-label="Quantidade de pontos de vida" value={valor} onFocus={e => e.target.select()} onChange={e => setValor(e.target.value)} onBlur={() => { if (!inteiro) setValor("1"); }}/>
+    <button type="button" className="ficha-passo cura" disabled={!valido} aria-label="Curar" title="Curar (até o máximo)" onClick={() => aplicar({ tipo: "cura", valor: n, maximo })}><Plus size={16} aria-hidden="true"/></button>
+    <button type="button" className="ficha-temp-botao" disabled={!inteiro} title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" onClick={() => aplicar({ tipo: "temporarios", valor: n })}>PV temporários</button>
+  </form>;
 }
 
 /** Condições ativas como indicadores compactos: o nome mostra o efeito; o "+" abre a lista para adicionar. */
@@ -200,7 +204,7 @@ function Condicoes({ draft, vital }: { draft: CharacterDraft; vital: (a: AcaoVit
   </div>;
 }
 
-function MenuAcoes({ draft, maximo, onChange, vital, onProgredir }: { draft: CharacterDraft; maximo: number; onChange: (d: CharacterDraft) => void; vital: (a: AcaoVital) => void; onProgredir: () => void }) {
+function MenuAcoes({ draft, maximo, onChange, vital }: { draft: CharacterDraft; maximo: number; onChange: (d: CharacterDraft) => void; vital: (a: AcaoVital) => void }) {
   const [aberto, setAberto] = useState(false), [confirmar, setConfirmar] = useState<"curto" | "longo" | null>(null), [aviso, setAviso] = useState("");
   const menu = useRef<HTMLDivElement>(null), gatilho = useRef<HTMLButtonElement>(null);
   useFecharMenu(aberto, menu, gatilho, () => { setAberto(false); setConfirmar(null); });
@@ -211,14 +215,13 @@ function MenuAcoes({ draft, maximo, onChange, vital, onProgredir }: { draft: Cha
     fechar();
   };
   return <div className="ficha-menu">
-    <button ref={gatilho} type="button" className="btn-secondary ficha-botao" aria-haspopup="true" aria-expanded={aberto} aria-label="Ações" title="Descansos, progressão e outras ações" onClick={() => { if (aberto) fechar(); else { setAberto(true); setAviso(""); } }}><MoreHorizontal size={16} aria-hidden="true"/></button>
+    <button ref={gatilho} type="button" className="btn-secondary ficha-botao" aria-haspopup="true" aria-expanded={aberto} aria-label="Ações" title="Descansos e outras ações" onClick={() => { if (aberto) fechar(); else { setAberto(true); setAviso(""); } }}><MoreHorizontal size={16} aria-hidden="true"/></button>
     {aberto && <div ref={menu} className="barra-menu ficha-menu-lista" role="group" aria-label="Ações do personagem">
       {confirmar ? <>
         <p>{confirmar === "curto" ? "Registrar descanso curto?" : "Registrar descanso longo? Os PV e os recursos serão recuperados."}</p>
         <button type="button" className="btn-primary" onClick={descansar}>Confirmar descanso</button>
         <button type="button" className="btn-secondary" onClick={() => setConfirmar(null)}>Cancelar</button>
       </> : <>
-        <button type="button" className="barra-item" onClick={() => { fechar(); onProgredir(); }}>Progressão de nível</button>
         <button type="button" className="barra-item" onClick={() => setConfirmar("curto")}>Descanso curto</button>
         <button type="button" className="barra-item" onClick={() => setConfirmar("longo")}>Descanso longo</button>
       </>}

@@ -70,7 +70,8 @@ describe("ficha de jogo", () => {
     expect(topo.getByRole("heading", { name: "Thorin" })).toBeTruthy();
     expect(topo.getByText("Escudo de Pedra").tagName).toBe("EM");
     expect(ficha.querySelector(".ficha-identidade img")?.getAttribute("src")).toBe(RETRATO);
-    expect(topo.getByText(/Anão da Colina · Guerreiro · Nível 3 · Acólito/)).toBeTruthy();
+    expect(topo.getByText(/Anão da Colina · Guerreiro · Acólito/)).toBeTruthy();
+    expect(topo.getByRole("img", { name: "Nível 3" })).toBeTruthy();
     expect(screen.getByTestId("ficha-pv").textContent).toMatch(/^20 \/ \d+$/);
     expect(numero("CA")).toBe("11"); expect(numero("Iniciativa")).toBe("+1"); expect(numero("Proficiência")).toBe("+2");
     expect(topo.getByText(/Resistência:/).parentElement!.textContent).toMatch(/veneno/);
@@ -193,8 +194,7 @@ describe("ficha de jogo", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar descanso" }));
     await salvou(() => expect(draftSalvo().currentHp).toBeGreaterThan(20));
     expect(screen.getByText("Descanso longo registrado.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Ações" }));
-    fireEvent.click(screen.getByRole("button", { name: "Progressão de nível" }));
+    fireEvent.click(screen.getByRole("button", { name: "Subir de nível" }));
     expect(await screen.findByLabelText("Nível")).toBeTruthy();
   });
 

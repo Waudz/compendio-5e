@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "./AuthContext";
 import { useUnsaved } from "./unsaved";
 import { validateEmail, validatePassword, type Result } from "./auth";
+import { lerTema, salvarTema, TEMAS, type Tema } from "./tema";
 
 type Msg = { kind: "ok" | "err"; text: string } | null;
 
@@ -63,6 +64,11 @@ export function AuthForms() {
     </div></div>;
 }
 
+function SeletorTema() {
+  const [tema, setTema] = useState<Tema>(lerTema);
+  return <><h2>Aparência</h2><label>Tema neste aparelho<select value={tema} onChange={e => { const t = e.target.value as Tema; setTema(t); salvarTema(t); }}>{TEMAS.map(([v, r]) => <option key={v} value={v}>{r}</option>)}</select></label></>;
+}
+
 /** Aba Conta (já autenticado): e-mail, alterar senha e sair. */
 export function AccountPanel() {
   const { status, user, api } = useAuth();
@@ -71,6 +77,7 @@ export function AccountPanel() {
   if (status !== "authenticated") return null;   // a porta de entrada garante a sessão; nada de conta sem login
   return <div className="auth"><h1>Conta</h1>
     <p>Conectado como <strong>{user?.email}</strong>.</p>
+    <SeletorTema/>
     <h2>Alterar senha</h2>
     <NewPasswordForm/>
     <div className="links"><button className="btn-secondary" disabled={f.busy} onClick={async () => { if (await unsaved.confirmAll()) await f.run(null, () => api!.signOut()); }}>Sair</button></div>

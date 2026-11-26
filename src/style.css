@@ -17,6 +17,11 @@
   --head-h:45px;
   font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--bg);font-synthesis:none;color-scheme:dark;
 }
+/* Tema claro (preferência em Conta): mesmas variáveis, com contraste AA. */
+:root[data-tema="claro"]{
+  --bg:#F3F4F7;--panel:#FFFFFF;--accent:#1D4ED8;--accent-text:#1D4ED8;--text:#1A2230;--text-2:#465266;--line:#D3D9E2;--hover:#E9EDF3;--muted:#5C697C;
+  --accent-soft:rgba(29,78,216,.14);--accent-faint:rgba(29,78,216,.08);--on-accent:#FFFFFF;--danger:#B42318;color-scheme:light;
+}
 *{box-sizing:border-box}body{margin:0}button{font:inherit;cursor:pointer}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 

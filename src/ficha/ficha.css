@@ -15,9 +15,7 @@
 .ficha-menu-lista p { margin: 4px; }
 .ficha-menu-aviso { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; width: max-content; max-width: min(280px, 80vw); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 0; }
 
-.ficha-vida { display: grid; grid-template-columns: auto minmax(80px, 1fr) auto; gap: 8px 12px; align-items: center; }
-.ficha-vida-total { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.ficha-vida-total strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+
 .ficha-pv-temp { color: var(--accent); font-weight: 600; }
 .ficha-caido { color: var(--danger, #f87171); font-weight: 650; }
 .ficha-barra { height: 9px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
@@ -122,7 +120,9 @@
 .ficha .ficha-morte legend { font-size: 12px; padding: 0 4px; }
 .ficha-morte > div { display: flex; gap: 10px; align-items: center; padding: 3px 0; }
 .ficha-morte > div > span { min-width: 70px; }
-.ficha-morte input { width: 18px; height: 18px; }
+.ficha .ficha-morte input.ficha-circulo-morte { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin: 0; padding: 0; border-radius: 50%; border: 2px solid var(--text-2); background: transparent; cursor: pointer; flex: none; }
+.ficha .ficha-morte input.ficha-circulo-morte.sucessos:checked { background: #2bb673; border-color: #2bb673; box-shadow: inset 0 0 0 3px var(--panel); }
+.ficha .ficha-morte input.ficha-circulo-morte.falhas:checked { background: #dc5656; border-color: #dc5656; box-shadow: inset 0 0 0 3px var(--panel); }
 .ficha-dados { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; }
 .ficha-dados dt { color: var(--text-2); }
 .ficha-dados dd { margin: 0; overflow-wrap: anywhere; }
@@ -172,9 +172,7 @@
   .ficha-identidade .retrato-q { width: 56px !important; height: 56px !important; }
   .ficha-so-largo { display: none; }
   .ficha-acoes { flex-direction: column; align-items: flex-end; }
-  .ficha-vida { grid-template-columns: auto minmax(0, 1fr); }
-  .ficha-vida-ajuste { grid-column: 1 / -1; }
-  .ficha-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
 }
 .ficha-jogo .ficha-subnav button { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .ficha .ficha-morte { min-width: 0; }
@@ -184,7 +182,7 @@
   .ficha-jogo .ficha-subnav { gap: 0; }
   .ficha-jogo .ficha-subnav button { padding: 10px 4px; font-size: 12px; }
   .ficha-cabecalho, .ficha-bloco { padding-left: 8px; padding-right: 8px; }
-  .ficha-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
   .ficha-identidade { grid-template-columns: auto minmax(0, 1fr); }
   .ficha-acoes { grid-column: 1 / -1; flex-direction: row; justify-content: flex-start; }
   .ficha.ficha-jogo form.ficha-vida-ajuste { flex-wrap: wrap; }
