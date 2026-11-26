@@ -105,6 +105,8 @@ declare c public.campaign_codex; nid uuid; k int; cat text; note_kind text; path
 begin
  if auth.uid() is null or not public.is_master(p_campaign) then raise exception 'sem_permissao' using errcode='42501'; end if;
  if jsonb_typeof(p_data)<>'object' or octet_length(p_data::text)>24000 then raise exception 'dados_invalidos'; end if;
+ if p_version is null or p_version<0 or (p_entry is not null and p_version=0) then raise exception 'versao_invalida'; end if;
+ if p_data ? 'stats' and jsonb_typeof(p_data->'stats') not in ('object','null') then raise exception 'estatisticas_invalidas'; end if;
  cat:=p_data->>'category'; k:=coalesce((p_data->>'knowledge')::int,0);
  if cat not in ('npc','location','organization','discovery','monster','item') or cat is null then raise exception 'categoria_invalida'; end if;
  if jsonb_typeof(coalesce(p_data->'description','[]'::jsonb))<>'array' then raise exception 'descricao_invalida'; end if;
@@ -112,7 +114,7 @@ begin
  if p_entry is not null then
   select * into c from public.campaign_codex where id=p_entry and campaign_id=p_campaign and deleted_at is null for update;
   if c.id is null or c.version<>p_version then raise exception 'conflito_de_versao'; end if;
-  if c.category<>cat or c.definition_id is distinct from nullif(p_data->>'definitionId','') or c.system_id<>coalesce(p_data->>'systemId','dnd5e-2014') then raise exception 'referencia_imutavel'; end if;
+  if c.instance_id is distinct from nullif(p_data->>'instanceId','') or c.category<>cat or c.definition_id is distinct from nullif(p_data->>'definitionId','') or c.system_id<>coalesce(p_data->>'systemId','dnd5e-2014') then raise exception 'referencia_imutavel'; end if;
   nid:=c.id;
  else
   if p_version<>0 then raise exception 'versao_invalida'; end if;

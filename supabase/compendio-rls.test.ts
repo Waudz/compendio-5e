@@ -406,4 +406,10 @@ describe("Compêndio: fronteira de conhecimento e isolamento", () => {
       ).some((x) => x.id === eid),
     ).toBe(true);
   });
+  it('versão nula e estatísticas malformadas são rejeitadas antes da gravação', async()=>{
+    const data=payload(1),id=await save(master,null,0,data);
+    expect((await call(master,'codex_save',cid,id,null,JSON.stringify(data))).error).toMatch(/versao_invalida/);
+    expect((await call(master,'codex_save',cid,id,1,JSON.stringify({...data,stats:'inválido'}))).error).toMatch(/estatisticas_invalidas/);
+  });
+
 });

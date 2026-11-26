@@ -49,4 +49,4 @@ Testes SQL isolados em `supabase/compendio-rls.test.ts`; fluxo real de Auth/REST
 
 Resultados finais e PR: consultar a última entrada de `CONTINUIDADE-DESENVOLVIMENTO.md`.
 
-SHA-256 da migração revisada: `dd94fe349e2781dd0e79c9aabd98ea9b0d418dbdbc1efd6e0cf14a704f0c460c`. Calcular novamente se o SQL mudar antes da aplicação.
+SHA-256 da migração revisada: `74a15d93ec5f8d1c42e46412720d69bcd426ceb54cd74a5259eaebf08b4ca7a9`. Calcular novamente se o SQL mudar antes da aplicação.
