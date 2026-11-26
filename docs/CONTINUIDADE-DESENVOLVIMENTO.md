@@ -800,3 +800,19 @@ botão do meio usava o menu lateral para voltar à lista, embora o menu abra/foc
 seção. Preparação ajustada para voltar da criação antes da consulta e retorno pela
 aba Itens já aberta. Permanecem as verificações de consulta preservada, foco e
 registro sem duplicação. Sem mudança no aplicativo nesta correção dos testes.
+
+## Próxima fatia preparada — pesquisa direta de vínculos (26/11/2026)
+
+Branch `feat/vinculos-pesquisa-direta`, baseada na revisão #161, sem integração na main.
+Substitui o dropdown de vínculos por resultados diretos com miniatura, nome e categoria;
+pesquisa sem acentos/caixa; seleção explícita e protegida contra destino ausente,
+carregamento e erro. Reutiliza projeção e RPC atuais, sem alterar permissões ou dados.
+Quatro testes novos aprovados e cenário E2E de vínculo atualizado sem retirar suas
+verificações. Ver `docs/VINCULOS-PESQUISA-DIRETA.md`. Catálogo, tipos/inversos e
+conhecimento granular continuam pendentes de modelo/projeção seguros; nenhuma migração
+é necessária ou aplicada nesta fatia.
+
+Validação local consolidada dessa fatia de vínculos: build e tipos de aplicativo/E2E
+aprovados; **1747 testes/145 arquivos aprovados**, incluindo os quatro casos novos.
+O PR é dependente do #161, sem merge/publicação; a execução Playwright ocorre no CI,
+pois o ambiente local não dispõe do binário executável exigido.
