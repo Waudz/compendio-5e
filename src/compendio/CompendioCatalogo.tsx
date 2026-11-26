@@ -5,10 +5,23 @@ import { ArrowLeft, ExternalLink, LayoutGrid, List, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAbrirEmAba } from "../abrirEmAba";
 import { Aviso } from "../Diario";
-import { consultar, type Consulta, type Indice } from "../catalogue/nucleo/busca";
+import { useCampaigns } from "../CampaignsContext";
+import { useAuth } from "../AuthContext";
+import { jogadorPodeAdicionar } from "../catalogue/disponibilidade";
+import { useConhecimento, itemConhecido } from "./conhecimento";
+import { RevelarReferencia } from "./RegistrosCampanha";
+import {
+  consultar,
+  indexar,
+  type Consulta,
+  type Indice,
+} from "../catalogue/nucleo/busca";
 import { indiceDisponivel, carregarIndice } from "../catalogue/nucleo/registro";
 import type { CategoriaDef } from "../catalogue/nucleo/tipos";
-import { garantirSistemaDnd5e2014, sistemaDnd5e2014 } from "../catalogue/sistemas/dnd5e-2014";
+import {
+  garantirSistemaDnd5e2014,
+  sistemaDnd5e2014,
+} from "../catalogue/sistemas/dnd5e-2014";
 import type { Magia, Monstro } from "../catalogue/sistemas/dnd5e-2014/esquemas";
 import type { SrdItem } from "../catalogue/item-schema";
 import dadosPersonagem from "../criador/data/character-2014.json";
@@ -19,143 +32,654 @@ import { DetalheMagia } from "./DetalheMagia";
 import { DetalheMonstro } from "./DetalheMonstro";
 import { EsqueletoDetalhe, EsqueletoLista } from "./Esqueleto";
 
+import { RetratoQuadrado } from "../RetratoCombate";
+import type { ConsultaRegra } from "../catalogue/sistemas/dnd5e-2014/categorias-consulta";
 import { imagemDoItem, imagemDoMonstro } from "../ficha/imagensCatalogo";
 import "./compendio-categorias.css";
 
+type Preferencia = {
+  catId: string;
+  retorno: { catId: string; id: string; nome: string } | null;
+  limite: number;
+  filtrosAbertos: boolean;
+  texto: string;
+  filtros: Record<string, string | boolean>;
+  ordenar: string;
+  visao: Visao;
+  aberto: string | null;
+};
+const sessoes = new WeakMap<object, Map<string, Preferencia>>();
 const PAGINA = 60;
 type Visao = "lista" | "grade";
 type Qualquer = CategoriaDef<unknown>;
-type Estado = { status: "carregando" } | { status: "erro"; mensagem: string } | { status: "pronto"; indice: Indice<unknown> };
+type Estado =
+  | { status: "carregando" }
+  | { status: "erro"; mensagem: string }
+  | { status: "pronto"; indice: Indice<unknown> };
 
 garantirSistemaDnd5e2014();
-const categorias = sistemaDnd5e2014.categorias as unknown as readonly Qualquer[];
+const categorias =
+  sistemaDnd5e2014.categorias as unknown as readonly Qualquer[];
 
 /** Estado de carregamento SEMPRE amarrado à categoria a que pertence: ao trocar de categoria nunca se usa o índice da anterior (nem por um render). */
 function useIndice(cat: Qualquer): { estado: Estado; tentar: () => void } {
   const [tentativa, setTentativa] = useState(0);
-  const calcular = (c: Qualquer): Estado => { const i = indiceDisponivel(c); return i ? { status: "pronto", indice: i } : { status: "carregando" }; };
-  const [guardado, setGuardado] = useState<{ cat: Qualquer; estado: Estado }>(() => ({ cat, estado: calcular(cat) }));
+  const calcular = (c: Qualquer): Estado => {
+    const i = indiceDisponivel(c);
+    return i ? { status: "pronto", indice: i } : { status: "carregando" };
+  };
+  const [guardado, setGuardado] = useState<{ cat: Qualquer; estado: Estado }>(
+    () => ({ cat, estado: calcular(cat) }),
+  );
   useEffect(() => {
-    const pronto = indiceDisponivel(cat); if (pronto) { setGuardado({ cat, estado: { status: "pronto", indice: pronto } }); return; }
-    let vivo = true; setGuardado({ cat, estado: { status: "carregando" } });
-    carregarIndice(cat).then(indice => { if (vivo) setGuardado({ cat, estado: { status: "pronto", indice } }); },
-      () => { if (vivo) setGuardado({ cat, estado: { status: "erro", mensagem: `Não foi possível carregar ${cat.rotulo.toLocaleLowerCase("pt-BR")}. Verifique a conexão e tente de novo.` } }); });
-    return () => { vivo = false; };
+    const pronto = indiceDisponivel(cat);
+    if (pronto) {
+      setGuardado({ cat, estado: { status: "pronto", indice: pronto } });
+      return;
+    }
+    let vivo = true;
+    setGuardado({ cat, estado: { status: "carregando" } });
+    carregarIndice(cat).then(
+      (indice) => {
+        if (vivo) setGuardado({ cat, estado: { status: "pronto", indice } });
+      },
+      () => {
+        if (vivo)
+          setGuardado({
+            cat,
+            estado: {
+              status: "erro",
+              mensagem: `Não foi possível carregar ${cat.rotulo.toLocaleLowerCase("pt-BR")}. Verifique a conexão e tente de novo.`,
+            },
+          });
+      },
+    );
+    return () => {
+      vivo = false;
+    };
   }, [cat, tentativa]);
   const estado = guardado.cat === cat ? guardado.estado : calcular(cat);
-  return { estado, tentar: () => setTentativa(n => n + 1) };
+  return { estado, tentar: () => setTentativa((n) => n + 1) };
 }
 
-export function CompendioCatalogo({ onOpenContent, categoriaInicial, onVoltar, ocultarMonstros = false }: { onOpenContent: (s: TabSpec) => void; categoriaInicial?: string; onVoltar?: () => void; ocultarMonstros?: boolean }) {
-  const [catId, setCatId] = useState(categoriaInicial ?? categorias[0].id);
-  const cat = categorias.find(c => c.id === catId) ?? categorias[0];
-  const { estado, tentar } = useIndice(cat);
-  const [texto, setTexto] = useState(""), [filtros, setFiltros] = useState<Record<string, string | boolean>>({}), [ordenar, setOrdenar] = useState("");
-  const [visao, setVisao] = useState<Visao>("lista"), [limite, setLimite] = useState(PAGINA), [aberto, setAberto] = useState<string | null>(null);
-  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
-  // Navegação entre categorias (monstro -> magia citada): guarda de onde veio para oferecer "Voltar para <monstro>".
-  const [retorno, setRetorno] = useState<{ catId: string; id: string; nome: string } | null>(null);
+export function CompendioCatalogo({
+  onOpenContent,
+  categoriaInicial,
+  onVoltar,
+  ocultarMonstros = false,
+}: {
+  onOpenContent: (s: TabSpec) => void;
+  categoriaInicial?: string;
+  onVoltar?: () => void;
+  ocultarMonstros?: boolean;
+}) {
+  const { active } = useCampaigns(),
+    { user, client } = useAuth(),
+    { items: conhecidos } = useConhecimento();
+  const preferencias = useMemo(() => {
+    if (!client) return new Map<string, Preferencia>();
+    let p = sessoes.get(client);
+    if (!p) {
+      p = new Map();
+      sessoes.set(client, p);
+    }
+    return p;
+  }, [client]);
+  const prefKey = `${user?.id}:${active?.campaign.id}:${categoriaInicial ?? "itens"}`;
+  const pref = preferencias.get(prefKey);
+  const [catId, setCatId] = useState(
+    pref?.catId ?? categoriaInicial ?? categorias[0].id,
+  );
+  const cat = categorias.find((c) => c.id === catId) ?? categorias[0];
+  const loaded = useIndice(cat),
+    tentar = loaded.tentar;
 
-  const trocarCategoria = (id: string) => { setRetorno(null); setCatId(id); setTexto(""); setFiltros({}); setOrdenar(""); setLimite(PAGINA); setAberto(null); };
-  const ativos = Object.values(filtros).filter(v => v !== "" && v !== false && v !== undefined).length;
-  const resultado = useMemo(() => estado.status === "pronto" ? consultar(estado.indice, { texto, filtros, ordenar: ordenar || undefined } as Consulta) : [], [estado, texto, filtros, ordenar]);
+  const estado = useMemo(() => {
+    if (loaded.estado.status !== "pronto" || active?.role === "mestre")
+      return loaded.estado;
+    const allowed = loaded.estado.indice.itens.filter((x) =>
+      cat.id === "monstros"
+        ? false
+        : cat.id === "itens"
+          ? jogadorPodeAdicionar(cat.idDe(x)) ||
+            itemConhecido(conhecidos, cat.idDe(x))
+          : true,
+    );
+    return { status: "pronto" as const, indice: indexar(cat, allowed) };
+  }, [loaded.estado, active?.role, cat, conhecidos]);
+
+  const [texto, setTexto] = useState(pref?.texto ?? ""),
+    [filtros, setFiltros] = useState<Record<string, string | boolean>>(
+      pref?.filtros ?? {},
+    ),
+    [ordenar, setOrdenar] = useState(pref?.ordenar ?? "");
+  const [visao, setVisao] = useState<Visao>(pref?.visao ?? "lista"),
+    [limite, setLimite] = useState(pref?.limite ?? PAGINA),
+    [aberto, setAberto] = useState<string | null>(pref?.aberto ?? null);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(
+    pref?.filtrosAbertos ?? false,
+  );
+  // Navegação entre categorias (monstro -> magia citada): guarda de onde veio para oferecer "Voltar para <monstro>".
+  const [retorno, setRetorno] = useState<{
+    catId: string;
+    id: string;
+    nome: string;
+  } | null>(pref?.retorno ?? null);
+  useEffect(() => {
+    preferencias.set(prefKey, {
+      catId,
+      retorno,
+      limite,
+      filtrosAbertos,
+      texto,
+      filtros,
+      ordenar,
+      visao,
+      aberto,
+    });
+  }, [
+    prefKey,
+    catId,
+    retorno,
+    limite,
+    filtrosAbertos,
+    texto,
+    filtros,
+    ordenar,
+    visao,
+    aberto,
+  ]);
+
+  const trocarCategoria = (id: string) => {
+    setRetorno(null);
+    setCatId(id);
+    setTexto("");
+    setFiltros({});
+    setOrdenar("");
+    setLimite(PAGINA);
+    setAberto(null);
+  };
+  const ativos = Object.values(filtros).filter(
+    (v) => v !== "" && v !== false && v !== undefined,
+  ).length;
+  const resultado = useMemo(
+    () =>
+      estado.status === "pronto"
+        ? consultar(estado.indice, {
+            texto,
+            filtros,
+            ordenar: ordenar || undefined,
+          } as Consulta)
+        : [],
+    [estado, texto, filtros, ordenar],
+  );
   const mostrados = resultado.slice(0, limite);
-  const itemAberto = useMemo(() => (estado.status === "pronto" && aberto !== null ? estado.indice.itens.find(i => cat.idDe(i) === aberto) : undefined), [estado, aberto, cat]);
+  const itemAberto = useMemo(
+    () =>
+      estado.status === "pronto" && aberto !== null
+        ? estado.indice.itens.find((i) => cat.idDe(i) === aberto)
+        : undefined,
+    [estado, aberto, cat],
+  );
   const reiniciar = useCallback(() => setLimite(PAGINA), []);
   const abrirMagia = (id: string, deNome: string) => {
     if (aberto === null) return;
     setRetorno({ catId: cat.id, id: aberto, nome: deNome });
-    setCatId("magias"); setTexto(""); setFiltros({}); setOrdenar(""); setLimite(PAGINA); setAberto(id);
+    setCatId("magias");
+    setTexto("");
+    setFiltros({});
+    setOrdenar("");
+    setLimite(PAGINA);
+    setAberto(id);
   };
-  const voltarAoOrigem = () => { if (!retorno) return; setCatId(retorno.catId); setTexto(""); setFiltros({}); setOrdenar(""); setLimite(PAGINA); setAberto(retorno.id); setRetorno(null); };
-  const mudarFiltro = (id: string, v: string | boolean) => { setFiltros(f => ({ ...f, [id]: v })); reiniciar(); };
+  const voltarAoOrigem = () => {
+    if (!retorno) return;
+    setCatId(retorno.catId);
+    setTexto("");
+    setFiltros({});
+    setOrdenar("");
+    setLimite(PAGINA);
+    setAberto(retorno.id);
+    setRetorno(null);
+  };
+  const mudarFiltro = (id: string, v: string | boolean) => {
+    setFiltros((f) => ({ ...f, [id]: v }));
+    reiniciar();
+  };
 
-  return <div className={`content compendio cat${itemAberto ? " com-detalhe" : ""}`}>
-    <div className="eyebrow">COMPÊNDIO 5e · {sistemaDnd5e2014.fonte.titulo.toLocaleUpperCase("pt-BR")}</div>
-    <h1>Compêndio</h1>
-    {onVoltar && <button type="button" className="btn-secondary" onClick={onVoltar}><ArrowLeft size={16}/> Voltar às categorias</button>}
-    {(!onVoltar || categoriaInicial === "classes") && <div className="cat-categorias" role="group" aria-label="Categorias do Compêndio">
-      {categorias.filter(c => (!ocultarMonstros || c.id !== "monstros") && (!onVoltar || ["classes", "subclasses"].includes(c.id))).map(c => <button key={c.id} type="button" aria-pressed={c.id === cat.id} className={c.id === cat.id ? "active" : ""} onClick={() => trocarCategoria(c.id)}>{c.rotulo}</button>)}
-    </div>}
-    <div className={`cat-corpo${itemAberto ? " com-detalhe" : ""}`}>
-      <div className="cat-lista-area">
-        <div className="compendio-filtros">
-          <label>Pesquisar<input type="search" aria-label="Pesquisar no Compêndio" value={texto} placeholder="Nome em português ou inglês, ou palavras do texto" onChange={e => { setTexto(e.target.value); reiniciar(); }}/></label>
-          <label>Ordenar por<select aria-label="Ordenar por" value={ordenar} onChange={e => { setOrdenar(e.target.value); reiniciar(); }}>
-            <option value="">{texto.trim() ? "Relevância" : "Padrão"}</option>{cat.ordenacoes.map(o => <option key={o.id} value={o.id}>{o.rotulo}</option>)}</select></label>
-          <div className="compendio-visao" role="group" aria-label="Visualização">
-            <button type="button" aria-pressed={visao === "lista"} className={visao === "lista" ? "active" : ""} onClick={() => setVisao("lista")}><List size={16} aria-hidden="true"/> Lista</button>
-            <button type="button" aria-pressed={visao === "grade"} className={visao === "grade" ? "active" : ""} onClick={() => setVisao("grade")}><LayoutGrid size={16} aria-hidden="true"/> Grade</button>
-          </div>
-        </div>
-        <details className="cat-filtros" open={filtrosAbertos} onToggle={e => setFiltrosAbertos((e.target as HTMLDetailsElement).open)}>
-          <summary>Filtros{ativos > 0 ? ` (${ativos} ativo${ativos > 1 ? "s" : ""})` : ""}</summary>
-          <div className="cat-filtros-grade">
-            {cat.filtros.map(f => f.tipo === "selecao"
-              ? <label key={f.id}>{f.rotulo}<select aria-label={`Filtrar por ${f.rotulo.toLocaleLowerCase("pt-BR")}`} value={String(filtros[f.id] ?? "")} onChange={e => mudarFiltro(f.id, e.target.value)}>
-                <option value="">Todos</option>{f.opcoes.map(o => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}</select></label>
-              : <label key={f.id} className="check"><input type="checkbox" checked={filtros[f.id] === true} onChange={e => mudarFiltro(f.id, e.target.checked)}/> {f.rotulo}</label>)}
-          </div>
-          {ativos > 0 && <button type="button" className="btn-secondary" onClick={() => { setFiltros({}); reiniciar(); }}>Limpar filtros</button>}
-        </details>
-
-        {estado.status === "carregando" && <EsqueletoLista rotulo={cat.rotulo} visao={visao}/>}
-        {estado.status === "erro" && <Aviso erro t={estado.mensagem} onRetry={tentar}/>}
-        {estado.status === "pronto" && <>
-          <p role="status" className="muted">{resultado.length} {resultado.length === 1 ? "resultado" : "resultados"}{resultado.length > mostrados.length ? ` (mostrando ${mostrados.length})` : ""}</p>
-          {resultado.length === 0 && <p className="muted" data-testid="compendio-vazio">Nada encontrado. Tente outro termo ou limpe os filtros.</p>}
-          <ul className={`compendio-lista ${visao}`} aria-label="Resultados do Compêndio" data-view={visao}>
-            {mostrados.map(i => <Cartao key={cat.idDe(i)} cat={cat} item={i} visao={visao} ativo={cat.idDe(i) === aberto} onAbrir={() => setAberto(cat.idDe(i))}/>)}
-          </ul>
-          {resultado.length > mostrados.length && <button type="button" className="btn-secondary" onClick={() => setLimite(n => n + PAGINA)}>Mostrar mais</button>}
-        </>}
+  return (
+    <div className={`content compendio cat${itemAberto ? " com-detalhe" : ""}`}>
+      <div className="eyebrow">
+        COMPÊNDIO 5e ·{" "}
+        {sistemaDnd5e2014.fonte.titulo.toLocaleUpperCase("pt-BR")}
       </div>
+      <h1>{onVoltar?cat.rotulo:"Compêndio"}</h1>
+      {cat.id === "talentos" && <p className="muted">Características do SRD utilizadas pelo motor de regras. Esta consulta não é um catálogo completo de talentos de suplementos.</p>}
+      {onVoltar && (
+        <button type="button" className="btn-secondary" onClick={onVoltar}>
+          <ArrowLeft size={16} /> Voltar às categorias
+        </button>
+      )}
+      {(!onVoltar || categoriaInicial === "classes") && (
+        <div
+          className="cat-categorias"
+          role="group"
+          aria-label="Categorias do Compêndio"
+        >
+          {categorias
+            .filter(
+              (c) =>
+                (!ocultarMonstros || c.id !== "monstros") &&
+                (!onVoltar || ["classes", "subclasses"].includes(c.id)),
+            )
+            .map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                aria-pressed={c.id === cat.id}
+                className={c.id === cat.id ? "active" : ""}
+                onClick={() => trocarCategoria(c.id)}
+              >
+                {c.rotulo}
+              </button>
+            ))}
+        </div>
+      )}
+      <div className={`cat-corpo${itemAberto ? " com-detalhe" : ""}`}>
+        <div className="cat-lista-area">
+          <div className="compendio-filtros">
+            <label>
+              Pesquisar
+              <input
+                type="search"
+                aria-label="Pesquisar no Compêndio"
+                value={texto}
+                placeholder="Nome em português ou inglês, ou palavras do texto"
+                onChange={(e) => {
+                  setTexto(e.target.value);
+                  reiniciar();
+                }}
+              />
+            </label>
+            <label>
+              Ordenar por
+              <select
+                aria-label="Ordenar por"
+                value={ordenar}
+                onChange={(e) => {
+                  setOrdenar(e.target.value);
+                  reiniciar();
+                }}
+              >
+                <option value="">
+                  {texto.trim() ? "Relevância" : "Padrão"}
+                </option>
+                {cat.ordenacoes.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.rotulo}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div
+              className="compendio-visao"
+              role="group"
+              aria-label="Visualização"
+            >
+              <button
+                type="button"
+                aria-pressed={visao === "lista"}
+                className={visao === "lista" ? "active" : ""}
+                onClick={() => setVisao("lista")}
+              >
+                <List size={16} aria-hidden="true" /> Lista
+              </button>
+              <button
+                type="button"
+                aria-pressed={visao === "grade"}
+                className={visao === "grade" ? "active" : ""}
+                onClick={() => setVisao("grade")}
+              >
+                <LayoutGrid size={16} aria-hidden="true" /> Grade
+              </button>
+            </div>
+          </div>
+          <details
+            className="cat-filtros"
+            open={filtrosAbertos}
+            onToggle={(e) =>
+              setFiltrosAbertos((e.target as HTMLDetailsElement).open)
+            }
+          >
+            <summary>
+              Filtros
+              {ativos > 0 ? ` (${ativos} ativo${ativos > 1 ? "s" : ""})` : ""}
+            </summary>
+            <div className="cat-filtros-grade">
+              {cat.filtros.map((f) =>
+                f.tipo === "selecao" ? (
+                  <label key={f.id}>
+                    {f.rotulo}
+                    <select
+                      aria-label={`Filtrar por ${f.rotulo.toLocaleLowerCase("pt-BR")}`}
+                      value={String(filtros[f.id] ?? "")}
+                      onChange={(e) => mudarFiltro(f.id, e.target.value)}
+                    >
+                      <option value="">Todos</option>
+                      {f.opcoes.map((o) => (
+                        <option key={o.valor} value={o.valor}>
+                          {o.rotulo}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <label key={f.id} className="check">
+                    <input
+                      type="checkbox"
+                      checked={filtros[f.id] === true}
+                      onChange={(e) => mudarFiltro(f.id, e.target.checked)}
+                    />{" "}
+                    {f.rotulo}
+                  </label>
+                ),
+              )}
+            </div>
+            {ativos > 0 && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setFiltros({});
+                  reiniciar();
+                }}
+              >
+                Limpar filtros
+              </button>
+            )}
+          </details>
 
-      {aberto !== null && <aside className="cat-detalhe" aria-label="Detalhes">
-        {estado.status === "carregando" && <EsqueletoDetalhe/>}
-        {itemAberto !== undefined && <Detalhe cat={cat} item={itemAberto} onFechar={() => { setAberto(null); setRetorno(null); }} onOpenContent={onOpenContent} onAbrirMagia={abrirMagia} retorno={cat.id === "magias" ? retorno : null} onRetornar={voltarAoOrigem}/>}
-        {estado.status === "pronto" && itemAberto === undefined && <><button type="button" className="btn-secondary cat-voltar" onClick={() => setAberto(null)}><ArrowLeft size={15} aria-hidden="true"/> Voltar à lista</button><Aviso t="Entrada não encontrada nesta revisão do catálogo."/></>}
-      </aside>}
+          {estado.status === "carregando" && (
+            <EsqueletoLista rotulo={cat.rotulo} visao={visao} />
+          )}
+          {estado.status === "erro" && (
+            <Aviso erro t={estado.mensagem} onRetry={tentar} />
+          )}
+          {estado.status === "pronto" && (
+            <>
+              <p role="status" className="muted">
+                {resultado.length}{" "}
+                {resultado.length === 1 ? "resultado" : "resultados"}
+                {resultado.length > mostrados.length
+                  ? ` (mostrando ${mostrados.length})`
+                  : ""}
+              </p>
+              {resultado.length === 0 && (
+                <p className="muted" data-testid="compendio-vazio">
+                  Nada encontrado. Tente outro termo ou limpe os filtros.
+                </p>
+              )}
+              <ul
+                className={`compendio-lista ${visao}`}
+                aria-label="Resultados do Compêndio"
+                data-view={visao}
+              >
+                {mostrados.map((i) => (
+                  <Cartao
+                    key={cat.idDe(i)}
+                    cat={cat}
+                    item={i}
+                    visao={visao}
+                    ativo={cat.idDe(i) === aberto}
+                    onAbrir={() => setAberto(cat.idDe(i))}
+                  />
+                ))}
+              </ul>
+              {resultado.length > mostrados.length && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setLimite((n) => n + PAGINA)}
+                >
+                  Mostrar mais
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {aberto !== null && (
+          <aside className="cat-detalhe" aria-label="Detalhes">
+            {estado.status === "carregando" && <EsqueletoDetalhe />}
+            {itemAberto !== undefined && (
+              <Detalhe
+                cat={cat}
+                item={itemAberto}
+                onFechar={() => {
+                  setAberto(null);
+                  setRetorno(null);
+                }}
+                onOpenContent={onOpenContent}
+                onAbrirMagia={abrirMagia}
+                retorno={cat.id === "magias" ? retorno : null}
+                onRetornar={voltarAoOrigem}
+              />
+            )}
+            {estado.status === "pronto" && itemAberto === undefined && (
+              <>
+                <button
+                  type="button"
+                  className="btn-secondary cat-voltar"
+                  onClick={() => setAberto(null)}
+                >
+                  <ArrowLeft size={15} aria-hidden="true" /> Voltar à lista
+                </button>
+                <Aviso t="Entrada não encontrada nesta revisão do catálogo." />
+              </>
+            )}
+          </aside>
+        )}
+      </div>
     </div>
-  </div>;
+  );
 }
 
-function Cartao({ cat, item, visao, ativo, onAbrir }: { cat: Qualquer; item: unknown; visao: Visao; ativo: boolean; onAbrir: () => void }) {
+function Cartao({
+  cat,
+  item,
+  visao,
+  ativo,
+  onAbrir,
+}: {
+  cat: Qualquer;
+  item: unknown;
+  visao: Visao;
+  ativo: boolean;
+  onAbrir: () => void;
+}) {
   const { aoClicarDireito } = useAbrirEmAba();
   const nome = cat.nomeDe(item);
-  const spec: TabSpec | null = cat.id === "itens" ? itemSpec(cat.idDe(item), nome) : null;
+  const spec: TabSpec | null =
+    cat.id === "itens" ? itemSpec(cat.idDe(item), nome) : null;
   // Sem aria-label: o nome acessível É o texto visível (nome + subtítulo [+ resumo]), como pede a WCAG 2.5.3 (rótulo no nome).
-  const imagem = cat.id === "monstros" ? imagemDoMonstro(cat.idDe(item)) : cat.id === "itens" ? imagemDoItem(cat.idDe(item)) : null;
-  return <li><button type="button" className={`compendio-item${ativo ? " ativo" : ""}`} aria-current={ativo ? "true" : undefined} onClick={onAbrir} onContextMenu={spec ? e => aoClicarDireito(e, spec) : undefined}>
-    {imagem && <img className="cat-retrato" src={imagem} alt="" loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/>}
-    <strong>{nome}</strong>{" "}<small>{cat.subtituloDe(item)}</small>{visao === "grade" && cat.resumoDe && <>{" "}<span className="muted">{cat.resumoDe(item)}</span></>}</button></li>;
+  const imagem =
+    cat.id === "monstros"
+      ? imagemDoMonstro(cat.idDe(item))
+      : cat.id === "itens"
+        ? imagemDoItem(cat.idDe(item))
+        : null;
+  return (
+    <li>
+      <button
+        type="button"
+        className={`compendio-item${ativo ? " ativo" : ""}`}
+        aria-current={ativo ? "true" : undefined}
+        onClick={onAbrir}
+        onContextMenu={spec ? (e) => aoClicarDireito(e, spec) : undefined}
+      >
+        {["itens", "monstros"].includes(cat.id) && (
+          <span className="cat-retrato">
+            <RetratoQuadrado
+              src={imagem}
+              tipo={cat.id === "monstros" ? "monstro" : "avulso"}
+              tamanho={visao === "grade" ? 160 : 48}
+            />
+          </span>
+        )}
+        <strong>{nome}</strong> <small>{cat.subtituloDe(item)}</small>
+        {visao === "grade" && cat.resumoDe && (
+          <>
+            {" "}
+            <span className="muted">{cat.resumoDe(item)}</span>
+          </>
+        )}
+      </button>
+    </li>
+  );
 }
 
-function Detalhe({ cat, item, onFechar, onOpenContent, onAbrirMagia, retorno, onRetornar }: { cat: Qualquer; item: unknown; onFechar: () => void; onOpenContent: (s: TabSpec) => void;
-  onAbrirMagia: (id: string, deNome: string) => void; retorno: { nome: string } | null; onRetornar: () => void }) {
+function Detalhe({
+  cat,
+  item,
+  onFechar,
+  onOpenContent,
+  onAbrirMagia,
+  retorno,
+  onRetornar,
+}: {
+  cat: Qualquer;
+  item: unknown;
+  onFechar: () => void;
+  onOpenContent: (s: TabSpec) => void;
+  onAbrirMagia: (id: string, deNome: string) => void;
+  retorno: { nome: string } | null;
+  onRetornar: () => void;
+}) {
   const nome = cat.nomeDe(item);
-  return <article className="cat-detalhe-conteudo" aria-label={`Detalhes de ${nome}`}>
-    <div className="cat-detalhe-topo">
-      {retorno ? <button type="button" className="btn-secondary cat-retorno" onClick={onRetornar}><ArrowLeft size={15} aria-hidden="true"/> Voltar para {retorno.nome}</button>
-        : <button type="button" className="btn-secondary cat-voltar" onClick={onFechar}><ArrowLeft size={15} aria-hidden="true"/> Voltar à lista</button>}
-      <button type="button" className="cat-fechar" onClick={onFechar} aria-label="Fechar detalhes"><X size={18} aria-hidden="true"/></button>
-    </div>
-    <div className="eyebrow">{cat.rotuloItem.toLocaleUpperCase("pt-BR")}</div>
-    <h2 className="cat-titulo">{nome}</h2>
-    {cat.id === "magias" && <DetalheMagia magia={item as Magia}/>}
-    {cat.id === "monstros" && <DetalheMonstro monstro={item as Monstro} onAbrirMagia={id => onAbrirMagia(id, nome)}/>}
-    {["racas","classes","subclasses"].includes(cat.id) && <div className="cat-regras-detalhe">
-      <p className="muted">{cat.subtituloDe(item)}</p>
-      {cat.id === "racas" && <><h3>Características</h3><ul>{(item as {traits:{name:string}[]}).traits.map((t,i)=><li key={i}>{dadosPersonagem.traits.find(r=>r.index===t.name.toLowerCase().replaceAll(" ","-"))?.name ?? t.name}</li>)}</ul></>}
-      {cat.id === "classes" && <><h3>Progressão de classe</h3><p>Dado de Vida: d{(item as {data:{hitDie:number}}).data.hitDie}</p><ol>{(item as {data:{levels:{level:number;features:string[]}[]}}).data.levels.map(l=><li key={l.level}>Nível {l.level}: {l.features.map(x=>dadosPersonagem.features.find(f=>f.id===x)?.nome ?? x.split("/").pop()).join(", ")||"—"}</li>)}</ol></>}
-      {cat.id === "subclasses" && <p>{(item as {descricao:string}).descricao}</p>}
-      <p className="muted">Dados do SRD 5.1 (2014). Alguns nomes técnicos ainda estão no idioma original.</p>
-    </div>}
-    {cat.id === "itens" && <>
-      <DetalheItem item={item as SrdItem} onOpenContent={onOpenContent}/>
-      <p><button type="button" className="btn-secondary" onClick={() => onOpenContent(itemSpec(cat.idDe(item), nome))}><ExternalLink size={14} aria-hidden="true"/> Abrir em nova aba</button></p>
-    </>}
-  </article>;
+  return (
+    <article
+      className="cat-detalhe-conteudo"
+      aria-label={`Detalhes de ${nome}`}
+    >
+      <div className="cat-detalhe-topo">
+        {retorno ? (
+          <button
+            type="button"
+            className="btn-secondary cat-retorno"
+            onClick={onRetornar}
+          >
+            <ArrowLeft size={15} aria-hidden="true" /> Voltar para{" "}
+            {retorno.nome}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn-secondary cat-voltar"
+            onClick={onFechar}
+          >
+            <ArrowLeft size={15} aria-hidden="true" /> Voltar à lista
+          </button>
+        )}
+        <button
+          type="button"
+          className="cat-fechar"
+          onClick={onFechar}
+          aria-label="Fechar detalhes"
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
+      </div>
+      <div className="eyebrow">{cat.rotuloItem.toLocaleUpperCase("pt-BR")}</div>
+      <h2 className="cat-titulo">{nome}</h2>
+      {["origens", "talentos", "regras"].includes(cat.id) && (
+        <>
+          <p className="muted">{cat.subtituloDe(item)}</p>
+          <p style={{ whiteSpace: "pre-line" }}>
+            {(item as ConsultaRegra).texto}
+          </p>
+        </>
+      )}
+      {cat.id === "magias" && <DetalheMagia magia={item as Magia} />}
+      {cat.id === "monstros" && (
+        <DetalheMonstro
+          monstro={item as Monstro}
+          onAbrirMagia={(id) => onAbrirMagia(id, nome)}
+        />
+      )}
+      {["racas", "classes", "subclasses"].includes(cat.id) && (
+        <div className="cat-regras-detalhe">
+          <p className="muted">{cat.subtituloDe(item)}</p>
+          {cat.id === "racas" && (
+            <>
+              <h3>Características</h3>
+              <ul>
+                {(item as { traits: { name: string }[] }).traits.map((t, i) => (
+                  <li key={i}>
+                    {dadosPersonagem.traits.find(
+                      (r) =>
+                        r.index === t.name.toLowerCase().replaceAll(" ", "-"),
+                    )?.name ?? t.name}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {cat.id === "classes" && (
+            <>
+              <h3>Progressão de classe</h3>
+              <p>
+                Dado de Vida: d
+                {(item as { data: { hitDie: number } }).data.hitDie}
+              </p>
+              <ol>
+                {(
+                  item as {
+                    data: { levels: { level: number; features: string[] }[] };
+                  }
+                ).data.levels.map((l) => (
+                  <li key={l.level}>
+                    Nível {l.level}:{" "}
+                    {l.features
+                      .map(
+                        (x) =>
+                          dadosPersonagem.features.find((f) => f.id === x)
+                            ?.nome ?? x.split("/").pop(),
+                      )
+                      .join(", ") || "—"}
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          {cat.id === "subclasses" && (
+            <p>{(item as { descricao: string }).descricao}</p>
+          )}
+          <p className="muted">
+            Dados do SRD 5.1 (2014). Alguns nomes técnicos ainda estão no idioma
+            original.
+          </p>
+        </div>
+      )}
+      {cat.id === "monstros" && (
+        <RevelarReferencia category="monster" id={cat.idDe(item)} nome={nome} />
+      )}
+      {cat.id === "itens" && (
+        <>
+          <RevelarReferencia category="item" id={cat.idDe(item)} nome={nome} />
+          <DetalheItem item={item as SrdItem} onOpenContent={onOpenContent} />
+          <p>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => onOpenContent(itemSpec(cat.idDe(item), nome))}
+            >
+              <ExternalLink size={14} aria-hidden="true" /> Abrir em nova aba
+            </button>
+          </p>
+        </>
+      )}
+    </article>
+  );
 }
 
 export { raridadeRotulo };

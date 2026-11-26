@@ -162,9 +162,9 @@ describe("Início: edição protegida", () => {
 describe("ordem do menu por papel", () => {
   const nomes = (l: { title: string }[]) => l.map(s => s.title);
   it("mestre: Planejamento, Diário, Iniciativa, Encontros, Personagens, Enciclopédia, Documentos, Compêndio", () =>
-    expect(nomes(desktopSections("mestre"))).toEqual(["Anotações", "Diário", "Iniciativa", "Encontros", "Personagens", "Enciclopédia", "Documentos", "Compêndio"]));
+    expect(nomes(desktopSections("mestre"))).toEqual(["Anotações", "Diário", "Iniciativa", "Encontros", "Personagens", "Compêndio"]));
   it("jogador: Personagens, Diário, Enciclopédia, Documentos, Compêndio", () =>
-    expect(nomes(desktopSections("jogador"))).toEqual(["Anotações", "Personagens", "Diário", "Enciclopédia", "Documentos", "Compêndio"]));
+    expect(nomes(desktopSections("jogador"))).toEqual(["Anotações", "Personagens", "Diário", "Compêndio"]));
   it("sem campanha ativa mantém as seções comuns; Planejamento nunca aparece para quem não é mestre", () => {
     expect(nomes(desktopSections(null))).toContain("Iniciativa"); expect(nomes(visibleSections(false))).toContain("Anotações");
   });
@@ -190,19 +190,19 @@ describe("Início no aplicativo", () => {
   it("mestre: Início é o primeiro item do menu e a primeira entrada na campanha abre o Início", async () => {
     await abrir([mestre()]);
     const nomes = menu().getAllByRole("button").map(b => b.textContent);
-    expect(nomes.slice(0, 9)).toEqual(["Início", "Anotações", "Diário", "Iniciativa", "Encontros", "Personagens", "Enciclopédia", "Documentos", "Compêndio"]);
+    expect(nomes.slice(0, 7)).toEqual(["Início", "Anotações", "Diário", "Iniciativa", "Encontros", "Personagens", "Compêndio"]);
     expect(await screen.findByTestId("campanha-inicio")).toBeTruthy();
     expect([...document.querySelectorAll(strip)].map(e => e.textContent)).toEqual(["Mesa dos Dragões"]);
   });
   it("jogador: Início primeiro, sem Planejamento, Iniciativa e Encontros", async () => {
     await abrir([jogador()]);
     const nomes = menu().getAllByRole("button").map(b => b.textContent);
-    expect(nomes.slice(0, 7)).toEqual(["Início", "Anotações", "Personagens", "Diário", "Enciclopédia", "Documentos", "Compêndio"]);
+    expect(nomes.slice(0, 5)).toEqual(["Início", "Anotações", "Personagens", "Diário", "Compêndio"]);
     expect(await screen.findByTestId("campanha-inicio")).toBeTruthy();
   });
   it("Início e o nome da campanha abrem a MESMA aba campanha:<id> (sem duplicar)", async () => {
     await abrir([mestre()]);
-    fireEvent.click(menu().getByRole("button", { name: "Documentos" }));
+    fireEvent.click(menu().getByRole("button", { name: "Compêndio" }));
     fireEvent.click(menu().getByRole("button", { name: "Início" }));
     await screen.findByTestId("campanha-inicio");
     fireEvent.click(screen.getByRole("button", { name: /campanha ativa/i }));
@@ -211,14 +211,14 @@ describe("Início no aplicativo", () => {
     expect(salvo.match(/campanha:ca/g)?.length ?? 0).toBeLessThanOrEqual(1);
   });
   it("layout salvo anterior é preservado (não força o Início)", async () => {
-    localStorage.setItem(storageKey({ user: me.id, campaign: "ca", device: "navegador" }), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", id: "g1", weight: 100, active: true, children: [{ type: "tab", id: "secao:documentos" }] }] } }));
+    localStorage.setItem(storageKey({ user: me.id, campaign: "ca", device: "navegador" }), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", id: "g1", weight: 100, active: true, children: [{ type: "tab", id: "secao:compendio" }] }] } }));
     await abrir([mestre()]);
-    expect([...document.querySelectorAll(strip)].map(e => e.textContent)).toEqual(["Documentos"]);
+    expect([...document.querySelectorAll(strip)].map(e => e.textContent)).toEqual(["Compêndio"]);
   });
   it("celular: Início disponível e Diário, Enciclopédia e Documentos acessíveis na mesma barra", async () => {
     mobile = true; await abrir([jogador()]);
     const nomes = menu().getAllByRole("button").map(b => b.textContent);
-    expect(nomes).toEqual(expect.arrayContaining(["Início", "Diário", "Enciclopédia", "Documentos"]));
+    expect(nomes).toEqual(expect.arrayContaining(["Início", "Diário", "Compêndio"]));
   });
   it("troca de campanha mostra o Início da outra campanha", async () => {
     await abrir([mestre(), jogador()]);
@@ -244,7 +244,7 @@ describe("restauração (F5) e abas do Início", () => {
 
   it("F5 com a listagem de campanhas ainda pendente: restaura o layout da campanha, sem passar por Campanhas", async () => {
     localStorage.setItem(activeKey(me.id), "ca");
-    salvar("ca", ["secao:documentos"]); salvar("nenhuma", ["secao:campanhas"]);   // o layout "sem campanha" tem Campanhas aberto
+    salvar("ca", ["secao:compendio"]); salvar("nenhuma", ["secao:campanhas"]);   // o layout "sem campanha" tem Campanhas aberto
     let solta!: () => void; const gate = new Promise<void>(r => { solta = r; });
     const api = { ...apiCom([mestre()]), list: async () => { await gate; return { ok: true, data: [mestre()] }; } } as unknown as CampaignApi;
     const vistas: string[] = [];
@@ -254,7 +254,7 @@ describe("restauração (F5) e abas do Início", () => {
     expect(abas()).toEqual([]);
     solta(); await waitFor(() => expect(screen.getByRole("button", { name: /campanha ativa/i })).toBeTruthy());
     obs.disconnect();
-    expect(abas()).toEqual(["Documentos"]); expect(vistas).not.toContain("Campanhas");
+    expect(abas()).toEqual(["Compêndio"]); expect(vistas).not.toContain("Campanhas");
   });
   it("campanha sem layout salvo abre só o Início; fechar o Início não o reabre ao atualizar; reabrir pelo menu funciona sem duplicar", async () => {
     localStorage.setItem(activeKey(me.id), "ca");
@@ -270,9 +270,9 @@ describe("restauração (F5) e abas do Início", () => {
     await waitFor(() => expect(abas()).toEqual(["Mesa dos Dragões"]));
   });
   it("cada campanha recupera o próprio layout ao trocar", async () => {
-    localStorage.setItem(activeKey(me.id), "ca"); salvar("ca", ["secao:documentos"]); salvar("cb", ["secao:personagens"]);
+    localStorage.setItem(activeKey(me.id), "ca"); salvar("ca", ["secao:compendio"]); salvar("cb", ["secao:personagens"]);
     await renderApp({ api: apiCom([mestre(), jogador()]) });
-    await waitFor(() => expect(abas()).toEqual(["Documentos"]));
+    await waitFor(() => expect(abas()).toEqual(["Compêndio"]));
     fireEvent.click(screen.getByRole("button", { name: "Trocar ou gerenciar campanhas" }));
     fireEvent.click(within(screen.getByRole("menu")).getByRole("menuitem", { name: "Mesa da Lua" }));
     await waitFor(() => expect(abas()).toEqual(["Personagens"]));

@@ -1,3 +1,5 @@
+import { useConhecimento, itemConhecido } from "./compendio/conhecimento";
+import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
 import { BookOpen, Castle, House as HomeIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
@@ -60,6 +62,7 @@ function Workspace({ userId }: { userId: string }) {
   // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
   const { status } = useAuth();
   const { active, activeId: campaignId, memberships, setActive } = useCampaigns();
+  const {items: conhecidosCatalogo}=useConhecimento();
   const scope: Scope = { user: userId, campaign: campaignId ?? "nenhuma", device: "navegador" };
   const scopeKey = `${scope.user}|${scope.campaign}|${scope.device}`;
   const scopeRef = useRef(scope); scopeRef.current = scope;
@@ -226,9 +229,9 @@ function Workspace({ userId }: { userId: string }) {
     const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
     if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? n.getName();
     if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
-    if (c?.kind === "item" && c.ref) return srdItem(c.ref)?.nome ?? n.getName();
+    if (c?.kind === "item" && c.ref) return active?.role === "mestre" || jogadorPodeAdicionar(c.ref) || itemConhecido(conhecidosCatalogo,c.ref) ? srdItem(c.ref)?.nome ?? n.getName() : "Item";
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
-  }, [memberships, registrosV]);
+  }, [memberships, registrosV, active?.role, conhecidosCatalogo]);
   // FlexLayout usa o nome do modelo para ARIA e o conteúdo renderizado para a tela.
   // Manter ambos iguais em memória; minimalLayout continua removendo nomes ao persistir.
   useLayoutEffect(() => {

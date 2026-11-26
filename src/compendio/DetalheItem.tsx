@@ -1,3 +1,4 @@
+import { RetratoQuadrado } from "../RetratoCombate";
 // Detalhe de um item do catálogo (usado no painel do Compêndio e na aba `item:<id>`). Mesma definição compartilhada com o criador e o inventário.
 import { useAbrirEmAba } from "../abrirEmAba";
 import { itemFacts, srdItem, srdItemFile, srdItemsCatalogue } from "../catalogue/srd-2014-items";
@@ -13,7 +14,7 @@ export function DetalheItem({ item, onOpenContent }: { item: SrdItem; onOpenCont
   const arquivo = srdItemFile();
   const imagem = imagemDoItem(item.id);
   return <>
-    {imagem && <img className="catalogo-imagem" src={imagem} alt={`Imagem de ${item.nome}`} loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/>}
+    {<div className="catalogo-imagem"><RetratoQuadrado src={imagem} tipo="avulso" tamanho={220}/></div>}
     <p>{desc}</p>
     <dl className="item-fatos">{itemFacts(item).map(([r, v]) => <div key={r}><dt>{r}</dt><dd>{v}</dd></div>)}</dl>
     {item.pacote && <section aria-label="Conteúdo do pacote"><h2>Conteúdo do pacote</h2>

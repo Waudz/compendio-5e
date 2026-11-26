@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 let context: { active: { campaign: { id: string } } | null; loading: boolean; error: string | null; refresh: () => Promise<void> };
 vi.mock("./CampaignsContext", () => ({ useCampaigns: () => context }));
 vi.mock("./compendio/CompendioCatalogo", () => ({ CompendioCatalogo: () => <div>Catálogo disponível</div> }));
-vi.mock("./catalogue/srd-2014-items", () => ({ srdItem: vi.fn(() => undefined) }));
+vi.mock("./catalogue/srd-2014-items", async importOriginal => ({...await importOriginal<typeof import("./catalogue/srd-2014-items")>(), srdItem: vi.fn(() => undefined) }));
 import { CompendioPanel, ItemPagina } from "./Compendio";
 import { srdItem } from "./catalogue/srd-2014-items";
 
@@ -42,6 +42,8 @@ describe("catálogo exige campanha validada", () => {
   it("campanha validada permite consultar e sua remoção fecha o conteúdo imediatamente", () => {
     context.active = { campaign: { id: "a" } };
     const { rerender } = render(<CompendioPanel onOpenContent={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button", {name:"Regras"}));
+    fireEvent.click(screen.getByRole("button", {name:/^Itens /}));
     expect(screen.getByText("Catálogo disponível")).toBeTruthy();
     context.active = null;
     rerender(<CompendioPanel onOpenContent={vi.fn()}/>);

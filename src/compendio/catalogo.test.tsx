@@ -28,8 +28,12 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const menu = () => within(screen.getByRole('navigation', { name: 'Menu principal' }));
 const montar = () => renderApp({ api: apiC(mestre) });
-const abrirCompendio = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Compêndio' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Compêndio' })); await screen.findByRole('heading', { name: 'Compêndio' }); };
-const categoria = (nome: string) => fireEvent.click(within(screen.getByRole('group', { name: 'Categorias do Compêndio' })).getByRole('button', { name: nome }));
+const abrirCompendio = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Compêndio' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Compêndio' })); await screen.findByRole('heading', { name: 'Compêndio' }); categoria('Itens'); };
+const categoria = (nome: string) => {
+  const back=screen.queryByRole('button',{name:'Voltar às categorias'});if(back)fireEvent.click(back);
+  fireEvent.click(screen.getByRole('button',{name:nome==='Monstros'?'Campanha':'Regras'}));
+  fireEvent.click(screen.getByRole('button',{name:new RegExp('^'+(nome==='Monstros'?'Bestiário':nome)+' ')}));
+};
 const pesquisar = (t: string) => fireEvent.change(screen.getByLabelText('Pesquisar no Compêndio'), { target: { value: t } });
 const resultados = () => within(screen.getByRole('list', { name: 'Resultados do Compêndio' })).queryAllByRole('listitem');
 /** Cartão pelo texto visível (nome + subtítulo). Sem subtítulo, o nome precisa ser seguido de espaço ou fim (cuidado com nomes que são prefixo de outros). */
@@ -41,9 +45,7 @@ const contagem = () => /^(\d+) resultado/.exec(screen.getAllByRole('status').map
 describe('categorias e carregamento', () => {
   it('mostra Itens, Magias e Monstros; Itens abre primeiro e já está pronto (dados em memória, sem esqueleto)', async () => {
     await montar(); await abrirCompendio();
-    const grupo = within(screen.getByRole('group', { name: 'Categorias do Compêndio' }));
-    expect(grupo.getAllByRole('button').map(b => b.textContent)).toEqual(['Itens', 'Magias', 'Monstros', 'Raças', 'Classes', 'Subclasses']);
-    expect(grupo.getByRole('button', { name: 'Itens' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button',{name:'Voltar às categorias'})).toBeTruthy();
     expect(screen.queryByTestId('compendio-esqueleto')).toBeNull(); expect(contagem()).toBe('578');
   });
 
@@ -161,7 +163,7 @@ describe('lista, grade e detalhe', () => {
     expect(cartao('Bola de Fogo', '3º círculo').textContent).not.toMatch(/45 m/);
     fireEvent.click(screen.getByRole('button', { name: /Grade/ })); expect(screen.getByRole('list', { name: 'Resultados do Compêndio' }).getAttribute('data-view')).toBe('grade');
     expect(cartao('Bola de Fogo', '3º círculo').textContent).toMatch(/1 ação · 45 m/);
-    categoria('Monstros'); pesquisar('goblin'); expect(cartao('Goblin').textContent).toMatch(/CA 15 · PV 7/);
+    categoria('Monstros'); fireEvent.click(screen.getByRole('button',{name:'Grade'})); pesquisar('goblin'); expect(cartao('Goblin').textContent).toMatch(/CA 15 · PV 7/);
   });
 
   it('trocar de categoria limpa pesquisa, filtros, ordenação e fecha o detalhe; o estado de cada categoria não vaza para a outra', async () => {
@@ -209,7 +211,7 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
     mobile = true; await montar();
     const barra = () => within(screen.getByRole('navigation', { name: 'Navegação mobile' }));
     await waitFor(() => expect(document.querySelector('.mobile-page-title')?.textContent).toBe(camp.name));
-    fireEvent.click(barra().getByRole('button', { name: 'Compêndio' })); await screen.findByLabelText('Pesquisar no Compêndio');
+    fireEvent.click(barra().getByRole('button', { name: 'Compêndio' })); await screen.findByRole('heading',{name:'Compêndio'});
     categoria('Magias'); await waitFor(() => expect(contagem()).toBe('319'));
     filtro('círculo', '0'); expect(contagem()).toBe('24');
     pesquisar('luz'); fireEvent.click(cartao('Luz')); await screen.findByRole('article', { name: 'Detalhes de Luz' });
@@ -224,11 +226,11 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
     const ficha = await screen.findByRole('article', { name: 'Detalhes de Arquimago' });
     fireEvent.click(within(ficha).getByRole('button', { name: 'Abrir a magia parar o tempo' }));
     const magia = await screen.findByRole('article', { name: 'Detalhes de Parar o Tempo' });
-    expect(screen.getByRole('button', { name: 'Magias', pressed: true })).toBeTruthy();
+    expect(within(magia).getByText('MAGIA')).toBeTruthy();
     expect(within(magia).queryByRole('button', { name: 'Voltar à lista' })).toBeNull();
     fireEvent.click(within(magia).getByRole('button', { name: 'Voltar para Arquimago' }));
     await screen.findByRole('article', { name: 'Detalhes de Arquimago' });
-    expect(screen.getByRole('button', { name: 'Monstros', pressed: true })).toBeTruthy();
+    expect(screen.getByRole('article',{name:'Detalhes de Arquimago'})).toBeTruthy();
   });
 
   it('ficha composta mostra as formas com CA, PV, deslocamento e ações; o Burro é marcado como legado (não SRD); toda ficha avisa que a tradução é de IA sem revisão humana', () => {

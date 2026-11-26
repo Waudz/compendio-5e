@@ -107,7 +107,17 @@ describe("celular: Ficha do jogador", () => {
     await montar(jogador, dados());
     fireEvent.click(barra().getByRole("button", { name: "Ficha" }));
     await aguardarFicha("Torin");
-    expect(titulo()).toBe("Torin");
+    expect(screen.getByRole("button",{name:"Meus personagens"})).toBeTruthy();
+  });
+  it("um ID recente adulterado não prova propriedade da ficha alheia", async () => {
+    await montar(jogador, dados());
+    localStorage.setItem(`compendio5e:ficha-recente:${me.id}:ca`, "p3");
+    fireEvent.click(barra().getByRole("button", {name:"Menu"}));
+    fireEvent.click(within(screen.getByRole("dialog",{name:"Menu de navegação"})).getByRole("button",{name:"Personagens"}));
+    fireEvent.click(await screen.findByRole("button",{name:/^Alheio/}));
+    await waitFor(()=>expect(titulo()).toBe("Alheio"));
+    expect(screen.queryByRole("button",{name:"Meus personagens"})).toBeNull();
+    expect(screen.getByRole("button",{name:"Voltar"})).toBeTruthy();
   });
   it("lembra a última ficha aberta e volta a ela", async () => {
     await montar(jogador, dados());
@@ -119,7 +129,7 @@ describe("celular: Ficha do jogador", () => {
   it("sem personagem próprio, abre a lista de Personagens (e nunca a ficha alheia)", async () => {
     await montar(jogador, [pc("p3", other.id, "Alheio", "2026-04-01T00:00:00Z", "campaign")]);
     fireEvent.click(barra().getByRole("button", { name: "Ficha" }));
-    await waitFor(() => expect(titulo()).toBe("Personagens"));
+    await screen.findByRole("heading",{name:"Meus personagens"});
     expect(screen.queryByLabelText("Nome")).toBeNull();
   });
 });
@@ -177,7 +187,7 @@ describe("celular: alterações não salvas", () => {
   });
   it("o botão Voltar também respeita a proteção; Descartar alterações conclui a navegação", async () => {
     await abrirFichaSuja();
-    fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Meus personagens" }));
     expect(await screen.findByRole("alertdialog")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Descartar alterações" }));
     await waitFor(() => expect(screen.queryByLabelText("Nome")).toBeNull());

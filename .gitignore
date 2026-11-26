@@ -10,3 +10,6 @@ dist/
 /playwright-report/
 /test-results/
 /blob-report/
+
+# Estado local do Supabase CLI (não publicar metadados de ligação).
+/supabase/.temp/

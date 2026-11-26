@@ -26,7 +26,7 @@ const strip = '.flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content'
 const abas = () => [...document.querySelectorAll(strip)].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ''));
 const menu = () => within(screen.getByRole('navigation', { name: 'Menu principal' }));
 const montar = () => renderApp({ api: apiC(mestre) });
-const abrirCompendio = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Compêndio' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Compêndio' })); await screen.findByRole('heading', { name: 'Compêndio' }); };
+const abrirCompendio = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Compêndio' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Compêndio' })); await screen.findByRole('heading', { name: 'Compêndio' }); fireEvent.click(screen.getByRole('button',{name:'Regras'})); fireEvent.click(screen.getByRole('button',{name:/^Itens /})); };
 /** Cartão do Compêndio: o nome acessível é o texto visível (nome + subtítulo), sem aria-label (WCAG 2.5.3). */
 const cartao = (nome: string, subtitulo?: string) => screen.getByRole('button', { name: n => (subtitulo ? n === `${nome} ${subtitulo}` : n === nome || n.startsWith(nome + ' ')) });
 const pesquisar = (t: string) => fireEvent.change(screen.getByLabelText('Pesquisar no Compêndio'), { target: { value: t } });
@@ -123,6 +123,7 @@ describe('Compêndio no celular', () => {
     const barra = () => within(screen.getByRole('navigation', { name: 'Navegação mobile' }));
     await waitFor(() => expect(document.querySelector('.mobile-page-title')?.textContent).toBe(camp.name));
     fireEvent.click(barra().getByRole('button', { name: 'Compêndio' }));
+    fireEvent.click(await screen.findByRole('button',{name:'Regras'})); fireEvent.click(screen.getByRole('button',{name:/^Itens /}));
     await screen.findByLabelText('Pesquisar no Compêndio');
     pesquisar('escudo'); fireEvent.click(cartao('Escudo', 'Escudo'));
     expect(await screen.findByRole('article', { name: 'Detalhes de Escudo' })).toBeTruthy();

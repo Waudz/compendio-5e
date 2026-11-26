@@ -84,9 +84,9 @@ export function Mobile(_props: Props) {
   /** Troca de tela: NUNCA descarta alterações não salvas em silêncio (pergunta antes, como fechar uma aba no desktop). */
   const irPara = (spec: TabSpec) => {
     setMenuOpen(false);
-    if (spec.kind === "ficha" || spec.kind === "criador") pedirFicha(spec.ref);
     if (tabId(spec) === current) return;
     unsaved.guard("all", () => {
+      if (spec.kind === "ficha" || spec.kind === "criador") pedirFicha(spec.ref);
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
       setHistory(h => [...h.slice(-39), screen]);
       if (!navegacaoBrowser.current) window.history.pushState({ compendioMobile: true }, "", window.location.href);
@@ -139,11 +139,14 @@ export function Mobile(_props: Props) {
   }, []);
   useEffect(() => { window.dispatchEvent(new Event(EVENTO_TELA)); return restaurarRolagem(scroll.current, positions.current.get(current) ?? 0); }, [current]);
   /** Botão "Ficha" do jogador: abre A ficha (a usada por último, ou a mais recente dele), não só a lista; sem ficha ainda, abre a lista para criar. */
+  const atual = useRef(""); atual.current = `${user?.id}:${scope}`;
   const abrirMinhaFicha = async () => {
+    const pedido = atual.current;
     setMenuOpen(false);
     const lista: TabSpec = { kind: "secao", ref: "personagens", title: "Meus personagens" };
     if (!registros || !active || !user) { irPara(lista); return; }
     const r = await registros.list(active.campaign.id, "character");
+    if (pedido !== atual.current) return;
     const minhas = r.ok ? r.data.filter(x => x.ownerId === user.id).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) : [];
     const lembrada = lerFicha(chaveFicha(user.id, active.campaign.id));
     const alvo = minhas.find(x => x.id === lembrada) ?? minhas[0];
@@ -160,7 +163,17 @@ export function Mobile(_props: Props) {
       : { label: "Ficha", icon: UserRound, spec: { kind: "secao", ref: "personagens" } as TabSpec, selected: isPage("personagens") || screen.kind === "ficha", onClick: abrirMinhaFicha },
     { label: "Compêndio", icon: ScrollText, spec: { kind: "secao", ref: "compendio" } as TabSpec, selected: isPage("compendio") },
   ];
-  const fichaPropria = !isMaster && screen.kind === "ficha" && !!user && !!active && lerFicha(chaveFicha(user.id, active.campaign.id)) === screen.ref;
+  const [propriedade, setPropriedade] = useState<string | null>(null);
+  const escopoFicha = `${user?.id}:${active?.campaign.id}:${screen.kind}:${screen.ref}`;
+  useEffect(() => {
+    let vivo = true;
+    if (screen.kind !== "ficha" || !registros || !active || !user) return;
+    void registros.get(screen.ref).then(r => {
+      if (vivo) setPropriedade(r.ok && r.data && r.data.kind === "character" && r.data.ownerId === user.id && r.data.campaignId === active.campaign.id ? escopoFicha : null);
+    }, () => { if (vivo) setPropriedade(null); });
+    return () => { vivo = false; };
+  }, [registros, escopoFicha]);
+  const fichaPropria = !isMaster && screen.kind === "ficha" && !!user && !!active && propriedade === escopoFicha;
   const meus = !isMaster && isPage("personagens") && screen.title === "Meus personagens";
   return <div className="mobile mobile-simple">
     {!fichaPropria && !meus && <header className="mobile-topbar">

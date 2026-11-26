@@ -609,3 +609,15 @@ Continuam válidas as decisões da DEC-030 e os requisitos de segurança (identi
 - **Ordem:** "História e personalidade" é a última etapa, depois da identidade pública, na criação (oito etapas; saiu de dentro de Identidade) e na edição.
 
 Verificação só do afetado: tipos (aplicativo e E2E), unitários de `src/criador` e `src/ficha` (425 aprovados), Playwright Creator `expansao-2014`, `flows` e `accessibility` nas 8 larguras (104 aprovados; `expansao-2014` repetido após o ajuste final das colunas, 24 de 24) e build oficial. A bateria completa não foi repetida. As pendências funcionais acima continuam; sem merge, publicação ou migração.
+
+### Compêndio Campanha/Regras — 26/11/2026 (branch em revisão)
+
+Branch `feat/compendio-campanha-regras`, continuada de `c3d74a6`. Trabalho isolado em worktree; alterações não commitadas do checkout original preservadas. Sem alterações no legado, produção, merge ou deploy.
+
+- Categorias ativas e navegáveis; consultas de origens/características/condições reutilizam as fontes atuais. Filtros, visualização e contexto preservados por sessão/campanha. Cartões em coluna única com arte provisória Lucide licenciada.
+- Registros narrativos usam notes + índice/referências `campaign_codex`. Conhecimento do jogador é uma projeção no servidor, não filtro de campos privados recebidos. Bestiário com quatro níveis; itens mágicos revelados aparecem em Descobertas/Regras sem liberar adição ao inventário; portadores retornam apenas identidade já pública.
+- Storage privado separado, envio só pelo mestre, referência trocada após sucesso, arquivos antigos retidos para recuperação. Notificações internas idempotentes; sem push nem revelação automática por combate/posse. Atualização por foco/evento local/poll visível (30 s), sem prometer Realtime.
+- Cabeçalho mobile prova propriedade por registro/campanha, protege resposta assíncrona atrasada e não atribui nova função ao toque repetido em Ficha. Os helpers E2E usam o menu inferior quando a barra redundante foi removida.
+- Imagens: 77 itens + 52 monstros preservados, 129 HTTP 200, IDs válidos. Acervo do navegador ainda requer exportação do aparelho. Nenhum arquivo do 1.0 alterado.
+- **0015 proposta, NÃO aplicada**. Pré-requisitos, preflight somente leitura, SHA, rollback com arquivo privado dos dados e aplicação exata em `docs/COMPENDIO-CONHECIMENTO.md`. Verificar a situação remota da 0014 separadamente; não aplicar diretório inteiro automaticamente.
+- Validação final em execução: **1.733 testes unitários/integração/SQL passaram, sem falhas**; TypeScript e build passaram; 12 novos E2E passaram nas quatro larguras base, com axe; SQL/propriedade/portadores adicionados. Acompanhar o PR único e finalizar o registro dos resultados antes da entrega. Docker ausente localmente; Auth/REST/JWT/Storage reais devem passar no workflow isolado existente. **Não integrar nem publicar sem revisão final.**

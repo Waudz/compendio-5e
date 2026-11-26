@@ -53,7 +53,9 @@ export async function navigate(page: Page, name: string) {
       await page.locator('.mobile-screen').evaluate(tela => { tela.scrollTop = Math.max(0, tela.scrollTop - 80); });
       await expect(page.locator('.app.chrome-hidden')).toHaveCount(0);
     }
-    await page.getByRole('button', { name: 'Abrir menu', exact: true }).click();
+    const top = page.getByRole('button', { name: 'Abrir menu', exact: true });
+    const bottom = page.getByRole('navigation', { name: 'Navegação mobile' }).getByRole('button', { name: 'Menu', exact: true });
+    await (await top.isVisible() ? top : bottom).click();
     await page.getByRole('dialog', { name: 'Menu de navegação' }).getByRole('button', { name, exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Menu de navegação' })).toBeHidden();
   } else {

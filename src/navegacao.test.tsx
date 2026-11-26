@@ -62,8 +62,8 @@ describe("menu lateral: gestos (desktop)", () => {
     await renderApp();
     fireEvent.click(nav("Iniciativa"), { ctrlKey: true });
     fireEvent.click(nav("Encontros"), { metaKey: true });
-    middleClick(nav("Documentos"));
-    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros", "Documentos"]);
+    middleClick(nav("Diário"));
+    expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros", "Diário"]);
   });
   it("o botão do meio não dispara autoscroll (mousedown cancelado) e Ctrl+clique não segue link nenhum", async () => {
     await renderApp();
@@ -77,9 +77,9 @@ describe("menu lateral: gestos (desktop)", () => {
     expect(menuItems()).toEqual(["Abrir nesta aba", "Abrir em nova aba", "Abrir em nova aba fixada"]);
     pick("Abrir nesta aba"); expect(tabs()).toEqual(["Personagens", "Iniciativa"]);
     fireEvent.contextMenu(nav("Encontros")); pick("Abrir em nova aba"); expect(tabs()).toEqual(["Personagens", "Iniciativa", "Encontros"]);
-    fireEvent.contextMenu(nav("Documentos")); pick("Abrir em nova aba fixada");
-    expect(rawTabs()).toEqual(["Personagens", "Iniciativa", "Encontros", "Documentos (fixada)"]);
-    expect(saved().layout.children[0].children.map((t: { id: string; pinned?: boolean }) => [t.id, !!t.pinned])).toEqual([["secao:personagens", false], ["secao:iniciativa", false], ["secao:encontros", false], ["secao:documentos", true]]);
+    fireEvent.contextMenu(nav("Diário")); pick("Abrir em nova aba fixada");
+    expect(rawTabs()).toEqual(["Personagens", "Iniciativa", "Encontros", "Diário (fixada)"]);
+    expect(saved().layout.children[0].children.map((t: { id: string; pinned?: boolean }) => [t.id, !!t.pinned])).toEqual([["secao:personagens", false], ["secao:iniciativa", false], ["secao:encontros", false], ["secao:diario", true]]);
   });
   it("o menu fecha com Esc e ao clicar fora, e nunca sai da tela", async () => {
     await renderApp();
@@ -111,7 +111,7 @@ describe("fixar e desafixar", () => {
   });
   it("fixada pode ser fechada manualmente; 'fechar outras abas normais' preserva as fixadas", async () => {
     await renderApp();
-    fireEvent.click(nav("Iniciativa"), { ctrlKey: true }); fireEvent.click(nav("Encontros"), { ctrlKey: true }); fireEvent.click(nav("Documentos"), { ctrlKey: true });
+    fireEvent.click(nav("Iniciativa"), { ctrlKey: true }); fireEvent.click(nav("Encontros"), { ctrlKey: true }); fireEvent.click(nav("Diário"), { ctrlKey: true });
     fireEvent.contextMenu(tabEl("Iniciativa")); pick("Fixar aba");
     fireEvent.contextMenu(tabEl("Encontros")); pick("Fechar outras abas normais");
     expect(tabs()).toEqual(["Iniciativa", "Encontros"]);
@@ -120,17 +120,17 @@ describe("fixar e desafixar", () => {
   });
   it("a fixação é salva sem títulos e restaurada ao recarregar", async () => {
     const first = await renderApp();
-    fireEvent.click(nav("Documentos"), { ctrlKey: true });
-    fireEvent.contextMenu(tabEl("Documentos")); pick("Fixar aba");
-    expect(localStorage.getItem(key())).not.toMatch(/"name"|Documentos"/);
+    fireEvent.click(nav("Diário"), { ctrlKey: true });
+    fireEvent.contextMenu(tabEl("Diário")); pick("Fixar aba");
+    expect(localStorage.getItem(key())).not.toMatch(/"name"|Diário"/);
     first.unmount();
     await renderApp();
-    expect(rawTabs()).toEqual(["Personagens", "Documentos (fixada)"]);
+    expect(rawTabs()).toEqual(["Personagens", "Diário (fixada)"]);
   });
   it("outra conta no mesmo navegador não vê as abas nem a fixação da anterior", async () => {
     const auth = fakeAuth(me);
     await renderApp({ auth });
-    fireEvent.click(nav("Documentos"), { ctrlKey: true }); fireEvent.contextMenu(tabEl("Documentos")); pick("Fixar aba");
+    fireEvent.click(nav("Diário"), { ctrlKey: true }); fireEvent.contextMenu(tabEl("Diário")); pick("Fixar aba");
     await auth.emit("SIGNED_IN", { user: other });
     await screen.findByRole("navigation", { name: "Menu principal" });
     expect(rawTabs()).toEqual(["Personagens"]);

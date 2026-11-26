@@ -13,3 +13,19 @@
 .compendio-portal:disabled { opacity: .65; cursor: default; }
 .compendio-portal:focus-visible { outline: 2px solid #91bfff; outline-offset: 2px; }
 .compendio-portal > svg:last-child { flex-shrink: 0; }
+
+.compendio-lista .cat-retrato { display: block; overflow: hidden; }
+.compendio-lista.grade .cat-retrato .retrato-q { width: 100% !important; height: auto !important; aspect-ratio: 1; }
+.catalogo-imagem .retrato-q { max-width: 100%; }
+.compendio-portal { height: 104px; min-height: 104px; border-color: #3c526e; }
+.compendio-portal-arte { right: 8%; width: 108px; height: 108px; opacity: .3; mask-image: linear-gradient(90deg, transparent, black 40%); }
+
+.codex-registros, .codex-editor { min-width: 0; max-width: 100%; }
+.codex-registros .row, .codex-editor .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.codex-registros label, .codex-editor label { display: grid; gap: 6px; margin-block: 12px; }
+.codex-registros input, .codex-editor input, .codex-editor textarea, .codex-editor select { min-width: 0; max-width: 100%; width: 100%; box-sizing: border-box; }
+.codex-editor input[type=checkbox] { width: auto; }
+.codex-editor { border: 1px solid var(--border, #3c526e); border-radius: 8px; padding: 14px; margin-block: 12px; }
+.codex-entradas { list-style: none; padding: 0; }
+.codex-entradas li { padding-block: 10px; border-bottom: 1px solid var(--border, #3c526e); overflow-wrap: anywhere; }
+.codex-avisos { margin-left: auto; }
