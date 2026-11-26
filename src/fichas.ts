@@ -6,6 +6,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { erroCampanha, type Res } from "./campaigns";
 import type { CharacterDraft } from "./rules/character-domain";
 import { CAMPOS_PUBLICOS, publicIdentityCard, type CampoPublico, type PublicIdentity, type PublicIdentityCard, type SheetPublicSource } from "./rules/public-identity";
+import { vitaisDoDraft, type AcaoVital, type EstadoVital } from "./vitais/vitais";
+import type { LinhaVital } from "./vitais/loja";
 
 /** O que o servidor confirma ao gravar: o id definitivo (do servidor), a nova revisão e a data. */
 export type GravacaoFicha = { id: string; revision: number; updatedAt: string };
@@ -14,6 +16,9 @@ export type ResumoFicha = { id: string; ownerId: string; nome: string; nivel: nu
 /** Identidade pública lida de `notes.meta.identidadePublica`: as escolhas (sem nenhum valor privado) e o cartão já resolvido. */
 export type IdentidadeGravada = { identity: PublicIdentity; card: PublicIdentityCard; publicada: boolean };
 export type EntradaIdentidade = { identity: PublicIdentity; source: SheetPublicSource };
+/** Resultado de uma operação de inventário feita no servidor: a ficha de quem pediu, já atualizada. */
+export type ResultadoItem = EstadoVital & { draft: CharacterDraft; updatedAt: string };
+export type FiltroAssinatura = { characterId: string } | { campaignId: string };
 
 export type FichasApi = {
   /** Fichas que o usuário pode LER (as próprias; todas as da campanha para o mestre). A RLS decide; nada aqui filtra por segurança. */
@@ -23,7 +28,18 @@ export type FichasApi = {
   criar: (campaignId: string, draft: CharacterDraft, identidade: EntradaIdentidade) => Promise<Res<GravacaoFicha>>;
   /** Controle de revisão: se outra gravação ocorreu antes, devolve o erro ERRO_CONFLITO_REVISAO e NÃO sobrescreve. `identidade` só vale para o dono. */
   salvar: (id: string, revisaoEsperada: number, draft: CharacterDraft, identidade?: EntradaIdentidade) => Promise<Res<GravacaoFicha>>;
+  /** Estado vital (PV, temporários, condições, morte) das fichas que o usuário pode ler. Exige a migração 0014. */
+  lerVitais: (ids: string[]) => Promise<Res<LinhaVital[]>>;
+  /** Uma operação sobre o estado vital. Repetir o mesmo `operacao` não aplica de novo. */
+  alterarVitais: (id: string, acao: AcaoVital, operacao: string) => Promise<Res<EstadoVital>>;
+  /** Usa uma unidade de um item (com a cura informada), de forma atômica. */
+  usarConsumivel: (id: string, instancia: string, cura: number, maximo: number, operacao: string) => Promise<Res<ResultadoItem>>;
+  /** Move unidades para outro personagem guiado da mesma campanha, de forma atômica. Devolve a ficha de ORIGEM. */
+  transferirItem: (origem: string, destino: string, instancia: string, quantidade: number, operacao: string) => Promise<Res<ResultadoItem>>;
+  /** Tempo real: chama `aoMudar` quando uma ficha legível muda. Devolve a função que cancela. */
+  assinar: (filtro: FiltroAssinatura, aoMudar: () => void) => () => void;
 };
+export const ERRO_ATUALIZAR_BANCO_VITAIS = "O banco precisa da atualização 0014 para sincronizar o estado do personagem.";
 
 export const ERRO_CONFLITO_REVISAO = "Outra alteração desta ficha foi salva antes da sua (o mestre ou outro dispositivo). Nada foi sobrescrito.";
 export const ehConflitoDeRevisao = (r: Res<unknown>) => !r.ok && r.error === ERRO_CONFLITO_REVISAO;
@@ -93,6 +109,14 @@ const msg = (e: unknown) => {
   if (m.includes("identidade_invalida") || m.includes("notes_guiado_meta_check")) return "A identidade pública contém dados não permitidos (confira a imagem https:// e o tamanho dos textos).";
   if (m.includes("personagem_guiado_nao_exclui")) return "Personagens salvos na campanha não podem ser excluídos por aqui.";
   if (m.includes("personagem_guiado_imutavel") || m.includes("campos_imutaveis")) return "Esta alteração não é permitida em um personagem salvo.";
+  if (m.includes("item_nao_autorizado")) return "Este item só pode ser entregue pelo mestre.";
+  if (m.includes("concessao_so_do_mestre")) return "Só o mestre concede talentos, magias e habilidades.";
+  if (m.includes("item_inexistente")) return "Este item não está mais no inventário. Nada foi alterado.";
+  if (m.includes("quantidade_invalida")) return "Quantidade indisponível. Nada foi alterado.";
+  if (m.includes("destino_invalido")) return "O destinatário não é um personagem desta campanha. Nada foi alterado.";
+  if (m.includes("destino_cheio")) return "O destinatário não tem espaço para as concessões deste item. Nada foi alterado.";
+  if (m.includes("operacao_invalida")) return "Operação inválida. Nada foi alterado.";
+  if (m.includes("vitals_version") || /(alterar_vitais|usar_consumivel|transferir_item)/.test(m)) return ERRO_ATUALIZAR_BANCO_VITAIS;
   if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed")) return "Sem conexão com o servidor.";
   return erroCampanha(e);
 };
@@ -100,10 +124,36 @@ const run = async <T,>(fn: () => PromiseLike<{ data: T | null; error: unknown }>
   try { const { data, error } = await fn(); return error || data === null ? { ok: false, error: msg(error) } : { ok: true, data }; } catch (e) { return { ok: false, error: msg(e) }; }
 };
 
+type VitalRow = { character_id: string; revision: number; vitals_version: number | string; draft: CharacterDraft };
+const linhaVital = (r: VitalRow): LinhaVital => ({ id: r.character_id, revision: r.revision, versao: Number(r.vitals_version), ...vitaisDoDraft(r.draft), draft: r.draft });
+type RespostaVital = { id: string; revision: number; versao: number | string; pv: number; temp: number; condicoes: string[]; morte: { sucessos: number; falhas: number }; draft?: CharacterDraft; updatedAt?: string };
+const estadoVital = (x: RespostaVital): EstadoVital => ({ id: x.id, revision: x.revision, versao: Number(x.versao), pv: x.pv, temp: x.temp, condicoes: x.condicoes.filter(c => typeof c === "string"), morte: x.morte });
+const resultadoItem = (x: RespostaVital): ResultadoItem => ({ ...estadoVital(x), draft: x.draft!, updatedAt: x.updatedAt! });
+let canais = 0;
+
 export function createFichasApi(client: SupabaseClient): FichasApi {
   // a apresentação é sempre da campanha; o banco (0013) recalcula o cartão a partir da ficha e destas escolhas
   const params = (e: EntradaIdentidade) => { const p = projetarIdentidade(e); return { p_title: p.titulo, p_meta: p.meta, p_publish: true }; };
+  const funcao = <T,>(nome: string, args: Record<string, unknown>, ler: (x: RespostaVital) => T) => run<T>(async () => {
+    const r = await client.rpc(nome, args);
+    if (r.error) return { data: null, error: (r.error as { code?: string }).code === "PGRST202" ? { message: nome } : r.error };
+    return r.data ? { data: ler(r.data as RespostaVital), error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };
+  });
   return {
+    lerVitais: ids => run<LinhaVital[]>(async () => {
+      const r = await client.from("character_sheets").select("character_id, revision, vitals_version, draft").in("character_id", ids);
+      return r.error ? { data: null, error: r.error } : { data: (r.data as unknown as VitalRow[]).map(linhaVital), error: null };
+    }),
+    alterarVitais: (id, acao, operacao) => funcao("alterar_vitais", { p_character_id: id, p_acao: acao, p_operacao: operacao }, estadoVital),
+    usarConsumivel: (id, instancia, cura, maximo, operacao) => funcao("usar_consumivel", { p_character_id: id, p_instancia: instancia, p_cura: cura, p_maximo: maximo, p_operacao: operacao }, resultadoItem),
+    transferirItem: (origem, destino, instancia, quantidade, operacao) => funcao("transferir_item", { p_origem: origem, p_destino: destino, p_instancia: instancia, p_quantidade: quantidade, p_operacao: operacao }, resultadoItem),
+    assinar: (filtro, aoMudar) => {
+      try {
+        const regra = "characterId" in filtro ? `character_id=eq.${filtro.characterId}` : `campaign_id=eq.${filtro.campaignId}`;
+        const canal = client.channel(`fichas-${++canais}-${regra}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "character_sheets", filter: regra }, aoMudar).subscribe();
+        return () => { void client.removeChannel(canal); };
+      } catch { return () => {}; }   // sem Realtime: a releitura periódica cobre
+    },
     listar: campaignId => run<ResumoFicha[]>(async () => {
       const r = await client.from("character_sheets").select("character_id, owner_id, revision, updated_at, nome:draft->>name, nivel:draft->>level, classe:draft->>classId, alcunha:draft->>nickname, retrato:draft->>portrait").eq("campaign_id", campaignId).order("updated_at", { ascending: false });
       if (r.error) return { data: null, error: r.error };

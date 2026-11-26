@@ -25,6 +25,9 @@ const kg = (n: number) => `${n.toLocaleString("pt-BR", { maximumFractionDigits: 
 type Props = PropsAba & {
   vista: VistaInv; onVista: (v: VistaInv) => void; filtro: FiltroInv; onFiltro: (f: FiltroInv) => void;
   moedas?: readonly ChaveMoeda[]; /** O mestre pode entregar qualquer item. */ mestre?: boolean;
+  usarItem: (instancia: string, cura: number) => Promise<string | null>;
+  transferir?: (destino: string, instancia: string, quantidade: number) => Promise<string | null>;
+  personagemId?: string; campaignId?: string;
 };
 
 export function AbaInventario({ draft, sheet, stats, estado, onChange, onOpenContent, vista, onVista, filtro, onFiltro, moedas = TODAS_AS_MOEDAS, mestre = false }: Props) {

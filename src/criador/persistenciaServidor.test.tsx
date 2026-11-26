@@ -221,10 +221,10 @@ describe("conflito de revisão", () => {
     fireEvent.change(await nomeInput(), { target: { value: "Thorin B" } });
     // o mestre grava antes (revisão 2)
     const f = banco.fichas[0];
-    expect((await fichasEmMemoria("u9", banco).salvar(f.id, 1, { ...f.draft, currentHp: 2 })).ok).toBe(true);
+    expect((await fichasEmMemoria("u9", banco).salvar(f.id, 1, { ...f.draft, nickname: "Do mestre" })).ok).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
     expect(await screen.findByTestId("aviso-conflito")).toBeTruthy();
-    expect(banco.fichas[0]).toMatchObject({ revision: 2, draft: expect.objectContaining({ name: "Thorin", currentHp: 2 }) });   // nada sobrescrito
+    expect(banco.fichas[0]).toMatchObject({ revision: 2, draft: expect.objectContaining({ name: "Thorin", nickname: "Do mestre" }) });   // nada sobrescrito
     expect((screen.getByLabelText("Nome do personagem") as HTMLInputElement).value).toBe("Thorin B");                            // a tela guarda o que foi digitado
     fireEvent.click(screen.getByRole("button", { name: "Carregar a versão atual" }));
     await waitFor(() => expect((screen.getByLabelText("Nome do personagem") as HTMLInputElement).value).toBe("Thorin"));

@@ -1,5 +1,8 @@
-import { EstadoCombateFicha } from "../EstadoCombateFicha";
 import { metodoPreservado, manualValido, type MetodoAtributos } from './atributos-2014';
+import { consumirItem } from "../ficha/inventarioAcoes";
+import { useVitais } from "../vitais/loja";
+import { aplicarAcao, comVitais, novaOperacao, vitaisDoDraft, type AcaoVital } from "../vitais/vitais";
+import type { ResultadoItem } from "../fichas";
 // Criador guiado SRD 2014; mantém leitura/edição versionada das fichas legadas. Reaproveita as regras de `src/rules` e o catálogo
 // canônico; não duplica lógica. Ficha, equipamento inicial, inventário (dentro da ficha) e identidade pública em seções.
 // Persistência por `RepositorioPersonagem`: SERVIDOR (Supabase, ficha privada + identidade pública, revisão otimista) quando há conta e a API de fichas;
@@ -151,6 +154,54 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   /** Fluxos que ENTREGAM dinheiro (equipamento inicial, origem): o valor chega nas moedas que a campanha usa. */
   const mudarComEntrega = (proximo: CharacterDraft) => mudar(proximo.currency === draft.currency ? proximo : { ...proximo, currency: { cp: 0, sp: 0, gp: 0, ...entregarNasAtivas(draft.currency, proximo.currency, moedas) } });
 
+  // ------------------------------------------------------------ estado vital (PV, temporários, condições, morte)
+  // Com ficha salva no servidor, a única fonte é o servidor: a tela mostra o confirmado + operações a caminho, e nada disso passa pelo
+  // salvamento da ficha inteira (que o banco ignora nesses campos). Antes do primeiro salvamento e no modo local, vive no rascunho.
+  const fichas = useFichas();
+  const sincronizado = servidor && existe && carga === "pronto" && modern2014(draft);
+  const vit = useVitais(sincronizado ? fichas : null, sincronizado ? [idReal] : [], campaignId);
+  const linha = sincronizado ? vit.ver(idReal) : undefined;
+  const maximoDe = (d: CharacterDraft) => { try { return modern2014(d) && regras2014 ? regras2014.sheet2014({ ...d, name: d.name.trim() || "Sem nome", currentHp: 0 }).maxHp : null; } catch { return null; } };
+  const maximo = carga === "pronto" ? maximoDe(draft) : null;
+  const draftTela = useMemo(() => (linha ? comVitais(draft, { ...linha, pv: maximo === null ? linha.pv : Math.min(linha.pv, maximo) }) : draft), [draft, linha?.versao, linha?.pv, linha?.temp, linha?.condicoes, linha?.morte, maximo]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const vital = (acao: AcaoVital) => {
+    if (sincronizado && vit.loja) { vit.loja.enviar(idReal, acao); return; }
+    setDraft(d => comVitais(d, aplicarAcao(vitaisDoDraft(d), acao))); setMsg(null);
+  };
+  /** Mudanças feitas na ficha: o estado vital nunca vai junto (ele só muda por operação). */
+  const mudarNaFicha = (proximo: CharacterDraft) => mudar(sincronizado ? comVitais(proximo, vitaisDoDraft(draft)) : proximo);
+
+  /** Adota uma ficha devolvida por uma operação do servidor (consumo, transferência). */
+  const adotar = (r: ResultadoItem) => {
+    vit.loja?.receber(r, r.draft);
+    setDraft(r.draft); setRevisao(r.revision); setSalvo(JSON.stringify({ draft: r.draft, identity }));
+  };
+  const [operando, setOperando] = useState(false);
+  /** O mesmo identificador é reaproveitado até haver resposta: tentar de novo após uma falha de rede nunca repete o efeito. */
+  const operacoes = useRef(new Map<string, string>());
+  const operarNoServidor = async (chaveOp: string, fazer: (operacao: string) => Promise<{ ok: true; data: ResultadoItem } | { ok: false; error: string }>): Promise<string | null> => {
+    if (operando || salvando) return "Aguarde a operação em andamento.";
+    if (conflito || recuperacao) return "Resolva o aviso da ficha antes de continuar.";
+    if (sujo && !(await salvarAtual.current(true))) return "Não foi possível salvar a ficha antes da operação. Nada foi alterado.";
+    const operacao = operacoes.current.get(chaveOp) ?? novaOperacao();
+    operacoes.current.set(chaveOp, operacao); setOperando(true);
+    try {
+      const r = await fazer(operacao);
+      if (!r.ok) { if (r.error !== "Sem conexão com o servidor.") operacoes.current.delete(chaveOp); return r.error; }
+      operacoes.current.delete(chaveOp); adotar(r.data); return null;
+    } catch { return "Sem conexão com o servidor."; } finally { setOperando(false); }
+  };
+  const usarItem = async (instancia: string, cura: number): Promise<string | null> => {
+    const max = maximoDe(draftTela) ?? draftTela.currentHp;
+    if (sincronizado && fichas) return operarNoServidor(`usar:${instancia}:${cura}`, op => fichas.usarConsumivel(idReal, instancia, cura, max, op));
+    const r = consumirItem(draft, instancia, cura, max);
+    if (!r.ok) return r.erro;
+    mudar(r.draft); return null;
+  };
+  const transferir = sincronizado && fichas
+    ? (destino: string, instancia: string, quantidade: number) => operarNoServidor(`transferir:${instancia}:${destino}:${quantidade}`, op => fichas.transferirItem(idReal, destino, instancia, quantidade, op))
+    : undefined;
+
   const alterarNivel = (level: number) => {
     try { mudar(modern2014(draft) ? regras2014!.progressLevel2014(draft, level) : { ...draft, level }); setErroAtrib(''); }
     catch (e) { setErroAtrib(e instanceof Error ? e.message : 'Revise os recursos e as rolagens de PV antes de mudar o nível.'); }
@@ -167,11 +218,18 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     if (draft.portrait && !retratoValido(draft.portrait)) { setMsg({ ok: false, t: "O endereço do retrato deve começar com https:// e não ter espaços." }); return false; }
     const apresentado = publicIdentityCard(identity, origem);
     if (!somenteFicha && !apresentado.name && !apresentado.alias) { setMsg({ ok: false, t: "Na identidade pública, apresente ao menos o nome ou a alcunha." }); return false; }
-    const estado = { draft, identity };
+    // personagem novo nasce com PV cheios; depois disso, PV só mudam por operação
+    const novoMax = !existe ? maximoDe(draft) : null;
+    const estado = { draft: novoMax !== null && !existe ? { ...draft, currentHp: novoMax, temporaryHp: 0 } : draft, identity };
+    if (estado.draft !== draft) setDraft(estado.draft);
+    const maxAnterior = existe && salvo ? maximoDe((JSON.parse(salvo) as { draft: CharacterDraft }).draft) : null;
     setSalvando(true);
     try {
       const r = await repo.salvar({ id: idReal, existe, revisao, estado, somenteFicha, source: origem });
-      const gravado = { ...draft, id: r.id };
+      const gravado = { ...estado.draft, id: r.id };
+      // o máximo mudou (nível, atributo...): o PV atual acompanha o ganho e nunca passa do novo máximo
+      const maxNovo = maximoDe(estado.draft);
+      if (maxAnterior !== null && maxNovo !== null && maxNovo !== maxAnterior) vital({ tipo: "ajustar", valor: Math.max(0, maxNovo - maxAnterior), maximo: maxNovo });
       // A resposta confirma o snapshot enviado, não alterações feitas enquanto
       // a requisição estava em andamento. Preservar o estado mais recente da UI.
       setDraft(atual => ({ ...atual, id: r.id })); setIdReal(r.id); setExiste(true); setRevisao(r.revision); setConflito(false); setRecuperacao(null);
@@ -210,7 +268,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
 
   useUnsavedGuard(`criador:${id}`, sujo, salvar);
   // Ficha de jogo: cada mudança é salva sozinha, com a mesma revisão controlada. Conflito ou cópia de recuperação pausam tudo até a pessoa decidir.
-  const automatico = visualizando && carga === "pronto" && existe && modern2014(draft) && !!sheet && sujo && !salvando && !conflito && !recuperacao;
+  const automatico = visualizando && carga === "pronto" && existe && modern2014(draft) && !!sheet && sujo && !salvando && !operando && !conflito && !recuperacao;
   const salvarAtual = useRef(salvar); salvarAtual.current = salvar;
   const pendente = useRef(false);
   useEffect(() => {
@@ -222,6 +280,15 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   }, [automatico, retrato]);
   // saindo da ficha antes do prazo (ex.: trocando de menu): envia o que estava pendente
   useEffect(() => () => { if (pendente.current) { pendente.current = false; void salvarAtual.current(true); } }, []);
+
+  // outra parte da ficha mudou no servidor (item recebido, entrega do mestre, outro aparelho): sem alterações minhas, recarrega sozinho
+  const atrasada = !!linha && revisao !== null && linha.revision > revisao && visualizando && !sujo && !salvando && !operando && !conflito;
+  useEffect(() => {
+    if (!atrasada) return;
+    let vivo = true;
+    void repo.carregar(idRealRef.current).then(p => { if (vivo && p && p.revision !== null && p.revision > (revisao ?? 0)) { setDraft(p.draft); setIdentity(p.identity); setRevisao(p.revision); setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity })); setEscolhas(escolhasDoInventario(p.draft)); } }, () => {});
+    return () => { vivo = false; };
+  }, [atrasada, linha?.revision]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ------------------------------------------------------------ entrar e sair da edição
   const raizEditor = useRef<HTMLDivElement>(null);
@@ -349,14 +416,14 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       <button type="button" className="btn-primary" onClick={editar}>Editar personagem</button></div>;
     const naoSalvo = sujo && !salvando && falhou.current === retrato;
     return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
-      <FichaJogo draft={draft} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudar} onOpenContent={onOpenContent}
+      <FichaJogo draft={draftTela} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudarNaFicha} vital={vital} usarItem={usarItem} transferir={transferir} personagemId={idReal} campaignId={campaignId} onOpenContent={onOpenContent}
         onEditar={editar} onProgredir={editar} podeConceder={mestre} moedas={moedas}
         salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
           {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
         avisos={<>{avisoConflito}
+          {sincronizado && vit.erro && <div className="notice err" role="alert" data-testid="aviso-sincronizacao"><p>{vit.erro}{vit.pendentes > 0 ? ` ${vit.pendentes} alteração(ões) aguardando envio.` : ""}</p><button type="button" className="btn-secondary" onClick={() => { vit.loja?.tentar(); void vit.loja?.ler([idReal]); }}>Tentar agora</button></div>}
           {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
-          {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => { setSecao("ficha"); setVisualizando(false); }}>Revisar recuperação no editor</button></div>}</>}
-        combate={servidor ? <EstadoCombateFicha characterId={idReal}/> : undefined}/>
+          {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => { setSecao("ficha"); setVisualizando(false); }}>Revisar recuperação no editor</button></div>}</>}/>
     </Suspense>;
   }
 

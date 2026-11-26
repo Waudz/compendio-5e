@@ -11,14 +11,14 @@ import { CAMPOS_HISTORIA } from "./campos";
 import { Marcadores } from "./Marcadores";
 import { novoId, sinal, type PropsAba } from "./tipos";
 
-export function AbaFicha({ draft, sheet, stats, estado, onChange }: PropsAba) {
+export function AbaFicha({ draft, sheet, stats, estado, onChange, vital }: PropsAba) {
   const profs = proficiency2014(draft).filter(p => !p.startsWith("save:"));
   const grupo = (prefixo: string) => [...new Set(profs.filter(p => p.startsWith(prefixo)).map(proficiencyLabel2014))];
   const salvasTemp = somaTemporaria(estado, "saves");
   const sentidos = sentidosEspeciais(raceTraits2014(draft));
   const dados = sheet.resources["hit-dice"];
   const idiomas = [...sheet.languages.map(label2014), ...grupo("language:")];
-  const morte = (chave: "sucessos" | "falhas", n: number) => onChange(comEstado(draft, { morte: { ...estado.morte, [chave]: estado.morte[chave] === n ? n - 1 : n } }));
+  const morte = (chave: "sucessos" | "falhas", n: number) => vital({ tipo: "morte", ...estado.morte, [chave]: estado.morte[chave] === n ? n - 1 : n });
   const historia = CAMPOS_HISTORIA.flatMap(([chave, rotulo]) => { const texto = draft.story?.[chave]?.trim(); return texto ? [[rotulo, texto] as const] : []; });
 
   return <div className="ficha-grade">

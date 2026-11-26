@@ -14,7 +14,8 @@ import type { TabSpec } from "../workspace";
 import { AbaFicha } from "./AbaFicha";
 import { AbaHabilidades, type FiltroHab } from "./AbaHabilidades";
 import { AbaInventario, type FiltroInv, type VistaInv } from "./AbaInventario";
-import { causarDano, comEstado, curar, defesasDerivadas, definirTemporarios, descansoCurto, descansoLongo, lerEstadoJogo, ROTULO_DEFESA, somaTemporaria, type AlvoMod } from "./estadoJogo";
+import { defesasDerivadas, descansoCurto, descansoLongo, lerEstadoJogo, ROTULO_DEFESA, somaTemporaria, type AlvoMod } from "./estadoJogo";
+import type { AcaoVital } from "../vitais/vitais";
 import { metros, sinal } from "./tipos";
 import type { ChaveMoeda } from "../moedas/moedas";
 
@@ -57,11 +58,19 @@ export type FichaJogoProps = {
   moedas?: readonly ChaveMoeda[];
   /** O mestre pode entregar talentos, magias e habilidades. */
   podeConceder?: boolean;
-  /** Estado do salvamento, avisos (conflito, recuperação) e estado em combate informado pelo mestre. */
-  salvamento?: ReactNode; avisos?: ReactNode; combate?: ReactNode;
+  /** Estado do salvamento e avisos (conflito, recuperação, sincronização). */
+  salvamento?: ReactNode; avisos?: ReactNode;
+  /** PV, temporários, condições e salvaguardas contra a morte: operações aplicadas na fonte única. */
+  vital: (acao: AcaoVital) => void;
+  /** Usa uma unidade de um item, com a cura informada. Devolve a mensagem de erro, ou `null`. */
+  usarItem: (instancia: string, cura: number) => Promise<string | null>;
+  /** Transfere unidades a outro personagem da campanha. Ausente quando não há ficha no servidor. */
+  transferir?: (destino: string, instancia: string, quantidade: number) => Promise<string | null>;
+  /** Identificador deste personagem (para não se oferecer como destino). */
+  personagemId?: string; campaignId?: string;
 };
 
-export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, combate, podeConceder, moedas }: FichaJogoProps) {
+export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, campaignId, podeConceder, moedas }: FichaJogoProps) {
   const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft]);
   const base = useMemo(() => statistics2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft]);
   const estado = lerEstadoJogo(draft);
@@ -116,7 +125,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
   const raca = label2014(draft.raceId), subclasse = selected2014(draft, "subclass")[0];
   const defesas = [...defesasDerivadas(draft, raceTraits2014(draft), selected2014(draft, "dragon-ancestry")[0]), ...estado.defesas];
   const numero = (rotulo: string, valor: string, alvo?: AlvoMod) => <div className="ficha-numero"><span>{rotulo}</span><strong>{valor}</strong>{alvo && temp(alvo) !== 0 && <small className="ficha-temp">{sinal(temp(alvo))} temp.</small>}</div>;
-  const propsAba = { draft, sheet, stats, estado, onChange, onOpenContent };
+  const propsAba = { draft, sheet, stats, estado, onChange, onOpenContent, vital };
 
   return <div ref={raiz} className="content ficha auth wide ficha-jogo" data-testid="ficha-guiada-leitura" {...gesto}>
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
@@ -127,9 +136,9 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
           {draft.nickname?.trim() && <p className="identidade-alcunha"><em>{draft.nickname.trim()}</em></p>}
           <p className="muted">{[raca, label2014(draft.classId) + (subclasse ? ` (${label2014(subclasse)})` : ""), `Nível ${draft.level}`, label2014(draft.backgroundId)].join(" · ")}</p></div>
         <div className="ficha-acoes"><button type="button" className="btn-secondary ficha-botao" aria-label="Editar personagem" onClick={onEditar}><Pencil size={14} aria-hidden="true"/> Editar<span className="ficha-so-largo"> personagem</span></button>
-          <MenuAcoes draft={draft} maximo={sheet.maxHp} onChange={onChange} onProgredir={onProgredir}/></div>
+          <MenuAcoes draft={draft} maximo={sheet.maxHp} onChange={onChange} vital={vital} onProgredir={onProgredir}/></div>
       </div>
-      <Vida draft={draft} maximo={sheet.maxHp} onChange={onChange}/>
+      <Vida draft={draft} maximo={sheet.maxHp} vital={vital}/>
       <div className="ficha-numeros">
         {numero("CA", String(stats.ac + temp("ac")), "ac")}
         {numero("Iniciativa", sinal(stats.initiative + temp("initiative")), "initiative")}
@@ -137,41 +146,40 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
         {numero("Percepção passiva", String(stats.passivePerception + temp("passivePerception")), "passivePerception")}
         {numero("Proficiência", sinal(stats.prof))}
       </div>
-      <Condicoes draft={draft} onChange={onChange}/>
+      <Condicoes draft={draft} vital={vital}/>
       {defesas.length > 0 && <p className="ficha-defesas">{(Object.keys(ROTULO_DEFESA) as (keyof typeof ROTULO_DEFESA)[]).flatMap(tipo => { const l = defesas.filter(d => d.tipo === tipo).map(d => d.texto); return l.length ? [<span key={tipo}><strong>{ROTULO_DEFESA[tipo]}:</strong> {[...new Set(l)].join(", ")}</span>] : []; })}</p>}
     </section>
     {salvamento}
     {avisos}
-    {combate}
     {sheet.pending.length > 0 && <p className="notice" role="note">Ficha com escolhas pendentes. Use Editar personagem para concluir.</p>}
     <nav className="ficha-subnav" aria-label="Seções da ficha">{ABAS.map(([id, rotulo]) => <button key={id} type="button" className={mem.aba === id ? "active" : ""} aria-current={mem.aba === id ? "true" : undefined} onClick={() => trocarAba(id)}>{rotulo}</button>)}</nav>
     <div className="ficha-conteudo" data-aba={mem.aba}>
       {mem.aba === "ficha" && <AbaFicha {...propsAba}/>}
       {mem.aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder} filtro={mem.filtroHab} onFiltro={filtroHab => mudarMemoria({ filtroHab })}/>}
-      {mem.aba === "inventario" && <AbaInventario {...propsAba} moedas={moedas} mestre={podeConceder} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
+      {mem.aba === "inventario" && <AbaInventario {...propsAba} usarItem={usarItem} transferir={transferir} personagemId={personagemId} campaignId={campaignId} moedas={moedas} mestre={podeConceder} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
     </div>
     <p className="muted ficha-dado">Dado de vida d{class2014(draft).data.hitDie} · cálculos das regras SRD 5.1 (2014).</p>
   </div>;
 }
 
-function Vida({ draft, maximo, onChange }: { draft: CharacterDraft; maximo: number; onChange: (d: CharacterDraft) => void }) {
+function Vida({ draft, maximo, vital }: { draft: CharacterDraft; maximo: number; vital: (a: AcaoVital) => void }) {
   const [valor, setValor] = useState("1");
   const n = Number(valor), inteiro = valor.trim() !== "" && Number.isSafeInteger(n) && n >= 0 && n <= 999, valido = inteiro && n > 0;
-  const aplicar = (f: () => CharacterDraft) => { onChange(f()); setValor("1"); };
+  const aplicar = (a: AcaoVital) => { vital(a); setValor("1"); };
   return <div className="ficha-vida">
     <div className="ficha-vida-total"><span>PV</span><strong data-testid="ficha-pv">{draft.currentHp} / {maximo}</strong>{draft.temporaryHp > 0 && <small className="ficha-pv-temp" data-testid="ficha-pv-temp">+{draft.temporaryHp} temporários</small>}{draft.currentHp === 0 && <small className="ficha-caido">caído</small>}</div>
     <div className="ficha-barra" role="meter" aria-label="Pontos de vida" aria-valuemin={0} aria-valuemax={maximo} aria-valuenow={Math.min(draft.currentHp, maximo)}><span style={{ width: `${Math.min(100, maximo ? (draft.currentHp / maximo) * 100 : 0)}%` }} className={draft.currentHp <= maximo / 4 ? "excesso" : ""}/></div>
     <form className="ficha-vida-ajuste" onSubmit={e => e.preventDefault()}>
-      <button type="button" className="ficha-passo dano" disabled={!valido} aria-label="Aplicar dano" title="Aplicar dano" onClick={() => aplicar(() => causarDano(draft, n))}><Minus size={16} aria-hidden="true"/></button>
+      <button type="button" className="ficha-passo dano" disabled={!valido} aria-label="Aplicar dano" title="Aplicar dano" onClick={() => aplicar({ tipo: "dano", valor: n })}><Minus size={16} aria-hidden="true"/></button>
       <input type="number" inputMode="numeric" min={0} max={999} aria-label="Quantidade de pontos de vida" value={valor} onFocus={e => e.target.select()} onChange={e => setValor(e.target.value)} onBlur={() => { if (!inteiro) setValor("1"); }}/>
-      <button type="button" className="ficha-passo cura" disabled={!valido} aria-label="Curar" title="Curar (até o máximo)" onClick={() => aplicar(() => curar(draft, maximo, n))}><Plus size={16} aria-hidden="true"/></button>
-      <button type="button" className="ficha-temp-botao" disabled={!inteiro} title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" onClick={() => aplicar(() => definirTemporarios(draft, n))}>PV temporários</button>
+      <button type="button" className="ficha-passo cura" disabled={!valido} aria-label="Curar" title="Curar (até o máximo)" onClick={() => aplicar({ tipo: "cura", valor: n, maximo })}><Plus size={16} aria-hidden="true"/></button>
+      <button type="button" className="ficha-temp-botao" disabled={!inteiro} title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" onClick={() => aplicar({ tipo: "temporarios", valor: n })}>PV temporários</button>
     </form>
   </div>;
 }
 
 /** Condições ativas como indicadores compactos: o nome mostra o efeito; o "+" abre a lista para adicionar. */
-function Condicoes({ draft, onChange }: { draft: CharacterDraft; onChange: (d: CharacterDraft) => void }) {
+function Condicoes({ draft, vital }: { draft: CharacterDraft; vital: (a: AcaoVital) => void }) {
   const ativas = lerEstadoJogo(draft).condicoes;
   const [aberto, setAberto] = useState(false), [vendo, setVendo] = useState<string | null>(null);
   const menu = useRef<HTMLDivElement>(null), gatilho = useRef<HTMLButtonElement>(null);
@@ -180,26 +188,26 @@ function Condicoes({ draft, onChange }: { draft: CharacterDraft; onChange: (d: C
   return <div className="ficha-condicoes" role="group" aria-label="Condições">
     <span className="ficha-condicoes-rotulo">Condições</span>
     {ativas.map(c => <span key={c} className="ficha-chip ativa"><button type="button" className="ficha-chip-nome" aria-expanded={vendo === c} onClick={() => setVendo(v => (v === c ? null : c))}>{c}</button>
-      <button type="button" aria-label={`Remover condição ${c}`} onClick={() => { onChange(comEstado(draft, { condicoes: ativas.filter(x => x !== c) })); setVendo(null); }}><X size={12} aria-hidden="true"/></button></span>)}
+      <button type="button" aria-label={`Remover condição ${c}`} onClick={() => { vital({ tipo: "condicao", nome: c, ativa: false }); setVendo(null); }}><X size={12} aria-hidden="true"/></button></span>)}
     {ativas.length === 0 && <span className="muted">nenhuma</span>}
     <span className="ficha-menu">
       <button ref={gatilho} type="button" className="ficha-mais" aria-label="Adicionar condição" aria-haspopup="true" aria-expanded={aberto} disabled={disponiveis.length === 0} onClick={() => setAberto(a => !a)}><Plus size={14} aria-hidden="true"/></button>
       {aberto && <div ref={menu} className="barra-menu ficha-menu-lista ficha-lista-condicoes" role="group" aria-label="Escolher condição">
-        {disponiveis.map(c => <button key={c} type="button" className="barra-item" title={CONDICOES_TEXTO[c]} onClick={() => { onChange(comEstado(draft, { condicoes: [...ativas, c] })); setAberto(false); }}>{c}</button>)}
+        {disponiveis.map(c => <button key={c} type="button" className="barra-item" title={CONDICOES_TEXTO[c]} onClick={() => { vital({ tipo: "condicao", nome: c, ativa: true }); setAberto(false); }}>{c}</button>)}
       </div>}
     </span>
     {vendo && ativas.includes(vendo) && <p className="ficha-efeito" role="note"><strong>{vendo}:</strong> {CONDICOES_TEXTO[vendo] ?? "Sem descrição cadastrada."}</p>}
   </div>;
 }
 
-function MenuAcoes({ draft, maximo, onChange, onProgredir }: { draft: CharacterDraft; maximo: number; onChange: (d: CharacterDraft) => void; onProgredir: () => void }) {
+function MenuAcoes({ draft, maximo, onChange, vital, onProgredir }: { draft: CharacterDraft; maximo: number; onChange: (d: CharacterDraft) => void; vital: (a: AcaoVital) => void; onProgredir: () => void }) {
   const [aberto, setAberto] = useState(false), [confirmar, setConfirmar] = useState<"curto" | "longo" | null>(null), [aviso, setAviso] = useState("");
   const menu = useRef<HTMLDivElement>(null), gatilho = useRef<HTMLButtonElement>(null);
   useFecharMenu(aberto, menu, gatilho, () => { setAberto(false); setConfirmar(null); });
   const fechar = () => { setAberto(false); setConfirmar(null); };
   const descansar = () => {
     if (confirmar === "curto") { onChange(descansoCurto(draft)); setAviso("Descanso curto registrado. Para recuperar PV, use dados de vida, role o dado e informe a cura."); }
-    else { const r = descansoLongo(draft, maximo); if (r.ok) { onChange(r.draft); setAviso("Descanso longo registrado."); } else setAviso(r.motivo); }
+    else { const r = descansoLongo(draft, maximo); if (r.ok) { onChange(r.draft); vital({ tipo: "descanso", maximo }); setAviso("Descanso longo registrado."); } else setAviso(r.motivo); }
     fechar();
   };
   return <div className="ficha-menu">

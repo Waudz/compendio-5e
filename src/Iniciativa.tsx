@@ -6,9 +6,10 @@ import { Aviso } from "./Diario";
 import { useUnsavedGuard } from "./unsaved";
 import { adicionar, nomeCombatenteDisponivel, alterarPv, alternarCondicao, chaveCombate, combateVazio, definirIniciativa, enviarParaCombate, lerCombate, novoId, ordenar, proximoTurno, reiniciarRodadas, remover, turnoAnterior, type EstadoCombate, type Lado } from "./combate";
 import { useNuvem, type ApisNuvem } from "./nuvem";
-import { gravarPvFicha } from "./pvFicha";
 import { useFichas } from "./RegistrosContext";
-import { idsDePersonagens, statusDoCombatente } from "./statusCombate";
+import { comEstadoDasFichas, idDePersonagem, idsDePersonagens, useMaximos, type CombatenteVivo } from "./vitais/combate";
+import { useVitais } from "./vitais/loja";
+import type { AcaoVital } from "./vitais/vitais";
 import { useLinhaRemota, type SyncRemoto } from "./useLinhaRemota";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { rolarD20, textoRolagem, type Rolagem } from "./combate";
@@ -50,26 +51,13 @@ export function IniciativaPanel() {
   const loja = useLojaCombate(userId, campaignId, podeGerenciar, nuvem);
   const { estado, aplicar } = loja;
   useUnsavedGuard("secao:iniciativa", loja.sujo, loja.salvar);
-  // PV e condições dos PERSONAGENS vão para a ficha pelo fluxo autorizado (função do banco que só o mestre chama); nada mais do combate sai daqui.
-  const statusApi = nuvem?.status, enviados = useRef(new Map<string, string>()), [avisoFicha, setAvisoFicha] = useState<string | null>(null);
-  useEffect(() => {
-    if (!statusApi || !loja.nuvem || estado.status !== "pronto") return;
-    const e = estado.valor, ids = idsDePersonagens(e), alvo = new Map(ids.map(id => [id, statusDoCombatente(e, id)!]));
-    for (const id of enviados.current.keys()) if (!alvo.has(id)) alvo.set(id, { hp: null, max: null, condicoes: [] });   // saiu do combate: a ficha deixa de mostrar
-    let cancelado = false;
-    void (async () => {
-      for (const [id, st] of alvo) {
-        const chave = JSON.stringify(st); if (enviados.current.get(id) === chave) continue;
-        const r = await statusApi.definir(id, st.hp, st.max, st.condicoes); if (cancelado) return;
-        if (r.ok) { if (ids.includes(id)) enviados.current.set(id, chave); else enviados.current.delete(id); setAvisoFicha(null); } else setAvisoFicha(r.mensagem);
-      }
-    })();
-    return () => { cancelado = true; };
-  }, [estado, statusApi, loja.nuvem]);
+  // PV, PV temporários e condições dos PERSONAGENS com ficha são os DA FICHA (fonte única): lidos em tempo real e alterados por operação.
+  const idsPj = podeGerenciar && estado.status === "pronto" ? idsDePersonagens(estado.valor) : [];
+  const vit = useVitais(podeGerenciar ? fichas : null, idsPj, campaignId);
+  const linhasPj = idsPj.flatMap(id => { const l = vit.ver(id); return l ? [l] : []; });
+  const maximos = useMaximos(linhasPj);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
   const [visualizacao, setVisualizacao] = useState<VisualizacaoCombate>("cartoes"), [erroFinalizar, setErroFinalizar] = useState<string | null>(null);
-  const atual = useRef<{ combate: EstadoCombate | null; encontros: ReturnType<typeof useLojaEncontros>["estado"]; campaignId: string | null }>({ combate: null, encontros: { status: "carregando" }, campaignId: null });
-  const emRemocao = useRef(new Set<string>()), [removendo, setRemovendo] = useState<ReadonlySet<string>>(new Set()), [avisoRemocao, setAvisoRemocao] = useState<string | null>(null);
   const [menuTurno, setMenuTurno] = useState(false), menuTurnoRef = useRef<HTMLDivElement>(null), gatilhoTurnoRef = useRef<HTMLButtonElement>(null);
   useFecharMenu(menuTurno, menuTurnoRef, gatilhoTurnoRef, () => setMenuTurno(false));
   const [separarLados, setSepararLados] = useState(true);
@@ -88,6 +76,8 @@ export function IniciativaPanel() {
   if (!userId || !campaignId) return <SemCampanha titulo="Iniciativa"/>;
   if (!podeGerenciar) return <AcessoRestrito titulo="Iniciativa"/>;
   const combate = estado.status === "pronto" ? estado.valor : null;
+  /** O que aparece na tela: o combate com o estado vital das fichas. */
+  const vivo = combate ? comEstadoDasFichas(combate, vit.ver, maximos) : null;
   const submeter = (ev: React.FormEvent) => {
     ev.preventDefault(); if (!combate || !nome.trim()) return;
     const max = numero(pv), valorIni = numero(ini) ?? 0;
@@ -101,11 +91,8 @@ export function IniciativaPanel() {
     aplicar(e => definirIniciativa(adicionar(e, { id, nome: nomeCombatenteDisponivel(e, m.nome), iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } }), id, r.total));
   };
   const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => { if (pvMax === undefined || pvAtual === undefined) return; aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } })); };
-  const ordem = combate ? ordenar(combate.combatentes) : [];
-  // lidos por quem termina depois de uma espera (gravação na ficha): sempre o estado MAIS RECENTE, nunca o da hora do clique
-  atual.current = { combate, encontros, campaignId };
+  const ordem = vivo ? ordenar(vivo.combatentes) : [];
   const removerCombatente: Aplicar = fn => {
-    const { combate, encontros } = atual.current;
     if (!combate) return false;
     const proximo = fn(combate);
     const saiu = combate.combatentes.filter(c => !proximo.combatentes.some(x => x.id === c.id) && c.encontro);
@@ -117,46 +104,19 @@ export function IniciativaPanel() {
     }));
     return ok;
   };
-  /** Remover um personagem grava ANTES os PV atuais na ficha: se a gravação falhar (ou a página fechar no meio), ele continua no combate com os PV. */
-  const pedirRemocao = async (id: string) => {
-    const campanhaDoPedido = campaignId;
-    const achar = () => (atual.current.campaignId === campanhaDoPedido ? atual.current.combate?.combatentes.find(c => c.id === id) : undefined);
-    const alvo = achar(); if (!alvo || emRemocao.current.has(id)) return;
-    if (alvo.ref?.tipo !== "personagem" || !alvo.pvMax || !fichas) { removerCombatente(e => remover(e, id)); return; }
-    emRemocao.current.add(id); setRemovendo(new Set(emRemocao.current)); setAvisoRemocao(null);
-    try {
-      for (let c = alvo; ;) {
-        const pv = c.pv ?? c.pvMax!;
-        const g = await gravarPvFicha(fichas, c.ref!.id, pv);
-        const agora = achar(); if (!agora) return;   // já saiu (outra sessão) ou o combate mudou de campanha
-        if (!g.ok && !g.semFicha) {
-          if (!window.confirm(`Não foi possível gravar os PV de ${agora.nome} (${pv}) na ficha: ${g.erro}\n\nCancelar mantém o personagem no combate para tentar de novo. Remover mesmo assim descarta essa alteração.`)) { setAvisoRemocao(`${agora.nome} continua no combate: os PV não foram gravados na ficha. Tente remover novamente.`); return; }
-          break;
-        }
-        if ((agora.pv ?? agora.pvMax) === pv) break;
-        c = agora;   // os PV mudaram durante a gravação: grava o valor novo antes de remover
-      }
-      removerCombatente(e => remover(e, id));
-    } finally { emRemocao.current.delete(id); setRemovendo(new Set(emRemocao.current)); }
-  };
   const finalizar = async () => {
-    if (!window.confirm("Finalizar e descartar este combate? Os PV finais dos personagens serão gravados nas fichas. Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) return;
-    // PV finais dos personagens vão para a ficha (só currentHp, sobre a ficha mais recente e com controle de revisão). Se algum falhar, o mestre decide: nada se perde em silêncio.
-    if (fichas && combate) {
-      const falhas: string[] = [];
-      for (const c of combate.combatentes) {
-        if (c.ref?.tipo !== "personagem" || !c.pvMax) continue;
-        const g = await gravarPvFicha(fichas, c.ref.id, c.pv ?? c.pvMax);
-        if (!g.ok && !g.semFicha) falhas.push(`${c.nome} (${g.erro})`);
-      }
-      if (falhas.length && !window.confirm(`Não foi possível gravar os PV finais nas fichas de: ${falhas.join("; ")}.\n\nCancelar mantém o combate aberto para tentar de novo. Finalizar mesmo assim descarta esses PV.`)) { setErroFinalizar("Combate mantido aberto: os PV finais não foram gravados em todas as fichas. Tente finalizar novamente."); return; }
-    }
+    if (!window.confirm("Finalizar e descartar este combate? As fichas dos personagens já estão atualizadas. Os encontros salvos serão preservados. Esta ação não pode ser desfeita.")) return;
     const erro = await loja.finalizar(); setErroFinalizar(erro);
     if (!erro && combate) {   // sobreviventes e PV voltam para os encontros de origem; só conclui sozinho quem não tem pendências
       if (encontros.status === "pronto") lojaEnc.aplicar(l => l.map(x => sincronizarComCombate(x, combate, true)));
       else setErroFinalizar("Combate finalizado, mas os encontros não estavam carregados e não foram atualizados. Abra o encontro e conclua-o manualmente.");
     }
-    if (!erro && statusApi) { enviados.current.clear(); const l = await statusApi.limpar(campaignId); if (!l.ok) setAvisoFicha(l.mensagem); }
+  };
+  /** Personagem com ficha: a ação vira operação na ficha. Devolve false para o combate tratar (monstros e avulsos). */
+  const naFicha = (c: CombatenteVivo, acao: AcaoVital): boolean => {
+    const id = idDePersonagem(c);
+    if (!c.daFicha || !id || !vit.loja) return false;
+    vit.loja.enviar(id, acao); return true;
   };
   return <div className="content iniciativa">
     <div className="eyebrow">{(campanha ?? "").toLocaleUpperCase("pt-BR")} · COMBATE</div><h1>Iniciativa</h1>
@@ -164,8 +124,7 @@ export function IniciativaPanel() {
     {estado.status === "erro" && (nuvem ? <Aviso erro t={estado.mensagem ?? "Não foi possível carregar o combate no servidor."} onRetry={loja.tentar}/> : <ErroArmazenamento onTentar={loja.tentar} onDescartar={loja.descartar} o="o combate"/>)}
     {estado.status === "pronto" && !nuvem && estado.falhaGravacao && <Aviso erro t="Não foi possível salvar o combate. As alterações continuam nesta tela; tente salvar novamente antes de sair." onRetry={loja.tentar}/>}
     {erroFinalizar && <Aviso erro t={erroFinalizar}/>}
-    {avisoRemocao && <Aviso erro t={avisoRemocao}/>}
-    {avisoFicha && <Aviso erro t={`Ficha do jogador não atualizada: ${avisoFicha} O combate continua salvo.`}/>}
+    {vit.erro && <div className="notice err" role="alert" data-testid="aviso-sincronizacao">Fichas não sincronizadas: {vit.erro}{vit.pendentes > 0 ? ` ${vit.pendentes} alteração(ões) aguardando envio.` : ""} <button type="button" className="btn-link" onClick={() => { vit.loja?.tentar(); void vit.loja?.ler(idsPj); }}>Tentar agora</button></div>}
     {combate && <>
       {(!loja.nuvem || loja.sync === "falha" || loja.sync === "conflito" || loja.sync === "permissao") && <ModoArmazenamento nuvem={loja.nuvem} sync={loja.sync} mensagem={loja.mensagem} o="o combate" onTentar={loja.tentar} onRecarregar={() => void loja.recarregar()}/>}
       {loja.nuvem && <BackupLocal chave={chaveCombate(userId, campaignId)} rotulo="combate"/>}
@@ -199,14 +158,22 @@ export function IniciativaPanel() {
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
-        : <div role="group" aria-label="Combatentes" className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: combate.combatentes.filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: combate.combatentes }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} aoRemover={() => void pedirRemocao(c.id)} ocupado={removendo.has(c.id)} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
+        : <div role="group" aria-label="Combatentes" className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: (vivo!.combatentes as CombatenteVivo[]).filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: vivo!.combatentes as CombatenteVivo[] }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} naFicha={naFicha} aguardandoFicha={!!idDePersonagem(c) && !!fichas && !c.daFicha && !vit.carregado} aoRemover={() => removerCombatente(e => remover(e, c.id))} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
     </>}
   </div>;
 }
 type Aplicar = (fn: (e: EstadoCombate) => EstadoCombate) => boolean;
-function Linha({ c, atual, aplicar, aoRemover, ocupado, bonus, retrato, rolagem, aoRolar }: { c: EstadoCombate["combatentes"][number]; atual: boolean; aplicar: Aplicar; aoRemover: () => void; ocupado: boolean; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
+function Linha({ c, atual, aplicar, naFicha, aguardandoFicha, aoRemover, bonus, retrato, rolagem, aoRolar }: { c: CombatenteVivo; atual: boolean; aplicar: Aplicar; naFicha: (c: CombatenteVivo, a: AcaoVital) => boolean; aguardandoFicha: boolean; aoRemover: () => void; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
   const [valor, setValor] = useState("1");
-  const acao = (sinal: 1 | -1) => { if (ocupado) return; const n = numero(valor); if (n && n > 0) { if (aplicar(e => alterarPv(e, c.id, sinal * n))) setValor("1"); } };
+  // campo vazio vale 1, como na ficha
+  const quantia = () => { const n = valor.trim() === "" ? 1 : numero(valor); return n !== undefined && Number.isInteger(n) && n > 0 ? n : null; };
+  const acao = (sinal: 1 | -1) => {
+    const n = quantia(); if (n === null || aguardandoFicha) return;
+    if (naFicha(c, sinal < 0 ? { tipo: "dano", valor: n } : { tipo: "cura", valor: n, maximo: c.pvMax! })) { setValor("1"); return; }
+    if (aplicar(e => alterarPv(e, c.id, sinal * n))) setValor("1");
+  };
+  const temporarios = () => { const n = valor.trim() === "" ? 1 : numero(valor); if (n !== undefined && Number.isInteger(n) && n >= 0 && n <= 999 && naFicha(c, { tipo: "temporarios", valor: n })) setValor("1"); };
+  const condicao = (k: string, ativa: boolean) => { if (!aguardandoFicha && !naFicha(c, { tipo: "condicao", nome: k, ativa })) aplicar(e => alternarCondicao(e, c.id, k)); };
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
   const pct = c.pvMax ? Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100)) : 0;
   return <li className={`ini-item lado-${c.lado}${c.pvMax && c.pv === 0 ? " derrotado" : ""}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
@@ -219,14 +186,16 @@ function Linha({ c, atual, aplicar, aoRemover, ocupado, bonus, retrato, rolagem,
       {rolagem && <span className="ini-rolagem" role="status" aria-label={`Resultado da rolagem de ${c.nome}`}>{textoRolagem(rolagem)}</span>}
     </div>
     {c.pvMax ? <div className="ini-pv"><span className="ini-pv-texto" aria-label={`PV de ${c.nome}`}>PV {c.pv}/{c.pvMax}{c.pv === 0 ? " · caído" : ""}</span>
-      <ControleNumerico campo={{ "aria-label": `Quantidade de dano ou cura de ${c.nome}`, value: valor, onChange: e => setValor(e.target.value), placeholder: "valor" }} menos={{ rotulo: `Causar dano a ${c.nome}`, titulo: "Dano", acao: () => acao(-1) }} mais={{ rotulo: `Curar ${c.nome}`, titulo: "Cura", acao: () => acao(1) }}/>
+      {!!c.temp && <small className="ini-temp" aria-label={`PV temporários de ${c.nome}`}>+{c.temp} temp.</small>}
+      <ControleNumerico campo={{ "aria-label": `Quantidade de dano ou cura de ${c.nome}`, value: valor, onChange: e => setValor(e.target.value), placeholder: "1" }} menos={{ rotulo: `Causar dano a ${c.nome}`, titulo: "Dano", acao: () => acao(-1) }} mais={{ rotulo: `Curar ${c.nome}`, titulo: "Cura", acao: () => acao(1) }}/>
+      {c.daFicha && <button type="button" className="btn-secondary ini-temp-botao" aria-label={`Definir PV temporários de ${c.nome}`} title="Define os PV temporários com a quantidade do campo (0 remove)" onClick={temporarios}>Temp.</button>}
+      {aguardandoFicha && <small className="muted" role="status">lendo a ficha…</small>}
       <div className="ini-pv-trilho" aria-hidden="true"><div className="ini-pv-preenchimento" style={{ width: `${pct}%` }} data-baixo={pct <= 25 ? "true" : undefined}/></div></div> : <span className="muted ini-pv">Sem PV</span>}
     <div className="ini-condicoes">
-      {(c.condicoes ?? []).map(k => <button key={k} className="ini-chip" onClick={() => aplicar(e => alternarCondicao(e, c.id, k))} aria-label={`Remover condição ${k} de ${c.nome}`}>{k} ×</button>)}
-      <select aria-label={`Adicionar condição a ${c.nome}`} value="" onChange={e => { if (e.target.value) aplicar(x => alternarCondicao(x, c.id, e.target.value)); }}>
+      {(c.condicoes ?? []).map(k => <button key={k} className="ini-chip" onClick={() => condicao(k, false)} aria-label={`Remover condição ${k} de ${c.nome}`}>{k} ×</button>)}
+      <select aria-label={`Adicionar condição a ${c.nome}`} value="" onChange={e => { if (e.target.value) condicao(e.target.value, true); }}>
         <option value="">+ condição</option>{CONDICOES_5E.filter(k => !(c.condicoes ?? []).includes(k)).map(k => <option key={k} value={k}>{k}</option>)}</select>
     </div>
-    {ocupado && <small className="ini-gravando muted" role="status">Gravando os PV na ficha…</small>}
-    <button className="btn-secondary ini-icone ini-remover" disabled={ocupado} onClick={aoRemover} aria-label={`Remover ${c.nome}`}><Trash2 size={15} aria-hidden="true"/></button>
+    <button className="btn-secondary ini-icone ini-remover" onClick={aoRemover} aria-label={`Remover ${c.nome}`}><Trash2 size={15} aria-hidden="true"/></button>
   </li>;
 }

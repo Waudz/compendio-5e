@@ -201,14 +201,27 @@ describe("ficha de jogo", () => {
   it("conflito de revisão pausa o salvamento automático e não sobrescreve a outra alteração", async () => {
     const id = await semear();
     await abrirFicha();
-    const externo = await fichasEmMemoria(mestreUser.id, banco).salvar(id, 1, { ...draftSalvo(), currentHp: 3 });
+    const pv = draftSalvo().currentHp;
+    fireEvent.click(screen.getByRole("checkbox", { name: "Inspiração" }));   // alteração minha pendente...
+    const externo = await fichasEmMemoria(mestreUser.id, banco).salvar(id, 1, { ...draftSalvo(), nickname: "Externa", currentHp: 3 });
     expect(externo.ok).toBe(true);
-    fireEvent.click(screen.getByRole("checkbox", { name: "Inspiração" }));
     expect(await screen.findByTestId("aviso-conflito", undefined, { timeout: 4000 })).toBeTruthy();
-    expect(draftSalvo().currentHp).toBe(3);
+    expect(draftSalvo()).toMatchObject({ nickname: "Externa", currentHp: pv });   // a gravação da ficha inteira nunca muda os PV
     expect(banco.fichas[0].revision).toBe(2);
     fireEvent.click(screen.getByRole("button", { name: "Carregar a versão atual" }));
-    await waitFor(() => expect(screen.getByTestId("ficha-pv").textContent).toMatch(/^3 \//));
+    await waitFor(() => expect(screen.getByText("Externa")).toBeTruthy());
+  });
+
+  it("sem alterações pendentes, mudanças de outra sessão aparecem sozinhas: PV por operação e o restante da ficha", async () => {
+    const id = await semear();
+    await abrirFicha();
+    const mestre = fichasEmMemoria(mestreUser.id, banco);
+    expect((await mestre.alterarVitais(id, { tipo: "definir", valor: 7, maximo: 99 }, "op-m1")).ok).toBe(true);
+    await waitFor(() => expect(screen.getByTestId("ficha-pv").textContent).toMatch(/^7 \//));
+    expect(banco.fichas[0].revision).toBe(1);
+    expect((await mestre.salvar(id, 1, { ...draftSalvo(), nickname: "Recebida" })).ok).toBe(true);
+    await waitFor(() => expect(screen.getByText("Recebida")).toBeTruthy());
+    expect(screen.queryByTestId("aviso-conflito")).toBeNull();
   });
 
   it("falha de rede não é repetida em laço: avisa e permite tentar de novo", async () => {
