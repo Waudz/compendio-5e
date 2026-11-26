@@ -12,6 +12,7 @@ import { activeKey } from "../CampaignsContext";
 import type { CampaignApi, Membership } from "../campaigns";
 import { storageKey } from "../persistence";
 import { jogadorPodeAdicionar } from "../catalogue/disponibilidade";
+import { codexDemo } from "../dev/codexDemo";
 import {
   avisarConhecimento,
   type CodexApi,
@@ -23,7 +24,7 @@ const row = (patch: Partial<Conhecimento> = {}): Conhecimento => ({
   category: "monster",
   systemId: "dnd5e-2014",
   title: "Criatura revelada",
-  knowledge: 1,
+  visible: true,
   version: 1,
   ...patch,
 });
@@ -35,7 +36,8 @@ const api = (items: Conhecimento[] = []): CodexApi => ({
   upload: vi.fn(async () => ""),
   image: vi.fn(async () => new Blob()),
   holders: vi.fn(async () => []),
-  notices: vi.fn(async () => []),
+  reveal: vi.fn(async () => {}),
+  preview: vi.fn(async () => ({ entry: null, links: [] })),
   seen: vi.fn(async () => {}),
 });
 async function mount(role: "mestre" | "jogador", codex = api()) {
@@ -197,7 +199,6 @@ describe("Compêndio unificado", () => {
       category: "item",
       definitionId: "ring-of-invisibility",
       title: "Anel revelado",
-      knowledge: 4,
     });
     const codex = api([entry]);
     vi.mocked(codex.holders).mockResolvedValue([
@@ -217,4 +218,50 @@ describe("Compêndio unificado", () => {
     expect(await screen.findByText("Com: Portador B")).toBeTruthy();
     expect(screen.queryByText("Com: Portador A")).toBeNull();
   });
+  it("mestre revela campo a campo, publica, usa a prévia e o jogador recebe só o marcado", async () => {
+    const codex = codexDemo(true, "ca");
+    const id = await codex.save("ca", null, 0, {
+      category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "SEGREDO",
+      fields: { nickname: "O Corvo", occupation: "Contrabandista", history: "Nasceu no porto" },
+    });
+    await mount("mestre", codex);
+    fireEvent.click(portal("Personagens"));
+    fireEvent.click(await screen.findByRole("button", { name: /^Edric Voss / }));
+    const barra = await screen.findByRole("region", { name: "Visibilidade para os jogadores" });
+    expect(within(barra).getByText(/Registro secreto/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Revelar Alcunha" }));
+    await screen.findByRole("button", { name: "Ocultar Alcunha" });
+    fireEvent.click(await screen.findByRole("button", { name: "Revelar Ocupação" }));
+    await screen.findByRole("button", { name: "Ocultar Ocupação" });
+    fireEvent.click(within(barra).getByRole("button", { name: "Publicar registro" }));
+    await within(barra).findByText(/Publicado/);
+    fireEvent.click(within(barra).getByRole("button", { name: "Ver como jogador" }));
+    const previa = await screen.findByRole("region", { name: "Prévia do jogador" });
+    expect(within(previa).getByRole("heading", { name: "O Corvo" })).toBeTruthy();
+    expect(within(previa).getByText("Contrabandista")).toBeTruthy();
+    expect(previa.textContent).not.toMatch(/Edric|Nasceu|SEGREDO|História/);
+    expect(within(previa).queryByRole("button", { name: /Revelar|Ocultar/ })).toBeNull();
+    const [visto] = await codexDemo(false, "ca").list("ca");
+    expect(visto).toMatchObject({ id, title: "O Corvo", fields: { nickname: "O Corvo", occupation: "Contrabandista" } });
+    expect(JSON.stringify(visto)).not.toMatch(/Edric|Nasceu|SEGREDO/);
+    fireEvent.click(within(barra).getByRole("button", { name: "Voltar à visão do mestre" }));
+    fireEvent.click(await within(barra).findByRole("button", { name: "Revelar tudo" }));
+    expect(await screen.findByRole("button", { name: "Ocultar História" })).toBeTruthy();
+  });
+  it("registrar item como descoberta cria página secreta, herdada da definição, sem duplicar", async () => {
+    const codex = codexDemo(true, "ca");
+    await mount("mestre", codex);
+    fireEvent.click(portal("Descobertas"));
+    fireEvent.click(await screen.findByRole("button", { name: "Registrar item" }));
+    const janela = screen.getByRole("dialog", { name: "Registrar item como descoberta" });
+    fireEvent.change(within(janela).getByRole("searchbox"), { target: { value: "espada longa" } });
+    fireEvent.click((await within(janela).findAllByRole("button", { name: /^Espada longa Item do catálogo/i }))[0]);
+    fireEvent.click(within(janela).getByRole("button", { name: "Registrar como descoberta" }));
+    expect(await screen.findByRole("region", { name: "Propriedades" })).toBeTruthy();
+    const [criado] = await codex.list("ca");
+    expect(criado).toMatchObject({ category: "item", definitionId: "longsword", visible: false, revealed: [], registered: true });
+    expect(criado.sheet!.length).toBeGreaterThan(2);
+    expect(await codexDemo(false, "ca").list("ca")).toEqual([]);
+  });
 });
+

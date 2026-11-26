@@ -275,7 +275,7 @@ function Workspace({ userId }: { userId: string }) {
     if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? fallback;
     if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
     if (c?.kind === "registro" && c.ref) return conhecidosCatalogo.find(x=>x.id===c.ref)?.title??"Registro";
-    if (c?.kind === "monstro" && c.ref) return active?.role === "mestre" ? tituloDe(c.ref)??"Criatura" : conhecidosCatalogo.find(x=>x.category==="monster"&&x.definitionId===c.ref&&x.knowledge===4)?.title??"Criatura";
+    if (c?.kind === "monstro" && c.ref) return active?.role === "mestre" ? tituloDe(c.ref)??"Criatura" : conhecidosCatalogo.find(x=>x.category==="monster"&&x.definitionId===c.ref)?.title??"Criatura";
     if (c?.kind === "regra" && c.ref) return tituloDe(c.ref)??"Regra";
     if (c?.kind === "item" && c.ref) return active?.role === "mestre" || jogadorPodeAdicionar(c.ref) || itemConhecido(conhecidosCatalogo,c.ref) ? srdItem(c.ref)?.nome ?? fallback : "Item";
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? fallback : fallback;

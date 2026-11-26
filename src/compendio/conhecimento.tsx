@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { useAuth } from "../AuthContext";
 import { useCampaigns } from "../CampaignsContext";
 import type { BlocoTexto } from "../inicio";
+import type { Secao } from "./ficha";
 export type CodexCategoria =
   | "npc"
   | "location"
@@ -24,48 +25,69 @@ export type Conhecimento = {
   systemId: string;
   title: string;
   description?: BlocoTexto[];
-  knowledge: number;
   version: number;
+  /** Existência publicada para os jogadores. Na projeção do jogador é sempre verdadeiro. */
+  visible: boolean;
+  /** Chaves reveladas; só o mestre recebe. */
+  revealed?: string[];
+  /** Falso na referência secreta criada apenas para um vínculo; só o mestre recebe. */
+  registered?: boolean;
+  /** Para o jogador, presente somente com a identificação completa. */
   definitionId?: string;
   instanceId?: string;
   imagePath?: string;
   imageDefinitionId?: string;
   secret?: string;
-  stats?: Record<string, unknown>;
-  fields?: Record<string,string>;
-  relatedTerms?:string[];
+  fields?: Record<string, string>;
+  sheet?: Secao[];
+  relatedTerms?: string[];
   framing?: import("../imagem/enquadramento").Enquadramento;
 };
-export type EdicaoConhecimento = Omit<
+export type EdicaoConhecimento = Pick<
   Conhecimento,
-  "id" | "version" | "imageDefinitionId" | "relatedTerms"
+  "category" | "systemId" | "title" | "description" | "definitionId" | "instanceId" | "imagePath" | "secret" | "fields" | "sheet" | "framing" | "registered"
 >;
+export type Divulgacao = {
+  visible: boolean;
+  revealed: string[];
+  /** Vínculos do próprio registro: id do vínculo -> revelado. */
+  links?: Record<string, boolean>;
+  /** Seções atuais da definição, quando o servidor está desatualizado. */
+  sheet?: Secao[];
+};
+export type NovoVinculo = { kind: string; label: string; inverse: string; revealed?: boolean };
+export type Previa = { entry: Conhecimento | null; links: CodexLink[] };
 export type CodexAviso = {
   id: number;
   entry_id: string;
-  knowledge: number;
+  is_new: boolean;
   read_at: string | null;
   created_at: string;
 };
-export type CodexLink={id:string;targetId:string;title:string;category:CodexCategoria|'character';relation:string};
+export type CodexLink = {
+  id: string;
+  targetId: string;
+  title: string;
+  category: CodexCategoria | "character";
+  kind: string;
+  relation: string;
+  outgoing: boolean;
+  revealed?: boolean;
+};
 export type NotificationFeed={items:(CodexAviso&{title:string;category:CodexCategoria})[];unread:number;discoveries:number};
 export interface CodexApi {
- links(cid:string,id:string):Promise<CodexLink[]>;
- link(cid:string,source:string,target:string,relation:string):Promise<string>;
- unlink(cid:string,id:string):Promise<void>;
- feed(cid:string):Promise<NotificationFeed>;
+  links(cid: string, id: string): Promise<CodexLink[]>;
+  link(cid: string, source: string, target: string, relation: NovoVinculo): Promise<string>;
+  unlink(cid: string, id: string): Promise<void>;
+  feed(cid: string): Promise<NotificationFeed>;
   list(cid: string): Promise<Conhecimento[]>;
-  save(
-    cid: string,
-    id: string | null,
-    version: number,
-    data: EdicaoConhecimento,
-  ): Promise<string>;
+  save(cid: string, id: string | null, version: number, data: EdicaoConhecimento): Promise<string>;
+  reveal(cid: string, id: string, version: number, data: Divulgacao): Promise<void>;
+  preview(cid: string, id: string): Promise<Previa>;
   remove(cid: string, id: string, version: number): Promise<void>;
   upload(cid: string, id: string, file: File): Promise<string>;
   image(path: string): Promise<Blob>;
   holders(cid: string, id: string): Promise<{ id: string; title: string }[]>;
-  notices(): Promise<CodexAviso[]>;
   seen(id: number): Promise<void>;
 }
 export const ERRO_CODEX =
@@ -79,6 +101,13 @@ function conferir<T>(r: { data: T | null; error: unknown }): T {
   if (r.error || r.data === null) throw Error(ERRO_CODEX);
   return r.data;
 }
+function semErro(r: { error: unknown }): void {
+  const message = (r.error as { message?: string } | null)?.message ?? "";
+  if (message.includes("conflito_de_versao"))
+    throw Error("Outra sessão alterou este registro. Recarregue antes de salvar.");
+  if (r.error) throw Error(ERRO_CODEX);
+}
+export const VERSAO_BANCO_CODEX = 17;
 export function validarImagemConhecimento(file: File): void {
   if (
     !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
@@ -88,20 +117,27 @@ export function validarImagemConhecimento(file: File): void {
     throw Error("Use JPEG, PNG ou WebP de até 5 MiB.");
 }
 export function createCodexApi(client: SupabaseClient): CodexApi {
+  const exigirBanco = async () => {
+    const capability = conferir(await client.rpc("codex_capabilities"));
+    if (typeof capability !== "number" || capability < VERSAO_BANCO_CODEX)
+      throw Error(`Atualização do banco necessária: migração 00${VERSAO_BANCO_CODEX}. Nada foi gravado.`);
+  };
   return {
-    links:async(cid,id)=>conferir(await client.rpc('codex_links_for',{p_campaign:cid,p_entry:id})) as CodexLink[],
-    link:async(cid,source,target,relation)=>conferir(await client.rpc('codex_link',{p_campaign:cid,p_source:source,p_target:target,p_relation:relation})) as string,
-    unlink:async(cid,id)=>{const r=await client.rpc('codex_unlink',{p_campaign:cid,p_link:id});if(r.error)throw Error(ERRO_CODEX);},
-    feed:async cid=>conferir(await client.rpc('codex_notification_feed',{p_campaign:cid})) as NotificationFeed,
+    links: async (cid, id) => conferir(await client.rpc("codex_links_for", { p_campaign: cid, p_entry: id })) as CodexLink[],
+    link: async (cid, source, target, r) => conferir(await client.rpc("codex_link", { p_campaign: cid, p_source: source, p_target: target, p_kind: r.kind, p_relation: r.label, p_inverse: r.inverse, p_revealed: !!r.revealed })) as string,
+    unlink: async (cid, id) => semErro(await client.rpc("codex_unlink", { p_campaign: cid, p_link: id })),
+    feed: async (cid) => conferir(await client.rpc("codex_notification_feed", { p_campaign: cid })) as NotificationFeed,
     list: async (cid) =>
-      conferir(
-        await client.rpc("codex_list", { p_campaign: cid }),
-      ) as Conhecimento[],
-    save: async (cid,id,version,data)=>{
-      const capability=conferir(await client.rpc('codex_capabilities'));
-      if(capability!==16)throw Error('Atualização do banco necessária: migração 0016. Nada foi gravado.');
-      return conferir(await client.rpc('codex_save',{p_campaign:cid,p_entry:id,p_version:version,p_data:data})) as string;
+      conferir(await client.rpc("codex_list", { p_campaign: cid })) as Conhecimento[],
+    save: async (cid, id, version, data) => {
+      await exigirBanco();
+      return conferir(await client.rpc("codex_save", { p_campaign: cid, p_entry: id, p_version: version, p_data: data })) as string;
     },
+    reveal: async (cid, id, version, data) => {
+      await exigirBanco();
+      semErro(await client.rpc("codex_reveal", { p_campaign: cid, p_entry: id, p_version: version, p_visible: data.visible, p_revealed: data.revealed, p_links: data.links ?? {}, p_sheet: data.sheet ?? null }));
+    },
+    preview: async (cid, id) => conferir(await client.rpc("codex_preview", { p_campaign: cid, p_entry: id })) as Previa,
     remove: async (cid, id, version) => {
       const r = await client.rpc("codex_remove", {
         p_campaign: cid,
@@ -128,14 +164,6 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
       conferir(
         await client.rpc("codex_holders", { p_campaign: cid, p_entry: id }),
       ) as { id: string; title: string }[],
-    notices: async () =>
-      conferir(
-        await client
-          .from("codex_notifications")
-          .select("id,entry_id,knowledge,read_at,created_at")
-          .order("created_at", { ascending: false })
-          .limit(50),
-      ) as CodexAviso[],
     seen: async (id) => {
       const r = await client
         .from("codex_notifications")
@@ -226,5 +254,5 @@ export const itemConhecido = (items: readonly Conhecimento[], id: string) =>
       x.systemId === "dnd5e-2014" &&
       x.category === "item" &&
       x.definitionId === id &&
-      x.knowledge > 0,
+      x.visible,
   );

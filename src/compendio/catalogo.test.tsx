@@ -190,12 +190,12 @@ describe('lista, grade e detalhe', () => {
     fireEvent.click(cartao('Égide')); expect(abas().filter(a => a === 'Égide')).toHaveLength(1);
   });
 
-  it('página de item: conteúdo de pacote clicável (mesma definição do criador) e o mestre pode revelar o item na campanha', async () => {
+  it('página de item: conteúdo de pacote clicável (mesma definição do criador) e o mestre pode registrar o item como descoberta', async () => {
     await montar(); await abrirCompendio();
     pesquisar('pacote de explorador'); fireEvent.click(cartao('Pacote de Explorador'));
     const det = within(await screen.findByRole('article', { name: 'Detalhes de Pacote de Explorador' }));
     expect(det.getByRole('region', { name: 'Conteúdo do pacote' })).toBeTruthy();
-    expect(det.getByRole('button', { name: 'Revelar na campanha' })).toBeTruthy();
+    expect(det.getByRole('button', { name: 'Registrar como descoberta' })).toBeTruthy();
   });
 });
 

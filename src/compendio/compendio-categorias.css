@@ -112,3 +112,24 @@
 .cd-link-results button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
 .cd-link-results button>span{display:grid;gap:3px;min-width:0}.cd-link-results strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cd-link-results small{color:var(--text-2)}
 .cd-link-selected{font-size:13px}.cd-link-picker input{width:100%}
+
+/* Conhecimento por campo: controles de olho, barra de divulgação e ficha revelável. */
+.cd-eye{display:inline-flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;padding:4px;border:1px solid transparent;border-radius:6px;background:none;color:var(--text-2);vertical-align:middle}
+.cd-eye[aria-pressed=true]{color:var(--accent);background:var(--accent-soft);border-color:var(--accent)}
+.cd-eye:disabled{opacity:.5}
+.cd-linha-olho{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.cd-linha-olho p{margin:0}
+.cd-identity-image{display:grid;justify-items:center;gap:6px}
+.cd-share{background:var(--panel);border-radius:10px;padding:12px 14px;margin-bottom:16px}.cd-share p{margin:0 0 10px;line-height:1.5}
+.cd-share-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.cd-share-actions+.cd-share-actions{margin-top:10px}
+.cd-share-actions button[aria-pressed=true]{border-color:var(--accent)}
+.cd-preview{border:1px dashed var(--accent);border-radius:10px;padding:0 14px 8px}
+.cd-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px;margin:0 0 12px}
+.cd-campos>div{min-width:0}.cd-campos dt{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)}
+.cd-campos dd{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.cd-sheet .cd-campos{grid-template-columns:minmax(0,1fr)}
+.cd-texto{white-space:pre-wrap}
+.cd-relation-group h3{font-size:13px;color:var(--text-2);margin:12px 0 8px}
+.cd-relation{min-width:0}.cd-relation strong{overflow-wrap:anywhere}.cd-relation .retrato-q{flex-shrink:0}
+.cd-form .cd-check{display:flex;align-items:center;gap:8px}.cd-page .cd-form input[type=checkbox],.cd-form .cd-check input{width:auto;flex-shrink:0}
+.cd-form textarea{min-height:96px;resize:vertical}
+.cd-registrar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-block:8px}

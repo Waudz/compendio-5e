@@ -8,13 +8,13 @@ import { imagemDoItem } from "../ficha/imagensCatalogo";
 
 export const itemSpec = (id: string, nome: string): TabSpec => ({ kind: "item", ref: id, title: nome });
 
-export function DetalheItem({ item, onOpenContent }: { item: SrdItem; onOpenContent: (s: TabSpec) => void }) {
+export function DetalheItem({ item, onOpenContent, descricao, mostrarImagem = true }: { item: SrdItem; onOpenContent: (s: TabSpec) => void; /** Texto de um item personalizado. */ descricao?: string; mostrarImagem?: boolean }) {
   const { aoClicarDireito, aoClicar, aoBotaoDoMeio } = useAbrirEmAba();
-  const desc = srdItemsCatalogue().definitions.find(d => d.ref.id === item.id)?.description ?? "";
+  const desc = descricao ?? srdItemsCatalogue().definitions.find(d => d.ref.id === item.id)?.description ?? "";
   const arquivo = srdItemFile();
   const imagem = imagemDoItem(item.id);
   return <>
-    {<div className="catalogo-imagem"><RetratoQuadrado src={imagem} tipo="avulso" tamanho={220}/></div>}
+    {mostrarImagem && <div className="catalogo-imagem"><RetratoQuadrado src={imagem} tipo="avulso" tamanho={220}/></div>}
     <p>{desc}</p>
     <dl className="item-fatos">{itemFacts(item).map(([r, v]) => <div key={r}><dt>{r}</dt><dd>{v}</dd></div>)}</dl>
     {item.pacote && <section aria-label="Conteúdo do pacote"><h2>Conteúdo do pacote</h2>

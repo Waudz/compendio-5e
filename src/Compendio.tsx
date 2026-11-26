@@ -3,14 +3,12 @@ import { RetratoQuadrado } from "./RetratoCombate";
 import { imagemDoMonstro } from "./ficha/imagensCatalogo";
 import { registrarTitulo } from "./registrosStore";
 import { VoltarCompendio } from "./compendio/Paginas";
-import { RevelarReferencia } from "./compendio/RegistrosCampanha";
+import { RegistrarDescoberta } from "./compendio/RegistrosCampanha";
+import { VisaoRegistro } from "./compendio/VisaoRegistro";
 import { PesquisaGlobal } from "./compendio/PesquisaGlobal";
 import { ListaCampanha } from "./compendio/ListaCampanha";
 import { useNotificacoes } from "./compendio/Notificacoes";
 import { useAbrirEmAba, OrigemAbaContext } from "./abrirEmAba";
-import {
-  DetalheConhecido,
-} from "./compendio/RegistrosCampanha";
 import { useConhecimento, itemConhecido } from "./compendio/conhecimento";
 import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
 import { useAuth } from "./AuthContext";
@@ -230,13 +228,12 @@ export function ItemPagina({
       const e = items.find(
         (x) =>
           x.category === "monster" &&
-          x.definitionId === id.slice(8) &&
-          x.knowledge === 4,
+          x.definitionId === id.slice(8),
       );
       return (
         <div className="content">
           {e ? (
-            <DetalheConhecido entry={e} onOpenContent={onOpenContent} />
+            <VisaoRegistro entry={e} mostrarPosse={false} links={[]} rows={[]} onOpenContent={onOpenContent} />
           ) : (
             <p>
               {loading
@@ -277,19 +274,19 @@ export function ItemPagina({
       <div className="eyebrow">COMPÊNDIO · ITEM</div>
       <h1>{item.nome}</h1>
       <p className="muted">{item.en}</p>
-      <RevelarReferencia category="item" id={id} nome={item.nome}/>
+      <RegistrarDescoberta category="item" id={id} onOpenContent={onOpenContent}/>
       <DetalheItem item={item} onOpenContent={onOpenContent} /></article>
     </div>
   );
 }
 
 export function MonstroPagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
- const {active}=useCampaigns(),knowledge=useConhecimento();const allowed=active?.role==='mestre'||knowledge.items.some(x=>x.systemId==='dnd5e-2014'&&x.category==='monster'&&x.definitionId===id&&x.knowledge===4);
+ const {active}=useCampaigns(),knowledge=useConhecimento();const allowed=active?.role==='mestre'||knowledge.items.some(x=>x.systemId==='dnd5e-2014'&&x.category==='monster'&&x.definitionId===id);
  const [data,setData]=useState<{id:string;monster?:Monstro;error?:string}>();
  useEffect(()=>{let alive=true;if(allowed)void import('./catalogue/contratos').then(c=>c.todosOsMonstros()).then(ms=>{const monster=ms.find(m=>m.id===id);if(alive){setData({id,monster});if(monster)registrarTitulo(id,monster.nome);}},()=>{if(alive)setData({id,error:'Não foi possível carregar a criatura.'});});return()=>{alive=false;};},[id,allowed]);
  if(!allowed)return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t={knowledge.loading?'Verificando conhecimento…':'Criatura não revelada com informações completas nesta campanha.'}/></div>;
  const m=data?.id===id?data.monster:undefined;
- return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RevelarReferencia category="monster" id={id} nome={m.nome}/></div></header><article aria-label={`Detalhes de ${m.nome}`}><DetalheMonstro monstro={m} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></article></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
+ return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RegistrarDescoberta category="monster" id={id} onOpenContent={onOpenContent}/></div></header><article aria-label={`Detalhes de ${m.nome}`}><DetalheMonstro monstro={m} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></article></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
 }
 
 /** Categorias são destinos do mesmo histórico, não páginas escondidas dentro do índice. */
