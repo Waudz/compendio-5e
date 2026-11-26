@@ -1,596 +1,60 @@
-// Compêndio: catálogo de D&D 5e (2014) com itens, magias e monstros. Guiado pelo núcleo genérico (`src/catalogue/nucleo`): a mesma tela serve a qualquer
-// categoria de qualquer sistema registrado. Pesquisa sem acento, filtros próprios de cada categoria, lista/grade, detalhe em painel dividido (celular: tela
-// cheia com "Voltar") e esqueletos enquanto o pedaço de dados baixa. Não usa abas nem altera a navegação global.
-import { ArrowLeft, ExternalLink, LayoutGrid, List, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAbrirEmAba } from "../abrirEmAba";
-import { Aviso } from "../Diario";
-import { useCampaigns } from "../CampaignsContext";
-import { useAuth } from "../AuthContext";
-import { jogadorPodeAdicionar } from "../catalogue/disponibilidade";
-import { useConhecimento, itemConhecido } from "./conhecimento";
-import { RevelarReferencia } from "./RegistrosCampanha";
-import {
-  consultar,
-  indexar,
-  type Consulta,
-  type Indice,
-} from "../catalogue/nucleo/busca";
-import { indiceDisponivel, carregarIndice } from "../catalogue/nucleo/registro";
-import type { CategoriaDef } from "../catalogue/nucleo/tipos";
-import {
-  garantirSistemaDnd5e2014,
-  sistemaDnd5e2014,
-} from "../catalogue/sistemas/dnd5e-2014";
-import type { Magia, Monstro } from "../catalogue/sistemas/dnd5e-2014/esquemas";
-import type { SrdItem } from "../catalogue/item-schema";
-import dadosPersonagem from "../criador/data/character-2014.json";
-import { raridadeRotulo } from "../catalogue/srd-2014-items";
-import type { TabSpec } from "../workspace";
-import { DetalheItem, itemSpec } from "./DetalheItem";
-import { DetalheMagia } from "./DetalheMagia";
-import { DetalheMonstro } from "./DetalheMonstro";
-import { EsqueletoDetalhe, EsqueletoLista } from "./Esqueleto";
-
-import { RetratoQuadrado } from "../RetratoCombate";
-import type { ConsultaRegra } from "../catalogue/sistemas/dnd5e-2014/categorias-consulta";
-import { imagemDoItem, imagemDoMonstro } from "../ficha/imagensCatalogo";
-import "./compendio-categorias.css";
-
-type Preferencia = {
-  catId: string;
-  retorno: { catId: string; id: string; nome: string } | null;
-  limite: number;
-  filtrosAbertos: boolean;
-  texto: string;
-  filtros: Record<string, string | boolean>;
-  ordenar: string;
-  visao: Visao;
-  aberto: string | null;
-};
-const sessoes = new WeakMap<object, Map<string, Preferencia>>();
-const PAGINA = 60;
-type Visao = "lista" | "grade";
-type Qualquer = CategoriaDef<unknown>;
-type Estado =
-  | { status: "carregando" }
-  | { status: "erro"; mensagem: string }
-  | { status: "pronto"; indice: Indice<unknown> };
-
-garantirSistemaDnd5e2014();
-const categorias =
-  sistemaDnd5e2014.categorias as unknown as readonly Qualquer[];
-
-/** Estado de carregamento SEMPRE amarrado à categoria a que pertence: ao trocar de categoria nunca se usa o índice da anterior (nem por um render). */
-function useIndice(cat: Qualquer): { estado: Estado; tentar: () => void } {
-  const [tentativa, setTentativa] = useState(0);
-  const calcular = (c: Qualquer): Estado => {
-    const i = indiceDisponivel(c);
-    return i ? { status: "pronto", indice: i } : { status: "carregando" };
-  };
-  const [guardado, setGuardado] = useState<{ cat: Qualquer; estado: Estado }>(
-    () => ({ cat, estado: calcular(cat) }),
-  );
-  useEffect(() => {
-    const pronto = indiceDisponivel(cat);
-    if (pronto) {
-      setGuardado({ cat, estado: { status: "pronto", indice: pronto } });
-      return;
-    }
-    let vivo = true;
-    setGuardado({ cat, estado: { status: "carregando" } });
-    carregarIndice(cat).then(
-      (indice) => {
-        if (vivo) setGuardado({ cat, estado: { status: "pronto", indice } });
-      },
-      () => {
-        if (vivo)
-          setGuardado({
-            cat,
-            estado: {
-              status: "erro",
-              mensagem: `Não foi possível carregar ${cat.rotulo.toLocaleLowerCase("pt-BR")}. Verifique a conexão e tente de novo.`,
-            },
-          });
-      },
-    );
-    return () => {
-      vivo = false;
-    };
-  }, [cat, tentativa]);
-  const estado = guardado.cat === cat ? guardado.estado : calcular(cat);
-  return { estado, tentar: () => setTentativa((n) => n + 1) };
+import { deBlocos } from '../registros';
+/** Catálogo de regras: lista/grade compartilhada; detalhes são páginas do workspace. */
+import {useEffect,useMemo,useState} from 'react';
+import {useAuth} from '../AuthContext';
+import {useCampaigns} from '../CampaignsContext';
+import {Aviso} from '../Diario';
+import {consultar,type Consulta,type Indice} from '../catalogue/nucleo/busca';
+import {carregarIndice,indiceDisponivel} from '../catalogue/nucleo/registro';
+import type {CategoriaDef} from '../catalogue/nucleo/tipos';
+import {garantirSistemaDnd5e2014,sistemaDnd5e2014} from '../catalogue/sistemas/dnd5e-2014';
+import dadosPersonagem from '../criador/data/character-2014.json';
+import type {ConsultaRegra} from '../catalogue/sistemas/dnd5e-2014/categorias-consulta';
+import {raridadeRotulo} from '../catalogue/srd-2014-items';
+import {jogadorPodeAdicionar} from '../catalogue/disponibilidade';
+import {imagemDoItem,imagemDoMonstro} from '../ficha/imagensCatalogo';
+import type {TabSpec} from '../workspace';
+import {itemSpec} from './DetalheItem';
+import {EsqueletoLista} from './Esqueleto';
+import {useConhecimento,itemConhecido} from './conhecimento';
+import {regraSpec,monstroSpec,registroSpec} from './navegacao';
+import {CabecalhoCategoria,FerramentasCategoria,CartoesCategoria} from './ComponentesCategoria';
+import './compendio-categorias.css';
+type Qualquer=CategoriaDef<unknown>;
+const PAGINA=60;garantirSistemaDnd5e2014();const categorias=sistemaDnd5e2014.categorias as unknown as Qualquer[];
+type Preference={cat:string;query:string;filters:Record<string,string|boolean>;order:string;view:'lista'|'grade';limit:number};
+const sessions=new WeakMap<object,Map<string,Preference>>();
+export function CompendioCatalogo({onOpenContent,categoriaInicial='itens',onVoltar}:{onOpenContent:(s:TabSpec)=>void;categoriaInicial?:string;onVoltar?:()=>void}){
+ const {user,client}=useAuth(),{active}=useCampaigns(),knowledge=useConhecimento();
+ const cache=useMemo(()=>{if(!client)return new Map<string,Preference>();let c=sessions.get(client);if(!c){c=new Map();sessions.set(client,c);}return c;},[client]);const key=`${user?.id}:${active?.campaign.id}:${categoriaInicial}`,pref=cache.get(key);
+ const [catId,setCatId]=useState(pref?.cat??categoriaInicial),[query,setQuery]=useState(pref?.query??''),[filters,setFilters]=useState<Record<string,string|boolean>>(pref?.filters??{}),[order,setOrder]=useState(pref?.order??''),[view,setView]=useState<'lista'|'grade'>(pref?.view??'lista'),[limit,setLimit]=useState(pref?.limit??PAGINA),[retry,setRetry]=useState(0);
+ const cat=categorias.find(c=>c.id===catId)??categorias[0];
+ const [loaded,setLoaded]=useState<{cat:Qualquer;index?:Indice<unknown>;error?:string}>(()=>({cat,index:indiceDisponivel(cat)}));
+ useEffect(()=>{let alive=true;void carregarIndice(cat).then(index=>{if(alive)setLoaded({cat,index});},()=>{if(alive)setLoaded({cat,error:'Não foi possível carregar '+cat.rotulo.toLocaleLowerCase()+'. Tente novamente.'});});return()=>{alive=false;};},[cat,retry]);
+ useEffect(()=>{cache.set(key,{cat:catId,query,filters,order,view,limit});},[key,catId,query,filters,order,view,limit]);
+ const index=loaded.cat===cat?loaded.index:indiceDisponivel(cat),error=loaded.cat===cat?loaded.error:undefined;
+ const results=useMemo(()=>index?consultar(index,{texto:query,filtros:filters,ordenar:order||undefined} as Consulta).filter(x=>cat.id==='monstros'?active?.role==='mestre':cat.id!=='itens'||active?.role==='mestre'||jogadorPodeAdicionar(cat.idDe(x))||itemConhecido(knowledge.items,cat.idDe(x))):[],[index,query,filters,order,cat,knowledge.items,active?.role]);
+ const rowsBase=results.map(item=>{const id=cat.idDe(item),title=cat.nomeDe(item);const entry=cat.id==='monstros'?knowledge.items.find(e=>e.category==='monster'&&e.systemId==='dnd5e-2014'&&e.definitionId===id):undefined;return {id,title:entry?.title??title,entry,subtitle:cat.subtituloDe(item),resumo:cat.resumoDe?.(item),category:cat.id,body:cat.corpoDe?.(item)??'',image:cat.id==='itens'?imagemDoItem(id):cat.id==='monstros'?imagemDoMonstro(id):null,spec:entry?registroSpec(entry.id,entry.title):cat.id==='itens'?itemSpec(id,title):cat.id==='magias'?{kind:'magia' as const,ref:id,title}:cat.id==='monstros'?monstroSpec(id,title):regraSpec(cat.id,id,title)};});
+ const customs=cat.id==='monstros'&&active?.role==='mestre'&&index&&!Object.values(filters).some(Boolean)?knowledge.items.filter(e=>e.category==='monster'&&e.systemId==='dnd5e-2014'&&!index.itens.some(x=>cat.idDe(x)===e.definitionId)&&[e.title,deBlocos(e.description??[])].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(e=>({id:e.id,title:e.title,subtitle:'Registro personalizado',category:'monster',body:deBlocos(e.description??[]),entry:e,spec:registroSpec(e.id,e.title)})):[];
+ const allRows=[...rowsBase,...customs];const rows=allRows.slice(0,limit);const total=allRows.length;
+ const pesquisar=(q:string)=>{setQuery(q);setLimit(PAGINA);};
+ const ativos=Object.values(filters).filter(v=>v!==''&&v!==false).length;
+ return <div className="content cd-page compendio cat"><CabecalhoCategoria title={cat.id==='monstros'?'Bestiário':cat.rotulo} onBack={onVoltar??(()=>onOpenContent({kind:'secao',ref:'compendio'}))}/>
+ {categoriaInicial==='classes'&&<div className="cd-filters" role="group" aria-label="Categorias de classe">{['classes','subclasses'].map(id=><button key={id} aria-pressed={catId===id} onClick={()=>{setCatId(id);setQuery('');setFilters({});setOrder('');setLimit(PAGINA);}}>{id==='classes'?'Classes':'Subclasses'}</button>)}</div>}
+ {cat.id==='talentos'&&<p className="muted">Características do SRD utilizadas pelo motor. Esta consulta não é um catálogo completo de talentos de suplementos.</p>}
+ <FerramentasCategoria searchLabel="Pesquisar no Compêndio" query={query} onQuery={pesquisar} view={view} onView={setView} order={order} onOrder={setOrder} sortOptions={[{value:'',label:query?'Relevância':'Padrão'},...cat.ordenacoes.map(x=>({value:x.id,label:x.rotulo}))]}/>
+ <details className="cat-filtros"><summary>Filtros{ativos>0?` (${ativos} ativo${ativos>1?'s':''})`:''}</summary><div className="cat-filtros-grade">{cat.filtros.map(f=>f.tipo==='selecao'?<label key={f.id}>{f.rotulo}<select aria-label={'Filtrar por '+f.rotulo.toLocaleLowerCase('pt-BR')} value={String(filters[f.id]??'')} onChange={e=>{setFilters(v=>({...v,[f.id]:e.target.value}));setLimit(PAGINA);}}><option value="">Todos</option>{f.opcoes.map(o=><option key={o.valor} value={o.valor}>{o.rotulo}</option>)}</select></label>:<label key={f.id}><input type="checkbox" checked={!!filters[f.id]} onChange={e=>{setFilters(v=>({...v,[f.id]:e.target.checked}));setLimit(PAGINA);}}/>{f.rotulo}</label>)}</div>{ativos>0&&<button type="button" className="btn-secondary" onClick={()=>{setFilters({});setLimit(PAGINA);}}>Limpar filtros</button>}</details>
+ {!index&&!error&&<EsqueletoLista rotulo={cat.rotulo} visao={view}/>} {error&&<Aviso erro t={error} onRetry={()=>setRetry(v=>v+1)}/>}
+ {index&&<><p role="status" className="muted">{total} {total===1?'resultado':'resultados'}{total>limit?` (mostrando ${limit})`:''}</p>{!total&&<p data-testid="compendio-vazio" className="muted">Nada encontrado. Tente outro termo ou limpe os filtros.</p>}<CartoesCategoria rows={rows} view={view} onOpen={onOpenContent} listLabel="Resultados do Compêndio"/>{total>limit&&<button className="btn-secondary" onClick={()=>setLimit(v=>v+PAGINA)}>Mostrar mais</button>}</>}
+ <p className="muted fonte">SRD 5.1 (2014) · CC BY 4.0</p></div>;
 }
-
-export function CompendioCatalogo({
-  onOpenContent,
-  categoriaInicial,
-  onVoltar,
-  ocultarMonstros = false,
-}: {
-  onOpenContent: (s: TabSpec) => void;
-  categoriaInicial?: string;
-  onVoltar?: () => void;
-  ocultarMonstros?: boolean;
-}) {
-  const { active } = useCampaigns(),
-    { user, client } = useAuth(),
-    { items: conhecidos } = useConhecimento();
-  const preferencias = useMemo(() => {
-    if (!client) return new Map<string, Preferencia>();
-    let p = sessoes.get(client);
-    if (!p) {
-      p = new Map();
-      sessoes.set(client, p);
-    }
-    return p;
-  }, [client]);
-  const prefKey = `${user?.id}:${active?.campaign.id}:${categoriaInicial ?? "itens"}`;
-  const pref = preferencias.get(prefKey);
-  const [catId, setCatId] = useState(
-    pref?.catId ?? categoriaInicial ?? categorias[0].id,
-  );
-  const cat = categorias.find((c) => c.id === catId) ?? categorias[0];
-  const loaded = useIndice(cat),
-    tentar = loaded.tentar;
-
-  const estado = useMemo(() => {
-    if (loaded.estado.status !== "pronto" || active?.role === "mestre")
-      return loaded.estado;
-    const allowed = loaded.estado.indice.itens.filter((x) =>
-      cat.id === "monstros"
-        ? false
-        : cat.id === "itens"
-          ? jogadorPodeAdicionar(cat.idDe(x)) ||
-            itemConhecido(conhecidos, cat.idDe(x))
-          : true,
-    );
-    return { status: "pronto" as const, indice: indexar(cat, allowed) };
-  }, [loaded.estado, active?.role, cat, conhecidos]);
-
-  const [texto, setTexto] = useState(pref?.texto ?? ""),
-    [filtros, setFiltros] = useState<Record<string, string | boolean>>(
-      pref?.filtros ?? {},
-    ),
-    [ordenar, setOrdenar] = useState(pref?.ordenar ?? "");
-  const [visao, setVisao] = useState<Visao>(pref?.visao ?? "lista"),
-    [limite, setLimite] = useState(pref?.limite ?? PAGINA),
-    [aberto, setAberto] = useState<string | null>(pref?.aberto ?? null);
-  const [filtrosAbertos, setFiltrosAbertos] = useState(
-    pref?.filtrosAbertos ?? false,
-  );
-  // Navegação entre categorias (monstro -> magia citada): guarda de onde veio para oferecer "Voltar para <monstro>".
-  const [retorno, setRetorno] = useState<{
-    catId: string;
-    id: string;
-    nome: string;
-  } | null>(pref?.retorno ?? null);
-  useEffect(() => {
-    preferencias.set(prefKey, {
-      catId,
-      retorno,
-      limite,
-      filtrosAbertos,
-      texto,
-      filtros,
-      ordenar,
-      visao,
-      aberto,
-    });
-  }, [
-    prefKey,
-    catId,
-    retorno,
-    limite,
-    filtrosAbertos,
-    texto,
-    filtros,
-    ordenar,
-    visao,
-    aberto,
-  ]);
-
-  const trocarCategoria = (id: string) => {
-    setRetorno(null);
-    setCatId(id);
-    setTexto("");
-    setFiltros({});
-    setOrdenar("");
-    setLimite(PAGINA);
-    setAberto(null);
-  };
-  const ativos = Object.values(filtros).filter(
-    (v) => v !== "" && v !== false && v !== undefined,
-  ).length;
-  const resultado = useMemo(
-    () =>
-      estado.status === "pronto"
-        ? consultar(estado.indice, {
-            texto,
-            filtros,
-            ordenar: ordenar || undefined,
-          } as Consulta)
-        : [],
-    [estado, texto, filtros, ordenar],
-  );
-  const mostrados = resultado.slice(0, limite);
-  const itemAberto = useMemo(
-    () =>
-      estado.status === "pronto" && aberto !== null
-        ? estado.indice.itens.find((i) => cat.idDe(i) === aberto)
-        : undefined,
-    [estado, aberto, cat],
-  );
-  const reiniciar = useCallback(() => setLimite(PAGINA), []);
-  const abrirMagia = (id: string, deNome: string) => {
-    if (aberto === null) return;
-    setRetorno({ catId: cat.id, id: aberto, nome: deNome });
-    setCatId("magias");
-    setTexto("");
-    setFiltros({});
-    setOrdenar("");
-    setLimite(PAGINA);
-    setAberto(id);
-  };
-  const voltarAoOrigem = () => {
-    if (!retorno) return;
-    setCatId(retorno.catId);
-    setTexto("");
-    setFiltros({});
-    setOrdenar("");
-    setLimite(PAGINA);
-    setAberto(retorno.id);
-    setRetorno(null);
-  };
-  const mudarFiltro = (id: string, v: string | boolean) => {
-    setFiltros((f) => ({ ...f, [id]: v }));
-    reiniciar();
-  };
-
-  return (
-    <div className={`content compendio cat${itemAberto ? " com-detalhe" : ""}`}>
-      <div className="eyebrow">
-        COMPÊNDIO 5e ·{" "}
-        {sistemaDnd5e2014.fonte.titulo.toLocaleUpperCase("pt-BR")}
-      </div>
-      <h1>{onVoltar?cat.rotulo:"Compêndio"}</h1>
-      {cat.id === "talentos" && <p className="muted">Características do SRD utilizadas pelo motor de regras. Esta consulta não é um catálogo completo de talentos de suplementos.</p>}
-      {onVoltar && (
-        <button type="button" className="btn-secondary" onClick={onVoltar}>
-          <ArrowLeft size={16} /> Voltar às categorias
-        </button>
-      )}
-      {(!onVoltar || categoriaInicial === "classes") && (
-        <div
-          className="cat-categorias"
-          role="group"
-          aria-label="Categorias do Compêndio"
-        >
-          {categorias
-            .filter(
-              (c) =>
-                (!ocultarMonstros || c.id !== "monstros") &&
-                (!onVoltar || ["classes", "subclasses"].includes(c.id)),
-            )
-            .map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                aria-pressed={c.id === cat.id}
-                className={c.id === cat.id ? "active" : ""}
-                onClick={() => trocarCategoria(c.id)}
-              >
-                {c.rotulo}
-              </button>
-            ))}
-        </div>
-      )}
-      <div className={`cat-corpo${itemAberto ? " com-detalhe" : ""}`}>
-        <div className="cat-lista-area">
-          <div className="compendio-filtros">
-            <label>
-              Pesquisar
-              <input
-                type="search"
-                aria-label="Pesquisar no Compêndio"
-                value={texto}
-                placeholder="Nome em português ou inglês, ou palavras do texto"
-                onChange={(e) => {
-                  setTexto(e.target.value);
-                  reiniciar();
-                }}
-              />
-            </label>
-            <label>
-              Ordenar por
-              <select
-                aria-label="Ordenar por"
-                value={ordenar}
-                onChange={(e) => {
-                  setOrdenar(e.target.value);
-                  reiniciar();
-                }}
-              >
-                <option value="">
-                  {texto.trim() ? "Relevância" : "Padrão"}
-                </option>
-                {cat.ordenacoes.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.rotulo}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div
-              className="compendio-visao"
-              role="group"
-              aria-label="Visualização"
-            >
-              <button
-                type="button"
-                aria-pressed={visao === "lista"}
-                className={visao === "lista" ? "active" : ""}
-                onClick={() => setVisao("lista")}
-              >
-                <List size={16} aria-hidden="true" /> Lista
-              </button>
-              <button
-                type="button"
-                aria-pressed={visao === "grade"}
-                className={visao === "grade" ? "active" : ""}
-                onClick={() => setVisao("grade")}
-              >
-                <LayoutGrid size={16} aria-hidden="true" /> Grade
-              </button>
-            </div>
-          </div>
-          <details
-            className="cat-filtros"
-            open={filtrosAbertos}
-            onToggle={(e) =>
-              setFiltrosAbertos((e.target as HTMLDetailsElement).open)
-            }
-          >
-            <summary>
-              Filtros
-              {ativos > 0 ? ` (${ativos} ativo${ativos > 1 ? "s" : ""})` : ""}
-            </summary>
-            <div className="cat-filtros-grade">
-              {cat.filtros.map((f) =>
-                f.tipo === "selecao" ? (
-                  <label key={f.id}>
-                    {f.rotulo}
-                    <select
-                      aria-label={`Filtrar por ${f.rotulo.toLocaleLowerCase("pt-BR")}`}
-                      value={String(filtros[f.id] ?? "")}
-                      onChange={(e) => mudarFiltro(f.id, e.target.value)}
-                    >
-                      <option value="">Todos</option>
-                      {f.opcoes.map((o) => (
-                        <option key={o.valor} value={o.valor}>
-                          {o.rotulo}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : (
-                  <label key={f.id} className="check">
-                    <input
-                      type="checkbox"
-                      checked={filtros[f.id] === true}
-                      onChange={(e) => mudarFiltro(f.id, e.target.checked)}
-                    />{" "}
-                    {f.rotulo}
-                  </label>
-                ),
-              )}
-            </div>
-            {ativos > 0 && (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  setFiltros({});
-                  reiniciar();
-                }}
-              >
-                Limpar filtros
-              </button>
-            )}
-          </details>
-
-          {estado.status === "carregando" && (
-            <EsqueletoLista rotulo={cat.rotulo} visao={visao} />
-          )}
-          {estado.status === "erro" && (
-            <Aviso erro t={estado.mensagem} onRetry={tentar} />
-          )}
-          {estado.status === "pronto" && (
-            <>
-              <p role="status" className="muted">
-                {resultado.length}{" "}
-                {resultado.length === 1 ? "resultado" : "resultados"}
-                {resultado.length > mostrados.length
-                  ? ` (mostrando ${mostrados.length})`
-                  : ""}
-              </p>
-              {resultado.length === 0 && (
-                <p className="muted" data-testid="compendio-vazio">
-                  Nada encontrado. Tente outro termo ou limpe os filtros.
-                </p>
-              )}
-              <ul
-                className={`compendio-lista ${visao}`}
-                aria-label="Resultados do Compêndio"
-                data-view={visao}
-              >
-                {mostrados.map((i) => (
-                  <Cartao
-                    key={cat.idDe(i)}
-                    cat={cat}
-                    item={i}
-                    visao={visao}
-                    ativo={cat.idDe(i) === aberto}
-                    onAbrir={() => setAberto(cat.idDe(i))}
-                  />
-                ))}
-              </ul>
-              {resultado.length > mostrados.length && (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setLimite((n) => n + PAGINA)}
-                >
-                  Mostrar mais
-                </button>
-              )}
-            </>
-          )}
-        </div>
-
-        {aberto !== null && (
-          <aside className="cat-detalhe" aria-label="Detalhes">
-            {estado.status === "carregando" && <EsqueletoDetalhe />}
-            {itemAberto !== undefined && (
-              <Detalhe
-                cat={cat}
-                item={itemAberto}
-                onFechar={() => {
-                  setAberto(null);
-                  setRetorno(null);
-                }}
-                onOpenContent={onOpenContent}
-                onAbrirMagia={abrirMagia}
-                retorno={cat.id === "magias" ? retorno : null}
-                onRetornar={voltarAoOrigem}
-              />
-            )}
-            {estado.status === "pronto" && itemAberto === undefined && (
-              <>
-                <button
-                  type="button"
-                  className="btn-secondary cat-voltar"
-                  onClick={() => setAberto(null)}
-                >
-                  <ArrowLeft size={15} aria-hidden="true" /> Voltar à lista
-                </button>
-                <Aviso t="Entrada não encontrada nesta revisão do catálogo." />
-              </>
-            )}
-          </aside>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Cartao({
-  cat,
-  item,
-  visao,
-  ativo,
-  onAbrir,
-}: {
-  cat: Qualquer;
-  item: unknown;
-  visao: Visao;
-  ativo: boolean;
-  onAbrir: () => void;
-}) {
-  const { aoClicarDireito } = useAbrirEmAba();
-  const nome = cat.nomeDe(item);
-  const spec: TabSpec | null =
-    cat.id === "itens" ? itemSpec(cat.idDe(item), nome) : null;
-  // Sem aria-label: o nome acessível É o texto visível (nome + subtítulo [+ resumo]), como pede a WCAG 2.5.3 (rótulo no nome).
-  const imagem =
-    cat.id === "monstros"
-      ? imagemDoMonstro(cat.idDe(item))
-      : cat.id === "itens"
-        ? imagemDoItem(cat.idDe(item))
-        : null;
-  return (
-    <li>
-      <button
-        type="button"
-        className={`compendio-item${ativo ? " ativo" : ""}`}
-        aria-current={ativo ? "true" : undefined}
-        onClick={onAbrir}
-        onContextMenu={spec ? (e) => aoClicarDireito(e, spec) : undefined}
-      >
-        {["itens", "monstros"].includes(cat.id) && (
-          <span className="cat-retrato">
-            <RetratoQuadrado
-              src={imagem}
-              tipo={cat.id === "monstros" ? "monstro" : "avulso"}
-              tamanho={visao === "grade" ? 160 : 48}
-            />
-          </span>
-        )}
-        <strong>{nome}</strong> <small>{cat.subtituloDe(item)}</small>
-        {visao === "grade" && cat.resumoDe && (
-          <>
-            {" "}
-            <span className="muted">{cat.resumoDe(item)}</span>
-          </>
-        )}
-      </button>
-    </li>
-  );
-}
-
-function Detalhe({
-  cat,
-  item,
-  onFechar,
-  onOpenContent,
-  onAbrirMagia,
-  retorno,
-  onRetornar,
-}: {
-  cat: Qualquer;
-  item: unknown;
-  onFechar: () => void;
-  onOpenContent: (s: TabSpec) => void;
-  onAbrirMagia: (id: string, deNome: string) => void;
-  retorno: { nome: string } | null;
-  onRetornar: () => void;
-}) {
+export function Detalhe({ cat, item }: { cat: Qualquer; item: unknown }) {
   const nome = cat.nomeDe(item);
   return (
     <article
       className="cat-detalhe-conteudo"
       aria-label={`Detalhes de ${nome}`}
     >
-      <div className="cat-detalhe-topo">
-        {retorno ? (
-          <button
-            type="button"
-            className="btn-secondary cat-retorno"
-            onClick={onRetornar}
-          >
-            <ArrowLeft size={15} aria-hidden="true" /> Voltar para{" "}
-            {retorno.nome}
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="btn-secondary cat-voltar"
-            onClick={onFechar}
-          >
-            <ArrowLeft size={15} aria-hidden="true" /> Voltar à lista
-          </button>
-        )}
-        <button
-          type="button"
-          className="cat-fechar"
-          onClick={onFechar}
-          aria-label="Fechar detalhes"
-        >
-          <X size={18} aria-hidden="true" />
-        </button>
-      </div>
-      <div className="eyebrow">{cat.rotuloItem.toLocaleUpperCase("pt-BR")}</div>
-      <h2 className="cat-titulo">{nome}</h2>
       {["origens", "talentos", "regras"].includes(cat.id) && (
         <>
           <p className="muted">{cat.subtituloDe(item)}</p>
@@ -599,19 +63,12 @@ function Detalhe({
           </p>
         </>
       )}
-      {cat.id === "magias" && <DetalheMagia magia={item as Magia} />}
-      {cat.id === "monstros" && (
-        <DetalheMonstro
-          monstro={item as Monstro}
-          onAbrirMagia={(id) => onAbrirMagia(id, nome)}
-        />
-      )}
       {["racas", "classes", "subclasses"].includes(cat.id) && (
         <div className="cat-regras-detalhe">
           <p className="muted">{cat.subtituloDe(item)}</p>
           {cat.id === "racas" && (
             <>
-              <h3>Características</h3>
+              <h2>Características</h2>
               <ul>
                 {(item as { traits: { name: string }[] }).traits.map((t, i) => (
                   <li key={i}>
@@ -626,7 +83,7 @@ function Detalhe({
           )}
           {cat.id === "classes" && (
             <>
-              <h3>Progressão de classe</h3>
+              <h2>Progressão de classe</h2>
               <p>
                 Dado de Vida: d
                 {(item as { data: { hitDie: number } }).data.hitDie}
@@ -659,24 +116,6 @@ function Detalhe({
             original.
           </p>
         </div>
-      )}
-      {cat.id === "monstros" && (
-        <RevelarReferencia category="monster" id={cat.idDe(item)} nome={nome} />
-      )}
-      {cat.id === "itens" && (
-        <>
-          <RevelarReferencia category="item" id={cat.idDe(item)} nome={nome} />
-          <DetalheItem item={item as SrdItem} onOpenContent={onOpenContent} />
-          <p>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => onOpenContent(itemSpec(cat.idDe(item), nome))}
-            >
-              <ExternalLink size={14} aria-hidden="true" /> Abrir em nova aba
-            </button>
-          </p>
-        </>
       )}
     </article>
   );

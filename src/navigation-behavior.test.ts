@@ -20,12 +20,19 @@ describe("navegação que preserva o espaço de trabalho", () => {
     openContentLink(m, { kind: "item", ref: "escudo" }, "secao:personagens");
     expect(groupCount(m)).toBe(2);
     expect(ids(m)[1]).toEqual(["item:espada", "item:escudo"]);
-    // Terceira coluna é uma decisão manual do usuário.
-    expect(moveToNewColumn(m, "item:escudo", "right")).toBe(true);
-    expect(groupCount(m)).toBe(3);
+    // Não há terceira coluna: o limite é de dois grupos, inclusive para o usuário.
+    expect(moveToNewColumn(m, "item:escudo", "right")).toBe(false);
     openContentLink(m, { kind: "item", ref: "arco" }, "secao:personagens");
-    expect(groupCount(m)).toBe(3);
-    expect(ids(m)[2]).toEqual(["item:escudo", "item:arco"]);
+    expect(groupCount(m)).toBe(2);
+    expect(ids(m)[1]).toEqual(["item:espada", "item:escudo", "item:arco"]);
+    expect(isColumnsOnly(m.toJson())).toBe(true);
+  });
+  it("consulta pode abrir como aba do próprio grupo, sem criar coluna nem duplicar", () => {
+    const m = createModel();
+    openContentLink(m, { kind: "registro", ref: "julkoun" }, "secao:personagens", false, true);
+    expect(ids(m)).toEqual([["secao:personagens", "registro:julkoun"]]);
+    openContentLink(m, { kind: "registro", ref: "julkoun" }, "secao:personagens");
+    expect(ids(m).flat().filter(x => x === "registro:julkoun")).toHaveLength(1);
     expect(isColumnsOnly(m.toJson())).toBe(true);
   });
   it("não duplica consulta existente", () => {

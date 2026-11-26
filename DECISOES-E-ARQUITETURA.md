@@ -405,3 +405,11 @@ Substitui a **identidade visual** da DEC-029 (a lógica dela permanece). As refe
 Duas áreas Campanha/Regras, sem Enciclopédia e Documentos no menu independente. `notes` é a fonte narrativa; `campaign_codex` referencia registros e definições, sem duplicar fichas ou itens. Conhecimento de criaturas é coletivo (quatro níveis), sem revelação automática por combate. Itens revelados coletivamente nesta etapa são uma decisão explícita do mestre, separada da futura identificação individual/sintonização da DEC-030; posse não concede conhecimento nem adição livre.
 
 A API projeta apenas campos autorizados; RLS preserva os registros privados até para ex-mestres. Imagens secretas ficam em `codex-assets`, separado de `campaign-assets`. Substituição usa arquivo imutável e atualização do ponteiro; sem coleta automática de arquivos antigos. Notificações internas são idempotentes por patamar e destinatário, revalidadas pela autorização atual. SRD e arquivos públicos legados não são segredos da campanha. Detalhes e aplicação da **0015 proposta, não aplicada** em `docs/COMPENDIO-CONHECIMENTO.md`.
+
+### DEC-032 — Compêndio por páginas, vínculos e notificações (26/11/2026)
+
+Detalhe de registro, identidade, criatura, item, magia e regra é uma **página do workspace**, nunca um painel dividido dentro da aba. Clique normal abre no segundo grupo; o botão direito também oferece abrir como aba do próprio grupo. O desktop tem **no máximo dois grupos** (substitui o limite de três); layouts salvos com mais colunas são reunidos sem perder abas. No celular a página ocupa a tela.
+
+Vínculos usam identificadores estáveis em `codex_links` (um por par, sem direção) e só são entregues por função do servidor quando **as duas pontas** são visíveis a quem consulta: título, relação, termos de pesquisa e contadores seguem a mesma regra. Remover o vínculo não apaga registros. Campos narrativos são opcionais e ficam no registro canônico (`notes.meta`), com lista fechada validada no banco.
+
+O sino fica no cabeçalho geral do aplicativo (substitui o sino dentro do Compêndio). Conteúdo canônico continua em `notes`; descobertas de itens referenciam a definição do catálogo, sem cópia. Substitui da DEC-031 os cartões em coluna única: painel largo mostra Campanha e Regras lado a lado.

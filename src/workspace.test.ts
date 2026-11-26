@@ -48,11 +48,11 @@ describe("grupos (colunas)", () => {
   it("cria grupos à esquerda e à direita", () => {
     const m = base();
     expect(moveToNewColumn(m, "secao:encontros", "right")).toBe(true);
-    expect(moveToNewColumn(m, "secao:iniciativa", "left")).toBe(true);
-    expect(ids(m)).toEqual([["secao:iniciativa"], ["secao:personagens"], ["secao:encontros"]]);
+    expect(moveToNewColumn(m, "secao:encontros", "left")).toBe(true);
+    expect(ids(m)).toEqual([["secao:encontros"], ["secao:personagens", "secao:iniciativa"]]);
     expect(valid(m)).toBe(true);
   });
-  it("respeita o limite de três grupos", () => {
+  it("respeita o limite de dois grupos", () => {
     const m = base(); openTab(m, sec("documentos"));
     moveToNewColumn(m, "secao:encontros", "right"); moveToNewColumn(m, "secao:iniciativa", "left");
     expect(groupCount(m)).toBe(MAX_GROUPS);
@@ -60,10 +60,10 @@ describe("grupos (colunas)", () => {
     expect(moveToNewColumn(m, "secao:documentos", "left")).toBe(false);
     expect(groupCount(m)).toBe(MAX_GROUPS);
   });
-  it("com 3 grupos ainda permite reposicionar uma aba que está sozinha no seu grupo", () => {
+  it("com 2 grupos ainda permite reposicionar uma aba que está sozinha no seu grupo", () => {
     const m = base(); moveToNewColumn(m, "secao:encontros", "right"); moveToNewColumn(m, "secao:iniciativa", "left");
     expect(moveToNewColumn(m, "secao:encontros", "left")).toBe(true);
-    expect(groupCount(m)).toBe(3);
+    expect(groupCount(m)).toBe(2);
     expect(ids(m)[0]).toEqual(["secao:encontros"]);
   });
   it("move abas entre grupos e reordena dentro do grupo", () => {
@@ -105,11 +105,11 @@ describe("sem empilhamento vertical", () => {
       { type: "row", children: [{ type: "tabset", weight: 25, children: [{ id: "secao:iniciativa" }] }, { type: "tabset", weight: 25, children: [{ id: "secao:encontros" }] }] },
     ] } })!;
     expect(isColumnsOnly(out)).toBe(true);
-    expect(out.layout.children).toHaveLength(3);
+    expect(out.layout.children).toHaveLength(2);
   });
-  it("sanitizeLayout funde excesso de grupos em no máximo 3", () => {
+  it("sanitizeLayout funde excesso de grupos em no máximo 2", () => {
     const out = sanitizeLayout({ layout: { type: "row", children: ["personagens", "iniciativa", "encontros", "enciclopedia", "documentos"].map(p => ({ type: "tabset", weight: 20, children: [{ id: `secao:${p}` }] })) } })!;
-    expect(out.layout.children).toHaveLength(3);
+    expect(out.layout.children).toHaveLength(2);
     expect(out.layout.children!.flatMap(g => (g as { children: unknown[] }).children)).toHaveLength(5);
   });
 });

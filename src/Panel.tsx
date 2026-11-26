@@ -1,3 +1,5 @@
+import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
+import { MonstroPagina } from "./Compendio";
 import { BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
@@ -19,6 +21,10 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   onOpen: (s: TabSpec, mode?: NavMode) => void;   // abertura administrativa/de menu (modo explícito; padrão: reutilizar a aba)
   onOpenContent: (s: TabSpec) => void;            // link interno de conteúdo: sempre aba permanente, sem substituir a origem
 }) {
+  if (kind === "registro") return <RegistroCompendioPagina id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "identidade") return <IdentidadePagina id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "monstro") return <MonstroPagina id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "regra") return <RegraPagina refId={id} onOpenContent={onOpenContent}/>;
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   if (kind === "campanha") return <div className="content"><CampaignHome id={id} onOpen={onOpen} onOpenContent={onOpenContent}/></div>;
   if (kind === "secao" && id === "campanhas") return <div className="content"><CampaignsPanel onOpen={onOpen}/></div>;
@@ -27,7 +33,7 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "documento") return <RegistroPagina id={id}/>;
   if (kind === "ficha") return <FichaRoteada id={id} onOpenContent={onOpenContent}/>;
   if (kind === "item") return <ItemPagina id={id} onOpenContent={onOpenContent}/>;
-  if (kind === "magia") return <MagiaPagina id={id}/>;
+  if (kind === "magia") return <MagiaPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "criador") return <CriadorGuiado id={id} onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "compendio") return <CompendioPanel onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "personagens") return <PersonagensPanel onOpenContent={onOpenContent}/>;

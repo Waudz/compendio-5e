@@ -1,14 +1,14 @@
 // Estado e operações puras do workspace (sem React, sem localStorage).
-// O layout é SEMPRE: linha raiz -> de 1 a 3 grupos (tabsets) lado a lado -> abas.
+// O layout é SEMPRE: linha raiz -> de 1 a 2 grupos (tabsets) lado a lado -> abas.
 // Nunca há linha dentro de coluna (grupos empilhados), popout, flutuantes ou bordas.
 import { BookMarked, BookOpen, Castle, ClipboardList, FileText, ScrollText, Shield, Swords, Users } from "lucide-react";
 import { Action, Actions, DockLocation, Model, RowNode, TabNode, TabSetNode, type DropInfo, type IJsonModel, type IJsonTabNode, type IJsonTabSetNode, type Node } from "flexlayout-react";
 
-export const MAX_GROUPS = 3;
+export const MAX_GROUPS = 2;
 export const MIN_GROUP_WIDTH = 220;
 
 // Um único lugar define os tipos de aba: para criar um novo (ex.: cena, encontro) basta acrescentar uma linha aqui e o painel correspondente.
-const kindLabel = { secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento", item: "Item", magia: "Magia", criador: "Personagem" } as const;
+const kindLabel = { registro:"Registro", identidade:"Personagem", monstro:"Criatura", regra:"Regra", secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento", item: "Item", magia: "Magia", criador: "Personagem" } as const;
 export type Kind = keyof typeof kindLabel;
 export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean; instance?: number };
 export type Page = "campanhas" | "planejamento" | "diario" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
@@ -47,7 +47,7 @@ export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   const match = kind === "secao" ? /^planejamento~([2-9][0-9]*)$/.exec(rawRef) : null;
   const instance = match ? Number(match[1]) : undefined;
   const ref = match ? "planejamento" : rawRef;
-  if (i < 1 || !kinds.includes(kind) || !/^[\w-]{1,64}$/.test(ref)) return null;
+  if (i < 1 || !kinds.includes(kind) || !(kind === "regra" ? /^[\w-]{1,320}$/ : /^[\w-]{1,64}$/).test(ref)) return null;
   if (kind === "secao" && !knownSections.some(s => s.page === ref)) return null;
   return { kind, ref, ...(instance && Number.isSafeInteger(instance) ? { instance } : {}) };
 };
@@ -77,7 +77,7 @@ export function firstVisitModel(campaignId: string, title?: string): Model {
   return m;
 }
 
-/** true se o JSON respeita a restrição de produto: só colunas, 1 a 3 grupos, sem nada fora do layout principal. */
+/** true se o JSON respeita a restrição de produto: só colunas, 1 a 2 grupos, sem nada fora do layout principal. */
 export function isColumnsOnly(json: IJsonModel): boolean {
   const kids = json.layout.children ?? [];
   const empty = (o?: object) => !o || Object.keys(o).length === 0;
@@ -119,7 +119,7 @@ export function sanitizeLayout(data: unknown): IJsonModel | null {
       ...(tabs.length ? {} : { enableDeleteWhenEmpty: false }) });   // vazio intencional: não é apagado automaticamente
   }
   if (!groups.some(g => g.children!.length) ) return { ...defaultLayout(), layout: { type: "row", children: [{ type: "tabset", id: "grupo-1", weight: 100, active: true, children: [] }] } };
-  // Mais de 3 grupos: descarta primeiro painéis vazios, depois funde o excedente no último grupo mantido.
+  // Grupos além do limite: descarta primeiro painéis vazios, depois funde o excedente no último grupo mantido.
   while (groups.length > MAX_GROUPS && groups.some(g => !g.children!.length)) groups.splice(groups.map(g => !g.children!.length).lastIndexOf(true), 1);
   while (groups.length > MAX_GROUPS) { const extra = groups.pop()!; groups[MAX_GROUPS - 1].children!.push(...extra.children!); groups[MAX_GROUPS - 1].weight! += extra.weight!; }
   const ids = new Set<string>();

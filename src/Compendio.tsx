@@ -1,8 +1,15 @@
+import { RetratoQuadrado } from "./RetratoCombate";
+import { imagemDoMonstro } from "./ficha/imagensCatalogo";
+import { registrarTitulo } from "./registrosStore";
+import { VoltarCompendio } from "./compendio/Paginas";
+import { RevelarReferencia } from "./compendio/RegistrosCampanha";
+import { PesquisaGlobal } from "./compendio/PesquisaGlobal";
+import { ListaCampanha } from "./compendio/ListaCampanha";
+import { useNotificacoes } from "./compendio/Notificacoes";
+import { VOLTAR_COMPENDIO } from "./compendio/navegacao";
 import { useUnsaved } from "./unsaved";
 import { OrigemAbaContext } from "./abrirEmAba";
 import {
-  RegistrosCampanha,
-  AvisosConhecimento,
   DetalheConhecido,
 } from "./compendio/RegistrosCampanha";
 import { useConhecimento, itemConhecido } from "./compendio/conhecimento";
@@ -28,7 +35,6 @@ import { DetalheMonstro } from "./compendio/DetalheMonstro";
 // Compêndio: ponto de entrada da seção (painel do catálogo) e da página de item (aba `item:<id>`, aberta pelo inventário do criador e pelos pacotes).
 // O painel é o catálogo genérico de `src/compendio/` (itens, magias e monstros de D&D 5e 2014); a página de item reutiliza o mesmo detalhe.
 import { Aviso } from "./Diario";
-import { PersonagensPanel } from "./Personagens";
 import { useCampaigns } from "./CampaignsContext";
 import { srdItem } from "./catalogue/srd-2014-items";
 import { CompendioCatalogo } from "./compendio/CompendioCatalogo";
@@ -166,7 +172,7 @@ const grupos = {
 };
 const sessoes = new WeakMap<
   object,
-  Map<string, { grupo: keyof typeof grupos; categoria: string | null }>
+  Map<string, { grupo: keyof typeof grupos; categoria: string | null; query?:string }>
 >();
 function CompendioInicio({
   onOpenContent,
@@ -179,7 +185,7 @@ function CompendioInicio({
     if (!client)
       return new Map<
         string,
-        { grupo: keyof typeof grupos; categoria: string | null }
+        { grupo: keyof typeof grupos; categoria: string | null; query?:string }
       >();
     let n = sessoes.get(client);
     if (!n) {
@@ -204,126 +210,18 @@ function CompendioInicio({
   const voltar = () =>
     unsaved.guard([origin ?? "secao:compendio"], () => setCategoria(null));
   const abrir = (id: string) => setCategoria(id);
-  const toque = useRef<{ x: number; y: number } | null>(null);
-  const narrativas: Record<string, "location" | "organization" | "discovery"> =
-    {
-      locais: "location",
-      organizacoes: "organization",
-      descobertas: "discovery",
-    };
-  return (
-    <>
-      {categoria &&
-        [categoria].map((id) => (
-          <div key={`${scope}:${id}`}>
-            {id === "personagens" ? (
-              <>
-                <button className="btn-secondary" onClick={voltar}>
-                  Voltar às categorias
-                </button>
-                <PersonagensPanel onOpenContent={onOpenContent} />
-                <div className="content">
-                  <RegistrosCampanha
-                    category="npc"
-                    onOpenContent={onOpenContent}
-                  />
-                </div>
-              </>
-            ) : narrativas[id] ||
-              (id === "monstros" && active?.role !== "mestre") ? (
-              <div className="content">
-                <button className="btn-secondary" onClick={voltar}>
-                  Voltar às categorias
-                </button>
-                <RegistrosCampanha
-                  category={narrativas[id] ?? "monster"}
-                  onOpenContent={onOpenContent}
-                />
-              </div>
-            ) : (
-              <>
-                <CompendioCatalogo
-                  categoriaInicial={id}
-                  onVoltar={voltar}
-                  onOpenContent={onOpenContent}
-                />
-                {id === "monstros" && (
-                  <div className="content">
-                    <RegistrosCampanha
-                      category="monster"
-                      onOpenContent={onOpenContent}
-                    />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ))}
-      {categoria === null && (
-        <div>
-          <div
-            className="content compendio-inicio"
-            onTouchStart={(e) => {
-              const t = e.touches[0];
-              toque.current = { x: t.clientX, y: t.clientY };
-            }}
-            onTouchCancel={() => {
-              toque.current = null;
-            }}
-            onTouchEnd={(e) => {
-              const inicio = toque.current;
-              toque.current = null;
-              if (!inicio || window.matchMedia("(min-width:701px)").matches)
-                return;
-              const t = e.changedTouches[0];
-              const dx = t.clientX - inicio.x,
-                dy = t.clientY - inicio.y;
-              if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.4)
-                setGrupo(dx < 0 ? "Regras" : "Campanha");
-            }}
-          >
-            <div className="row">
-              <h1>Compêndio</h1>
-              <AvisosConhecimento />
-            </div>
-            <div
-              className="cat-categorias"
-              role="group"
-              aria-label="Áreas do Compêndio"
-            >
-              {(["Campanha", "Regras"] as const).map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  aria-pressed={grupo === g}
-                  className={grupo === g ? "active" : ""}
-                  onClick={() => setGrupo(g)}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-            <div className="compendio-portais">
-              {grupos[grupo].map(({ id, nome, descricao, Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  className="compendio-portal"
-                  onClick={() => abrir(id)}
-                >
-                  <span>
-                    <strong>{nome}</strong> <small>{descricao}</small>
-                  </span>
-                  <Icon className="compendio-portal-arte" aria-hidden="true" />
-                  <ChevronRight size={18} aria-hidden="true" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+  const toque = useRef<{x:number;y:number}|null>(null), root=useRef<HTMLDivElement>(null);
+  const [wide,setWide]=useState(false),[query,setQuery]=useState(inicial&&'query' in inicial?String(inicial.query??''):'');
+  const notices=useNotificacoes();
+  useEffect(()=>{const el=root.current;if(!el||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(entries=>setWide((entries[0]?.contentRect.width??0)>=760));observer.observe(el);return()=>observer.disconnect();},[categoria]);
+  useEffect(()=>{const handler=(event:Event)=>{const cat=(event as CustomEvent<string>).detail;if(cat){setCategoria(cat);setGrupo(['personagens','monstros','locais','organizacoes','descobertas'].includes(cat)?'Campanha':'Regras');}};window.addEventListener(VOLTAR_COMPENDIO,handler);return()=>window.removeEventListener(VOLTAR_COMPENDIO,handler);},[]);
+  useEffect(()=>{navegacao.set(scope,{grupo,categoria,query});},[scope,grupo,categoria,query]);
+  if(categoria)return ['personagens','locais','organizacoes','descobertas'].includes(categoria)||(categoria==='monstros'&&active?.role!=='mestre')?<ListaCampanha key={`${scope}:${categoria}`} category={categoria} onBack={voltar} onOpenContent={onOpenContent}/>:<CompendioCatalogo key={`${scope}:${categoria}`} categoriaInicial={categoria} onVoltar={voltar} onOpenContent={onOpenContent}/>;
+  return <div className="content compendio-inicio cd-home" ref={root} data-wide={wide} onTouchStart={e=>{if((e.target as HTMLElement).closest('input,textarea,select'))return;const t=e.touches[0];toque.current={x:t.clientX,y:t.clientY};}} onTouchCancel={()=>{toque.current=null;}} onTouchEnd={e=>{const start=toque.current;toque.current=null;if(!start||wide)return;const t=e.changedTouches[0],dx=t.clientX-start.x,dy=t.clientY-start.y;if(Math.abs(dx)>65&&Math.abs(dx)>1.4*Math.abs(dy))setGrupo(dx<0?'Regras':'Campanha');}}>
+   <h1>Compêndio</h1><PesquisaGlobal query={query} onQuery={setQuery} onOpenContent={onOpenContent}/>
+   {!query.trim()&&<>{!wide&&<div className="cat-categorias" role="group" aria-label="Áreas do Compêndio">{(['Campanha','Regras'] as const).map(g=><button key={g} aria-pressed={grupo===g} onClick={()=>setGrupo(g)}>{g}</button>)}</div>}
+   <div className="cd-home-groups">{(wide?['Campanha','Regras'] as const:[grupo]).map(g=><section key={g} aria-label={g}><h2>{g}</h2><div className="compendio-portais">{grupos[g].map(({id,nome,descricao,Icon})=><button key={id} className="compendio-portal" onClick={()=>abrir(id)}><span><strong>{nome}{id==='descobertas'&&notices.feed.discoveries>0&&<span className="cd-badge">{notices.feed.discoveries}<span className="sr-only"> {notices.feed.discoveries===1?'novidade':'novidades'}</span></span>}</strong>{' '}<small>{descricao}</small></span><Icon className="compendio-portal-arte" aria-hidden="true"/><ChevronRight size={18} aria-hidden="true"/></button>)}</div></section>)}</div></>}
+  </div>;
 }
 
 /** Aba `item:<id>`: definição completa do item. Também é o destino de "Consultar no Compêndio" no inventário. */
@@ -373,7 +271,7 @@ export function ItemPagina({
         </div>
       );
   }
-  if (id.startsWith("monstro:")) return <MonstroPagina id={id.slice(8)} />;
+  if (id.startsWith("monstro:")) return <MonstroPagina id={id.slice(8)} onOpenContent={onOpenContent}/>;
   const item = srdItem(id);
   if (!item)
     return (
@@ -386,55 +284,21 @@ export function ItemPagina({
       </div>
     );
   return (
-    <div className="content item-pagina">
+    <div className="content cd-page item-pagina"><VoltarCompendio onOpenContent={onOpenContent}/><article aria-label={`Detalhes de ${item.nome}`}>
       <div className="eyebrow">COMPÊNDIO · ITEM</div>
       <h1>{item.nome}</h1>
       <p className="muted">{item.en}</p>
-      <DetalheItem item={item} onOpenContent={onOpenContent} />
+      <RevelarReferencia category="item" id={id} nome={item.nome}/>
+      <DetalheItem item={item} onOpenContent={onOpenContent} /></article>
     </div>
   );
 }
 
-function MonstroPagina({ id }: { id: string }) {
-  const [dados, setDados] = useState<{
-    id: string;
-    monstro?: Monstro;
-    erro?: boolean;
-  } | null>(null);
-  useEffect(() => {
-    let vivo = true;
-    import("./catalogue/contratos")
-      .then((c) => c.todosOsMonstros())
-      .then(
-        (lista) => {
-          if (vivo) setDados({ id, monstro: lista.find((m) => m.id === id) });
-        },
-        () => {
-          if (vivo) setDados({ id, erro: true });
-        },
-      );
-    return () => {
-      vivo = false;
-    };
-  }, [id]);
-  if (!dados || dados.id !== id) return <p role="status">Carregando ficha…</p>;
-  return (
-    <div className="content">
-      {dados.monstro ? (
-        <>
-          <h1>{dados.monstro.nome}</h1>
-          <DetalheMonstro monstro={dados.monstro} />
-        </>
-      ) : (
-        <Aviso
-          erro
-          t={
-            dados.erro
-              ? "Não foi possível carregar a ficha."
-              : "Criatura não encontrada."
-          }
-        />
-      )}
-    </div>
-  );
+export function MonstroPagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
+ const {active}=useCampaigns(),knowledge=useConhecimento();const allowed=active?.role==='mestre'||knowledge.items.some(x=>x.systemId==='dnd5e-2014'&&x.category==='monster'&&x.definitionId===id&&x.knowledge===4);
+ const [data,setData]=useState<{id:string;monster?:Monstro;error?:string}>();
+ useEffect(()=>{let alive=true;if(allowed)void import('./catalogue/contratos').then(c=>c.todosOsMonstros()).then(ms=>{const monster=ms.find(m=>m.id===id);if(alive){setData({id,monster});if(monster)registrarTitulo(id,monster.nome);}},()=>{if(alive)setData({id,error:'Não foi possível carregar a criatura.'});});return()=>{alive=false;};},[id,allowed]);
+ if(!allowed)return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t={knowledge.loading?'Verificando conhecimento…':'Criatura não revelada com informações completas nesta campanha.'}/></div>;
+ const m=data?.id===id?data.monster:undefined;
+ return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RevelarReferencia category="monster" id={id} nome={m.nome}/></div></header><article aria-label={`Detalhes de ${m.nome}`}><DetalheMonstro monstro={m} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></article></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
 }

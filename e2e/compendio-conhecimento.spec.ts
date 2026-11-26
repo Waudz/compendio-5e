@@ -6,30 +6,45 @@ import {
   navigate,
   expectNoHorizontalOverflow,
 } from "./fixtures";
+import type { Page } from "@playwright/test";
+
+const celular = (page: Page) => (page.viewportSize()?.width ?? 1440) <= 700;
+/** Mostra a área pedida: em painel largo as duas já estão lado a lado; no estreito há as abas. */
+async function area(page: Page, nome: "Campanha" | "Regras") {
+  await expect(page.locator(".cd-home")).toBeVisible();
+  const aba = page.getByRole("group", { name: "Áreas do Compêndio" }).getByRole("button", { name: nome, exact: true });
+  if (await aba.count()) await aba.click();
+  await expect(page.getByRole("region", { name: nome, exact: true })).toBeVisible();
+}
+/** Do catálogo (ou de uma página aberta por ele) de volta à página inicial do Compêndio. */
+async function inicio(page: Page) {
+  // no celular a página aberta ocupa a tela: primeiro volta para a lista
+  if (celular(page)) await page.getByRole("button", { name: "Voltar", exact: true }).click();
+  await page.locator(".compendio.cat .cd-back").filter({ visible: true }).click();
+}
 
 test("Compêndio: cartões panorâmicos, regras compartilhadas, filtros persistentes e imagens quadradas", async ({
   page,
 }, info) => {
   await openDemo(page, "mestre");
   await navigate(page, "Compêndio");
-  await expect(page.locator(".compendio-portal")).toHaveCount(5);
-  const cards = await page.locator(".compendio-portal").evaluateAll((xs) =>
-    xs.map((x) => {
-      const r = x.getBoundingClientRect();
-      return { x: r.x, y: r.y, w: r.width, h: r.height };
-    }),
-  );
-  expect(new Set(cards.map((x) => x.x)).size).toBe(1);
-  expect(new Set(cards.map((x) => x.h)).size).toBe(1);
-  await page.getByRole("button", { name: "Regras", exact: true }).click();
-  await expect(page.locator(".compendio-portal")).toHaveCount(7);
+  // cada área é uma coluna de cartões panorâmicos de mesma altura
+  for (const [nome, total] of [["Campanha", 5], ["Regras", 7]] as const) {
+    await area(page, nome);
+    const portais = page.getByRole("region", { name: nome, exact: true }).locator(".compendio-portal");
+    await expect(portais).toHaveCount(total);
+    const cards = await portais.evaluateAll((xs) => xs.map((x) => { const r = x.getBoundingClientRect(); return { x: Math.round(r.x), h: Math.round(r.height), w: r.width }; }));
+    expect(new Set(cards.map((x) => x.x)).size).toBe(1);
+    expect(new Set(cards.map((x) => x.h)).size).toBe(1);
+    expect(cards.every((x) => x.w > x.h * 2)).toBe(true);
+  }
   await page.getByRole("button", { name: /^Origens / }).click();
   await page.getByRole("searchbox").fill("acólito");
   await page.getByRole("button", { name: /^Acólito / }).click();
-  await expect(page.getByRole("article")).toContainText("SRD 5.1");
-  await page
-    .getByRole("button", { name: "Voltar às categorias", exact: true })
-    .click();
+  await expect(page.getByRole("article", { name: "Detalhes de Acólito" })).toBeVisible();
+  await expect(page.locator(".cd-rule-page")).toContainText("SRD 5.1");
+  await inicio(page);
+  await area(page, "Regras");
   await page.getByRole("button", { name: /^Itens / }).click();
   const search = page.getByRole("searchbox", {
     name: "Pesquisar no Compêndio",
@@ -37,13 +52,12 @@ test("Compêndio: cartões panorâmicos, regras compartilhadas, filtros persiste
   });
   await search.fill("adaga");
   await page.getByRole("button", { name: "Grade", exact: true }).click();
-  const portrait = page.locator(".cat-retrato .retrato-q").first();
+  const portrait = page.locator(".cd-cards.grade .retrato-q").first();
   const box = await portrait.boundingBox();
   expect(box).not.toBeNull();
   expect(Math.abs(box!.width - box!.height)).toBeLessThan(2);
-  await page
-    .getByRole("button", { name: "Voltar às categorias", exact: true })
-    .click();
+  await page.locator(".compendio.cat .cd-back").click();
+  await area(page, "Regras");
   await page.getByRole("button", { name: /^Itens / }).click();
   await expect(search).toHaveValue("adaga");
   await expect(
@@ -65,12 +79,13 @@ test("Compêndio: mestre cria local e revela somente a descrição autorizada ao
 }, info) => {
   await openDemo(page, "mestre");
   await navigate(page, "Compêndio");
+  await area(page, "Campanha");
   await page.getByRole("button", { name: /^Locais / }).click();
   await page
     .getByRole("button", { name: "Novo registro", exact: true })
     .click();
-  const editor = page.getByRole("region", {
-    name: "Editar conhecimento",
+  const editor = page.getByRole("dialog", {
+    name: "Novo registro",
     exact: true,
   });
   await editor
@@ -87,10 +102,12 @@ test("Compêndio: mestre cria local e revela somente a descrição autorizada ao
     .selectOption("4");
   await editor.getByRole("button", { name: "Salvar", exact: true }).click();
   await expect(editor).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Porto E2E", exact: true })).toBeVisible();
   await openDemo(page, "jogador");
   await navigate(page, "Compêndio");
+  await area(page, "Campanha");
   await page.getByRole("button", { name: /^Locais / }).click();
-  await page.getByRole("button", { name: "Porto E2E", exact: true }).click();
+  await page.getByRole("button", { name: /^Porto E2E / }).click();
   await expect(
     page.getByText("Um porto autorizado.", { exact: true }),
   ).toBeVisible();
@@ -118,12 +135,13 @@ test("Compêndio: jogador não recebe catálogo completo de criaturas; gesto ver
   await page.locator(".compendio-inicio").dispatchEvent("touchend", {
     changedTouches: [{ identifier: 0, clientX: 155, clientY: 250 }],
   });
-  await expect(
-    page.getByRole("button", { name: "Campanha", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+  // o gesto vertical é rolagem: não troca de área (no painel largo as duas ficam visíveis)
+  const abas = page.getByRole("group", { name: "Áreas do Compêndio" });
+  if (await abas.count()) await expect(abas.getByRole("button", { name: "Campanha", exact: true })).toHaveAttribute("aria-pressed", "true");
+  else await expect(page.getByRole("region", { name: "Campanha", exact: true })).toBeVisible();
   await page.getByRole("button", { name: /^Bestiário / }).click();
   await expect(
-    page.getByText("Nenhuma descoberta revelada nesta categoria.", {
+    page.getByText("Nenhum registro disponível nesta categoria.", {
       exact: true,
     }),
   ).toBeVisible();

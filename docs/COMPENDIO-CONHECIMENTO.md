@@ -50,3 +50,17 @@ Testes SQL isolados em `supabase/compendio-rls.test.ts`; fluxo real de Auth/REST
 Resultados finais e PR: consultar a última entrada de `CONTINUIDADE-DESENVOLVIMENTO.md`.
 
 SHA-256 da migração revisada: `74a15d93ec5f8d1c42e46412720d69bcd426ceb54cd74a5259eaebf08b4ca7a9`. Calcular novamente se o SQL mudar antes da aplicação.
+
+
+## 0016 — páginas e vínculos (proposta, não aplicada)
+
+A 0015 foi aplicada em produção e **não deve ser reaplicada**. A 0016 é aditiva, requer a 0015 e não reescreve registros existentes.
+
+- Substitui `codex_list` (acrescenta `fields` e `relatedTerms` a partir do nível 2 e `framing` a partir do 3), `codex_save` (valida os campos opcionais e o enquadramento) e `codex_note_guard` (a versão passa a subir também em mudanças feitas direto em `notes`).
+- Cria `codex_links` (RLS; leitura direta só do mestre; sem escrita pela API) e `codex_node_visible`, `codex_links_for`, `codex_link`, `codex_unlink`, `codex_notification_feed` e `codex_capabilities`.
+- Visibilidade de uma ponta: registro do Compêndio com conhecimento 2 ou mais (o mestre vê todos), ou personagem publicado para a campanha ou do próprio usuário. O título devolvido de um personagem é o título público derivado pelo servidor (0008).
+- O feed conta todas as notificações autorizadas e devolve as 50 mais recentes; revogar o conhecimento retira o aviso.
+
+**Aplicação (pelo responsável, não executada):** confirmar o projeto 2.0 e o backup; executar só leitura de `supabase/preflight/0016_compendio_paginas_vinculos.sql` e anotar as contagens; aplicar o arquivo completo `supabase/migrations/0016_compendio_paginas_vinculos.sql` (já contém `BEGIN/COMMIT`); repetir as contagens; testar mestre, jogador e usuário de outra campanha; só então publicar o aplicativo. Reversão, com aprovação e junto da versão anterior do aplicativo: `supabase/rollback/0016_compendio_paginas_vinculos_down.sql`, que arquiva vínculos e campos antes de removê-los.
+
+SHA-256 do arquivo revisado: `2a6b162c8a5c602ddaa74aadf4270f6931767d6f6bc3a109c5420485e867f857` (fim de linha LF, como no repositório) ou `ad1346ecfa61248118b3c0f46da309926c55c03b5a26fbc92c7ad45facb46b09` (CRLF, como na cópia local no Windows). Calcular novamente se o SQL mudar.

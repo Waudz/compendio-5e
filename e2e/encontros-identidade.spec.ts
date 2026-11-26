@@ -73,7 +73,7 @@ test('cinco goblins: líder individual, envio 4+1 e reinserção ferida persiste
   await info.attach('cinco-goblins', { path: info.outputPath('cinco-goblins.png'), contentType: 'image/png' });
 });
 
-test('iniciativa permanece utilizável em três painéis e abre ficha completa', async ({ page }, info) => {
+test('iniciativa permanece utilizável com o painel dividido e abre ficha completa', async ({ page }, info) => {
   test.skip((page.viewportSize()?.width ?? 0) < 1024, 'Workspace dividido no desktop.');
   await page.goto('?demo=mestre&nuvem=1');
   await expect(page.getByRole('heading', { name: campaignName, exact: true })).toBeVisible();
@@ -81,13 +81,10 @@ test('iniciativa permanece utilizável em três painéis e abre ficha completa',
   await page.getByLabel('Buscar combatentes', { exact: true }).fill('goblin');
   await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
   await page.getByRole('button', { name: 'Recolher menu', exact: true }).click();
-  await page.getByRole('tab', { name: /^Iniciativa/ }).click({ button: 'right' });
-  await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
+  // a ficha abre no segundo grupo (o limite), sem encobrir a iniciativa
   await page.getByRole('button', { name: 'Abrir ficha completa de Goblin', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Goblin', exact: true })).toBeVisible();
-  await page.getByRole('tab', { name: /^Goblin/ }).click({ button: 'right' });
-  await page.getByRole('menuitem', { name: 'Abrir em nova coluna à direita', exact: true }).click();
-  await expect(page.getByRole('tabpanel')).toHaveCount(3);
+  await expect(page.getByRole('tabpanel')).toHaveCount(2);
   await expectFaixaGeometry(page); await expectTurnControls(page);
   const quantidade = page.getByLabel('Quantidade de dano ou cura de Goblin', { exact: true });
   await quantidade.fill('2'); await page.getByRole('button', { name: 'Causar dano a Goblin', exact: true }).click();
@@ -97,5 +94,5 @@ test('iniciativa permanece utilizável em três painéis e abre ficha completa',
   const bounds = await quantidade.boundingBox(); const painel = await quantidade.locator('xpath=ancestor::*[@role="tabpanel"]').boundingBox();
   expect(bounds).not.toBeNull(); expect(painel).not.toBeNull();
   expect(bounds!.x).toBeGreaterThanOrEqual(painel!.x); expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(painel!.x + painel!.width + 1);
-  await page.screenshot({ path: info.outputPath('tres-paineis.png') });
+  await page.screenshot({ path: info.outputPath('dois-paineis.png') });
 });

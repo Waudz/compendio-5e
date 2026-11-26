@@ -32,10 +32,13 @@ export type Conhecimento = {
   imageDefinitionId?: string;
   secret?: string;
   stats?: Record<string, unknown>;
+  fields?: Record<string,string>;
+  relatedTerms?:string[];
+  framing?: import("../imagem/enquadramento").Enquadramento;
 };
 export type EdicaoConhecimento = Omit<
   Conhecimento,
-  "id" | "version" | "imageDefinitionId"
+  "id" | "version" | "imageDefinitionId" | "relatedTerms"
 >;
 export type CodexAviso = {
   id: number;
@@ -44,7 +47,13 @@ export type CodexAviso = {
   read_at: string | null;
   created_at: string;
 };
+export type CodexLink={id:string;targetId:string;title:string;category:CodexCategoria|'character';relation:string};
+export type NotificationFeed={items:(CodexAviso&{title:string;category:CodexCategoria})[];unread:number;discoveries:number};
 export interface CodexApi {
+ links(cid:string,id:string):Promise<CodexLink[]>;
+ link(cid:string,source:string,target:string,relation:string):Promise<string>;
+ unlink(cid:string,id:string):Promise<void>;
+ feed(cid:string):Promise<NotificationFeed>;
   list(cid: string): Promise<Conhecimento[]>;
   save(
     cid: string,
@@ -80,19 +89,19 @@ export function validarImagemConhecimento(file: File): void {
 }
 export function createCodexApi(client: SupabaseClient): CodexApi {
   return {
+    links:async(cid,id)=>conferir(await client.rpc('codex_links_for',{p_campaign:cid,p_entry:id})) as CodexLink[],
+    link:async(cid,source,target,relation)=>conferir(await client.rpc('codex_link',{p_campaign:cid,p_source:source,p_target:target,p_relation:relation})) as string,
+    unlink:async(cid,id)=>{const r=await client.rpc('codex_unlink',{p_campaign:cid,p_link:id});if(r.error)throw Error(ERRO_CODEX);},
+    feed:async cid=>conferir(await client.rpc('codex_notification_feed',{p_campaign:cid})) as NotificationFeed,
     list: async (cid) =>
       conferir(
         await client.rpc("codex_list", { p_campaign: cid }),
       ) as Conhecimento[],
-    save: async (cid, id, version, data) =>
-      conferir(
-        await client.rpc("codex_save", {
-          p_campaign: cid,
-          p_entry: id,
-          p_version: version,
-          p_data: data,
-        }),
-      ) as string,
+    save: async (cid,id,version,data)=>{
+      const capability=conferir(await client.rpc('codex_capabilities'));
+      if(capability!==16)throw Error('Atualização do banco necessária: migração 0016. Nada foi gravado.');
+      return conferir(await client.rpc('codex_save',{p_campaign:cid,p_entry:id,p_version:version,p_data:data})) as string;
+    },
     remove: async (cid, id, version) => {
       const r = await client.rpc("codex_remove", {
         p_campaign: cid,
