@@ -44,8 +44,9 @@ export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   if (typeof id !== "string") return null;
   const i = id.indexOf(":");
   const kind = id.slice(0, i) as Kind, rawRef = id.slice(i + 1);
-  const match = /^(.+)~([2-9][0-9]*)$/.exec(rawRef);
+  const match = /^(.+)~([1-9][0-9]*)$/.exec(rawRef);
   const instance = match ? Number(match[2]) : undefined;
+  if(instance!==undefined&&(!Number.isSafeInteger(instance)||instance<2))return null;
   const ref = match ? match[1] : rawRef;
   if (i < 1 || !kinds.includes(kind) || !(kind === "regra" ? /^[\w-]{1,320}$/ : /^[\w-]{1,64}$/).test(ref)) return null;
   if (kind === "secao" && !knownSections.some(s => s.page === ref)) return null;

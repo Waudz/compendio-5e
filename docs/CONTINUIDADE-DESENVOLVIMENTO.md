@@ -800,3 +800,8 @@ botão do meio usava o menu lateral para voltar à lista, embora o menu abra/foc
 seção. Preparação ajustada para voltar da criação antes da consulta e retorno pela
 aba Itens já aberta. Permanecem as verificações de consulta preservada, foco e
 registro sem duplicação. Sem mudança no aplicativo nesta correção dos testes.
+
+Revisão de limite após o CI verde: a expressão de instâncias de aba rejeitava sufixos
+10–19 e 100–199. Corrigida para aceitar inteiros seguros a partir de 2; três testes
+novos provam a restauração de 10, 19 e 100. Isso preserva abas ao recarregar, sem
+alterar registros. A nova cabeça deve ter seu CI confirmado antes de publicar.
