@@ -57,10 +57,31 @@ test('edição única: nome longo, zoom e enquadramento persistem ao recarregar 
   const dialogo = page.getByRole('dialog', { name: 'Editar campanha' });
   for (const secao of ['Informações da campanha', 'Imagem e enquadramento', 'Participantes e convites']) await expect(dialogo.getByRole('region', { name: secao })).toBeVisible();
   await expect(dialogo.getByRole('button', { name: 'Criar convite' })).toBeAttached();
-  await dialogo.getByLabel('Zoom').fill('1.6'); await dialogo.getByLabel('Posição horizontal').fill('78'); await dialogo.getByLabel('Posição vertical').fill('22');
-  await foto(page, info, 'editar-campanha');
+  // o enquadramento abre no editor único de imagens, por cima da janela (precisa receber clique e teclado)
   await expect.poll(() => dialogo.evaluate(d => d.scrollWidth - d.clientWidth)).toBeLessThanOrEqual(1);
-  await dialogo.getByRole('button', { name: 'Salvar enquadramento' }).click();
+  await dialogo.getByRole('button', { name: 'Ajustar enquadramento', exact: true }).click();
+  const editor = page.getByRole('dialog', { name: 'Enquadrar capa da campanha', exact: true });
+  await expect(editor).toBeVisible();
+  await editor.getByRole('button', { name: 'Aproximar', exact: true }).click();
+  await editor.getByRole('slider', { name: 'Zoom da imagem' }).fill('1.6');
+  const quadro = editor.getByRole('application', { name: 'Posicionar a imagem' });
+  await quadro.focus();
+  for (const tecla of ['Shift+ArrowRight', 'Shift+ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'Shift+ArrowUp', 'Shift+ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp']) await page.keyboard.press(tecla);
+  await foto(page, info, 'editar-campanha');
+  await expect.poll(() => editor.evaluate(d => d.scrollWidth - d.clientWidth)).toBeLessThanOrEqual(1);
+  // o editor cabe na janela do aparelho
+  await expect.poll(() => editor.evaluate(d => { const r = d.getBoundingClientRect(); return r.left >= 0 && r.right <= window.innerWidth + 1; })).toBe(true);
+  // Escape cancela só o editor, sem fechar a janela de edição da campanha
+  await page.keyboard.press('Escape');
+  await expect(editor).toHaveCount(0);
+  await expect(dialogo).toBeVisible();
+  await dialogo.getByRole('button', { name: 'Ajustar enquadramento', exact: true }).click();
+  await editor.getByRole('slider', { name: 'Zoom da imagem' }).fill('1.6');
+  await quadro.focus();
+  for (const tecla of ['Shift+ArrowRight', 'Shift+ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'Shift+ArrowUp', 'Shift+ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp']) await page.keyboard.press(tecla);
+  await editor.getByRole('button', { name: 'Salvar enquadramento' }).click();
+  await expect(editor).toHaveCount(0);
+  await expect.poll(() => dialogo.evaluate(d => d.scrollWidth - d.clientWidth)).toBeLessThanOrEqual(1);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('demo:capa:enquadramento:v1'))).toBe('{"zoom":1.6,"x":78,"y":22}');
   await dialogo.getByLabel('Nome', { exact: true }).fill(NOME_LONGO);
   await dialogo.getByRole('button', { name: 'Salvar informações' }).click();

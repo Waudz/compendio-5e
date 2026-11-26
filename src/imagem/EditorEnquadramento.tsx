@@ -25,6 +25,9 @@ export function EditorEnquadramento({ titulo, src, inicial = ENQUADRAMENTO_PADRA
   const quadro = useRef<HTMLDivElement>(null), caixa = useRef<HTMLDivElement>(null);
   const toques = useRef(new Map<number, { x: number; y: number }>());
   const atual = useRef(enq); atual.current = enq;
+  // Aberto de dentro de uma janela modal (`<dialog>` com showModal, como "Editar campanha"), o popup precisa ficar DENTRO dela: fora, o
+  // navegador o desenha atrás e o deixa inerte (sem clique nem teclado).
+  const [destino] = useState<HTMLElement>(() => [...document.querySelectorAll<HTMLElement>("dialog[open]")].pop() ?? document.body);
   const natRef = useRef(natural); natRef.current = natural;
 
   // foco: entra no quadro e volta para quem abriu
@@ -67,7 +70,7 @@ export function EditorEnquadramento({ titulo, src, inicial = ENQUADRAMENTO_PADRA
   };
   /** Escape cancela; Tab fica dentro do popup. */
   const teclaDaCaixa = (ev: React.KeyboardEvent) => {
-    if (ev.key === "Escape") { ev.stopPropagation(); if (!ocupado) onCancelar(); return; }
+    if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); if (!ocupado) onCancelar(); return; }   // sem preventDefault, o Escape fecharia também a janela de baixo
     if (ev.key !== "Tab" || !caixa.current) return;
     const focaveis = [...caixa.current.querySelectorAll<HTMLElement>("button:not(:disabled), input, [tabindex='0']")];
     const primeiro = focaveis[0], ultimo = focaveis[focaveis.length - 1];
@@ -102,5 +105,5 @@ export function EditorEnquadramento({ titulo, src, inicial = ENQUADRAMENTO_PADRA
         <button type="button" className="btn-primary" onClick={() => onConfirmar(enq)} disabled={ocupado || falhou}>{ocupado ? "Salvando…" : confirmar}</button>
       </div>
     </div>
-  </div>, document.body);
+  </div>, destino);
 }

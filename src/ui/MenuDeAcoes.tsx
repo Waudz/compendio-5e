@@ -18,6 +18,9 @@ export function MenuDeAcoes({ rotulo, acoes }: { rotulo: string; acoes: AcaoDeMe
       // abre para o lado em que cabe: nunca fica cortado pela borda do painel
       const caixa = el.getBoundingClientRect(), painel = (el.closest(".content") ?? document.documentElement).getBoundingClientRect();
       if (caixa.width && caixa.left < painel.left) { el.style.right = "auto"; el.style.left = "0"; }
+      // perto do fim da tela (no celular, atrás da barra inferior), abre para cima quando lá houver espaço
+      const fundo = window.innerHeight - (window.matchMedia?.("(max-width:700px)").matches ? 70 : 0), topo = gatilho.current?.getBoundingClientRect().top ?? 0;
+      if (caixa.height && caixa.bottom > fundo && topo - caixa.height - 60 > 0) { el.style.top = "auto"; el.style.bottom = "calc(100% + 4px)"; }
     }} className="menu-acoes-lista" role="menu" aria-label={rotulo}>
       {acoes.map(a => <button key={a.rotulo} type="button" role="menuitem" className={a.perigo ? "perigo" : ""} disabled={a.desabilitada} title={a.desabilitada ? a.motivo : undefined}
         onClick={() => { setAberto(false); a.acao(); }}><a.icone size={14} aria-hidden="true"/> {a.rotulo}</button>)}

@@ -135,7 +135,8 @@ test('teclado: identidade em ordem e etapas ativadas sem mouse', async ({ page }
   await expect(page.getByLabel('Arquivo do retrato')).toBeFocused();   // o envio de retrato funciona sem mouse
   await page.keyboard.press('Tab');
   await expect(page.locator('.campo-retrato summary')).toBeFocused();
-  if (!isMobile(page) && await etapasNav(page).getByRole('combobox').isHidden()) {
+  // a navegação das etapas se adapta à largura do PAINEL (não da janela): a 700 px o celular já mostra a coluna de etapas
+  if (await etapasNav(page).getByRole('combobox').isHidden()) {
     await keyboardActivate(page, etapasNav(page).getByRole('button', { name: /^Raça/ }));
     await keyboardActivate(page, page.getByRole('radio', { name: /^Humano/ }));
     await expect(page.getByRole('radio', { name: /^Humano/ })).toHaveAttribute('aria-checked', 'true');

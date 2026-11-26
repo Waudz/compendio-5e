@@ -103,3 +103,7 @@
   .sistema-dnd .dnd-nome-longo { display: none; }
   .sistema-dnd .dnd-nome-curto { display: inline; }
 }
+/* painel de celular estreito: "Deslocamento" cabe sem quebrar no meio da palavra */
+@container (max-width: 340px) {
+  .sistema-dnd .dnd-indicador > span:first-child { font-size: 9.5px; letter-spacing: 0; }
+}

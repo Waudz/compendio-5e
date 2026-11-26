@@ -24,7 +24,12 @@ export function fichasDemo(uid: string, campaignId: string, registros: { ler: ()
     const executar = async () => {
       const b = banco(), antes = JSON.stringify([b.fichas, b.registros.dados]);
       const r = await fn(fichasEmMemoria(uid, b));
-      if (JSON.stringify([b.fichas, b.registros.dados]) !== antes) { localStorage.setItem(CHAVE, JSON.stringify({ fichas: b.fichas })); notas.dados = b.registros.dados; }
+      if (JSON.stringify([b.fichas, b.registros.dados]) !== antes) {
+        localStorage.setItem(CHAVE, JSON.stringify({ fichas: b.fichas })); notas.dados = b.registros.dados;
+        // no Chrome, o localStorage chega às outras abas (outros processos) com um pequeno atraso: a trava só é solta depois disso,
+        // senão a próxima aba leria o valor antigo e uma operação se perderia (no banco real, o bloqueio de linha resolve isso)
+        await new Promise(r => setTimeout(r, 120));
+      }
       return r;
     };
     return navigator.locks ? (await navigator.locks.request(CHAVE, executar)) as T : executar();
