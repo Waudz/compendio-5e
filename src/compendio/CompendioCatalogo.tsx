@@ -46,8 +46,8 @@ function useIndice(cat: Qualquer): { estado: Estado; tentar: () => void } {
   return { estado, tentar: () => setTentativa(n => n + 1) };
 }
 
-export function CompendioCatalogo({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
-  const [catId, setCatId] = useState(categorias[0].id);
+export function CompendioCatalogo({ onOpenContent, categoriaInicial, onVoltar }: { onOpenContent: (s: TabSpec) => void; categoriaInicial?: string; onVoltar?: () => void }) {
+  const [catId, setCatId] = useState(categoriaInicial ?? categorias[0].id);
   const cat = categorias.find(c => c.id === catId) ?? categorias[0];
   const { estado, tentar } = useIndice(cat);
   const [texto, setTexto] = useState(""), [filtros, setFiltros] = useState<Record<string, string | boolean>>({}), [ordenar, setOrdenar] = useState("");
@@ -73,6 +73,7 @@ export function CompendioCatalogo({ onOpenContent }: { onOpenContent: (s: TabSpe
   return <div className={`content compendio cat${itemAberto ? " com-detalhe" : ""}`}>
     <div className="eyebrow">COMPÊNDIO 5e · {sistemaDnd5e2014.fonte.titulo.toLocaleUpperCase("pt-BR")}</div>
     <h1>Compêndio</h1>
+    {onVoltar && <button type="button" className="btn-secondary" onClick={onVoltar}><ArrowLeft size={16}/> Voltar às categorias</button>}
     <div className="cat-categorias" role="group" aria-label="Categorias do Compêndio">
       {categorias.map(c => <button key={c.id} type="button" aria-pressed={c.id === cat.id} className={c.id === cat.id ? "active" : ""} onClick={() => trocarCategoria(c.id)}>{c.rotulo}</button>)}
     </div>
