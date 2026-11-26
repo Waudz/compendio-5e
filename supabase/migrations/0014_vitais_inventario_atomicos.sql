@@ -229,6 +229,17 @@ begin
   if p_operacao::text = any (s.operacoes) then return private_ficha.resultado_item(s); end if;
   d := s.draft; item := private_ficha.item_de(d, p_instancia);
   if item is null then raise exception 'item_inexistente' using errcode = 'P0002'; end if;
+  -- Mesmas categorias e fórmulas do catálogo SRD 2014 e de podeUsar na interface.
+  case item ->> 'itemId'
+    when 'potion-of-healing-common' then if p_cura is null or p_cura not between 4 and 10 then raise exception 'operacao_invalida' using errcode = '23514'; end if;
+    when 'potion-of-healing-greater' then if p_cura is null or p_cura not between 8 and 20 then raise exception 'operacao_invalida' using errcode = '23514'; end if;
+    when 'potion-of-healing-superior' then if p_cura is null or p_cura not between 16 and 40 then raise exception 'operacao_invalida' using errcode = '23514'; end if;
+    when 'potion-of-healing-supreme' then if p_cura is null or p_cura not between 30 and 60 then raise exception 'operacao_invalida' using errcode = '23514'; end if;
+    else
+      if (item ->> 'itemId') is null or (item ->> 'itemId') not in ('acid-vial', 'alchemists-fire-flask', 'antitoxin-vial', 'block-of-incense', 'candle', 'chalk-1-piece', 'holy-water-flask', 'oil-flask', 'oil-of-etherealness', 'oil-of-sharpness', 'oil-of-slipperiness', 'paper-one-sheet', 'parchment-one-sheet', 'perfume-vial', 'philter-of-love', 'poison-basic-vial', 'potion-of-animal-friendship', 'potion-of-clairvoyance', 'potion-of-climbing', 'potion-of-diminution', 'potion-of-flying', 'potion-of-gaseous-form', 'potion-of-giant-strength-cloud', 'potion-of-giant-strength-fire', 'potion-of-giant-strength-frost', 'potion-of-giant-strength-hill', 'potion-of-giant-strength-stone', 'potion-of-giant-strength-storm', 'potion-of-growth', 'potion-of-heroism', 'potion-of-invisibility', 'potion-of-mind-reading', 'potion-of-poison', 'potion-of-resistance-acid', 'potion-of-resistance-cold', 'potion-of-resistance-fire', 'potion-of-resistance-force', 'potion-of-resistance-lightning', 'potion-of-resistance-necrotic', 'potion-of-resistance-poison', 'potion-of-resistance-psychic', 'potion-of-resistance-radiant', 'potion-of-resistance-thunder', 'potion-of-speed', 'potion-of-water-breathing', 'rations-1-day', 'sealing-wax', 'soap', 'spell-scroll-1st', 'spell-scroll-2nd', 'spell-scroll-3rd', 'spell-scroll-4th', 'spell-scroll-5th', 'spell-scroll-6th', 'spell-scroll-7th', 'spell-scroll-8th', 'spell-scroll-9th', 'spell-scroll-cantrip', 'torch') or p_cura is distinct from 0 then
+        raise exception 'operacao_invalida' using errcode = '23514';
+      end if;
+  end case;
   qtd := (item ->> 'quantity')::integer;
   p_maximo := least(p_maximo, private_ficha.teto_pv(s.draft));
   d := private_ficha.trocar_item(d, p_instancia, case when qtd > 1 then item || jsonb_build_object('quantity', qtd - 1) end);

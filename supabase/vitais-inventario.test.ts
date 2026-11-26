@@ -147,7 +147,8 @@ describe("teto de PV no servidor", () => {
     expect(estado(await vital(U.bia, id, { tipo: "ajustar", valor: 500, maximo: 999999 })).pv).toBe(90);
     expect(estado(await vital(U.bia, id, { tipo: "descanso", maximo: 999999 })).pv).toBe(90);
     estado(await vital(U.bia, id, { tipo: "dano", valor: 80 }));
-    expect(estado(await usar(U.bia, id, "p", 1000000, 1000000)).pv).toBe(90);
+    expect((await usar(U.bia, id, "p", 1000000, 1000000)).error).toMatch(/operacao_invalida/);
+    expect(estado(await usar(U.bia, id, "p", 10, 1000000)).pv).toBe(20);
     const exagerado = await criar(U.bia, { level: 1, currentHp: 100000 });
     expect((await ler(exagerado)).draft.currentHp).toBe(30);
     const semNivel = await criar(U.bia, { level: "20" });
@@ -164,15 +165,24 @@ describe("consumo atômico", () => {
     expect(r.draft!.inventory).toEqual([item("p", "potion-of-healing-common", 1)]);
     expect(r.draft!.play!.historico![0]).toMatchObject({ texto: "Usou {item}: +7 PV", itemId: "potion-of-healing-common" });
     expect(estado(await usar(U.bia, id, "p", 7, 24, op)).pv).toBe(12);
-    expect(estado(await usar(U.ana, id, "p", 100, 24)).pv).toBe(24);
+    expect(estado(await usar(U.ana, id, "p", 10, 24)).pv).toBe(22);
     expect((await ler(id)).draft.inventory).toEqual([]);
     expect((await usar(U.bia, id, "p", 7, 24)).error).toMatch(/item_inexistente/);
     expect((await usar(U.caio, id, "p", 7, 24)).error).toMatch(/ficha_nao_encontrada/);
   });
+  it("recusa item não consumível, cura fora da fórmula e cura em consumível sem efeito, sem alterar a ficha", async () => {
+    const id = await criar(U.bia, { currentHp: 5, inventory: [item("p", "potion-of-healing-common", 2), item("a", "arrow", 2), item("t", "torch", 2)] });
+    const antes = await ler(id);
+    for (const [inst, cura] of [["p", 3], ["p", 11], ["p", 0], ["a", 0], ["a", 7], ["t", 7]] as const) {
+      expect((await usar(U.bia, id, inst, cura, 24)).error).toMatch(/operacao_invalida/);
+      expect(await ler(id)).toEqual(antes);
+    }
+    expect(estado(await usar(U.bia, id, "t", 0, 24)).pv).toBe(5);
+  });
   it("uma gravação antiga depois do consumo é recusada (o item não volta)", async () => {
     const id = await criar(U.bia, { inventory: [item("p", "potion-of-healing-common", 1)] });
     const antiga = await ler(id);
-    estado(await usar(U.bia, id, "p", 0, 24));
+    estado(await usar(U.bia, id, "p", 4, 24));
     expect((await salvar(U.bia, id, antiga.revision, antiga.draft)).error).toMatch(/conflito_de_revisao/);
   });
 });
