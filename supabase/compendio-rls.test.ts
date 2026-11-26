@@ -368,6 +368,11 @@ describe("0017 sobre dados existentes", () => {
       expect(by(npc)!.fields).toEqual({ occupation: "Ferreiro", residence: "Porto" });
       const all = (await call(master, "codex_list", camp)).rows[0].r as Row[];
       expect(all.find((x) => x.id === secretPlace)!.fields).toEqual({ inhabitants: "Dois habitantes" });
+      // sincronizar a ficha de um registro já publicado por completo não gera aviso
+      const antes = (await db.query<Row>("select count(*)::int n from public.codex_notifications")).rows[0].n;
+      const full = all.find((x) => x.id === levels[4]) as Row & { version: number; revealed: string[] };
+      expect((await as(master, "select public.codex_reveal($1,$2,$3,true,$4,'{}'::jsonb,$5::jsonb)", [camp, levels[4], full.version, full.revealed, JSON.stringify([{ k: "ac", l: "CA", v: "15" }])])).error).toBeUndefined();
+      expect((await db.query<Row>("select count(*)::int n from public.codex_notifications")).rows[0].n).toBe(antes);
       expect(((await call(player, "codex_links_for", camp, npc)).rows[0].r as Row[]).map((x) => x.relation)).toEqual(["Aliado"]);
       await db.exec(readFileSync(join(__dirname, "rollback", "0017_compendio_conhecimento_granular_down.sql"), "utf8"));
       expect((await call(player, "codex_capabilities")).rows[0].r).toBe(16);

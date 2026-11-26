@@ -65,7 +65,7 @@ export function useDefinicoes() {
     return () => { vivo = false; };
   }, [api, cid, versao]);
   const atual = cid && state?.cid === cid ? state : undefined;
-  return { lista: atual?.lista ?? VAZIO, carregando: !!api && !!cid && !atual, indisponivel: !!atual?.erro };
+  return { lista: atual?.lista ?? VAZIO, carregando: !!api?.definitions && !!cid && !atual, indisponivel: !!atual?.erro };
 }
 
 export function useDefinicao(category: string, id: string | undefined, systemId = 'dnd5e-2014'): Definicao | undefined {

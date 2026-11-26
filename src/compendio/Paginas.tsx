@@ -14,7 +14,7 @@ import {EditorConhecimento} from './RegistrosCampanha';
 import {VisaoRegistro} from './VisaoRegistro';
 import {ListaVinculos,NovoVinculoBotao,useVinculos,type ControlesVinculo} from './Vinculos';
 import {alternarChaves,presetBestiario,todasAsChaves,PRESETS_BESTIARIO} from './chaves';
-import {secoesDaDefinicao,useDefinicao} from './definicoes';
+import {secoesDaDefinicao,useDefinicao,useDefinicoes} from './definicoes';
 import {mesmasSecoes} from './ficha';
 import {useLinhasCampanha,useIdentidades} from './consulta';
 import {lerRegra,monstroSpec} from './navegacao';
@@ -26,7 +26,7 @@ import {Detalhe} from './CompendioCatalogo';
 export function VoltarCompendio({onOpenContent,label='Compêndio'}:{onOpenContent:(s:TabSpec)=>void;label?:string}){const back=useContext(VoltarPaginaContext);return <button className="cd-back" onClick={()=>back?back():onOpenContent({kind:'secao',ref:'compendio'})}><ArrowLeft size={16}/> {label}</button>;}
 /** Vínculos de um aventureiro: a divulgação é feita pela ponta que é registro do Compêndio. */
 export function RelacoesRegistro({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
- const vinculos=useVinculos(id),{active}=useCampaigns(),acoes=useDivulgacao(vinculos);
+ const dados=useLinhasCampanha(),vinculos=useVinculos(id,dados),{active}=useCampaigns(),acoes=useDivulgacao(vinculos);
  const master=active?.role==='mestre';
  if(!master&&!vinculos.links.length&&!vinculos.error)return null;
  return <section className="cd-relations" aria-label="Registros relacionados"><h2>Registros relacionados</h2>{(vinculos.error||acoes.error)&&<Aviso erro t={vinculos.error??acoes.error!}/>}{!vinculos.error&&vinculos.loaded&&!vinculos.links.length&&<p className="muted">Nenhum registro relacionado.</p>}
@@ -46,13 +46,13 @@ function useDivulgacao(vinculos:ReturnType<typeof useVinculos>){
 }
 export function RegistroCompendioPagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
  const data=useLinhasCampanha(),{active}=useCampaigns(),[edit,setEdit]=useState(false),[error,setError]=useState(''),[asPlayer,setAsPlayer]=useState(false);
- const vinculos=useVinculos(id),acoes=useDivulgacao(vinculos);
+ const vinculos=useVinculos(id,data),acoes=useDivulgacao(vinculos),semDefinicoes=useDefinicoes().indisponivel;
  const row=data.rows.find(r=>r.entry?.id===id),entry=row?.entry;
  const master=active?.role==='mestre';
  useEffect(()=>{if(entry)registrarTitulo(id,entry.title);},[id,entry?.title]);
  // A ficha enviada ao servidor acompanha a definição atual; divergências são regravadas na próxima divulgação.
  const definicao=useDefinicao(entry?.category??'',master?entry?.definitionId:undefined,entry?.systemId);
- const secoes=useMemo(()=>definicao?secoesDaDefinicao(definicao):undefined,[definicao]);
+ const secoes=useMemo(()=>definicao&&!semDefinicoes?secoesDaDefinicao(definicao):undefined,[definicao,semDefinicoes]);
  const desatualizada=!!secoes&&!!entry&&!mesmasSecoes(secoes,entry.sheet);
  const tentativa=useRef('');
  useEffect(()=>{const chave=`${id}:${entry?.version}`;if(master&&entry&&desatualizada&&tentativa.current!==chave){tentativa.current=chave;acoes.revelar(entry,{sheet:secoes});}},[master,desatualizada,entry?.version]);

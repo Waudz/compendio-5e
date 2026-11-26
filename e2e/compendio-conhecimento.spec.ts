@@ -98,12 +98,23 @@ test("Compêndio: mestre cria local e revela somente a descrição autorizada ao
   await editor
     .getByRole("textbox", { name: "Notas privadas do mestre", exact: true })
     .fill("SEGREDO NÃO PUBLICÁVEL");
-  await editor
-    .getByRole("combobox", { name: "Conhecimento", exact: true })
-    .selectOption("4");
   await editor.getByRole("button", { name: "Salvar", exact: true }).click();
   await expect(editor).toBeHidden();
   await expect(page.getByRole("heading", { name: "Porto E2E", exact: true })).toBeVisible();
+  // nasce secreto; a prévia confirma; "Revelar tudo" publica sem as notas privadas
+  const share = page.getByRole("region", { name: "Visibilidade para os jogadores" });
+  await expect(share).toContainText("Registro secreto");
+  await share.getByRole("button", { name: "Revelar tudo", exact: true }).click();
+  await expect(share).toContainText("Publicado");
+  await share.getByRole("button", { name: "Ver como jogador", exact: true }).click();
+  const preview = page.getByRole("region", { name: "Prévia do jogador" });
+  await expect(preview).toContainText("Um porto autorizado.");
+  await expect(preview).not.toContainText("SEGREDO NÃO PUBLICÁVEL");
+  await share.getByRole("button", { name: "Voltar à visão do mestre", exact: true }).click();
+  await expectNoHorizontalOverflow(page);
+  const masterAxe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+  expect(masterAxe.violations).toEqual([]);
+  await info.attach("conhecimento-mestre", { body: await page.screenshot({ path: info.outputPath("mestre.png") }), contentType: "image/png" });
   await openDemo(page, "jogador");
   await navigate(page, "Compêndio");
   await area(page, "Campanha");

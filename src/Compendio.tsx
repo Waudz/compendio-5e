@@ -224,7 +224,7 @@ export function ItemPagina({
   const { active } = useCampaigns(),
     { items, loading, error } = useConhecimento();
   const definicoes = useDefinicoes();
-  const definicao = useDefinicao("item", id.startsWith("monstro:") ? undefined : id);
+  const definicao = useDefinicao("item", unavailable || id.startsWith("monstro:") ? undefined : id);
   useEffect(() => { if (definicao?.campanha) registrarTitulo(id, definicao.nome); }, [id, definicao?.nome]);
   if (unavailable) return unavailable;
   if (active?.role !== "mestre") {

@@ -10,7 +10,7 @@ import { useCampaigns } from "../CampaignsContext";
 import { Aviso } from "../Diario";
 import { paraBlocos, deBlocos } from "../registros";
 import { RetratoQuadrado } from "../RetratoCombate";
-import { carregarDefinicao, secoesDaDefinicao, useDefinicao } from "./definicoes";
+import { carregarDefinicao, secoesDaDefinicao, useDefinicao, useDefinicoes } from "./definicoes";
 import { registroSpec } from "./navegacao";
 import type { TabSpec } from "../workspace";
 import {
@@ -65,7 +65,8 @@ export async function garantirRegistro(api: CodexApi, campaignId: string, items:
     if (registered && entry.registered === false) await api.save(campaignId, entry.id, entry.version, { ...edicaoDe(entry), registered: true });
     return entry.id;
   }
-  const daMesa = (await api.definitions?.(campaignId).catch(() => [])) ?? [];
+  // Falha aqui interrompe: sem as definições da campanha, a página poderia nascer com o conteúdo original.
+  const daMesa = (await api.definitions?.(campaignId)) ?? [];
   const definition = await carregarDefinicao(category, definitionId, daMesa);
   if (!definition) throw Error("Definição não encontrada nesta campanha.");
   return api.save(campaignId, null, 0, {
@@ -113,7 +114,8 @@ export function EditorConhecimento({
 }) {
   const { active } = useCampaigns(),
     api = useCodexApi();
-  const definition = useDefinicao(category, entry?.definitionId, entry?.systemId);
+  const carregada = useDefinicao(category, entry?.definitionId, entry?.systemId), semDefinicoes = useDefinicoes().indisponivel;
+  const definition = semDefinicoes ? undefined : carregada;
   const [title, setTitle] = useState(entry?.title ?? ""),
     [text, setText] = useState(deBlocos(entry?.description ?? [])),
     [secret, setSecret] = useState(entry?.secret ?? "");

@@ -12,7 +12,7 @@ import { ImagemLinha } from './ComponentesCategoria';
 import { SeletorRegistro } from './SeletorRegistro';
 import { garantirRegistro } from './RegistrosCampanha';
 import { aplicarDaCampanha, useDefinicoes, type LinhaDefinicao } from './definicoes';
-import { nomesCategoria, useLinhasCampanha, type LinhaCompendio } from './consulta';
+import { nomesCategoria, type useLinhasCampanha, type LinhaCompendio } from './consulta';
 import { identidadeSpec, registroSpec } from './navegacao';
 import { agruparVinculos, montarRelacao, OPCOES_RELACAO, PERSONALIZADA } from './relacoes';
 import type { TabSpec } from '../workspace';
@@ -27,8 +27,8 @@ export function linhasDoCatalogo(rows: readonly LinhaCompendio[], daMesa: readon
   }));
 }
 
-export function useVinculos(id: string) {
-  const { active } = useCampaigns(), data = useLinhasCampanha();
+export function useVinculos(id: string, data: ReturnType<typeof useLinhasCampanha>) {
+  const { active } = useCampaigns();
   const [state, setState] = useState<{ scope: string; items: CodexLink[]; error?: string }>(), [revision, setRevision] = useState(0);
   const scope = `${active?.campaign.id}:${active?.role}:${id}`;
   useEffect(() => {

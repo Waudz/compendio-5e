@@ -1,4 +1,5 @@
 import {tituloDe,useVersaoRegistros} from "./registrosStore";
+import { useConhecimento } from "./compendio/conhecimento";
 import { VoltarPaginaContext } from "./voltarPagina";
 import { SinoNotificacoes } from "./compendio/Notificacoes";
 import { EVENTO_TELA } from "./chromeHide";
@@ -76,7 +77,9 @@ export function Mobile(_props: Props) {
   const scroll = useRef<HTMLDivElement>(null);
   const positions = useRef(new Map<string, number>());
   useVersaoRegistros();
-  const pageTitle=["documento","ficha","criador"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
+  const conhecidos=useConhecimento().items;
+  // Título de registro vem somente da projeção autorizada, nunca de um nome guardado em memória.
+  const pageTitle=screen.kind==="registro"?conhecidos.find(x=>x.id===screen.ref)?.title??"Registro":["documento","ficha","criador"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
   const current = tabId(screen);
   const currentRef=useRef(current);currentRef.current=current;
   const menuRef=useRef(menuOpen);menuRef.current=menuOpen;

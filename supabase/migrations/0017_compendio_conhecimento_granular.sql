@@ -29,6 +29,7 @@ alter table public.codex_links
  add column revealed boolean not null default false;
 update public.codex_links l set inverse=l.relation,
  revealed = not exists(select 1 from public.campaign_codex c where c.id in (l.source_id,l.target_id) and c.knowledge<2);
+update public.campaign_codex c set announced=c.announced || array(select 'link:'||l.id::text from public.codex_links l where l.revealed and c.id in (l.source_id,l.target_id)) where c.visible;
 drop index public.codex_links_pair;
 create unique index codex_links_pair on public.codex_links
  (campaign_id,least(source_id,target_id),greatest(source_id,target_id),kind,(case when kind='custom' then lower(least(relation,inverse)) else '' end));
@@ -205,7 +206,9 @@ begin
       (k='name') or (k='description' and coalesce(n.content,'[]'::jsonb) not in ('[]'::jsonb,'[{"type":"paragraph","content":[]}]'::jsonb))
       or (k='image' and (c.image_path is not null or c.definition_id is not null))
       or nullif(btrim(n.meta#>>array['codex',k]),'') is not null)
-  || array(select 'sheet:'||(s->>'k') from jsonb_array_elements(case when jsonb_typeof(n.meta->'sheet')='array' then n.meta->'sheet' else '[]'::jsonb end) s where 'sheet'=any(c.revealed) or ('sheet:'||(s->>'k'))=any(c.revealed))
+  -- A ficha inteira é um marcador único: sincronizar a definição (inclusive em registros migrados) não gera aviso repetido.
+  || array(select distinct case when 'sheet'=any(c.revealed) then 'sheet' else 'sheet:'||(s->>'k') end from jsonb_array_elements(case when jsonb_typeof(n.meta->'sheet')='array' then n.meta->'sheet' else '[]'::jsonb end) s
+      where 'sheet'=any(c.revealed) or (('sheet:'||(s->>'k'))=any(c.revealed) and not 'sheet'=any(c.announced)))
   || array(select 'link:'||(x->>'id') from jsonb_array_elements(public.codex_links_projection(c.campaign_id,c.id,true)) x);
  if keys <@ c.announced then return; end if;
  fresh:=not 'exists'=any(c.announced);

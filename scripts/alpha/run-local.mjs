@@ -52,35 +52,54 @@ try {
     const promote = await api('/rest/v1/rpc/set_member_role', {token: p, method: 'POST', body: {p_campaign_id: a, p_user_id: player.user.id, p_role: 'mestre'}});
     assert.equal(promote.ok, false);
   });
-  await check('codex: REST/JWT projection, mutation denial, private notes and notifications', async () => {
-    const data = {category:'monster',systemId:'dnd5e-2014',definitionId:'goblin',title:'Goblin de teste',knowledge:1,
-      description:[{type:'paragraph',content:[{type:'text',text:'Texto autorizado'}]}],secret:'DO NOT PROJECT',stats:{ca:15,pv:7}};
+  const codexVersion = async (id) => (await rpc('codex_list',m,{p_campaign:a})).find(x=>x.id===id).version;
+  const reveal = async (id, revealed, visible = true, links = {}) =>
+    api('/rest/v1/rpc/codex_reveal',{token:m,method:'POST',body:{p_campaign:a,p_entry:id,p_version:await codexVersion(id),p_visible:visible,p_revealed:revealed,p_links:links}});
+  await check('codex: REST/JWT field projection, links, mutation denial, private notes and notifications', async () => {
+    const data = {category:'monster',systemId:'dnd5e-2014',definitionId:'goblin',title:'Goblin de teste',
+      description:[{type:'paragraph',content:[{type:'text',text:'Texto autorizado'}]}],secret:'DO NOT PROJECT',fields:{nickname:'Alcunha'},
+      sheet:[{k:'ac',l:'CA',v:'15'},{k:'vulnerabilities',l:'Vulnerabilidades',v:'fogo'}]};
     const id = await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:data});
     const list=()=>rpc('codex_list',p,{p_campaign:a});
+    assert.equal((await list()).some(x=>x.id===id),false);
+    assert.equal((await reveal(id,['nickname','sheet:vulnerabilities'])).ok,true);
     let projection=(await list()).find(x=>x.id===id);
-    assert.equal(projection.title,data.title);assert.equal('secret' in projection,false);assert.equal('stats' in projection,false);assert.equal('description' in projection,false);
+    assert.equal(projection.title,'Alcunha');assert.deepEqual(projection.sheet,[data.sheet[1]]);
+    for(const key of ['secret','description','definitionId','revealed','imagePath'])assert.equal(key in projection,false,key);
+    assert.equal(JSON.stringify(projection).includes('Goblin'),false);
     assert.deepEqual(await ok(`/rest/v1/notes?id=eq.${id}`,{token:p}),[]);
     assert.deepEqual(await ok(`/rest/v1/campaign_codex?id=eq.${id}`,{token:p}),[]);
+    const other = await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:{category:'location',title:'Local secreto'}});
+    const link = await rpc('codex_link',m,{p_campaign:a,p_source:id,p_target:other,p_kind:'located',p_relation:'Localizado em',p_inverse:'Contém',p_revealed:false});
+    assert.equal((await reveal(other,['name'])).ok,true);
+    assert.deepEqual(await rpc('codex_links_for',p,{p_campaign:a,p_entry:id}),[]);
+    assert.deepEqual(await rpc('codex_links_for',p,{p_campaign:a,p_entry:other}),[]);
+    assert.deepEqual(await ok('/rest/v1/codex_links?select=id',{token:p}),[]);
+    assert.equal((await reveal(id,['nickname'],true,{[link]:true})).ok,true);
+    assert.equal((await rpc('codex_links_for',p,{p_campaign:a,p_entry:other}))[0].relation,'Contém');
     for(const token of [p,o]) {
-      assert.equal((await api('/rest/v1/rpc/codex_save',{token,method:'POST',body:{p_campaign:a,p_entry:id,p_version:1,p_data:{...data,knowledge:4}}})).ok,false);
-      assert.equal((await api('/rest/v1/rpc/codex_remove',{token,method:'POST',body:{p_campaign:a,p_entry:id,p_version:1}})).ok,false);
+      for (const [fn, body] of [['codex_save',{p_campaign:a,p_entry:id,p_version:1,p_data:data}],['codex_reveal',{p_campaign:a,p_entry:id,p_version:1,p_visible:true,p_revealed:['name']}],['codex_preview',{p_campaign:a,p_entry:id}],['codex_remove',{p_campaign:a,p_entry:id,p_version:1}],['codex_definition_save',{p_campaign:a,p_kind:'item',p_definition_id:'club',p_version:0,p_base_id:null,p_data:{definition:{id:'club',nome:'x'}},p_sheet:[]}]])
+        assert.equal((await api('/rest/v1/rpc/'+fn,{token,method:'POST',body})).ok,false,fn);
     }
     assert.equal((await api('/rest/v1/rpc/codex_list',{token:o,method:'POST',body:{p_campaign:a}})).ok,false);
     assert.equal((await api('/rest/v1/rpc/codex_list',{method:'POST',body:{p_campaign:a}})).ok,false);
-    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:1,p_data:{...data,title:'Texto corrigido'}});
-    const notices=await ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:p});assert.equal(notices.length,1);
-    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:2,p_data:{...data,knowledge:4}});
-    projection=(await list()).find(x=>x.id===id);assert.equal(projection.stats.ca,15);assert.equal('secret' in projection,false);
+    const notices=()=>ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:p});
+    const before=(await notices()).length;
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:await codexVersion(id),p_data:{...data,title:'Texto corrigido'}});
+    assert.equal((await notices()).length,before);
     const secondSession=await ok('/auth/v1/token?grant_type=password',{method:'POST',body:{email:player.email,password}});
     assert.deepEqual(await rpc('codex_list',secondSession.access_token,{p_campaign:a}),await list());
     assert.equal((await api('/rest/v1/rpc/codex_save',{token:m,method:'POST',body:{p_campaign:a,p_entry:id,p_version:2,p_data:data}})).ok,false);
     assert.equal((await api(`/rest/v1/notes?id=eq.${id}`,{token:m,method:'PATCH',body:{visibility:'campaign'}})).ok,false);
-    await rpc('codex_remove',m,{p_campaign:a,p_entry:id,p_version:3});
+    await rpc('codex_definition_save',m,{p_campaign:a,p_kind:'item',p_definition_id:'club',p_version:0,p_base_id:null,p_data:{definition:{id:'club',nome:'Clava da mesa'}},p_sheet:[]});
+    assert.equal((await ok(`/rest/v1/campaign_definitions?campaign_id=eq.${a}`,{token:m})).length,1);
+    for(const token of [p,o]) assert.deepEqual(await ok(`/rest/v1/campaign_definitions?campaign_id=eq.${a}`,{token}),[]);
+    await rpc('codex_remove',m,{p_campaign:a,p_entry:id,p_version:await codexVersion(id)});
     assert.equal((await list()).some(x=>x.id===id),false);
-    assert.deepEqual(await ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:p}),[]);
+    assert.deepEqual(await notices(),[]);
   });
   await check('codex Storage: real upload, replacement, read boundary and denied writes',async()=>{
-    const data={category:'monster',systemId:'dnd5e-2014',definitionId:'storage-test',title:'Storage isolado',knowledge:2};
+    const data={category:'monster',systemId:'dnd5e-2014',definitionId:'storage-test',title:'Storage isolado'};
     const id=await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:data});
     const path=`${a}/${id}/${randomUUID()}`,next=`${a}/${id}/${randomUUID()}`;
     const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==','base64');
@@ -90,21 +109,22 @@ try {
     }
     assert.equal((await object(path,m,'POST')).ok,true);
     await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:1,p_data:{...data,imagePath:path}});
+    assert.equal((await reveal(id,['name'])).ok,true);
     assert.equal((await object(path,p)).ok,false);assert.equal((await object(path,config.ANON_KEY)).ok,false);
     for(const token of[p,o])assert.equal((await object(next,token,'POST')).ok,false);
     assert.equal((await object(next,m,'POST','text/html')).ok,false);
     assert.equal((await rpc('codex_list',m,{p_campaign:a})).find(x=>x.id===id).imagePath,path);
-    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:2,p_data:{...data,knowledge:3,imagePath:path}});
+    assert.equal((await reveal(id,['name','image'])).ok,true);
     assert.equal((await object(path,p)).ok,true);assert.equal((await object(path,o)).ok,false);
     assert.equal((await object(next,m,'POST')).ok,true);
-    const failedPointer=await api('/rest/v1/rpc/codex_save',{token:m,method:'POST',body:{p_campaign:a,p_entry:id,p_version:2,p_data:{...data,knowledge:3,imagePath:next}}});
+    const failedPointer=await api('/rest/v1/rpc/codex_save',{token:m,method:'POST',body:{p_campaign:a,p_entry:id,p_version:2,p_data:{...data,imagePath:next}}});
     assert.equal(failedPointer.ok,false);assert.equal((await object(path,p)).ok,true);assert.equal((await object(next,p)).ok,false);
-    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:3,p_data:{...data,knowledge:3,imagePath:next}});
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:await codexVersion(id),p_data:{...data,imagePath:next}});
     assert.equal((await object(path,p)).ok,false);assert.equal((await object(path,config.ANON_KEY)).ok,false);assert.equal((await object(next,p)).ok,true);
     await object(next,p,'DELETE');assert.equal((await object(next,m)).ok,true);
-    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:4,p_data:{...data,knowledge:3}});
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:await codexVersion(id),p_data:data});
     assert.equal((await object(next,p)).ok,false);assert.equal((await object(next,m,'DELETE')).ok,true);
-    await rpc('codex_remove',m,{p_campaign:a,p_entry:id,p_version:5});
+    await rpc('codex_remove',m,{p_campaign:a,p_entry:id,p_version:await codexVersion(id)});
   });
   await check('cover framing (0012): master saves, members read, player cannot write, invalid rejected', async () => {
     const framing = {zoom: 1.5, x: 20, y: 80};
