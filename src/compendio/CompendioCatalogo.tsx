@@ -19,6 +19,9 @@ import { DetalheMagia } from "./DetalheMagia";
 import { DetalheMonstro } from "./DetalheMonstro";
 import { EsqueletoDetalhe, EsqueletoLista } from "./Esqueleto";
 
+import { imagemDoItem, imagemDoMonstro } from "../ficha/imagensCatalogo";
+import "./compendio-categorias.css";
+
 const PAGINA = 60;
 type Visao = "lista" | "grade";
 type Qualquer = CategoriaDef<unknown>;
@@ -121,7 +124,9 @@ function Cartao({ cat, item, visao, ativo, onAbrir }: { cat: Qualquer; item: unk
   const nome = cat.nomeDe(item);
   const spec: TabSpec | null = cat.id === "itens" ? itemSpec(cat.idDe(item), nome) : null;
   // Sem aria-label: o nome acessível É o texto visível (nome + subtítulo [+ resumo]), como pede a WCAG 2.5.3 (rótulo no nome).
+  const imagem = cat.id === "monstros" ? imagemDoMonstro(cat.idDe(item)) : cat.id === "itens" ? imagemDoItem(cat.idDe(item)) : null;
   return <li><button type="button" className={`compendio-item${ativo ? " ativo" : ""}`} aria-current={ativo ? "true" : undefined} onClick={onAbrir} onContextMenu={spec ? e => aoClicarDireito(e, spec) : undefined}>
+    {imagem && <img className="cat-retrato" src={imagem} alt="" loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/>}
     <strong>{nome}</strong>{" "}<small>{cat.subtituloDe(item)}</small>{visao === "grade" && cat.resumoDe && <>{" "}<span className="muted">{cat.resumoDe(item)}</span></>}</button></li>;
 }
 
