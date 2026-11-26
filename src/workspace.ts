@@ -29,11 +29,11 @@ export const sections: Section[] = [
 export const campaignsHub: Section = { page: "campanhas", title: "Campanhas", icon: Castle };
 const knownSections: Section[] = [campaignsHub, ...sections];
 /** Seções do menu para o papel atual. Anotações são acessíveis a ambos os papéis. */
-export const visibleSections = (isMaster: boolean): Section[] => sections.filter(s => !s.masterOnly || isMaster);
+export const visibleSections = (isMaster: boolean): Section[] => sections.filter(s => s.page !== "enciclopedia" && s.page !== "documentos" && (!s.masterOnly || isMaster));
 /** Ordem do menu do desktop por papel (Início vem antes, separado). Sem campanha ativa (papel null) mantém todas as seções comuns. */
 const menuOrder: Record<"mestre" | "jogador", Page[]> = {
-  mestre: ["planejamento", "diario", "iniciativa", "encontros", "personagens", "enciclopedia", "documentos", "compendio"],
-  jogador: ["planejamento", "personagens", "diario", "enciclopedia", "documentos", "compendio"],
+  mestre: ["planejamento", "diario", "iniciativa", "encontros", "personagens", "compendio"],
+  jogador: ["planejamento", "personagens", "diario", "compendio"],
 };
 export const desktopSections = (role: "mestre" | "jogador" | null): Section[] => role ? menuOrder[role].map(p => sections.find(s => s.page === p)!) : visibleSections(false);
 export const kinds = Object.keys(kindLabel) as Kind[];
