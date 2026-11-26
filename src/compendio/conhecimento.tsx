@@ -165,7 +165,7 @@ export function useConhecimento() {
   const api = useCodexApi(),
     { active } = useCampaigns(),
     { user } = useAuth();
-  const scope = `${user?.id}:${active?.campaign.id}`;
+  const scope = `${user?.id}:${active?.campaign.id}:${active?.role}`;
   const [versao, setVersao] = useState(0);
   const [state, setState] = useState<{
     scope: string;

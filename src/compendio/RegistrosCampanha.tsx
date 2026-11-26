@@ -116,7 +116,7 @@ export function DetalheConhecido({
     return () => {
       alive = false;
     };
-  }, [api, holderScope, entry.category, registrosVersion]);
+  }, [api, holderScope, entry, registrosVersion]);
   const publicImage =
     entry.imageDefinitionId && entry.systemId === "dnd5e-2014"
       ? entry.category === "monster"

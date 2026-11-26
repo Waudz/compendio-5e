@@ -1,12 +1,22 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
-import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  within,
+} from "@testing-library/react";
 import { renderApp, me, memoryStorage } from "../testUtils";
 import { activeKey } from "../CampaignsContext";
 import type { CampaignApi, Membership } from "../campaigns";
 import { storageKey } from "../persistence";
 import { jogadorPodeAdicionar } from "../catalogue/disponibilidade";
-import type { CodexApi, Conhecimento } from "./conhecimento";
+import {
+  avisarConhecimento,
+  type CodexApi,
+  type Conhecimento,
+} from "./conhecimento";
 const campaign = { id: "ca", name: "Mesa", description: "", created_at: "" };
 const row = (patch: Partial<Conhecimento> = {}): Conhecimento => ({
   id: "g1",
@@ -179,5 +189,30 @@ describe("Compêndio unificado", () => {
       await screen.findByText("Item não descoberto nesta campanha."),
     ).toBeTruthy();
     expect(screen.queryByText(/requires attunement/i)).toBeNull();
+  });
+  it("atualiza o portador publicado quando a projeção é recarregada após uma transferência", async () => {
+    const entry = row({
+      category: "item",
+      definitionId: "ring-of-invisibility",
+      title: "Anel revelado",
+      knowledge: 4,
+    });
+    const codex = api([entry]);
+    vi.mocked(codex.holders).mockResolvedValue([
+      { id: "p1", title: "Portador A" },
+    ]);
+    await mount("jogador", codex);
+    fireEvent.click(portal("Descobertas"));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Anel revelado" }),
+    );
+    expect(await screen.findByText("Com: Portador A")).toBeTruthy();
+    vi.mocked(codex.holders).mockResolvedValue([
+      { id: "p2", title: "Portador B" },
+    ]);
+    vi.mocked(codex.list).mockResolvedValue([{ ...entry }]);
+    avisarConhecimento();
+    expect(await screen.findByText("Com: Portador B")).toBeTruthy();
+    expect(screen.queryByText("Com: Portador A")).toBeNull();
   });
 });
