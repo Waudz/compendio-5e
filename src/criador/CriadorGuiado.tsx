@@ -23,6 +23,7 @@ import { defaultPublicIdentity, type PublicIdentity } from "../rules/public-iden
 import { fighterEquipmentOptions2014 } from "../rules/starting-equipment-2014";
 import { applyStartingEquipmentSelection, replaceStartingEquipmentSelection } from "../rules/starting-equipment-selection";
 import { useUnsavedGuard } from "../unsaved";
+import { estaVisivel, EVENTO_ABRIR_FICHA, pedirFechamento, registrarAliasPersonagem, registrarVoltar } from "../voltarInterno";
 import type { TabSpec } from "../workspace";
 import { armazenamentoLocalExperimental, type ArmazenamentoCriador } from "./armazenamento";
 import { ErroConflito, repositorioLocal, repositorioServidor, type RepositorioPersonagem } from "./repositorio";
@@ -94,13 +95,15 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   // Personagem novo nasce com a apresentação publicada (campos públicos da ficha); a caixa na etapa de identidade permite desligar. Os já salvos mantêm a escolha.
   const [identity, setIdentity] = useState<PublicIdentity>(defaultPublicIdentity), [publicar, setPublicar] = useState(true);
   const [salvo, setSalvo] = useState<string | null>(null);          // retrato do último estado salvo (null = nunca salvo)
+  const idRealRef = useRef(id);
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
   const [salvando, setSalvando] = useState(false), [conflito, setConflito] = useState(false), [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
   const [secao, setSecao] = useState<Secao>("ficha");
-  // Ficha de jogo ou edição: lembrado nesta sessão, para voltar à mesma tela depois de passar por outro menu.
-  const chaveVista = `compendio5e:ficha-vista:${userId}:${campaignId}:${id}`;
-  const [visualizando, setVisualizando] = useState(() => { try { const v = sessionStorage.getItem(chaveVista); return v === null ? initialView : v === "1"; } catch { return initialView; } });
-  useEffect(() => { try { if (visualizando !== initialView) sessionStorage.setItem(chaveVista, visualizando ? "1" : "0"); else sessionStorage.removeItem(chaveVista); } catch { /* sem armazenamento: só não lembra */ } }, [chaveVista, visualizando, initialView]);
+  // Ficha de jogo ou edição é estado desta tela, nunca da navegação: abrir um personagem já salvo mostra sempre a ficha.
+  const [visualizando, setVisualizando] = useState(initialView);
+  /** Estado no momento em que "Editar personagem" foi usado: é para onde Cancelar volta. `null` na criação. */
+  const [base, setBase] = useState<{ draft: CharacterDraft; identity: PublicIdentity; publicar: boolean } | null>(null);
+  const [saida, setSaida] = useState<"cancelar" | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
@@ -112,6 +115,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     setDraft(p.draft); setIdentity(p.identity); setPublicar(p.publicar); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha);
     setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity, publicar: p.publicar })); setEscolhas(escolhasDoInventario(p.draft));
     setMetodo(metodoPreservado(p.draft.baseAbilities, p.draft.abilityMethod));
+    setBase(null); setSaida(null);
+    if (p.id !== id) registrarAliasPersonagem(p.id, id);
     registrarTitulo(id, p.draft.name.trim() || "Novo personagem"); registrarTitulo(p.id, p.draft.name.trim() || "Novo personagem");
   };
   useEffect(() => {
@@ -124,7 +129,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
         if (!vivo) return;
         if (!p && (!novoNaoSalvo || alvo !== id)) { setCarga({ erro: "Personagem não encontrado, removido ou sem acesso (por exemplo, você saiu da campanha). Nada foi alterado." }); return; }   // nunca abre um editor vazio no lugar de um personagem existente
         if (!p || modern2014(p.draft)) { await carregar2014(); if (!vivo) return; }
-        if (p) aplicarCarregado(p); else { const novo = novoRascunho(id); setDraft(novo); setEscolhas(escolhasDoInventario(novo)); registrarTitulo(id, "Novo personagem"); }
+        if (p) { aplicarCarregado(p); setVisualizando(true); } else { const novo = novoRascunho(id); setDraft(novo); setEscolhas(escolhasDoInventario(novo)); registrarTitulo(id, "Novo personagem"); }
         if (servidor) setRecuperacao(lerRecuperacao(userId, campaignId, id));   // alterações não enviadas de uma falha anterior
         setCarga("pronto");
       } catch (e) { if (vivo) setCarga({ erro: e instanceof Error ? e.message : "Não foi possível ler o personagem salvo." }); }
@@ -133,6 +138,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo, id, tentativa]);
 
+  idRealRef.current = idReal;
   const retrato = JSON.stringify({ draft, identity, publicar });
   const vazio = JSON.stringify({ draft: novoRascunho(id), identity: defaultPublicIdentity(), publicar: true });
   const sujo = carga === "pronto" && retrato !== (salvo ?? vazio) && (salvo !== null || draft.name.trim() !== "" || draft.inventory.length > 0 || draft.decisions.length > 0);
@@ -164,12 +170,12 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       setSalvo(JSON.stringify({ draft: gravado, identity, publicar }));
       limparRecuperacao(userId, campaignId, id);
       falhou.current = null;
-      if (servidor && ehPersonagemNovo(id)) gravarMapaAba(userId, campaignId, id, r.id);
+      if (servidor && ehPersonagemNovo(id)) { gravarMapaAba(userId, campaignId, id, r.id); registrarAliasPersonagem(r.id, id); }
       registrarTitulo(id, draft.name.trim()); registrarTitulo(r.id, draft.name.trim()); avisarRegistros();
       if (automatico === true) { setMsg(null); return true; }   // não muda de tela nem de aba
       const incompleto = sheet.pending.length || !gruposCompletos(draft);
       setMsg({ ok: true, t: servidor ? `${incompleto ? "Rascunho incompleto" : "Personagem"} salvo na campanha (revisão ${r.revision}).` : `${incompleto ? "Rascunho incompleto salvo" : "Personagem salvo"} neste navegador (armazenamento experimental).` });
-      if (!incompleto) { setVisualizando(true); setSecao("ficha"); }
+      if (!incompleto || base) { setBase(null); setSaida(null); setVisualizando(true); setSecao("ficha"); }
 
       return true;
     } catch (e) {
@@ -180,7 +186,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       setMsg({ ok: false, t: `${texto} Suas alterações continuam na tela${guardou ? " e foram guardadas neste navegador" : ""}.` });
       return false;
     } finally { setSalvando(false); }
-  }, [salvando, sheet, draft, identity, publicar, repo, idReal, existe, revisao, somenteFicha, servidor, userId, campaignId, id]);
+  }, [salvando, sheet, draft, identity, publicar, repo, idReal, existe, revisao, somenteFicha, servidor, userId, campaignId, id, base]);
   // Proteção local contínua do rascunho: a aba pode ser desmontada ao alternar
   // para outro conteúdo sem que o usuário pressione Salvar. Nunca enviamos
   // essas alterações automaticamente ao servidor: restauração é explícita.
@@ -208,6 +214,62 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   }, [automatico, retrato]);
   // saindo da ficha antes do prazo (ex.: trocando de menu): envia o que estava pendente
   useEffect(() => () => { if (pendente.current) { pendente.current = false; void salvarAtual.current(true); } }, []);
+
+  // ------------------------------------------------------------ entrar e sair da edição
+  const raizEditor = useRef<HTMLDivElement>(null);
+  const marca = `edicao:${id}`, ignorarVoltar = useRef(false);
+  const editar = () => {
+    falhou.current = null;
+    setBase({ draft, identity, publicar }); setSecao("ficha"); setVisualizando(false); setMsg(null);
+    window.history.pushState({ ...window.history.state, compendioEdicao: marca }, "");   // o Voltar do navegador retorna à ficha
+  };
+  /** Retira do histórico a entrada criada ao editar, quando a saída foi por um botão da tela. */
+  const consumirEntradaDoHistorico = () => {
+    if ((window.history.state as { compendioEdicao?: string } | null)?.compendioEdicao !== marca) return;
+    ignorarVoltar.current = true; window.history.back();
+  };
+  const alteradoNaEdicao = base ? retrato !== JSON.stringify(base) : sujo;
+  /** Sai da edição sem guardar o que foi feito nela. */
+  const descartarEdicao = () => {
+    setSaida(null); setMsg(null); setErroAtrib(""); limparRecuperacao(userId, campaignId, id); setRecuperacao(null);
+    if (!existe) {
+      const novo = novoRascunho(id); setDraft(novo); setIdentity(defaultPublicIdentity()); setPublicar(true); setEscolhas(escolhasDoInventario(novo));
+      pedirFechamento(`criador:${id}`); return;
+    }
+    const volta = base ?? (salvo ? JSON.parse(salvo) as { draft: CharacterDraft; identity: PublicIdentity; publicar: boolean } : null);
+    if (volta) { setDraft(volta.draft); setIdentity(volta.identity); setPublicar(volta.publicar); setEscolhas(escolhasDoInventario(volta.draft)); setMetodo(metodoPreservado(volta.draft.baseAbilities, volta.draft.abilityMethod)); }
+    setBase(null); setVisualizando(true); setSecao("ficha");
+  };
+  const cancelarEdicao = () => { if (alteradoNaEdicao) setSaida("cancelar"); else { consumirEntradaDoHistorico(); descartarEdicao(); } };
+  const salvarEdicao = async () => { if (await salvar()) { setSaida(null); consumirEntradaDoHistorico(); } };
+
+  const acoesDeSaida = useRef({ visualizando, base, cancelar: cancelarEdicao, alterado: alteradoNaEdicao });
+  acoesDeSaida.current = { visualizando, base, cancelar: cancelarEdicao, alterado: alteradoNaEdicao };
+  useEffect(() => {
+    const voltar = () => {
+      if (ignorarVoltar.current) { ignorarVoltar.current = false; return true; }
+      const a = acoesDeSaida.current;
+      if (a.visualizando || !a.base || !estaVisivel(raizEditor.current)) return false;
+      if (a.alterado) { window.history.pushState({ ...window.history.state, compendioEdicao: marca }, ""); setSaida("cancelar"); }
+      else a.cancelar();
+      return true;
+    };
+    const reabrir = (e: Event) => {
+      const alvo = (e as CustomEvent<string>).detail;
+      if (alvo !== id && alvo !== idRealRef.current) return;
+      const a = acoesDeSaida.current;
+      if (a.visualizando || !a.base) return;
+      if (a.alterado) setSaida("cancelar"); else a.cancelar();
+    };
+    const desfazer = registrarVoltar(voltar);
+    window.addEventListener(EVENTO_ABRIR_FICHA, reabrir);
+    return () => { desfazer(); window.removeEventListener(EVENTO_ABRIR_FICHA, reabrir); };
+  }, [id, marca]);
+  // a edição começa no topo; a rolagem da ficha fica guardada por aba e é restaurada na volta
+  useEffect(() => {
+    if (visualizando || !base) return;
+    for (let n: HTMLElement | null = raizEditor.current; n; n = n.parentElement) if (n.scrollTop > 0) { n.scrollTop = 0; break; }
+  }, [visualizando]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Conflito de revisão: carrega a versão atual do servidor. As alterações não enviadas ficam na cópia de recuperação (restauráveis). */
   const recarregarServidor = async () => {
@@ -274,25 +336,34 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   // Ficha de jogo (três abas), independente das etapas do criador. Os mesmos dados do motor alimentam a edição e o jogo.
   if (visualizando && carga === "pronto" && existe && sheet) {
     if (!modern2014(draft)) return <div className="content ficha auth wide" data-testid="ficha-guiada-leitura"><h1>{draft.name || "Personagem sem nome"}</h1>
+      {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
       <p className="notice" role="note">Este personagem usa uma versão anterior das regras. Abra a edição e atualize-o para SRD 2014 para usar a ficha de jogo.</p>
-      <button type="button" className="btn-primary" onClick={() => setVisualizando(false)}>Editar personagem</button></div>;
+      <button type="button" className="btn-primary" onClick={editar}>Editar personagem</button></div>;
     const naoSalvo = sujo && !salvando && falhou.current === retrato;
     return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
       <FichaJogo draft={draft} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudar} onOpenContent={onOpenContent}
-        onEditar={() => { setSecao("ficha"); setVisualizando(false); }} onProgredir={() => { setSecao("ficha"); setVisualizando(false); }}
+        onEditar={editar} onProgredir={editar}
         salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
           {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
         avisos={<>{avisoConflito}
           {msg && <Aviso erro={!msg.ok} t={msg.t}/>}
-          {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => setVisualizando(false)}>Revisar recuperação no editor</button></div>}</>}
+          {recuperacao && <div className="notice" role="status">Existem alterações locais não salvas. <button type="button" className="btn-secondary" onClick={() => { setSecao("ficha"); setVisualizando(false); }}>Revisar recuperação no editor</button></div>}</>}
         combate={servidor ? <EstadoCombateFicha characterId={idReal}/> : undefined}/>
     </Suspense>;
   }
 
-  return <div className="content ficha auth wide criador">
-    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · CRIADOR GUIADO · {modern2014(draft) ? label2014(draft.classId).toLocaleUpperCase("pt-BR") : "GUERREIRO"} (SRD 2014)</div>
-    <div className="row-between"><h1>{draft.name.trim() || "Novo personagem"}</h1>
-      <button type="button" className="btn-primary" onClick={() => void salvar()} disabled={salvando || (!sujo && salvo !== null)}>{salvando ? "Salvando…" : "Salvar"}</button></div>
+  const botoes = <div className="criador-acoes">
+    {(existe || sujo) && <button type="button" className="btn-secondary" onClick={cancelarEdicao} disabled={salvando}>Cancelar</button>}
+    <button type="button" className="btn-primary" onClick={() => void salvarEdicao()} disabled={salvando || (!base && !sujo && salvo !== null)}>{salvando ? "Salvando…" : "Salvar"}</button>
+  </div>;
+  return <div ref={raizEditor} className="content ficha auth wide criador">
+    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · {base ? "EDITAR PERSONAGEM" : "CRIAR PERSONAGEM"} · {modern2014(draft) ? label2014(draft.classId).toLocaleUpperCase("pt-BR") : "GUERREIRO"} (SRD 2014)</div>
+    <div className="criador-topo"><h1>{draft.name.trim() || "Novo personagem"}</h1>{botoes}</div>
+    {saida && <div className="notice err criador-saida" role="alertdialog" aria-label="Alterações não salvas">
+      <p>Há alterações nesta edição que ainda não foram salvas.</p>
+      <div className="row"><button type="button" className="btn-primary" autoFocus onClick={() => setSaida(null)}>Continuar editando</button>
+        <button type="button" className="btn-secondary" disabled={salvando} onClick={() => void salvarEdicao()}>Salvar e voltar</button>
+        <button type="button" className="btn-secondary danger" onClick={() => { consumirEntradaDoHistorico(); descartarEdicao(); }}>Descartar alterações</button></div></div>}
     {servidor
       ? <div className="notice ok" role="note" data-testid="aviso-servidor">{somenteFicha ? "Ficha de outro jogador: você a vê e edita como mestre da campanha. A identidade pública continua sendo do dono." : "Salvo na campanha: só você e o mestre leem esta ficha. Os outros jogadores veem apenas a identidade pública que você publicar."} {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>
       : <div className="notice" role="note" data-testid="aviso-armazenamento">Armazenamento <strong>experimental</strong>: o personagem fica só neste navegador, não sincroniza entre aparelhos e não é privado de quem usa o mesmo navegador. Sem conta e API de fichas não há salvamento real na campanha. {modern2014(draft) ? "Versão de personagens SRD 2014 ativa." : "Raça (Anão) e antecedente (Acólito) são ilustrativos."}</div>}

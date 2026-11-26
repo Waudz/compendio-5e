@@ -251,6 +251,7 @@ describe("falhas de rede e recuperação", () => {
     expect(banco.fichas[0].draft.name).toBe("Thorin");
     // a conexão volta e a página é recarregada
     banco.rede.caida = false; cleanup(); await montar(me, false);
+    fireEvent.click(await screen.findByRole("button", { name: "Revisar recuperação no editor" }));
     expect(await screen.findByTestId("aviso-recuperacao")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Restaurar essas alterações" }));
     expect((await nomeInput()).value).toBe("Thorin Editado");

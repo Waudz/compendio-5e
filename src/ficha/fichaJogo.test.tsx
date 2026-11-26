@@ -238,3 +238,78 @@ describe("ficha de jogo", () => {
     expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
   });
 });
+
+describe("navegação da edição", () => {
+  const editor = () => screen.queryByLabelText("Nome do personagem") as HTMLInputElement | null;
+  const entrarNaEdicao = async () => { fireEvent.click(screen.getByRole("button", { name: "Editar personagem" })); return screen.findByLabelText("Nome do personagem") as Promise<HTMLInputElement>; };
+  const naFicha = async () => { await screen.findByTestId("ficha-guiada-leitura"); expect(editor()).toBeNull(); };
+  const abasDoEspaco = () => [...document.querySelectorAll(".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content")].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ""));
+  const reabrirPelaLista = async () => { fireEvent.click(menu().getByRole("button", { name: "Personagens" })); fireEvent.click(await within(await screen.findByRole("region", { name: "Personagens da campanha" })).findByRole("button", { name: /^Thorin/ })); };
+
+  it("Cancelar sem alterações volta à ficha, mantendo a aba escolhida", async () => {
+    await semear(); await abrirFicha(); irPara("Inventário");
+    await entrarNaEdicao();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    await naFicha();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(abas().getByRole("button", { name: "Inventário" }).getAttribute("aria-current")).toBe("true");
+  });
+
+  it("Cancelar com alterações pede confirmação; continuar mantém o texto e descartar não grava nada", async () => {
+    await semear(); await abrirFicha();
+    const antes = structuredClone(banco.fichas[0]);
+    fireEvent.change(await entrarNaEdicao(), { target: { value: "Thorin alterado" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    const dialogo = () => within(screen.getByRole("alertdialog", { name: "Alterações não salvas" }));
+    fireEvent.click(dialogo().getByRole("button", { name: "Continuar editando" }));
+    expect(editor()!.value).toBe("Thorin alterado");
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    fireEvent.click(dialogo().getByRole("button", { name: "Descartar alterações" }));
+    await naFicha();
+    expect(screen.getByRole("heading", { name: "Thorin" })).toBeTruthy();
+    await new Promise(r => setTimeout(r, 900));   // passa do prazo do salvamento automático
+    expect(banco.fichas[0]).toEqual(antes);
+  });
+
+  it("Salvar volta à ficha já atualizada", async () => {
+    await semear(); await abrirFicha();
+    fireEvent.change(await entrarNaEdicao(), { target: { value: "Thorin, o Firme" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    await naFicha();
+    expect(screen.getByRole("heading", { name: "Thorin, o Firme" })).toBeTruthy();
+    expect(draftSalvo().name).toBe("Thorin, o Firme");
+  });
+
+  it("o Voltar do navegador sai da edição para a ficha, e com alterações pergunta antes", async () => {
+    await semear(); await abrirFicha();
+    await entrarNaEdicao();
+    window.history.back();
+    await naFicha();
+    fireEvent.change(await entrarNaEdicao(), { target: { value: "Pendente" } });
+    window.history.back();
+    expect(await screen.findByRole("alertdialog", { name: "Alterações não salvas" })).toBeTruthy();
+    expect(editor()!.value).toBe("Pendente");
+    window.history.back();   // insistir no Voltar continua sem descartar nada
+    await new Promise(r => setTimeout(r, 50));
+    expect(editor()!.value).toBe("Pendente");
+  });
+
+  it("abrir de novo pela lista de Personagens mostra a ficha, na mesma aba, sem descartar em silêncio", async () => {
+    await semear(); await abrirFicha();
+    await entrarNaEdicao();
+    await reabrirPelaLista();
+    await naFicha();
+    expect(abasDoEspaco().filter(t => t === "Thorin")).toHaveLength(1);
+    fireEvent.change(await entrarNaEdicao(), { target: { value: "Sem salvar" } });
+    await reabrirPelaLista();
+    expect(await screen.findByRole("alertdialog", { name: "Alterações não salvas" })).toBeTruthy();
+    expect(editor()!.value).toBe("Sem salvar");
+    expect(abasDoEspaco().filter(t => t === "Thorin" || t === "Sem salvar")).toHaveLength(1);
+  });
+
+  it("depois de recarregar o aplicativo, o personagem reabre na ficha mesmo que tenha sido deixado na edição", async () => {
+    await semear(); await abrirFicha(); await entrarNaEdicao();
+    cleanup(); await montar(); await abrirLista(); await reabrirPelaLista();
+    await naFicha();
+  });
+});

@@ -125,6 +125,9 @@ describe('criador guiado na navegação real (desktop)', () => {
     // reabrir (novo carregamento do app): lista, ficha, inventário e identidade restaurados
     cleanup(); await montar(); await abrirPersonagens();
     fireEvent.click(await screen.findByRole('button', { name: /^Thorin/ }));
+    // um personagem salvo reabre na ficha de jogo; a edição é uma ação explícita
+    await screen.findByTestId('ficha-guiada-leitura');
+    fireEvent.click(screen.getByRole('button', { name: 'Editar personagem' }));
     await waitFor(() => expect((screen.getByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('Thorin'));
     expect(screen.getByText(/Atletismo, Percepção/)).toBeTruthy();
     fireEvent.click(secoes().getByRole('button', { name: 'Inventário' }));
@@ -132,7 +135,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     fireEvent.click(secoes().getByRole('button', { name: 'Identidade pública' }));
     expect((screen.getByLabelText('Visibilidade Classe') as HTMLSelectElement).value).toBe('hidden');
     expect((screen.getByLabelText('Alcunha pública') as HTMLInputElement).value).toBe('O Escudo de Pedra');
-    expect(screen.getByRole('button', { name: 'Salvar' }).hasAttribute('disabled')).toBe(true);   // nada pendente depois de reabrir
+    expect(screen.queryByText('Alterações não salvas.')).toBeNull();   // nada pendente depois de reabrir
   });
 
   it('equipamento SRD 2014 não é concedido duas vezes e preserva itens adquiridos', async () => {
@@ -242,7 +245,7 @@ describe('criador guiado no celular', () => {
     expect(screen.getByTestId('aviso-armazenamento')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancelar' }));
     expect((screen.getByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('Thorin');
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' })); await screen.findByText(/Rascunho incompleto salvo/);
     fireEvent.click(screen.getByRole('button', { name: 'Voltar' }));                       // salvo: volta sem confirmação
@@ -260,6 +263,7 @@ it('ficha legada continua editável na versão original, sem conversão nem regr
  store.salvar({schemaVersion:1,savedAt:'2026-11-20T00:00:00Z',identity:defaultPublicIdentity(),draft:{id:'antiga',name:'Veterana',ruleset:'5e-2014',catalogueVersion:catalog.version,baseAbilities:{str:15,dex:12,con:14,int:10,wis:12,cha:8},raceId:ids.raceId,backgroundId:ids.backgroundId,classId:ids.classId,level:1,decisions:[],inventory,currentHp:13,temporaryHp:0,spentResources:{},currency:{cp:0,sp:0,gp:7}}});
  const before=structuredClone(store.carregar('antiga'));
  await montar();await abrirPersonagens();fireEvent.click(await screen.findByRole('button',{name:/^Veterana/}));
+ fireEvent.click(await screen.findByRole('button',{name:'Editar personagem'}));
  expect((await screen.findByLabelText('Nome do personagem') as HTMLInputElement).value).toBe('Veterana');
  expect(store.carregar('antiga')).toEqual(before);
  fireEvent.change(screen.getByLabelText('Nome do personagem'),{target:{value:'Veterana revisada'}});

@@ -54,7 +54,6 @@ async function abrirExistente() {
   return { banco, api, nome, id: criado.data.id };
 }
 const salvar = () => fireEvent.click(screen.getByRole('button', { name: /^Salvar$/ }));
-const botaoSalvar = () => screen.getByRole('button', { name: /^Salvar$/ }) as HTMLButtonElement;
 
 it('não apresenta edição como persistida enquanto a requisição de salvar aguarda confirmação', async () => {
   const { banco, api, nome } = await abrirExistente();
@@ -75,7 +74,7 @@ it('não apresenta edição como persistida enquanto a requisição de salvar ag
     await act(async () => { concluir(); });
   }
   await waitFor(() => expect(banco.fichas[0].revision).toBe(2));
-  await waitFor(() => expect(botaoSalvar().disabled).toBe(true));
+  await screen.findByTestId('ficha-guiada-leitura');   // salvar volta para a ficha atualizada
   expect(banco.fichas[0].draft.name).toBe('Lira em edição');
   expect(screen.queryByText('Alterações não salvas.')).toBeNull();
 });
@@ -89,7 +88,6 @@ it('cancelar a troca de classe não suja a ficha nem reinicia recursos ou invent
   fireEvent.click(within(confirmacao).getByRole('button', { name: 'Cancelar troca de classe' }));
   expect(screen.queryByRole('region', { name: 'Confirmar classe' })).toBeNull();
   expect((screen.getByRole('combobox', { name: 'Classe' }) as HTMLSelectElement).value).toBe('fighter');
-  expect(botaoSalvar().disabled).toBe(true);
   expect(screen.queryByText('Alterações não salvas.')).toBeNull();
   const secoes = within(screen.getByRole('navigation', { name: 'Seções do personagem' }));
   fireEvent.click(secoes.getByRole('button', { name: 'Inventário' }));
@@ -110,7 +108,7 @@ it('renomear mantém IDs e duas instâncias do mesmo item, sem republicar dados 
   fireEvent.change(nome, { target: { value: 'Lira revisada' } });
   salvar();
   await waitFor(() => expect(banco.fichas[0].revision).toBe(2));
-  await waitFor(() => expect(botaoSalvar().disabled).toBe(true));
+  await screen.findByTestId('ficha-guiada-leitura');
   expect(banco.fichas).toHaveLength(1);
   expect(banco.fichas[0]).toMatchObject({ id, campaignId: ficha.campaignId, ownerId: ficha.ownerId });
   expect(banco.fichas[0].draft).toEqual({ ...ficha.draft, name: 'Lira revisada' });
