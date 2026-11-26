@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Users, Shield, Map, Flag, ScrollText, BookOpen, Sparkles, Backpack, Wand, ChevronRight, Swords } from "lucide-react";
 import "./compendio/compendio-categorias.css";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
@@ -6,6 +6,7 @@ import { DetalheMonstro } from "./compendio/DetalheMonstro";
 // Compêndio: ponto de entrada da seção (painel do catálogo) e da página de item (aba `item:<id>`, aberta pelo inventário do criador e pelos pacotes).
 // O painel é o catálogo genérico de `src/compendio/` (itens, magias e monstros de D&D 5e 2014); a página de item reutiliza o mesmo detalhe.
 import { Aviso } from "./Diario";
+import { PersonagensPanel } from "./Personagens";
 import { useCampaigns } from "./CampaignsContext";
 import { srdItem } from "./catalogue/srd-2014-items";
 import { CompendioCatalogo } from "./compendio/CompendioCatalogo";
@@ -53,9 +54,12 @@ const grupos = {
 function CompendioInicio({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
   const [grupo, setGrupo] = useState<keyof typeof grupos>("Campanha");
   const [categoria, setCategoria] = useState<string | null>(null);
-  const disponiveis = ["monstros", "racas", "classes", "magias", "itens"];
-  if (categoria) return <CompendioCatalogo key={categoria} categoriaInicial={categoria} onVoltar={() => setCategoria(null)} onOpenContent={onOpenContent}/>;
-  return <div className="content compendio-inicio">
+  const { active } = useCampaigns();
+  const toque = useRef<{ x: number; y: number } | null>(null);
+  const disponiveis = ["personagens", "racas", "classes", "magias", "itens", ...(active?.role === "mestre" ? ["monstros"] : [])];
+  if (categoria === "personagens") return <><button type="button" className="btn-secondary" onClick={() => setCategoria(null)}>Voltar às categorias</button><PersonagensPanel onOpenContent={onOpenContent}/></>;
+  if (categoria && disponiveis.includes(categoria)) return <CompendioCatalogo key={categoria} categoriaInicial={categoria} onVoltar={() => setCategoria(null)} ocultarMonstros={active?.role !== "mestre"} onOpenContent={onOpenContent}/>;
+  return <div className="content compendio-inicio" onTouchStart={e => { const t = e.touches[0]; toque.current = { x: t.clientX, y: t.clientY }; }} onTouchCancel={() => { toque.current = null; }} onTouchEnd={e => { const inicio = toque.current; toque.current = null; if (!inicio || window.matchMedia("(min-width:701px)").matches) return; const t = e.changedTouches[0]; const dx = t.clientX - inicio.x, dy = t.clientY - inicio.y; if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.4) setGrupo(dx < 0 ? "Regras" : "Campanha"); }}>
     <h1>Compêndio</h1>
     <div className="cat-categorias" role="group" aria-label="Áreas do Compêndio">
       {(["Campanha", "Regras"] as const).map(g => <button key={g} type="button" aria-pressed={grupo === g} className={grupo === g ? "active" : ""} onClick={() => setGrupo(g)}>{g}</button>)}
