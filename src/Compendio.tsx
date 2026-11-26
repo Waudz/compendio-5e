@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Users, Shield, Map, Flag, ScrollText, BookOpen, Sparkles, Backpack, Wand, ChevronRight, Swords } from "lucide-react";
+import "./compendio/compendio-categorias.css";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { DetalheMonstro } from "./compendio/DetalheMonstro";
 // Compêndio: ponto de entrada da seção (painel do catálogo) e da página de item (aba `item:<id>`, aberta pelo inventário do criador e pelos pacotes).
@@ -27,7 +29,45 @@ function useCatalogueCampaign(onOpenContent: (s: TabSpec) => void) {
 
 export function CompendioPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
   const unavailable = useCatalogueCampaign(onOpenContent);
-  return unavailable ?? <CompendioCatalogo onOpenContent={onOpenContent}/>;
+  return unavailable ?? <CompendioInicio onOpenContent={onOpenContent}/>;
+}
+
+const grupos = {
+  Campanha: [
+    { id: "personagens", nome: "Personagens", descricao: "Aventureiros e NPCs", Icon: Users },
+    { id: "monstros", nome: "Bestiário", descricao: "Criaturas e monstros", Icon: Shield },
+    { id: "locais", nome: "Locais", descricao: "Cidades e regiões", Icon: Map },
+    { id: "organizacoes", nome: "Organizações", descricao: "Facções e guildas", Icon: Flag },
+    { id: "descobertas", nome: "Descobertas", descricao: "Mapas, documentos e artefatos", Icon: ScrollText },
+  ],
+  Regras: [
+    { id: "racas", nome: "Raças", descricao: "Povos e características raciais", Icon: Users },
+    { id: "classes", nome: "Classes", descricao: "Classes e progressão", Icon: Swords },
+    { id: "origens", nome: "Origens", descricao: "Antecedentes e proficiências", Icon: ScrollText },
+    { id: "talentos", nome: "Talentos e habilidades", descricao: "Características e capacidades", Icon: Sparkles },
+    { id: "magias", nome: "Magias", descricao: "Truques e círculos de magia", Icon: Wand },
+    { id: "itens", nome: "Itens", descricao: "Armas, armaduras e equipamentos", Icon: Backpack },
+    { id: "regras", nome: "Regras e condições", descricao: "Mecânicas e consultas rápidas", Icon: BookOpen },
+  ],
+};
+function CompendioInicio({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
+  const [grupo, setGrupo] = useState<keyof typeof grupos>("Campanha");
+  const [categoria, setCategoria] = useState<string | null>(null);
+  const disponiveis = ["monstros", "racas", "classes", "magias", "itens"];
+  if (categoria) return <CompendioCatalogo key={categoria} categoriaInicial={categoria} onVoltar={() => setCategoria(null)} onOpenContent={onOpenContent}/>;
+  return <div className="content compendio-inicio">
+    <h1>Compêndio</h1>
+    <div className="cat-categorias" role="group" aria-label="Áreas do Compêndio">
+      {(["Campanha", "Regras"] as const).map(g => <button key={g} type="button" aria-pressed={grupo === g} className={grupo === g ? "active" : ""} onClick={() => setGrupo(g)}>{g}</button>)}
+    </div>
+    <div className="compendio-portais">
+      {grupos[grupo].map(({id, nome, descricao, Icon}) => <button key={id} type="button" className="compendio-portal" disabled={!disponiveis.includes(id)} onClick={() => setCategoria(id)}>
+        <span><strong>{nome}</strong><small>{descricao}</small>{!disponiveis.includes(id) && <small>Em preparação</small>}</span>
+        <Icon className="compendio-portal-arte" aria-hidden="true"/>
+        <ChevronRight size={18} aria-hidden="true"/>
+      </button>)}
+    </div>
+  </div>;
 }
 
 /** Aba `item:<id>`: definição completa do item. Também é o destino de "Consultar no Compêndio" no inventário. */
