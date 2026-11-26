@@ -1,6 +1,9 @@
 -- Conferência DEPOIS da 0014. SOMENTE LEITURA. Esperado: todas as linhas "ok_*" = sim e as "digital_*" idênticas às de antes.
 select 'ok_colunas' as item, case when (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'character_sheets' and column_name in ('vitals_version', 'operacoes')) = 2 then 'sim' else 'não' end as valor
 union all select 'ok_gatilho_vitais', case when exists (select 1 from pg_trigger where tgrelid = 'public.character_sheets'::regclass and tgname = 'character_sheets_vitais' and not tgisinternal) then 'sim' else 'não' end
+union all select 'ok_protecoes_pv_e_app_antigo', case when to_regprocedure('private_ficha.teto_pv(jsonb)') is not null and to_regprocedure('private_ficha.resumo_vital(jsonb)') is not null
+    and exists (select 1 from pg_trigger where tgrelid = 'public.character_sheets'::regclass and tgname = 'character_sheets_vitais' and (tgtype & 4) = 4 and (tgtype & 16) = 16)
+    and pg_get_functiondef('private_ficha.preservar_vitais()'::regprocedure) like '%aplicativo_desatualizado%' then 'sim' else 'não' end
 union all select 'ok_funcoes_so_autenticado', case when (select bool_and(has_function_privilege('authenticated', f, 'execute') and not has_function_privilege('anon', f, 'execute'))
     from unnest(array['public.alterar_vitais(uuid, jsonb, uuid)', 'public.usar_consumivel(uuid, text, integer, integer, uuid)', 'public.transferir_item(uuid, uuid, text, integer, uuid)']::regprocedure[]) f) then 'sim' else 'não' end
 union all select 'ok_marcador_fechado', case when not has_schema_privilege('authenticated', 'private_ficha', 'usage') and not has_table_privilege('authenticated', 'private_ficha.operacao', 'select, insert, update, delete') then 'sim' else 'não' end

@@ -99,7 +99,7 @@ try {
     assert.ok(!denied.ok || denied.data.length === 0, 'player must not change coins');
     const item = (itemId, quantity) => ({id: itemId, itemId, quantity, equipped: false, origin: 'acquired'});
     const sheetOf = async token => (await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token}))[0];
-    const save = async (token, patch) => { const cur = await sheetOf(token); return api('/rest/v1/rpc/save_guided_character', {token, method: 'POST', body: {p_id: character.character_id, p_expected_revision: cur.revision, p_draft: {...cur.draft, ...patch}}}); };
+    const save = async (token, patch) => { const cur = await sheetOf(token); return api('/rest/v1/rpc/save_guided_character', {token, method: 'POST', body: {p_id: character.character_id, p_expected_revision: cur.revision, p_draft: {...cur.draft, ...patch, _protocolo: 2}}}); };
     assert.ok((await save(p, {inventory: [item('potion-of-healing-common', 1)]})).ok);
     assert.equal((await save(p, {inventory: [item('potion-of-healing-greater', 1)]})).ok, false);
     assert.equal((await save(p, {inventory: [item('potion-of-healing-greater', 7), {...item('potion-of-healing-greater', -7), id: 'offset'}]})).ok, false, 'offsetting quantities must be refused');
@@ -192,8 +192,12 @@ try {
     const hit = crypto.randomUUID();
     for (let i = 0; i < 2; i++) assert.equal((await rpc('alterar_vitais', p, {p_character_id: id, p_acao: {tipo: 'dano', valor: 4}, p_operacao: hit})).pv, 5);
     // a stale full save never overwrites hit points
-    await ok(`/rest/v1/character_sheets?character_id=eq.${id}`, {token: p, method: 'PATCH', body: {draft: {...before.draft, currentHp: 999}}});
+    const outdated = await api(`/rest/v1/character_sheets?character_id=eq.${id}`, {token: p, method: 'PATCH', body: {draft: {...before.draft, currentHp: 999}}});
+    assert.equal(outdated.ok, false, 'a pre-0014 client changing hit points must get a visible error');
+    await ok(`/rest/v1/character_sheets?character_id=eq.${id}`, {token: p, method: 'PATCH', body: {draft: {...before.draft, currentHp: 999, _protocolo: 2}}});
+    assert.equal((await sheetOf(m)).draft._protocolo, undefined, 'the transport marker is never stored');
     assert.equal((await sheetOf(m)).draft.currentHp, 5);
+    assert.equal((await rpc('alterar_vitais', p, {p_character_id: id, p_acao: {tipo: 'cura', valor: 0, maximo: 20}, p_operacao: crypto.randomUUID()})).pv, 5);
     // simultaneous damage from master and player is never lost
     await Promise.all([m, p].map(token => rpc('alterar_vitais', token, {p_character_id: id, p_acao: {tipo: 'dano', valor: 1}, p_operacao: crypto.randomUUID()})));
     assert.equal((await sheetOf(p)).draft.currentHp, 3);

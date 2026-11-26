@@ -92,7 +92,7 @@ describe("criar e salvar (RPC)", () => {
     expect(r).toEqual({ ok: true, data: { id: "srv-1", revision: 1, updatedAt: "t" } });
     const [nome, args] = chamadas.rpc!;
     expect(nome).toBe("create_guided_character");
-    expect(args).toMatchObject({ p_campaign_id: "ca", p_title: "O Escudo", p_publish: true, p_draft: draft });
+    expect(args).toMatchObject({ p_campaign_id: "ca", p_title: "O Escudo", p_publish: true, p_draft: { ...draft, _protocolo: 2 } });   // o banco remove o sinal antes de guardar
     expect(Object.keys(args).sort()).toEqual(["p_campaign_id", "p_draft", "p_meta", "p_publish", "p_title"]);   // nenhuma coluna de dono/campanha/revisão do cliente
     expect(JSON.stringify(args.p_meta)).not.toMatch(/Thorin Real|inventory|longsword/);
   });
@@ -101,6 +101,8 @@ describe("criar e salvar (RPC)", () => {
     const api = createFichasApi(client);
     expect(await api.salvar("srv-1", 4, draft)).toEqual({ ok: true, data: { id: "srv-1", revision: 5, updatedAt: "t" } });
     expect(Object.keys(chamadas.rpc![1]).sort()).toEqual(["p_draft", "p_expected_revision", "p_id"]);
+    expect(chamadas.rpc![1].p_draft).toMatchObject({ _protocolo: 2 });
+    expect(draft).not.toHaveProperty("_protocolo");
     await api.salvar("srv-1", 5, draft, entrada({ alcunha: "Novo" }));
     expect(chamadas.rpc![1]).toMatchObject({ p_id: "srv-1", p_expected_revision: 5, p_title: "Novo", p_publish: true });
   });

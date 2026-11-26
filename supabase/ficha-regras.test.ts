@@ -55,10 +55,10 @@ const criar = (uid: string, draft: unknown, meta: unknown = apresentacao()) =>
   as(db, uid, "select * from public.create_guided_character($1, 'x', $2::jsonb, false, $3::jsonb)", [C, JSON.stringify(meta), JSON.stringify(draft)]);
 const id = async (r: Promise<R>) => { const x = await r; if (x.error) throw new Error(x.error); return x.rows[0].character_id as string; };
 const lerFicha = async (cid: string) => (await db.query<{ draft: Record<string, unknown>; revision: number }>("select draft, revision from public.character_sheets where character_id = $1", [cid])).rows[0];
-/** Grava a ficha como `uid`, aplicando `patch` sobre a versão atual. */
+/** Grava a ficha como `uid`, aplicando `patch` sobre a versão atual, como o aplicativo atual (com o sinal `_protocolo` da 0014). */
 async function salvar(uid: string, cid: string, patch: Record<string, unknown>) {
   const atual = await lerFicha(cid);
-  return as(db, uid, "select * from public.save_guided_character($1, $2, $3::jsonb)", [cid, atual.revision, JSON.stringify({ ...atual.draft, ...patch })]);
+  return as(db, uid, "select * from public.save_guided_character($1, $2, $3::jsonb)", [cid, atual.revision, JSON.stringify({ ...atual.draft, ...patch, _protocolo: 2 })]);
 }
 const nota = async (uid: string, cid: string) => (await as(db, uid, "select title, visibility, meta from public.notes where id = $1", [cid])).rows[0] as
   { title: string; visibility: string; meta: { identidadePublica: { card: Record<string, string | null>; settings: Record<string, unknown> } } } | undefined;

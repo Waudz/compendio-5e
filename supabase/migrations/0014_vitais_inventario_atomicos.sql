@@ -37,12 +37,42 @@ begin
 end $$;
 revoke all on function private_ficha.com_vitais(jsonb, jsonb) from public, anon, authenticated;
 
+-- O banco não conhece as regras de PV máximo (classe, Constituição, talentos...): o aplicativo informa o máximo, e o servidor o limita a um
+-- teto que nenhum personagem 2014 legítimo ultrapassa (d12 + 10 de Constituição 30 + bônus por nível < 30). Impede valores absurdos; não
+-- prova o máximo exato. Quem pode editar a própria ficha já controla a construção (atributos, classe, nível).
+create function private_ficha.teto_pv(d jsonb) returns integer language sql immutable set search_path = '' as $$
+  select 30 * case when jsonb_typeof(d -> 'level') = 'number' then least(20, greatest(1, trunc((d ->> 'level')::numeric)))::integer else 1 end
+$$;
+revoke all on function private_ficha.teto_pv(jsonb) from public, anon, authenticated;
+
+-- Compara o estado vital pelo SIGNIFICADO (chave ausente = valor vazio): acrescentar `condicoes: []` não é mudança.
+create function private_ficha.resumo_vital(d jsonb) returns jsonb language sql immutable set search_path = '' as $$
+  select jsonb_build_object('pv', coalesce(d -> 'currentHp', '0'), 'temp', coalesce(d -> 'temporaryHp', '0'),
+    'condicoes', case when jsonb_typeof(d #> '{play,condicoes}') = 'array' then d #> '{play,condicoes}' else '[]'::jsonb end,
+    'sucessos', coalesce(d #> '{play,morte,sucessos}', '0'), 'falhas', coalesce(d #> '{play,morte,falhas}', '0'))
+$$;
+revoke all on function private_ficha.resumo_vital(jsonb) from public, anon, authenticated;
+
 -- Roda depois de `character_sheets_entregas` e `character_sheets_guard` (ordem alfabética dos gatilhos BEFORE).
+-- `_protocolo` é só um sinal de transporte do aplicativo que conhece esta migração; nunca fica gravado.
 create function private_ficha.preservar_vitais() returns trigger
 language plpgsql security definer set search_path = '' as $$
-declare op text := private_ficha.tipo_operacao(new.character_id);
+declare op text; atual boolean := coalesce(new.draft -> '_protocolo' = '2'::jsonb, false);
 begin
+  new.draft := new.draft - '_protocolo';
+  if tg_op = 'INSERT' then
+    if jsonb_typeof(new.draft -> 'currentHp') = 'number' and (new.draft ->> 'currentHp')::numeric > private_ficha.teto_pv(new.draft) then
+      new.draft := jsonb_set(new.draft, '{currentHp}', to_jsonb(private_ficha.teto_pv(new.draft)));
+    end if;
+    return new;
+  end if;
+  op := private_ficha.tipo_operacao(new.character_id);
   if op is null then
+    -- Aplicativo anterior à 0014 tentando mudar PV, temporários, condições ou morte ao salvar a ficha (ex.: fim de combate numa aba
+    -- antiga): recusa com erro visível, para a mudança não sumir em silêncio.
+    if not atual and private_ficha.resumo_vital(new.draft) is distinct from private_ficha.resumo_vital(old.draft) then
+      raise exception 'aplicativo_desatualizado' using errcode = '55000';
+    end if;
     new.draft := private_ficha.com_vitais(new.draft, old.draft);   -- gravação comum: o estado vital é o do servidor
     new.vitals_version := old.vitals_version; new.operacoes := old.operacoes;
   else
@@ -52,7 +82,7 @@ begin
   return new;
 end $$;
 revoke all on function private_ficha.preservar_vitais() from public, anon, authenticated;
-create trigger character_sheets_vitais before update on public.character_sheets
+create trigger character_sheets_vitais before insert or update on public.character_sheets
   for each row execute function private_ficha.preservar_vitais();
 
 -- Mudança só vital não refaz a apresentação pública (que não mostra PV nem condições).
@@ -128,7 +158,7 @@ begin
   end if;
   if tipo in ('cura', 'definir', 'ajustar', 'descanso') then
     if jsonb_typeof(p_acao -> 'maximo') is distinct from 'number' then raise exception 'operacao_invalida' using errcode = '23514'; end if;
-    maximo := private_ficha.inteiro(p_acao -> 'maximo', 1, 1, 1000000);
+    maximo := least(private_ficha.inteiro(p_acao -> 'maximo', 1, 1, 1000000), private_ficha.teto_pv(s.draft));
   end if;
 
   if tipo = 'dano' then
@@ -200,6 +230,7 @@ begin
   d := s.draft; item := private_ficha.item_de(d, p_instancia);
   if item is null then raise exception 'item_inexistente' using errcode = 'P0002'; end if;
   qtd := (item ->> 'quantity')::integer;
+  p_maximo := least(p_maximo, private_ficha.teto_pv(s.draft));
   d := private_ficha.trocar_item(d, p_instancia, case when qtd > 1 then item || jsonb_build_object('quantity', qtd - 1) end);
   pv := private_ficha.inteiro(d -> 'currentHp', 0, 0, 1000000); novo_pv := pv;
   if coalesce(p_cura, 0) > 0 and pv < p_maximo then novo_pv := least(p_maximo, pv + p_cura); end if;

@@ -118,6 +118,8 @@ begin
 end $$;
 
 drop function if exists private_ficha.preservar_vitais();
+drop function if exists private_ficha.teto_pv(jsonb);
+drop function if exists private_ficha.resumo_vital(jsonb);
 drop function if exists private_ficha.gravar(uuid, jsonb, uuid, text);
 drop function if exists private_ficha.travar(uuid);
 drop function if exists private_ficha.resultado_item(public.character_sheets);

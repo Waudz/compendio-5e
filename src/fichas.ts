@@ -104,6 +104,7 @@ const msg = (e: unknown) => {
   const m = ((e as { message?: string } | null)?.message ?? "").toLowerCase();
   if (m.includes("conflito_de_revisao")) return ERRO_CONFLITO_REVISAO;
   if (m.includes("ficha_nao_encontrada") || m.includes("nota_nao_encontrada")) return ERRO_SEM_FICHA;
+  if (m.includes("aplicativo_desatualizado")) return "Esta página está desatualizada. Recarregue para continuar; nada foi sobrescrito.";
   if (m.includes("identidade_so_do_dono")) return "Só o dono do personagem altera a identidade pública.";
   if (m.includes("character_sheets_draft") || (m.includes("check constraint") && m.includes("character_sheets"))) return "A ficha é grande demais ou inválida para ser salva.";   // nome da restrição pode diferir do remoto
   if (m.includes("identidade_invalida") || m.includes("notes_guiado_meta_check")) return "A identidade pública contém dados não permitidos (confira a imagem https:// e o tamanho dos textos).";
@@ -130,6 +131,10 @@ type RespostaVital = { id: string; revision: number; versao: number | string; pv
 const estadoVital = (x: RespostaVital): EstadoVital => ({ id: x.id, revision: x.revision, versao: Number(x.versao), pv: x.pv, temp: x.temp, condicoes: x.condicoes.filter(c => typeof c === "string"), morte: x.morte });
 const resultadoItem = (x: RespostaVital): ResultadoItem => ({ ...estadoVital(x), draft: x.draft!, updatedAt: x.updatedAt! });
 let canais = 0;
+
+/** Sinal de transporte: este aplicativo grava a ficha sabendo que o estado vital muda só por operações (0014). O banco o remove antes
+ *  de guardar. Sem ele, uma gravação que mudaria PV, temporários, condições ou morte é recusada (aplicativo antigo). */
+const comProtocolo = (draft: CharacterDraft) => ({ ...draft, _protocolo: 2 });
 
 export function createFichasApi(client: SupabaseClient): FichasApi {
   // a apresentação é sempre da campanha; o banco (0013) recalcula o cartão a partir da ficha e destas escolhas
@@ -172,14 +177,14 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
     },
     criar: async (campaignId, draft, identidade) => { let p: ReturnType<typeof params>; try { p = params(identidade); } catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Identidade pública inválida." }; }
       return run<GravacaoFicha>(async () => {
-      const r = await client.rpc("create_guided_character", { p_campaign_id: campaignId, p_draft: draft, ...p });
+      const r = await client.rpc("create_guided_character", { p_campaign_id: campaignId, p_draft: comProtocolo(draft), ...p });
       if (r.error) return { data: null, error: r.error };
       const x = (r.data as { character_id: string; revision: number; updated_at: string }[] | null)?.[0];
       return x ? { data: { id: x.character_id, revision: x.revision, updatedAt: x.updated_at }, error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };
     }); },
     salvar: async (id, esperada, draft, identidade) => { let p: ReturnType<typeof params> | object = {}; try { if (identidade) p = params(identidade); } catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Identidade pública inválida." }; }
       return run<GravacaoFicha>(async () => {
-      const r = await client.rpc("save_guided_character", { p_id: id, p_expected_revision: esperada, p_draft: draft, ...p });
+      const r = await client.rpc("save_guided_character", { p_id: id, p_expected_revision: esperada, p_draft: comProtocolo(draft), ...p });
       if (r.error) return { data: null, error: r.error };
       const x = (r.data as { revision: number; updated_at: string }[] | null)?.[0];
       return x ? { data: { id, revision: x.revision, updatedAt: x.updated_at }, error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };

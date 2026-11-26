@@ -58,7 +58,10 @@ const vital = (uid: string, id: string, acao: unknown, op: string = randomUUID()
 const estado = (r: R) => { if (r.error) throw new Error(r.error); return r.rows[0].r as Estado; };
 const usar = (uid: string, id: string, inst: string, cura: number, max: number, op: string = randomUUID()) => as(db, uid, "select public.usar_consumivel($1, $2, $3, $4, $5::uuid) as r", [id, inst, cura, max, op]);
 const transferir = (uid: string, de: string, para: string, inst: string, q: number, op: string = randomUUID()) => as(db, uid, "select public.transferir_item($1, $2, $3, $4, $5::uuid) as r", [de, para, inst, q, op]);
-const salvar = (uid: string, id: string, revisao: number, draft: unknown) => as(db, uid, "select * from public.save_guided_character($1, $2, $3::jsonb)", [id, revisao, JSON.stringify(draft)]);
+/** Como o aplicativo atual grava: com o sinal de transporte `_protocolo`. */
+const salvar = (uid: string, id: string, revisao: number, draft: unknown) => salvarAntigo(uid, id, revisao, { ...(draft as object), _protocolo: 2 });
+/** Como o aplicativo anterior à 0014 grava. */
+const salvarAntigo = (uid: string, id: string, revisao: number, draft: unknown) => as(db, uid, "select * from public.save_guided_character($1, $2, $3::jsonb)", [id, revisao, JSON.stringify(draft)]);
 
 beforeAll(async () => { db = await boot(); C = await mesa(db, U.ana, [U.bia, U.caio]); OUTRA = await mesa(db, U.dora, [U.caio]); });
 
@@ -97,8 +100,10 @@ describe("estado vital: uma fonte, operações atômicas", () => {
     const g = await salvar(U.bia, id, antiga.revision, { ...antiga.draft, name: "Thorin II", currentHp: 20, temporaryHp: 50, play: { inspiracao: true, condicoes: [] } });
     expect(g.error).toBeUndefined();   // a operação vital não gerou conflito de revisão
     expect((await ler(id)).draft).toMatchObject({ name: "Thorin II", currentHp: 13, temporaryHp: 0, play: { inspiracao: true, condicoes: ["Atordoado"] } });
-    expect((await as(db, U.bia, "update public.character_sheets set draft = jsonb_set(draft, '{currentHp}', '999') where character_id = $1", [id])).error).toBeUndefined();
+    expect((await as(db, U.bia, "update public.character_sheets set draft = jsonb_set(draft, '{currentHp}', '999') where character_id = $1", [id])).error).toMatch(/aplicativo_desatualizado/);
+    expect((await as(db, U.bia, "update public.character_sheets set draft = jsonb_set(draft || '{\"_protocolo\":2}', '{currentHp}', '999') where character_id = $1", [id])).error).toBeUndefined();
     expect((await ler(id)).draft.currentHp).toBe(13);
+    expect((await ler(id)).draft).not.toHaveProperty("_protocolo");
     expect((await as(db, U.bia, "update public.character_sheets set vitals_version = 999 where character_id = $1", [id])).error).toMatch(/permission denied/);
   });
 
@@ -111,6 +116,42 @@ describe("estado vital: uma fonte, operações atômicas", () => {
     for (const q of ["select * from private_ficha.operacao", "insert into private_ficha.operacao values (txid_current(), gen_random_uuid(), 'transferencia')", "select private_ficha.travar(gen_random_uuid())"])
       expect((await as(db, U.bia, q)).error, q).toMatch(/permission denied/);
     expect((await ler(id)).draft.currentHp).toBe(20);
+  });
+});
+
+describe("aplicativo anterior à 0014 (aba aberta ou pacote em cache)", () => {
+  it("gravação que mudaria PV, temporários, condições ou morte é recusada com erro, nunca descartada em silêncio", async () => {
+    const id = await criar(U.bia);
+    estado(await vital(U.ana, id, { tipo: "dano", valor: 6 }));
+    const f = await ler(id);
+    // o fim de combate do app antigo grava os PV pela ficha inteira
+    expect((await salvarAntigo(U.ana, id, f.revision, { ...f.draft, currentHp: 2 })).error).toMatch(/aplicativo_desatualizado/);
+    for (const mudanca of [{ temporaryHp: 9 }, { play: { condicoes: ["Caído"] } }, { play: { morte: { sucessos: 1, falhas: 0 } } }])
+      expect((await salvarAntigo(U.bia, id, f.revision, { ...f.draft, ...mudanca })).error, JSON.stringify(mudanca)).toMatch(/aplicativo_desatualizado/);
+    expect(await ler(id)).toEqual(f);
+  });
+  it("o que não toca no estado vital continua sendo aceito, inclusive com as chaves vazias que o app antigo acrescenta", async () => {
+    const id = await criar(U.bia);
+    const f = await ler(id);
+    const r = await salvarAntigo(U.bia, id, f.revision, { ...f.draft, name: "Renomeado", play: { inspiracao: true, condicoes: [], morte: { sucessos: 0, falhas: 0 } } });
+    expect(r.error).toBeUndefined();
+    expect((await ler(id)).draft).toMatchObject({ name: "Renomeado", currentHp: 20, play: { inspiracao: true } });
+  });
+});
+
+describe("teto de PV no servidor", () => {
+  it("um máximo inflado pelo cliente é limitado pelo nível, na cura, ao definir, ao ajustar, no descanso, no consumo e na criação", async () => {
+    const id = await criar(U.bia, { inventory: [item("p", "potion-of-healing-common", 1)] });   // nível 3: teto 90
+    expect(estado(await vital(U.bia, id, { tipo: "cura", valor: 1000000, maximo: 1000000 })).pv).toBe(90);
+    expect(estado(await vital(U.bia, id, { tipo: "definir", valor: 999999, maximo: 999999 })).pv).toBe(90);
+    expect(estado(await vital(U.bia, id, { tipo: "ajustar", valor: 500, maximo: 999999 })).pv).toBe(90);
+    expect(estado(await vital(U.bia, id, { tipo: "descanso", maximo: 999999 })).pv).toBe(90);
+    estado(await vital(U.bia, id, { tipo: "dano", valor: 80 }));
+    expect(estado(await usar(U.bia, id, "p", 1000000, 1000000)).pv).toBe(90);
+    const exagerado = await criar(U.bia, { level: 1, currentHp: 100000 });
+    expect((await ler(exagerado)).draft.currentHp).toBe(30);
+    const semNivel = await criar(U.bia, { level: "20" });
+    expect(estado(await vital(U.bia, semNivel, { tipo: "descanso", maximo: 500 })).pv).toBe(30);
   });
 });
 
