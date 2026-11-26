@@ -102,6 +102,9 @@ try {
     const save = async (token, patch) => { const cur = await sheetOf(token); return api('/rest/v1/rpc/save_guided_character', {token, method: 'POST', body: {p_id: character.character_id, p_expected_revision: cur.revision, p_draft: {...cur.draft, ...patch}}}); };
     assert.ok((await save(p, {inventory: [item('potion-of-healing-common', 1)]})).ok);
     assert.equal((await save(p, {inventory: [item('potion-of-healing-greater', 1)]})).ok, false);
+    assert.equal((await save(p, {inventory: [item('potion-of-healing-greater', 7), {...item('potion-of-healing-greater', -7), id: 'offset'}]})).ok, false, 'offsetting quantities must be refused');
+    await ok(`/rest/v1/notes?id=eq.${character.character_id}`, {token: p, method: 'PATCH', body: {meta: {guiado: true, identidadePublica: {settings: {imageUrl: null, title: 'OLD-SECRET', name: {mode: 'real'}, surname: {mode: 'hidden', customValue: 'HIDDEN-SECRET'}, race: {mode: 'hidden'}, characterClass: {mode: 'hidden'}, description: ''}, card: {imageUrl: null, title: '', name: null, surname: null, race: null, characterClass: null, description: ''}}}}});
+    assert.ok(!/OLD-SECRET|HIDDEN-SECRET/.test(JSON.stringify(await ok(`/rest/v1/notes?id=eq.${character.character_id}`, {token: m}))), 'hidden text must never be stored in the campaign-readable row');
     assert.equal((await save(p, {play: {concedidos: [{id: 'g', tipo: 'talento', nome: 'X', origem: 'Y'}]}})).ok, false);
     assert.ok((await save(m, {inventory: [item('potion-of-healing-greater', 1)], name: 'Renamed by master', level: 4})).ok);
     const [shown] = await ok(`/rest/v1/notes?id=eq.${character.character_id}`, {token: p});

@@ -14,8 +14,7 @@ grant update (enabled_coins) on public.campaigns to authenticated;   -- a RLS de
 
 -- ------------------------------------------------------------------ B. itens e concessões
 create schema private_ficha;
-revoke all on schema private_ficha from public, anon;
-grant usage on schema private_ficha to authenticated;
+revoke all on schema private_ficha from public, anon, authenticated;
 
 -- O que o JOGADOR pode pôr (ou aumentar) no próprio inventário. Mesma política de src/catalogue/disponibilidade.ts:
 -- itens mundanos e as poções comuns. O restante só entra pelo mestre.
@@ -76,29 +75,61 @@ create function private_ficha.lista(v jsonb) returns jsonb language sql immutabl
   select case when jsonb_typeof(v) = 'array' then v else '[]'::jsonb end
 $$;
 
+-- Formato exigido de TODOS (inclusive do mestre): sem isto, somas podem ser enganadas (quantidades negativas que se anulam).
+create function private_ficha.formato_valido(ficha jsonb) returns boolean
+language plpgsql immutable set search_path = '' as $$
+declare e jsonb; inv jsonb := ficha -> 'inventory'; con jsonb := ficha #> '{play,concedidos}'; ids text[] := '{}';
+begin
+  if inv is not null then
+    if jsonb_typeof(inv) <> 'array' then return false; end if;
+    for e in select jsonb_array_elements(inv) loop
+      if jsonb_typeof(e) <> 'object' then return false; end if;
+      if jsonb_typeof(e -> 'id') is distinct from 'string' or jsonb_typeof(e -> 'itemId') is distinct from 'string' or jsonb_typeof(e -> 'quantity') is distinct from 'number' then return false; end if;
+      if length(e ->> 'id') = 0 or length(e ->> 'itemId') = 0 then return false; end if;
+      if (e ->> 'quantity')::numeric <> trunc((e ->> 'quantity')::numeric) or (e ->> 'quantity')::numeric not between 1 and 1000000 then return false; end if;
+      if (e ->> 'id') = any (ids) then return false; end if;
+      ids := ids || (e ->> 'id');
+    end loop;
+  end if;
+  if con is not null then
+    if jsonb_typeof(con) <> 'array' then return false; end if;
+    if exists (select 1 from jsonb_array_elements(con) c where jsonb_typeof(c) <> 'object') then return false; end if;
+  end if;
+  return true;
+end $$;
+
 -- SECURITY DEFINER: lê a lista (sem privilégio de API) e, na atualização, a versão anterior da própria linha. `is_master` continua
 -- usando a sessão de quem chamou (auth.uid()).
 create function private_ficha.guarda_entregas() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare r record; antes numeric; anterior jsonb := case when tg_op = 'UPDATE' then old.draft else '{}'::jsonb end;
 begin
+  if not private_ficha.formato_valido(new.draft) then raise exception 'ficha_invalida' using errcode = '23514'; end if;
   if public.is_master(new.campaign_id) then return new; end if;
-  for r in select e ->> 'itemId' as item,
-                  sum(case when jsonb_typeof(e -> 'quantity') = 'number' then (e ->> 'quantity')::numeric else 1 end) as qtd
+  for r in select e ->> 'itemId' as item, sum((e ->> 'quantity')::numeric) as qtd
              from jsonb_array_elements(private_ficha.lista(new.draft -> 'inventory')) e group by 1 loop
     continue when exists (select 1 from private_ficha.itens_livres l where l.item_id = r.item);
-    select coalesce(sum(case when jsonb_typeof(e -> 'quantity') = 'number' then (e ->> 'quantity')::numeric else 1 end), 0) into antes
-      from jsonb_array_elements(private_ficha.lista(anterior -> 'inventory')) e where e ->> 'itemId' is not distinct from r.item;
+    -- a versão anterior pode ser de antes desta regra: só quantidades positivas contam como posse
+    select coalesce(sum(case when jsonb_typeof(e -> 'quantity') = 'number' then greatest((e ->> 'quantity')::numeric, 0) else 0 end), 0) into antes
+      from jsonb_array_elements(private_ficha.lista(anterior -> 'inventory')) e where e ->> 'itemId' = r.item;
     if r.qtd > antes then raise exception 'item_nao_autorizado' using errcode = '42501'; end if;
   end loop;
-  -- talentos, magias e habilidades concedidos: o jogador pode retirar, nunca criar nem alterar
-  if exists (select 1 from jsonb_array_elements(private_ficha.lista(new.draft #> '{play,concedidos}')) c
-              where not exists (select 1 from jsonb_array_elements(private_ficha.lista(anterior #> '{play,concedidos}')) o where o = c)) then
+  -- talentos, magias e habilidades concedidos: o jogador pode retirar, nunca criar, alterar nem repetir
+  if exists (select 1 from (select c, count(*) as n from jsonb_array_elements(private_ficha.lista(new.draft #> '{play,concedidos}')) c group by c) novo
+              where novo.n > (select count(*) from jsonb_array_elements(private_ficha.lista(anterior #> '{play,concedidos}')) o where o = novo.c)) then
+    raise exception 'concessao_so_do_mestre' using errcode = '42501';
+  end if;
+  -- concessão presa a um item: o identificador daquela instância não pode passar para outro item, nem ser recriado pelo jogador
+  if exists (
+    select 1 from jsonb_array_elements(private_ficha.lista(new.draft #> '{play,concedidos}')) c
+      join jsonb_array_elements(private_ficha.lista(new.draft -> 'inventory')) n on n ->> 'id' = c ->> 'itemInstancia'
+     where not exists (select 1 from jsonb_array_elements(private_ficha.lista(anterior -> 'inventory')) a
+                        where a ->> 'id' = n ->> 'id' and a ->> 'itemId' = n ->> 'itemId')) then
     raise exception 'concessao_so_do_mestre' using errcode = '42501';
   end if;
   return new;
 end $$;
-revoke all on function private_ficha.guarda_entregas(), private_ficha.lista(jsonb) from public, anon, authenticated;
+revoke all on function private_ficha.guarda_entregas(), private_ficha.formato_valido(jsonb), private_ficha.lista(jsonb) from public, anon, authenticated;
 create trigger character_sheets_entregas before insert or update of draft on public.character_sheets
   for each row execute function private_ficha.guarda_entregas();
 
@@ -117,6 +148,15 @@ create function private_ficha.retrato(v text, campanha uuid) returns text langua
     when v ~ ('^storage:' || campanha::text || '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') then v
   end
 $$;
+-- A linha pública é lida pela campanha inteira. As escolhas são RECONSTRUÍDAS aqui: texto só em campo personalizado; nada de campo
+-- oculto, de campo que segue a ficha, nem de título ou imagem digitados em formatos antigos.
+create function private_ficha.escolha(cfg jsonb) returns jsonb language sql immutable set search_path = '' as $$
+  select case coalesce(cfg ->> 'mode', 'real')
+           when 'custom' then jsonb_build_object('mode', 'custom', 'customValue', left(coalesce(cfg ->> 'customValue', ''), 120))
+           when 'hidden' then jsonb_build_object('mode', 'hidden')
+           else jsonb_build_object('mode', 'real')
+         end
+$$;
 create function private_ficha.projetar(meta jsonb, ficha jsonb, campanha uuid) returns jsonb
 language plpgsql immutable set search_path = '' as $$
 declare
@@ -129,7 +169,11 @@ begin
   -- os nomes em português de raça e classe vêm da ficha (`publicLabels`); sem eles, mantém o que já estava publicado
   raca := private_ficha.campo(st -> 'race', coalesce(ficha #>> '{publicLabels,race}', antigo ->> 'race'));
   classe := private_ficha.campo(st -> 'characterClass', coalesce(ficha #>> '{publicLabels,characterClass}', antigo ->> 'characterClass'));
-  return jsonb_build_object('settings', st, 'card', jsonb_build_object(
+  return jsonb_build_object('settings', jsonb_build_object(
+      'imageUrl', null, 'title', '', 'name', private_ficha.escolha(st -> 'name'), 'surname', private_ficha.escolha(st -> 'surname'),
+      'race', private_ficha.escolha(st -> 'race'), 'characterClass', private_ficha.escolha(st -> 'characterClass'),
+      'level', private_ficha.escolha(st -> 'level'), 'description', coalesce(st ->> 'description', '')),
+    'card', jsonb_build_object(
     'imageUrl', private_ficha.retrato(ficha ->> 'portrait', campanha),
     'title', coalesce(private_ficha.campo(st -> 'surname', ficha ->> 'nickname'), ''),
     'name', private_ficha.campo(st -> 'name', ficha ->> 'name'),
@@ -137,8 +181,8 @@ begin
     'level', private_ficha.campo(st -> 'level', ficha ->> 'level'),
     'description', coalesce(st ->> 'description', '')));
 end $$;
-revoke all on function private_ficha.campo(jsonb, text), private_ficha.retrato(text, uuid), private_ficha.projetar(jsonb, jsonb, uuid) from public, anon;
-grant execute on function private_ficha.campo(jsonb, text), private_ficha.retrato(text, uuid), private_ficha.projetar(jsonb, jsonb, uuid) to authenticated;
+-- usadas apenas pelo gatilho SECURITY DEFINER: nenhum papel da API precisa chamá-las
+revoke all on function private_ficha.campo(jsonb, text), private_ficha.retrato(text, uuid), private_ficha.escolha(jsonb), private_ficha.projetar(jsonb, jsonb, uuid) from public, anon, authenticated;
 
 -- Validação da linha pública: igual à 0008, aceitando também `level` e o retrato enviado (`storage:<campanha>/<uuid>`).
 create or replace function private.identidade_meta_valida(m jsonb) returns boolean

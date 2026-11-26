@@ -174,3 +174,54 @@ describe("reversão", () => {
     await f.exec(readFileSync(join(dir, "0013_ficha_moedas_itens_identidade.sql"), "utf8"));
   });
 });
+
+describe("revisão adversarial: quantidades, concessões e privacidade pela API", () => {
+  const raro = "potion-of-healing-greater";
+  const bruto = (id: string, itemId: unknown, quantity: unknown) => ({ id, itemId, quantity, equipped: false, origin: "acquired" });
+
+  it("entradas que enganariam a soma ou fora do formato são recusadas de qualquer um, inclusive do mestre", async () => {
+    const casos: [string, unknown][] = [
+      ["positivas e negativas que se anulam", [bruto("a", raro, 7), bruto("b", raro, -7)]],
+      ["quantidade em texto", [bruto("a", raro, "100")]], ["quantidade zero", [bruto("a", raro, 0)]], ["fração", [bruto("a", "potion-of-healing-common", 1.5)]],
+      ["gigante", [bruto("a", "torch", 1000001)]], ["inventário que não é lista", { 0: bruto("a", raro, 5) }], ["entrada que não é objeto", ["x"]],
+      ["itemId numérico", [bruto("a", 5, 1)]], ["identificador repetido", [bruto("a", "torch", 1), bruto("a", "torch", 1)]],
+    ];
+    const pc = await id(criar(U.bia, ficha()));
+    for (const [nome, inventory] of casos) {
+      expect((await criar(U.bia, ficha({ inventory }))).error, "criar: " + nome).toMatch(/ficha_invalida/);
+      expect((await salvar(U.bia, pc, { inventory })).error, "jogador: " + nome).toMatch(/ficha_invalida/);
+      expect((await salvar(U.ana, pc, { inventory })).error, "mestre: " + nome).toMatch(/ficha_invalida/);
+    }
+    expect((await salvar(U.bia, pc, { play: { concedidos: { a: 1 } } })).error).toMatch(/ficha_invalida/);
+  });
+
+  it("a concessão presa a um item não migra para outro, não se repete e não é recriada pelo jogador", async () => {
+    const pc = await id(criar(U.bia, ficha()));
+    const dado = { id: "g", tipo: "magia", nome: "Luz", origem: "Varinha", itemInstancia: "varinha" };
+    const comVarinha = [bruto("varinha", "wand-of-magic-missiles", 1)];
+    expect((await salvar(U.ana, pc, { inventory: comVarinha, play: { concedidos: [dado] } })).error).toBeUndefined();
+    expect((await salvar(U.bia, pc, { inventory: [bruto("varinha", "dagger", 1)] })).error).toMatch(/concessao_so_do_mestre/);
+    expect((await salvar(U.bia, pc, { play: { concedidos: [dado, dado] } })).error).toMatch(/concessao_so_do_mestre/);
+    expect((await salvar(U.bia, pc, { inventory: [] })).error).toBeUndefined();   // pode descartar o item
+    expect((await salvar(U.bia, pc, { inventory: [bruto("varinha", "dagger", 1)] })).error).toMatch(/concessao_so_do_mestre/);
+    expect((await salvar(U.bia, pc, { inventory: comVarinha })).error).toMatch(/item_nao_autorizado/);
+  });
+
+  it("texto de campo oculto ou que segue a ficha, e título/imagem de formatos antigos, nunca chegam à campanha", async () => {
+    const pc = await id(criar(U.bia, ficha({ nickname: "ALCUNHA-REAL" }), apresentacao({
+      imageUrl: "https://segredo.example/antiga.png", title: "TITULO-ANTIGO", surname: { mode: "hidden", customValue: "ALCUNHA-OCULTA" },
+      race: { mode: "hidden", customValue: "RACA-OCULTA" }, characterClass: { mode: "real", customValue: "CLASSE-GUARDADA" }, level: { mode: "custom", customValue: "?" },
+    })));
+    const visto = (await nota(U.caio, pc))!;
+    expect(JSON.stringify(visto)).not.toMatch(/ALCUNHA-REAL|TITULO-ANTIGO|segredo\.example|ALCUNHA-OCULTA|RACA-OCULTA|CLASSE-GUARDADA/);
+    expect(visto.meta.identidadePublica.settings).toEqual({ imageUrl: null, title: "", name: { mode: "real" }, surname: { mode: "hidden" }, race: { mode: "hidden" }, characterClass: { mode: "real" }, level: { mode: "custom", customValue: "?" }, description: "" });
+    // gravação direta na nota também é limpa
+    await as(db, U.bia, "update public.notes set meta = $2::jsonb where id = $1", [pc, JSON.stringify({ guiado: true, ...apresentacao({ surname: { mode: "hidden", customValue: "DE-NOVO" } }) })]);
+    expect(JSON.stringify(await nota(U.caio, pc))).not.toContain("DE-NOVO");
+  });
+
+  it("as funções internas não são chamáveis pela API", async () => {
+    for (const q of ["select private_ficha.projetar('{}'::jsonb, '{}'::jsonb, gen_random_uuid())", "select private_ficha.formato_valido('{}'::jsonb)", "select * from private_ficha.itens_livres"])
+      expect((await as(db, U.bia, q)).error, q).toMatch(/permission denied/);
+  });
+});
