@@ -1,4 +1,3 @@
-import { ehPaginaDoCompendio } from "./compendio/navegacao";
 import { NotificacoesProvider, SinoNotificacoes } from "./compendio/Notificacoes";
 import { useConhecimento, itemConhecido } from "./compendio/conhecimento";
 import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
@@ -264,9 +263,9 @@ function Workspace({ userId }: { userId: string }) {
   }, [model, onModelChange, unsaved.api]);
 
   const abrirEmAba = useMemo(() => ({
-    abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem),
-    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem) },
-      ...(!mobile && ehPaginaDoCompendio(s) ? [{ label: "Abrir como aba deste grupo", onSelect: () => openContentLink(s, origem, true) }] : [])] }),
+    abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem, true),
+    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
+      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => window.dispatchEvent(new CustomEvent("compendio:abrir-local", {detail:{origem,s}})) }] }),
   }), [openContentLink, mobile]);
 
   return <NotificacoesProvider><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
