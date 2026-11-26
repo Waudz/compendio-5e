@@ -4,6 +4,7 @@
 import { srdItem } from "../catalogue/srd-2014-items";
 import { automaticSpells2014, choices2014, class2014, featureDescription2014, label2014, raceTraits2014, selected2014, shortId, spells2014, subclassFeatureIds2014, type Spell2014 } from "../criador/regras-2014";
 import { rotuloAtributo, rotuloOpcao } from "../criador/rotulos";
+import { origem2014 } from "../criador/origens-2014";
 import type { Ability } from "../rules/character-build-pilot";
 import type { CharacterDraft, CharacterSheet } from "../rules/character-domain";
 import type { Concedido } from "./estadoJogo";
@@ -163,8 +164,9 @@ export function caracteristicasDaFicha(draft: CharacterDraft, sheet: CharacterSh
   };
   for (const f of sheet.features) add({ id: shortId(f), chave: f, nome: nomeDaCaracteristica(f), origem: daSubclasse.has(f) ? "Subclasse" : "Classe", detalheOrigem: label2014(draft.classId), descricao: featureDescription2014(f), valores: valoresDe(shortId(f), draft, sheet) });
   for (const t of raceTraits2014(draft)) add({ id: t.index, chave: "raca:" + t.index, nome: t.name, origem: "Raça", detalheOrigem: label2014(draft.raceId), descricao: t.desc.join("\n\n"), valores: valoresDe(t.index, draft, sheet) });
-  const origem = selected2014(draft, "background-feature")[0];
-  if (origem) add({ id: "origem", chave: "origem", nome: label2014(origem), origem: "Origem", detalheOrigem: label2014(draft.backgroundId), descricao: featureDescription2014(origem), valores: [] });
+  const origem = origem2014(draft.backgroundId);
+  const combinada = draft.backgroundId === "custom" ? selected2014(draft, "background-feature")[0]?.trim() : "";
+  if (origem) add({ id: "origem", chave: "origem", nome: origem.caracteristica, origem: "Origem", detalheOrigem: origem.nome, descricao: combinada || origem.resumo, valores: [] });
   for (const c of concedidos.filter(c => c.tipo !== "magia"))
     add({ id: c.id, chave: c.id, nome: c.nome, origem: c.tipo === "talento" ? "Talento" : "Concedida", detalheOrigem: c.origem, descricao: c.descricao ?? "", valores: [c.cd != null ? `CD ${c.cd}${c.salvaguarda ? ` · salvaguarda de ${c.salvaguarda}` : ""}` : "", c.ataque != null ? `Ataque ${sinal(c.ataque)}` : "", c.efeito ?? ""].filter(Boolean) });
   return out;

@@ -1,0 +1,41 @@
+/* Etapas: a composição depende da largura do PAINEL. */
+.etapas-raiz { container-type: inline-size; min-width: 0; }
+.etapas-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+.etapas-nav ol { display: none; list-style: none; margin: 0; padding: 0; }
+.etapas-compacto { display: flex; flex-direction: column; gap: 6px; }
+.etapas-compacto label { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
+.etapas-compacto select { min-width: 0; width: 100%; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 8px; font: inherit; font-size: 14px; }
+.etapas-progresso { height: 5px; border-radius: 3px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+.etapas-progresso > span { display: block; height: 100%; background: var(--dnd-ouro, var(--accent)); }
+.etapas-conteudo { display: flex; flex-direction: column; gap: 12px; min-width: 0; outline: none; scroll-margin-top: 8px; }
+.etapas-passos { display: flex; justify-content: space-between; gap: 8px; position: sticky; bottom: 0; z-index: 5; background: var(--bg); padding: 8px 0; border-top: 1px solid var(--line); }
+.etapas-passos button { display: inline-flex; align-items: center; gap: 6px; width: auto; margin: 0; }
+.etapas-resumo { display: none; }
+
+@container (min-width: 620px) {
+  .etapas-grade { grid-template-columns: 176px minmax(0, 1fr); gap: 16px; }
+  .etapas-nav ol { display: flex; flex-direction: column; gap: 2px; }
+  .etapas-compacto { display: none; }
+  .etapas-nav { position: sticky; top: 0; }
+  .etapas-nav button { width: 100%; display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: center; gap: 8px; text-align: left; background: none; border: 1px solid transparent; border-radius: 8px; color: var(--text-2); padding: 8px; font: inherit; font-size: 13px; margin: 0; }
+  .etapas-nav button:hover { background: var(--hover); }
+  .etapas-nav button.atual { border-color: var(--dnd-ouro, var(--accent)); color: var(--text); background: var(--panel); font-weight: 650; }
+  .etapa-marca { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+  .etapa-marca.concluida { border-color: var(--dnd-ouro, var(--accent)); color: var(--dnd-ouro, var(--accent)); }
+  .etapa-marca.pendente { border-color: #d99a3d; color: #d99a3d; }
+}
+@container (min-width: 960px) {
+  .etapas-grade[data-resumo] { grid-template-columns: 184px minmax(0, 1fr) 232px; }
+  .etapas-resumo { display: block; position: sticky; top: 0; }
+}
+
+.escolha-cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 8px; }
+.escolha-cartao { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 10px; align-items: start; text-align: left; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: inherit; margin: 0; width: 100%; min-width: 0; }
+.escolha-cartao:hover { border-color: var(--dnd-ouro, var(--accent)); }
+.escolha-cartao.marcado { border-color: var(--dnd-ouro, var(--accent)); box-shadow: inset 0 0 0 1px var(--dnd-ouro, var(--accent)); background: color-mix(in srgb, var(--dnd-ouro, var(--accent)) 12%, var(--panel)); }
+.escolha-icone { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--dnd-ouro, var(--accent)); display: inline-flex; align-items: center; justify-content: center; color: var(--dnd-ouro-claro, var(--accent-text)); }
+.escolha-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.escolha-texto strong { font-size: 14px; }
+.escolha-texto small { font-size: 12px; color: var(--text-2); line-height: 1.35; }
+.escolha-texto .escolha-selo { color: var(--dnd-ouro-claro, var(--accent-text)); font-size: 11px; }
+.escolha-marcada { position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--dnd-ouro, var(--accent)); color: #17120a; display: inline-flex; align-items: center; justify-content: center; }

@@ -11,6 +11,7 @@ drop function if exists public.transferir_item(uuid, uuid, text, integer, uuid);
 drop function if exists public.usar_consumivel(uuid, text, integer, integer, uuid);
 drop function if exists public.alterar_vitais(uuid, jsonb, uuid);
 drop trigger if exists character_sheets_vitais on public.character_sheets;
+delete from private_ficha.itens_livres where item_id = 'background-trinket';
 
 -- as duas funções da 0013 voltam ao texto original
 create or replace function private_ficha.guarda_entregas() returns trigger

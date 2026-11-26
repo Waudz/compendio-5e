@@ -202,8 +202,32 @@ describe("ficha de jogo", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar descanso" }));
     await salvou(() => expect(draftSalvo().currentHp).toBeGreaterThan(20));
     expect(screen.getByText("Descanso longo registrado.")).toBeTruthy();
+  });
+
+  it("subir de nível é um fluxo próprio: grava o novo nível sem mexer no inventário e acompanha o ganho de PV sem apagar o dano", async () => {
+    await semear();
+    await abrirFicha();
+    const antes = structuredClone(draftSalvo()), maximoAntes = Number(screen.getByTestId("ficha-pv").textContent!.split(" / ")[1]);
     fireEvent.click(screen.getByRole("button", { name: "Subir de nível" }));
-    expect(await screen.findByLabelText("Nível")).toBeTruthy();
+    const passos = () => within(screen.getByRole("navigation", { name: "Etapas da subida de nível" }));
+    await screen.findByRole("navigation", { name: "Etapas da subida de nível" });
+    expect(screen.queryByLabelText("Nome do personagem")).toBeNull();       // não é a edição
+    fireEvent.click(passos().getByRole("button", { name: /^Revisão/ }));
+    for (const escolha of screen.queryAllByRole("combobox")) { const s = escolha as HTMLSelectElement; if (!s.value && s.options.length > 1) fireEvent.change(s, { target: { value: [...s.options].find(o => o.value && !o.disabled)!.value } }); }
+    const confirmar = screen.getByRole("button", { name: /^Confirmar nível 4/ }) as HTMLButtonElement;
+    if (confirmar.disabled) {
+      fireEvent.click(passos().getByRole("button", { name: /^Características e escolhas/ }));
+      for (const escolha of screen.queryAllByRole("combobox")) { const s = escolha as HTMLSelectElement; if (!s.value && s.options.length > 1) fireEvent.change(s, { target: { value: [...s.options].find(o => o.value && !o.disabled)!.value } }); }
+      fireEvent.click(passos().getByRole("button", { name: /^Revisão/ }));
+    }
+    fireEvent.click(screen.getByRole("button", { name: /^Confirmar nível 4/ }));
+    await screen.findByTestId("ficha-guiada-leitura");
+    await salvou(() => expect(draftSalvo().level).toBe(4));
+    expect(draftSalvo().inventory).toEqual(antes.inventory);
+    expect(draftSalvo().currency).toEqual(antes.currency);
+    const maximoDepois = () => Number(screen.getByTestId("ficha-pv").textContent!.split(" / ")[1]);
+    expect(maximoDepois()).toBeGreaterThan(maximoAntes);
+    await salvou(() => expect(draftSalvo().currentHp).toBe(antes.currentHp + (maximoDepois() - maximoAntes)));
   });
 
   it("conflito de revisão pausa o salvamento automático e não sobrescreve a outra alteração", async () => {

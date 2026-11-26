@@ -10,6 +10,7 @@ import { createCharacterSheet } from '../rules/character-domain';
 import type { Ability, Grant } from '../rules/character-build-pilot';
 import { rotuloAtributo } from './rotulos';
 import { srdItem } from '../catalogue/srd-2014-items';
+import { ferramentasDaCategoria, origem2014, ROTULO_CATEGORIA, ROTULO_VEICULO } from './origens-2014';
 import { modifier } from '../rules/character-build-pilot';
 import {
   coreClassAsiAdvancements,
@@ -337,6 +338,8 @@ const languages = [
   'sylvan',
   'undercommon',
 ];
+/** Perícias que a própria raça concede (para a regra de não repetir). */
+const raceSkills = (raceId: string, base: string) => [...(base === 'half-orc' ? ['intimidation'] : []), ...(base === 'elf' || raceId === 'high-elf' ? ['perception'] : [])];
 export function choices2014(d: CharacterDraft): Choice2014[] {
   const c = class2014(d),
     level = c.data.levels[d.level - 1];
@@ -542,13 +545,32 @@ export function choices2014(d: CharacterDraft): Choice2014[] {
       'silver',
       'white',
     ]);
-  if (d.backgroundId === 'acolyte')
+  const origem = origem2014(d.backgroundId);
+  if (origem?.idiomas)
     add(
       'background-languages',
       'Idiomas da origem',
-      2,
+      origem.idiomas,
       'language',
       languages.filter((x) => !race.languages.some((l) => l.index === x)),
+    );
+  if (origem?.escolhaFerramenta)
+    add(
+      'background-tool',
+      ROTULO_CATEGORIA[origem.escolhaFerramenta] + ' da origem',
+      1,
+      'proficiency',
+      ferramentasDaCategoria(origem.escolhaFerramenta).map((id) => 'tool:' + id),
+    );
+  // 2014: uma perícia que a raça já dá não se repete; a origem dá então outra à escolha
+  const repetidas = (origem?.pericias ?? []).filter((p) => raceSkills(d.raceId, race.index).includes(p));
+  if (repetidas.length)
+    add(
+      'background-replacement-skill',
+      'Perícia no lugar da repetida pela origem',
+      repetidas.length,
+      'skill',
+      allSkills.filter((s) => !origem!.pericias.includes(s) && !raceSkills(d.raceId, race.index).includes(s)),
     );
   if (d.backgroundId === 'custom') {
     add('background-skills', 'Perícias da origem', 2, 'skill', allSkills);
@@ -857,13 +879,7 @@ export function catalog2014(d: CharacterDraft): CharacterCatalog {
     backgrounds: {
       [d.backgroundId]: {
         id: d.backgroundId,
-        grants:
-          d.backgroundId === 'acolyte'
-            ? [
-                { type: 'skill', skill: 'insight', source: 'acolyte' },
-                { type: 'skill', skill: 'religion', source: 'acolyte' },
-              ]
-            : [],
+        grants: (origem2014(d.backgroundId)?.pericias ?? []).map((skill) => ({ type: 'skill' as const, skill, source: d.backgroundId })),
       },
     },
     classes: {
@@ -903,7 +919,7 @@ export function sheet2014(d: CharacterDraft): CharacterSheet {
     name: d.name.trim() || 'Sem nome',
     decisions: d.decisions.filter((x) => valid.has(x.id)),
   };
-  if (!['acolyte', 'custom'].includes(d.backgroundId))
+  if (!origem2014(d.backgroundId))
     throw Error('Origem desconhecida.');
   const sheet = createCharacterSheet(prepared, catalog2014(d));
   sheet.draft = d;
@@ -920,9 +936,7 @@ export function sheet2014(d: CharacterDraft): CharacterSheet {
       selected2014(d, 'background-feature')[0].length > 500)
   )
     sheet.pending.push('background-feature');
-  const trained = new Set<string>(
-    d.backgroundId === 'acolyte' ? ['insight', 'religion'] : [],
-  );
+  const trained = new Set<string>(origem2014(d.backgroundId)?.pericias ?? []);
   if (d.raceId === 'half-orc') trained.add('intimidation');
   if (['elf', 'high-elf'].includes(d.raceId)) trained.add('perception');
   const acquiredProficiencies = new Set(
@@ -1040,6 +1054,7 @@ export function proficiency2014(d: CharacterDraft) {
   const chosen = choices2014(d)
     .filter((c) => c.kind === 'proficiency')
     .flatMap((c) => selected2014(d, c.id));
+  chosen.push(...(origem2014(d.backgroundId)?.ferramentas ?? []).map((id) => 'tool:' + id));
   if (['hill-dwarf', 'dwarf'].includes(d.raceId))
     chosen.push(
       'weapon: battleaxes',
@@ -1367,17 +1382,53 @@ export function knownSpellIds2014(d: CharacterDraft) {
     .flatMap((c) => c.optionIds);
 }
 
+/** Pacote de equipamento em uso: o da própria origem; na personalizada, o escolhido (sem escolha, o do Acólito). */
+export const pacoteDaOrigem2014 = (d: CharacterDraft) => (d.backgroundId === 'custom' ? selected2014(d, 'background-package')[0] || 'acolyte' : d.backgroundId);
+const SIMBOLOS = ['amulet', 'emblem', 'reliquary'];
+/** Qual origem entregou o equipamento que está na ficha (para trocar sem duplicar), e quanto ouro veio com ele. */
+export function origemEntregue2014(d: CharacterDraft): { pacote: string; ouro: number } | null {
+  if (!selected2014(d, 'background-equipment').includes('accepted')) return null;
+  const [pacote, ouro] = selected2014(d, 'background-granted');
+  return pacote ? { pacote, ouro: Number(ouro) || 0 } : { pacote: 'acolyte', ouro: 15 };
+}
+/** Desfaz a entrega da origem (itens iniciais dela que ainda estão no inventário e o ouro, sem ficar negativo): usada para trocar de origem. */
+export function removerOrigem2014(d: CharacterDraft): CharacterDraft {
+  const entregue = origemEntregue2014(d);
+  if (!entregue) return d;
+  return {
+    ...d,
+    inventory: d.inventory.filter((i) => !i.id.startsWith('background-')),
+    currency: { cp: 0, sp: 0, ...d.currency, gp: Math.max(0, (d.currency?.gp ?? 0) - entregue.ouro) },
+    decisions: d.decisions.filter((c) => c.id !== 'background-equipment' && c.id !== 'background-granted'),
+  };
+}
+
 /** Origem é uma transação idempotente, independente do equipamento da classe. */
 export function grantBackground2014(
   d: CharacterDraft,
   holySymbol = 'amulet',
 ): CharacterDraft {
-  if (!['acolyte', 'custom'].includes(d.backgroundId))
+  if (!origem2014(d.backgroundId))
     throw Error('Origem não suportada.');
+  const pacote = pacoteDaOrigem2014(d);
+  const origem = origem2014(pacote)!;
+  if (pacote !== 'acolyte') {
+    if (selected2014(d, 'background-equipment').includes('accepted')) {
+      if (origemEntregue2014(d)?.pacote !== pacote) throw Error('O equipamento de outra origem já está na ficha. Troque o equipamento da origem.');
+      return d;
+    }
+    const inventory = [
+      ...d.inventory,
+      ...origem.equipamento.map((e, n) => ({ id: `background-${pacote}:${n}`, itemId: e.itemId, quantity: e.quantidade ?? 1, equipped: false, origin: 'starting' as const, ...(e.nome ? { customName: e.nome } : {}) })),
+    ];
+    const entregue = decide2014({ ...d, inventory, currency: { ...d.currency, cp: d.currency?.cp ?? 0, sp: d.currency?.sp ?? 0, gp: (d.currency?.gp ?? 0) + origem.ouro } }, 'background-equipment', ['accepted']);
+    return decide2014(entregue, 'background-granted', [pacote, String(origem.ouro)]);
+  }
   // A origem já concedida não deve duplicar itens nem moedas, mas a escolha
   // posterior do símbolo sagrado precisa substituir o símbolo anterior.
   if (selected2014(d, 'background-equipment').includes('accepted')) {
-    if (!['amulet', 'emblem', 'reliquary'].includes(holySymbol))
+    if (origemEntregue2014(d)?.pacote !== 'acolyte') throw Error('O equipamento de outra origem já está na ficha. Troque o equipamento da origem.');
+    if (!SIMBOLOS.includes(holySymbol))
       throw Error('Escolha um símbolo sagrado do catálogo.');
     const symbolId = canonicalItem2014('srd51:item/' + holySymbol);
     const oldSymbol = d.inventory.find(i => i.id === 'background-acolyte:symbol');
@@ -1387,7 +1438,7 @@ export function grantBackground2014(
       throw Error('O símbolo sagrado inicial foi modificado. Revise o inventário antes de substituí-lo.');
     return { ...d, inventory: d.inventory.map(i => i.id === oldSymbol.id ? { ...i, itemId: symbolId } : i) };
   }
-  if (!['amulet', 'emblem', 'reliquary'].includes(holySymbol))
+  if (!SIMBOLOS.includes(holySymbol))
     throw Error('Escolha um símbolo sagrado do catálogo.');
   const inventory = [...d.inventory];
   const add = (
@@ -1559,6 +1610,7 @@ export function proficiencyLabel2014(value: string) {
   const target = raw.trim();
   if (kind === 'save') return 'Resistência: ' + rotuloAtributo(target);
   if (kind === 'language') return 'Idioma: ' + (idioma2014[target] ?? target);
+  if (ROTULO_VEICULO[target]) return ROTULO_VEICULO[target];
   const categories: Record<string, string> = {
     'light-armor': 'Armaduras leves',
     'medium-armor': 'Armaduras médias',

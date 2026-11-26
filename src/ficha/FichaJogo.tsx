@@ -6,6 +6,7 @@ import { ChevronsUp, Minus, MoreHorizontal, Pencil, Plus, X } from "lucide-react
 import { D20Nivel, EscudoCA, Indicador, IndicadorPV } from "../dnd/elementos";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { label2014, raceTraits2014, selected2014, sheet2014, statistics2014 } from "../criador/regras-2014";
+import { origem2014 } from "../criador/origens-2014";
 import { retratoValido } from "../fichas";
 import { RetratoQuadrado } from "../RetratoCombate";
 import { CONDICOES_5E, CONDICOES_TEXTO } from "../rules/condicoes-5e";
@@ -128,7 +129,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
   const extra = (alvo: AlvoMod) => (temp(alvo) !== 0 ? <small className="ficha-temp">{sinal(temp(alvo))} temp.</small> : null);
   const propsAba = { draft, sheet, stats, estado, onChange, onOpenContent, vital };
 
-  const origem = label2014(draft.backgroundId);
+  const origem = origem2014(draft.backgroundId)?.nome ?? label2014(draft.backgroundId);
   return <div ref={raiz} className="content ficha auth wide ficha-jogo sistema-dnd" data-testid="ficha-guiada-leitura" {...gesto}>
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
     <section className="ficha-cabecalho" aria-label="Resumo do personagem">

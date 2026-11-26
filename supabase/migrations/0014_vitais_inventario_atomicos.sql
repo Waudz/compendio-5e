@@ -355,7 +355,11 @@ begin
   return true;
 end $$;
 
--- ------------------------------------------------------------------ D. tempo real (só quando a publicação existir, como no Supabase)
+-- ------------------------------------------------------------------ D. objetos de origem
+-- Cartas, troféus e lembranças das origens (sem linha própria no catálogo) entram com o nome informado; o jogador pode tê-los.
+insert into private_ficha.itens_livres (item_id) values ('background-trinket') on conflict do nothing;
+
+-- ------------------------------------------------------------------ E. tempo real (só quando a publicação existir, como no Supabase)
 do $$ begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
      and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'character_sheets') then

@@ -56,7 +56,8 @@
 
 /* ---------------------------------------------------------------- atributos */
 .sistema-dnd .ficha-atributos { gap: 10px; }
-.sistema-dnd .dnd-atributo { border: 0; padding: 0; gap: 0; background: none; min-width: 0; }
+/* cada moldura decide se cabe o nome inteiro pela PRÓPRIA largura (ficha, criação, edição ou subida de nível) */
+.sistema-dnd .dnd-atributo { border: 0; padding: 0; gap: 0; background: none; min-width: 0; display: flex; flex-direction: column; align-items: center; container: atributo / inline-size; }
 .dnd-atributo-quadro { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 2px 18px; min-height: 78px; border: 1.5px solid var(--dnd-moldura); border-radius: 14px 14px 10px 10px; background: radial-gradient(ellipse at top, color-mix(in srgb, var(--dnd-ouro) 14%, transparent), transparent 70%), color-mix(in srgb, var(--bg) 55%, transparent); }
 /* cantoneiras: o filete interno da ficha clássica */
 .dnd-atributo-quadro::before { content: ""; position: absolute; inset: 4px; border: 1px solid color-mix(in srgb, var(--dnd-ouro) 28%, transparent); border-radius: 10px 10px 6px 6px; pointer-events: none; }
@@ -92,16 +93,13 @@
   .sistema-dnd .dnd-indicador > span:first-child { font-size: 9px; letter-spacing: 0; }
   .sistema-dnd .dnd-indicador strong, .sistema-dnd .dnd-pv strong { font-size: 17px; }
   .sistema-dnd .ficha-atributos { gap: 4px; }
-  .dnd-nome-longo { display: none; }
-  .dnd-nome-curto { display: inline; }
   .sistema-dnd .dnd-atributo-nome { font-size: 10px; letter-spacing: 0; }
   .sistema-dnd .ficha-identidade { grid-template-columns: minmax(0, 1fr); justify-items: start; }
   .dnd-retrato .retrato-q { width: 64px !important; height: 64px !important; }
   .sistema-dnd .dnd-atributo-quadro strong { font-size: 21px; }
 }
 
-/* seis na mesma linha sem largura para o nome inteiro: abreviação (o nome completo fica na dica) */
-@container (min-width: 521px) and (max-width: 700px) {
-  .dnd-nome-longo { display: none; }
-  .dnd-nome-curto { display: inline; }
+@container atributo (max-width: 106px) {
+  .sistema-dnd .dnd-nome-longo { display: none; }
+  .sistema-dnd .dnd-nome-curto { display: inline; }
 }

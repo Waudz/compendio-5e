@@ -7,7 +7,7 @@ import { srdItem } from "./srd-2014-items";
 export const LIBERADOS_COM_RARIDADE: readonly string[] = ["potion-of-healing-common", "potion-of-climbing"];
 
 /** Itens do equipamento de origem que não são linhas do catálogo (`grantBackground2014`). */
-export const ITENS_DE_ORIGEM: readonly string[] = ["background-prayer-book", "background-incense", "background-vestments"];
+export const ITENS_DE_ORIGEM: readonly string[] = ["background-prayer-book", "background-incense", "background-vestments", "background-trinket"];
 
 export function jogadorPodeAdicionar(itemId: string): boolean {
   if (ITENS_DE_ORIGEM.includes(itemId)) return true;
