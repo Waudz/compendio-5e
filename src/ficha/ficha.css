@@ -68,17 +68,21 @@
 .ficha .ficha-campos .row button { width: auto; margin: 0; }
 .ficha.ficha-jogo button.ficha-discreto { align-self: flex-start; width: auto; margin: 0; }
 
-.ficha-cartoes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 8px; align-items: start; }
+.ficha-cartoes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 8px; align-items: stretch; }
 .ficha-cartao { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
-.ficha-cartao-topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ficha-cartao-topo > svg { flex: none; color: var(--accent); }
-.ficha-jogo .ficha-cartao-topo h3 { margin: 0; font-size: 14px; flex: 1 1 auto; min-width: 0; }
+/* ícone, nome e estrela sempre nas mesmas posições, qualquer que seja o tamanho do nome */
+.ficha-cartao-topo { display: grid; grid-template-columns: 22px minmax(0, 1fr) 28px; align-items: start; gap: 8px; }
+.ficha-cartao-icone { display: inline-flex; justify-content: center; padding-top: 2px; color: var(--dnd-ouro, var(--accent)); }
+.ficha-jogo .ficha-cartao-topo h3 { margin: 0; font-size: 14px; line-height: 1.35; padding-top: 2px; min-width: 0; }
+.ficha-cartao-selos { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+.ficha-cartao-rodape { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: auto; padding-top: 4px; }
+.ficha-favoritos { border-color: var(--dnd-moldura, var(--line)); }
 .ficha-selo { font-size: 11px; color: var(--text-2); border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; }
 .ficha-filtro-acao { display: flex; flex-wrap: wrap; gap: 6px; }
 .ficha.ficha-jogo .ficha-filtro-acao button { width: auto; margin: 0; font: inherit; font-size: 12px; padding: 5px 12px; border-radius: 14px; border: 1px solid var(--line); background: transparent; color: var(--text-2); cursor: pointer; }
 .ficha.ficha-jogo .ficha-filtro-acao button.ativo { border-color: var(--accent); background: var(--panel); color: var(--text); font-weight: 650; }
 .ficha .ficha-favorito { width: 28px; height: 28px; margin: 0; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; color: var(--text-2); cursor: pointer; flex: none; }
-.ficha .ficha-favorito.marcado { color: var(--accent); }
+.ficha .ficha-favorito.marcado { color: var(--dnd-ouro, var(--accent)); }
 .ficha-selo-acao { color: var(--text); }
 .ficha.ficha-jogo button.ficha-abrir { align-self: flex-start; font-size: 12px; font-weight: 500; width: auto; margin: 0; }
 .ficha-valores { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }

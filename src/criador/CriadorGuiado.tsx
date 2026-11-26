@@ -50,7 +50,13 @@ import { CAMPOS_HISTORIA } from "../ficha/campos";
 import { origemPublica, rotuloAtributo, rotuloOpcao, rotuloPericia } from "./rotulos";
 
 const { catalog } = buildPilotCharacterCatalog(criadorRules, { race: criadorRefs.race, background: criadorRefs.background, class: criadorRefs.class }, fighter2014Advancements);
-const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(draft) : createCharacterSheet(draft, catalog);
+/** PV guardado acima do máximo atual (nível ou Constituição mudaram depois do combate) é mostrado no máximo, nunca impede abrir a ficha. */
+const dentroDoMaximo = (draft: CharacterDraft): CharacterDraft => {
+  if (!modern2014(draft)) return draft;
+  const maximo = sheet2014({ ...draft, name: draft.name.trim() || "Sem nome", currentHp: 0 }).maxHp;
+  return draft.currentHp > maximo ? { ...draft, currentHp: maximo } : draft;
+};
+const calcularFicha = (draft: CharacterDraft) => modern2014(draft) ? sheet2014(dentroDoMaximo(draft)) : createCharacterSheet(draft, catalog);
 type Secao = "ficha" | "equipamento" | "inventario" | "identidade";
 type Metodo = MetodoAtributos;
 const GRUPOS: Record<string, string> = { armor: "Armadura", weapons: "Armas marciais", ranged: "Armas adicionais", pack: "Pacote de aventureiro" };
@@ -163,7 +169,10 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const linha = sincronizado ? vit.ver(idReal) : undefined;
   const maximoDe = (d: CharacterDraft) => { try { return modern2014(d) && regras2014 ? regras2014.sheet2014({ ...d, name: d.name.trim() || "Sem nome", currentHp: 0 }).maxHp : null; } catch { return null; } };
   const maximo = carga === "pronto" ? maximoDe(draft) : null;
-  const draftTela = useMemo(() => (linha ? comVitais(draft, { ...linha, pv: maximo === null ? linha.pv : Math.min(linha.pv, maximo) }) : draft), [draft, linha?.versao, linha?.pv, linha?.temp, linha?.condicoes, linha?.morte, maximo]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const draftTela = useMemo(() => {
+    const d = linha ? comVitais(draft, linha) : draft;
+    return maximo !== null && d.currentHp > maximo ? { ...d, currentHp: maximo } : d;
+  }, [draft, linha?.versao, linha?.pv, linha?.temp, linha?.condicoes, linha?.morte, maximo]);   // eslint-disable-line react-hooks/exhaustive-deps
   const vital = (acao: AcaoVital) => {
     if (sincronizado && vit.loja) { vit.loja.enviar(idReal, acao); return; }
     setDraft(d => comVitais(d, aplicarAcao(vitaisDoDraft(d), acao))); setMsg(null);

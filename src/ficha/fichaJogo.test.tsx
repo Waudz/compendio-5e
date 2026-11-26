@@ -120,8 +120,8 @@ describe("ficha de jogo", () => {
     fireEvent.change(ataques.getByLabelText("Dano do ataque"), { target: { value: "1d4+2" } });
     fireEvent.click(ataques.getByRole("button", { name: "Adicionar" }));
     expect(ataques.getByText("Cabeçada")).toBeTruthy();
-    fireEvent.click(within(screen.getByRole("region", { name: "Características" })).getByRole("button", { name: /^Usar Retomar o Fôlego/ }));
-    expect(within(screen.getByRole("region", { name: "Características" })).getByRole("button", { name: /^Recuperar Retomar o Fôlego/ })).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("region", { name: "Habilidades de classe e subclasse" })).getByRole("button", { name: /^Usar Retomar o Fôlego/ }));
+    expect(within(screen.getByRole("region", { name: "Habilidades de classe e subclasse" })).getByRole("button", { name: /^Recuperar Retomar o Fôlego/ })).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Magias" })).toBeNull();   // guerreiro sem magia: sem seção vazia
     irPara("Ficha");
     fireEvent.click(screen.getByRole("button", { name: "Adicionar efeito temporário" }));
@@ -210,6 +210,14 @@ describe("ficha de jogo", () => {
     expect(banco.fichas[0].revision).toBe(2);
     fireEvent.click(screen.getByRole("button", { name: "Carregar a versão atual" }));
     await waitFor(() => expect(screen.getByText("Externa")).toBeTruthy());
+  });
+
+  it("PV guardado acima do máximo (nível ou atributo mudaram) não impede abrir a ficha: aparece no máximo", async () => {
+    await semear();
+    banco.fichas[0].draft = { ...banco.fichas[0].draft, currentHp: 999 };
+    await abrirFicha();
+    const [atual, maximo] = screen.getByTestId("ficha-pv").textContent!.split(" / ");
+    expect(atual).toBe(maximo);
   });
 
   it("sem alterações pendentes, mudanças de outra sessão aparecem sozinhas: PV por operação e o restante da ficha", async () => {
@@ -396,13 +404,16 @@ describe("habilidades: filtros por ação, favoritos e detalhes sem perder a fic
     expect(screen.queryByRole("region", { name: "Ataques" })).toBeNull();
     filtro("Reação");
     expect(screen.getByText(/Nada deste tipo/)).toBeTruthy();
-    filtro("Favoritos");
-    expect(screen.getByText(/Nenhum favorito ainda/)).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Favoritos" })).toBeNull();   // sem favoritos, a seção não aparece
     filtro("Todas");
     const cartao = screen.getByRole("listitem", { name: /Retomar o Fôlego|Second Wind/ });
     fireEvent.click(within(cartao).getByRole("button", { name: /^Favoritar/ }));
-    filtro("Favoritos");
-    expect(within(screen.getByRole("region", { name: "Características" })).getAllByRole("listitem", { name: /Retomar o Fôlego|Second Wind/ })).toHaveLength(1);
+    // os favoritos ficam no topo, sem precisar de filtro, e são o MESMO dado: gastar num lugar reflete no outro
+    const favoritos = within(screen.getByRole("region", { name: "Favoritos" }));
+    expect(favoritos.getAllByRole("listitem", { name: /Retomar o Fôlego|Second Wind/ })).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Favoritos" }).compareDocumentPosition(screen.getByRole("region", { name: "Ataques" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(favoritos.getByRole("button", { name: /^Usar Retomar o Fôlego/ }));
+    expect(within(screen.getByRole("region", { name: "Habilidades de classe e subclasse" })).getByRole("button", { name: /^Recuperar Retomar o Fôlego/ })).toBeTruthy();
     await salvou(() => expect((draftSalvo().play as { favoritos: string[] }).favoritos).toHaveLength(1));
   });
 
