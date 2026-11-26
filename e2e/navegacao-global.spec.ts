@@ -35,7 +35,7 @@ test('Ctrl e botão do meio abrem aba no mesmo grupo',async({page})=>{
  await itens(page);await adaga(page).click({modifiers:['Control']});
  await expect(page.getByRole('heading',{name:'Adaga',exact:true})).toBeVisible();
  await expect(page.locator('.flexlayout__tabset')).toHaveCount(1);
- await navigate(page,'Compêndio');await adaga(page).click({button:'middle'});
+ await page.getByRole('tab',{name:'Itens',exact:true}).click();await adaga(page).click({button:'middle'});
  await expect(page.getByRole('heading',{name:'Adaga',exact:true})).toBeVisible();
  await expect(page.getByRole('tab',{name:/^Adaga/})).toHaveCount(1);
 });

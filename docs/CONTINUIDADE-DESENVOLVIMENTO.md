@@ -792,3 +792,11 @@ compartilhado, mantendo as verificações geométricas existentes.
 **1743 testes aprovados em 144 arquivos**, incluindo a regressão da guarda liberada
 após salvar. A próxima execução do CI precisa confirmar as correções de navegador e
 geometria; não há autorização de merge/deploy ou migração de produção nesta sessão.
+
+No SHA `c4677f2`, Validar projeto, Preview, Supabase isolado, Quality e as duas
+metades do Creator passaram. Base deixou quatro falhas em dois cenários: a consulta
+global reutilizava um registro ainda aberto em outra aba desde a criação; o teste de
+botão do meio usava o menu lateral para voltar à lista, embora o menu abra/focalize
+seção. Preparação ajustada para voltar da criação antes da consulta e retorno pela
+aba Itens já aberta. Permanecem as verificações de consulta preservada, foco e
+registro sem duplicação. Sem mudança no aplicativo nesta correção dos testes.
