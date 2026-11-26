@@ -1,0 +1,3 @@
+.compendio-lista .cat-retrato { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+.compendio-lista.grade .cat-retrato { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
+.compendio-lista .cat-retrato[hidden] { display: none; }
