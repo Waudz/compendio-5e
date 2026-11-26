@@ -102,18 +102,25 @@ end $$;
 -- usando a sessão de quem chamou (auth.uid()).
 create function private_ficha.guarda_entregas() returns trigger
 language plpgsql security definer set search_path = '' as $$
-declare r record; antes numeric; anterior jsonb := case when tg_op = 'UPDATE' then old.draft else '{}'::jsonb end;
+declare anterior jsonb := case when tg_op = 'UPDATE' then old.draft else '{}'::jsonb end;
 begin
   if not private_ficha.formato_valido(new.draft) then raise exception 'ficha_invalida' using errcode = '23514'; end if;
   if public.is_master(new.campaign_id) then return new; end if;
-  for r in select e ->> 'itemId' as item, sum((e ->> 'quantity')::numeric) as qtd
-             from jsonb_array_elements(private_ficha.lista(new.draft -> 'inventory')) e group by 1 loop
-    continue when exists (select 1 from private_ficha.itens_livres l where l.item_id = r.item);
-    -- a versão anterior pode ser de antes desta regra: só quantidades positivas contam como posse
-    select coalesce(sum(case when jsonb_typeof(e -> 'quantity') = 'number' then greatest((e ->> 'quantity')::numeric, 0) else 0 end), 0) into antes
-      from jsonb_array_elements(private_ficha.lista(anterior -> 'inventory')) e where e ->> 'itemId' = r.item;
-    if r.qtd > antes then raise exception 'item_nao_autorizado' using errcode = '42501'; end if;
-  end loop;
+  -- Instâncias restritas conservam a identidade e os dados da entrega.
+  -- O jogador pode equipar, consumir ou remover o item.
+  if exists (
+    select 1 from jsonb_array_elements(private_ficha.lista(new.draft -> 'inventory')) n
+     where not exists (select 1 from private_ficha.itens_livres l where l.item_id = n ->> 'itemId')
+       and not exists (
+         select 1 from jsonb_array_elements(private_ficha.lista(anterior -> 'inventory')) a
+          where (a - 'quantity' - 'equipped') = (n - 'quantity' - 'equipped')
+            and case when jsonb_typeof(a -> 'quantity') = 'number'
+                     then (n ->> 'quantity')::numeric <= (a ->> 'quantity')::numeric
+                     else false end
+       )
+  ) then
+    raise exception 'item_nao_autorizado' using errcode = '42501';
+  end if;
   -- talentos, magias e habilidades concedidos: o jogador pode retirar, nunca criar, alterar nem repetir
   if exists (select 1 from (select c, count(*) as n from jsonb_array_elements(private_ficha.lista(new.draft #> '{play,concedidos}')) c group by c) novo
               where novo.n > (select count(*) from jsonb_array_elements(private_ficha.lista(anterior #> '{play,concedidos}')) o where o = novo.c)) then

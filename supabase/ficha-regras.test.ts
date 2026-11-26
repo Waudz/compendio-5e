@@ -109,6 +109,16 @@ describe("itens e concessões também são restritos na API", () => {
     expect((await as(db, U.bia, "update public.character_sheets set draft = jsonb_set(draft, '{inventory}', $2::jsonb) where character_id = $1", [pc, JSON.stringify([item("z", "oil-of-sharpness")])])).error).toMatch(/item_nao_autorizado/);
   });
 
+  it("preserva a instância e os dados da entrega ao equipar ou consumir um item restrito", async () => {
+    const pc = await id(criar(U.bia, ficha({ inventory: [] })));
+    const entregue = { ...item("entrega", "potion-of-healing-greater", 2), customName: "Presente do mestre" };
+    expect((await salvar(U.ana, pc, { inventory: [entregue] })).error).toBeUndefined();
+    expect((await salvar(U.bia, pc, { inventory: [{ ...entregue, id: "outra-instancia" }] })).error).toMatch(/item_nao_autorizado/);
+    expect((await salvar(U.bia, pc, { inventory: [{ ...entregue, customName: "Outro nome" }] })).error).toMatch(/item_nao_autorizado/);
+    expect((await salvar(U.bia, pc, { inventory: [{ ...entregue, equipped: true, quantity: 1 }] })).error).toBeUndefined();
+    expect((await salvar(U.bia, pc, { inventory: [] })).error).toBeUndefined();
+  });
+
   it("talentos, magias e habilidades concedidos: só o mestre cria ou altera; o jogador pode retirar", async () => {
     const pc = await id(criar(U.bia, ficha()));
     const dado = { id: "g1", tipo: "magia", nome: "Luz", origem: "Mestre" };
