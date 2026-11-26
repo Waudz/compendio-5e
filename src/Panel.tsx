@@ -1,4 +1,4 @@
-import { useContext, useState, useRef, useLayoutEffect } from "react";
+import { useContext, useState, useRef, useLayoutEffect, useEffect } from "react";
 import { VoltarPaginaContext } from "./voltarPagina";
 import { useCampaigns } from "./CampaignsContext";
 import { useUnsaved } from "./unsaved";
@@ -75,5 +75,6 @@ function CompendioLocal(props:PanelProps) {
     if(s.kind===page.kind&&s.ref===page.ref)return;
     guard(()=>{positions.current[pages.length-1]=scroller()?.scrollTop??0;setPages(p=>[...p,s]);});
   };
+  useEffect(()=>{const listener=(e:Event)=>{const d=(e as CustomEvent<{origem?:string;s:TabSpec}>).detail;if(d?.origem===origin)open(d.s);};window.addEventListener("compendio:abrir-local",listener);return()=>window.removeEventListener("compendio:abrir-local",listener);},[origin,pages,props.onOpenContent]);
   return <div ref={root}><VoltarPaginaContext.Provider value={back}>{pages.map((p,i)=><div key={i+":"+p.kind+":"+p.ref} hidden={i!==pages.length-1}><ConteudoPanel {...props} kind={p.kind} entity={p.ref} onOpenContent={open}/></div>)}</VoltarPaginaContext.Provider></div>;
 }
