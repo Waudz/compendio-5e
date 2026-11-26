@@ -15,6 +15,12 @@ test('barras mobile não interceptam o criador e liberam o espaço ao ocultar', 
  const top=page.locator('.mobile-topbar'), bottom=page.locator('.mobile-bottom-nav');
  const bounds=async()=>({root:(await root.boundingBox())!,screen:(await screen.boundingBox())!,top:(await top.boundingBox())!,bottom:(await bottom.boundingBox())!});
  await expect.poll(async()=>{const b=await bounds();return Math.abs(b.screen.y-b.top.y-b.top.height)+Math.abs(b.bottom.y-b.screen.y-b.screen.height);}).toBeLessThanOrEqual(2);
+ // a primeira etapa (Identidade) é curta; a de Raça tem rolagem para exercitar as barras
+ const etapas=page.getByRole('navigation',{name:'Etapas do personagem'});
+ if(await etapas.getByRole('combobox').isVisible()) await etapas.getByRole('combobox').selectOption('raca');
+ else await etapas.getByRole('button',{name:/^Raça/}).click();
+ await expect(page.getByRole('radiogroup',{name:'Raça'})).toBeVisible();
+ await screen.evaluate(el=>{el.scrollTop=0;});
  await page.getByRole('heading',{name:'Novo personagem',exact:true}).click();
  await screen.hover(); await page.mouse.wheel(0,200);
  await expect.poll(()=>screen.evaluate(el=>el.scrollTop)).toBeGreaterThan(48);
