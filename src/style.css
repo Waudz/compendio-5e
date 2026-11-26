@@ -1120,3 +1120,5 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .workspace-history button{display:grid;place-items:center;width:28px;height:26px;border:0;border-radius:4px;background:transparent;color:var(--text-2);cursor:pointer}
 .workspace-history button:hover:not(:disabled){background:var(--hover)}
 .workspace-history button:disabled{opacity:.35;cursor:default}
+
+.workspace-tab-title{display:block;min-width:0;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
