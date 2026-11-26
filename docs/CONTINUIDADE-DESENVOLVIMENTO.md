@@ -495,6 +495,27 @@ Decisões em [DEC-028](../DECISOES-E-ARQUITETURA.md). **Prazo da Alpha: 12/12/20
 - Perfis simples antigos não usam a ficha nova; loot, sintonização, galeria colaborativa, anotações e rolador ficam para depois.
 
 
-## RETOMAR AQUI — Encontros, Iniciativa e Loot
+## Próxima grande etapa — Encontros, Iniciativa e Loot
 
 Seguir a [especificação aprovada](ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md). A primeira entrega começa pela auditoria das estruturas, migrações e testes existentes de identidade individual, vínculo com combate e persistência. Usar essa auditoria para delimitar a individualização, preservando IDs, estado e recompensas já entregues. O cenário de aceitação de loot continua sendo distribuir os equipamentos do primeiro goblin para Lydia e as moedas para Caleb, com baixa e histórico persistentes, sem alterar o segundo goblin.
+
+## RETOMAR AQUI — Personagem definitivo (branch feat/personagem-definitivo)
+
+Decisões em [DEC-029](../DECISOES-E-ARQUITETURA.md). **Não mesclar nem publicar antes da revisão e da aplicação da 0014.**
+
+### Aplicar a 0014 (responsável pela revisão)
+1. `supabase/verificacao/0014_antes.sql` (somente leitura): exigir `pre_requisitos_ok = sim` e `ja_aplicada = não`; guardar as impressões digitais.
+2. Aplicar `supabase/migrations/0014_vitais_inventario_atomicos.sql` dentro de `begin; ... commit;` (não reaplicar as anteriores).
+3. `supabase/verificacao/0014_depois.sql`: todas as linhas `ok_*` = sim e as digitais iguais às de antes (comparar antes de alguém usar o app).
+4. Integrar o PR **logo em seguida** e confirmar o Pages. O aplicativo antigo, com a 0014 aplicada, não consegue mais mudar PV ao salvar a ficha (o banco preserva o estado vital): não deixar o intervalo aberto.
+Reversão: `supabase/rollback/0014_vitais_inventario_atomicos_down.sql` junto com a volta do aplicativo anterior.
+
+### Limites e pendências reais
+- Tempo real: a interface foi exercitada com as fichas de demonstração (duas abas) e a API em memória; as funções do banco em PGlite e no Supabase isolado do CI. **Não testado** com sessões reais no projeto hospedado nem em celular físico.
+- O máximo de PV é calculado no aplicativo e enviado nas operações de cura (o banco não conhece as regras); quem já pode editar a própria ficha poderia informar um máximo maior.
+- Regras: raças e classes são as do SRD 5.1; **uma subclasse por classe** (o 1.0 tem 8 extras com resumos próprios, ainda não trazidas); sem multiclasse; talentos só como melhoria já suportada pelo motor ou concessão do mestre.
+- Origens além do Acólito: dados mecânicos e resumos próprios do 1.0; o texto das características e variantes oficiais não é distribuído.
+- Imagens: seguem no armazenamento do 1.0 ([IMAGENS-V1](IMAGENS-V1.md)); falta cópia própria e a importação do acervo guardado nos aparelhos. Envio de imagem própria só existe para retrato e capa; itens, monstros, NPCs, locais e organizações ainda não aceitam envio (o editor está pronto para reutilizar).
+- Arquivos de retrato substituídos não são apagados do bucket.
+- A tabela `character_combat_status` e suas funções (0011) permanecem no banco, sem uso pelo aplicativo.
+

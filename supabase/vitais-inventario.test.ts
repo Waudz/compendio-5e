@@ -211,3 +211,22 @@ describe("retrato com enquadramento não destrutivo", () => {
     expect(await cartao()).toBeNull();
   });
 });
+
+describe("conferências somente leitura da 0014", () => {
+  const consulta = (nome: string) => readFileSync(join(__dirname, "verificacao", nome), "utf8");
+  const mapa = async (b: PGlite, sql: string) => Object.fromEntries((await b.query<{ item: string; valor: string }>(sql)).rows.map(r => [r.item, r.valor]));
+  it("antes permite aplicar, depois confirma tudo e as impressões digitais coincidem", async () => {
+    const b = new PGlite(); await b.exec(stub);
+    for (const f of readdirSync(dir).filter(f => f.endsWith(".sql") && f < "0014").sort()) await b.exec(readFileSync(join(dir, f), "utf8"));
+    for (const [n, id] of Object.entries(U)) await b.query("insert into auth.users (id, email) values ($1, $2)", [id, `${n}@exemplo.com`]);
+    const cid = await mesa(b, U.ana, [U.bia]);
+    await as(b, U.bia, "select * from public.create_guided_character($1, 'x', $2::jsonb, false, $3::jsonb)", [cid, JSON.stringify(meta), JSON.stringify({ id: "p", name: "N", level: 1, inventory: [], currentHp: 7, temporaryHp: 0 })]);
+    const antes = await mapa(b, consulta("0014_antes.sql"));
+    expect(antes).toMatchObject({ pre_requisitos_ok: "sim", ja_aplicada: "não", fichas: "1", fichas_sem_pv_numerico: "0" });
+    await b.exec(readFileSync(join(dir, "0014_vitais_inventario_atomicos.sql"), "utf8"));
+    const depois = await mapa(b, consulta("0014_depois.sql"));
+    expect(Object.entries(depois).filter(([k, v]) => k.startsWith("ok_") && v !== "sim")).toEqual([]);
+    expect([depois.digital_fichas, depois.digital_notas]).toEqual([antes.digital_fichas, antes.digital_notas]);
+    expect((await mapa(b, consulta("0014_antes.sql"))).ja_aplicada).toBe("sim");
+  });
+});

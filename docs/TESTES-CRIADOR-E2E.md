@@ -1,3 +1,9 @@
+# Testes do personagem — 26/11/2026 (DEC-029)
+
+A suíte `e2e/creator` foi reescrita para o fluxo por etapas, mantendo teclado, axe (WCAG 2.1 AA), limites do painel e persistência, e acrescentando: rolagem única por grupo, grade quadrada do inventário, poção, transferência, subida de nível e **sincronização ficha ↔ Iniciativa em duas abas** (`sincronizacao.creator.ts`, sobre as fichas de demonstração `?fichas=1`). Regras do banco: `supabase/vitais-inventario.test.ts` (PGlite) e a verificação da 0014 em `scripts/alpha/run-local.mjs` (Supabase isolado do CI). O histórico abaixo é registro.
+
+---
+
 # Atualização prioritária — integração com PR #80
 
 Base funcional atual: **PR #80 `9bbf286eaf40c0d8beec85424f11df95dfc40f7a`**, reconciliada com os testes do #79 sem reescrever o histórico. As seções abaixo registram a rodada anterior e suas falhas históricas.

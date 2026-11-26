@@ -35,9 +35,14 @@ Esta seção prevalece sobre os registros datados mais acima.
 - **Celular:** as barras somem ao descer e voltam ao subir, sem piscar no fim da página.
 - **Em redefinição, sem implementação:** navegação e anotações do jogador (identidade e ficha: ver "Ficha do personagem" abaixo). Direções já registradas em [Compêndio do jogador](docs/ESPECIFICACAO-COMPENDIO-JOGADOR.md) e [Encontros, Iniciativa e Loot](docs/ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md).
 
-## Ficha do personagem (25/11/2026)
+## Personagem D&D 5e 2014 (26/11/2026)
 
-Três abas (**Ficha**, **Habilidades**, **Inventário**) com cabeçalho compartilhado, PV com `− valor +`, condições compactas, recursos com marcadores, ataques e magias calculados (CD por origem), moedas por campanha, poções comuns, edição com Cancelar/Salvar e apresentação pública automática. Decisões em [DEC-028](DECISOES-E-ARQUITETURA.md); imagens recuperadas do 1.0 em [docs/IMAGENS-V1.md](docs/IMAGENS-V1.md). **Publicação depende da migração 0013** (proposta, não aplicada): ver "RETOMAR AQUI" em [docs/CONTINUIDADE-DESENVOLVIMENTO.md](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Prazo de entrega: 12/12/2026.
+- **Criação por etapas** (identidade, raça, classe, origem, atributos, equipamentos iniciais, revisão e identidade pública), **edição por categorias** e **subida de nível** com comparação.
+- **Ficha** em três abas, com CA no escudo, nível no D20, PV sem barra, atributos em molduras; Habilidades por categoria com favoritos no topo; inventário em grade quadrada ou lista, com usar, transferir e excluir.
+- **PV, temporários e condições com uma única fonte**: ficha e Iniciativa em tempo real.
+- **Editor único de imagens** (arraste e zoom, não destrutivo) e **tema claro** opcional em Conta.
+
+Decisões em [DEC-029](DECISOES-E-ARQUITETURA.md). **Publicação depende da migração 0014** (proposta, não aplicada): ver "RETOMAR AQUI" em [docs/CONTINUIDADE-DESENVOLVIMENTO.md](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Demonstração local com fichas e duas abas: `npm run dev` e `?demo=jogador&fichas=1&nuvem=1` (mestre em outra aba). Prazo de entrega: 12/12/2026.
 
 ## Validação no GitHub Actions e previews
 
