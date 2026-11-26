@@ -70,3 +70,9 @@
 .criador .ficha-subnav button { min-width: 0; max-width: 100%; }
 .criador .ficha-inventario li > span { min-width: 0; max-width: 100%; }
 .criador .ficha-inventario button { max-width: 100%; white-space: normal; }
+
+/* escolhas principais em colunas proporcionais; blocos de texto e escolhas longas ocupam a linha toda */
+.character-2014 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); align-items: start; }
+.character-2014 > :not(label) { grid-column: 1 / -1; }
+.character-2014 > fieldset { grid-column: auto; }
+.character-2014 select { min-height: 38px; }

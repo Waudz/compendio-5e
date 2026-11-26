@@ -464,7 +464,7 @@ Decisões em [DEC-027](../DECISOES-E-ARQUITETURA.md); direção de produto em [E
 - **Testes locais:** 1639 unitários, 116 E2E principal (16 pulados), 88 de qualidade e 112 do criador, build oficial sem modo de demonstração. **Não testado:** celular físico e sessão real no Supabase hospedado (a identidade nova foi validada com a API em memória; o formato gravado respeita as chaves da 0008, coberto por teste, e as regras do banco continuam em `supabase/character-sheets.test.ts`).
 - **Pendências:** nível público e nomes próprios de chaves (migração); envio de arquivo de retrato; atualização do cartão público quando o mestre edita; história/personalidade; talentos e magias concedidos; loot (distribuição, transferência, sintonização); perfis simples antigos não usam a ficha nova; Início do jogador da seção 2 da especificação; preservação de tela em outras áreas além da ficha.
 
-## PR #156: falha do E2E `creator, 2` resolvida (25/11/2026)
+## PR #156: falha do E2E `creator, 2` resolvida e publicada (25/11/2026)
 
 **Teste:** `e2e/creator/ficha-jogo.creator.ts` (três abas, estouro horizontal), só na largura 701 px, onde o painel da ficha tem cerca de 230 px.
 **Causa:** o cabeçalho da ficha era uma grade com coluna implícita `auto`. A largura natural do seletor de condições depende da fonte; com a fonte do Linux no CI passava da largura do painel e alargava o cabeçalho inteiro (cortado à direita). Defeito real de layout, não do teste.
@@ -474,3 +474,27 @@ Decisões em [DEC-027](../DECISOES-E-ARQUITETURA.md); direção de produto em [E
 O PR só é integrado à `main` com todos os checks verdes no HEAD exato. Nenhuma migração.
 
 As pendências de produto estão na seção anterior e na DEC-027. As configurações `playwright.local*.config.ts` (Chrome instalado, sem vídeo) são locais e não versionadas. O outro clone, `compendio-5e`, tem alterações não commitadas de outra sessão: não mexer.
+
+## RETOMAR AQUI — Refinamento da ficha (branch feat/ficha-refinamento)
+
+Decisões: [DEC-028](../DECISOES-E-ARQUITETURA.md). **Prazo definitivo: 12/12/2026.**
+
+**Estado:** implementado e validado localmente. **Publicação bloqueada pela migração 0013**, que o responsável precisa autorizar: o aplicativo novo envia o nível na apresentação e o banco atual (0008) recusa chaves novas, então publicar antes quebraria o salvamento das fichas. Não integrar à `main` antes de aplicar a 0013.
+
+**Revisão de segurança da 0013 (antes de qualquer aplicação):** a versão inicial tinha falhas, corrigidas e cobertas por testes em `supabase/ficha-regras.test.ts`: (1) texto de campo oculto, título e imagem de formatos antigos ficavam na linha de `notes` que a campanha lê (o servidor agora reconstrói as escolhas e só guarda texto em campo personalizado); (2) quantidades positivas e negativas que se anulavam enganavam a soma (formato agora exigido de todos: lista, quantidade inteira de 1 a 1.000.000, identificadores únicos); (3) a instância de item que sustenta uma concessão podia ser reaproveitada pelo jogador; funções internas deixaram de ser chamáveis pela API. **Limite conhecido:** o modo de cada campo (segue a ficha, personalizado ou oculto) continua legível por quem lê a apresentação; os textos ocultos não.
+
+**Aplicação:** rodar `supabase/verificacao/0013_antes.sql` (somente leitura), conferir as condições do cabeçalho, aplicar a migração dentro de `begin; ... commit;`, rodar `supabase/verificacao/0013_depois.sql` e comparar as três impressões digitais.
+
+**Ordem para publicar:** 1) autorização expressa; 2) aplicar `supabase/migrations/0013_ficha_moedas_itens_identidade.sql` no projeto `compendio-5e` (não reaplicar as anteriores); 3) integrar o PR e confirmar o Pages; 4) o mestre configura as moedas em Início → Editar campanha (mesa do responsável: PC, PP e PO). Reversão: `supabase/rollback/0013_ficha_moedas_itens_identidade_down.sql` junto com a volta do aplicativo anterior.
+
+**Pendências reais:**
+- Não testado em celular físico nem em sessão real no Supabase hospedado (o CI exercita um Supabase real e isolado).
+- Imagens: os arquivos continuam no armazenamento do 1.0; falta cópia própria e a importação do acervo guardado no aparelho ([IMAGENS-V1](IMAGENS-V1.md)).
+- Arquivo de retrato substituído ou removido não é apagado do bucket.
+- Jogador que reduz a quantidade de um item restrito não consegue repô-la sozinho (por desenho: o mestre entrega).
+- Efeito de poções: só a de cura está descrita no catálogo; a de escalada aparece sem efeito (não inventado).
+- Typo de origem no catálogo de magias (`1d1O` em Raio de Fogo): a ficha mostra corrigido; a página do Compêndio ainda mostra o original.
+- Perfis simples antigos não usam a ficha nova; loot, sintonização, galeria colaborativa, anotações e rolador ficam para depois.
+
+As configurações `playwright.local*.config.ts` (Chrome instalado, sem vídeo) são locais e não versionadas. O clone `compendio-5e` tem alterações não commitadas de outra sessão: não mexer.
+

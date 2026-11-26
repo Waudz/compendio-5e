@@ -216,12 +216,12 @@ export default function CharacterPilot(){
    <h2>Cartão de Identidade</h2>
    <p>Etapa final opcional: escolha o que outros jogadores poderão ver. Somente dados locais de demonstração.</p>
    <button type="button" onClick={()=>setShowIdentity(value=>!value)}>{showIdentity?'Fechar editor público':'Configurar identidade pública'}</button>
-   {showIdentity&&<PublicIdentityEditor key={draft.id} source={{name:draft.name,alias:draft.nickname??'',race:'Anão',characterClass:'Guerreiro',portrait:draft.portrait??''}}
-    initialIdentity={identity} onSkip={()=>setShowIdentity(false)} onSave={escolhida=>{
+   {showIdentity&&<PublicIdentityEditor key={draft.id} source={{name:draft.name,alias:draft.nickname??'',race:'Anão',characterClass:'Guerreiro',level:String(draft.level),portrait:draft.portrait??''}}
+    initialIdentity={identity} onSkip={()=>setShowIdentity(false)} onChange={escolhida=>{
      try{
       const record:SavedIdentity={schemaVersion:1,characterId:draft.id,identity:escolhida};
       localStorage.setItem(IDENTITY_KEY,JSON.stringify(record));
-      setIdentity(escolhida);setShowIdentity(false);setMessage('Identidade pública salva apenas neste navegador');
+      setIdentity(escolhida);setMessage('Identidade pública salva apenas neste navegador');
      }catch{setMessage('Não foi possível salvar a identidade pública');}
     }}/>}
   </section>}

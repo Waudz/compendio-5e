@@ -92,6 +92,28 @@ try {
     checkpoint = 'master sees updated character';
     assert.equal((await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token: m}))[0].draft.nome, 'Updated');
   });
+  await check('sheet rules (0013): campaign coins are master-only, restricted items and grants are refused for players, presentation is automatic', async () => {
+    await ok(`/rest/v1/campaigns?id=eq.${a}`, {token: m, method: 'PATCH', body: {enabled_coins: ['cp', 'sp', 'gp']}});
+    assert.deepEqual((await ok(`/rest/v1/campaigns?id=eq.${a}&select=enabled_coins`, {token: p}))[0].enabled_coins, ['cp', 'sp', 'gp']);
+    const denied = await api(`/rest/v1/campaigns?id=eq.${a}`, {token: p, method: 'PATCH', body: {enabled_coins: ['pp']}});
+    assert.ok(!denied.ok || denied.data.length === 0, 'player must not change coins');
+    const item = (itemId, quantity) => ({id: itemId, itemId, quantity, equipped: false, origin: 'acquired'});
+    const sheetOf = async token => (await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token}))[0];
+    const save = async (token, patch) => { const cur = await sheetOf(token); return api('/rest/v1/rpc/save_guided_character', {token, method: 'POST', body: {p_id: character.character_id, p_expected_revision: cur.revision, p_draft: {...cur.draft, ...patch}}}); };
+    assert.ok((await save(p, {inventory: [item('potion-of-healing-common', 1)]})).ok);
+    assert.equal((await save(p, {inventory: [item('potion-of-healing-greater', 1)]})).ok, false);
+    assert.equal((await save(p, {inventory: [item('potion-of-healing-greater', 7), {...item('potion-of-healing-greater', -7), id: 'offset'}]})).ok, false, 'offsetting quantities must be refused');
+    await ok(`/rest/v1/notes?id=eq.${character.character_id}`, {token: p, method: 'PATCH', body: {meta: {guiado: true, identidadePublica: {settings: {imageUrl: null, title: 'OLD-SECRET', name: {mode: 'real'}, surname: {mode: 'hidden', customValue: 'HIDDEN-SECRET'}, race: {mode: 'hidden'}, characterClass: {mode: 'hidden'}, description: ''}, card: {imageUrl: null, title: '', name: null, surname: null, race: null, characterClass: null, description: ''}}}}});
+    assert.ok(!/OLD-SECRET|HIDDEN-SECRET/.test(JSON.stringify(await ok(`/rest/v1/notes?id=eq.${character.character_id}`, {token: m}))), 'hidden text must never be stored in the campaign-readable row');
+    assert.equal((await save(p, {play: {concedidos: [{id: 'g', tipo: 'talento', nome: 'X', origem: 'Y'}]}})).ok, false);
+    assert.ok((await save(m, {inventory: [item('potion-of-healing-greater', 1)], name: 'Renamed by master', level: 4})).ok);
+    const [shown] = await ok(`/rest/v1/notes?id=eq.${character.character_id}`, {token: p});
+    assert.equal(shown.visibility, 'campaign');
+    assert.equal(shown.meta.identidadePublica.card.name, 'Renamed by master');
+    assert.equal(shown.meta.identidadePublica.card.level, '4');
+    assert.ok(!JSON.stringify(shown).includes('potion-of-healing'));
+    assert.deepEqual(await ok(`/rest/v1/notes?id=eq.${character.character_id}`, {token: o}), []);
+  });
   const state = {combatentes: [{id: 'fixture-enemy', nome: 'Fixture', lado: 'inimigo', iniciativa: 12, pvMax: 20, pv: 20}], turno: 'fixture-enemy', rodada: 1};
   await ok('/rest/v1/campaign_combats', {token: m, method: 'POST', body: {campaign_id: a, state}});
   await check('combat hidden via direct API from player, foreign master and anonymous', async () => {

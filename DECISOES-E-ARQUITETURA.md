@@ -359,3 +359,18 @@ O usuário informa que **não há dados reais de uso no novo site além do conte
 - **CA e ataques:** armaduras, escudos e armas equipados entram pelo motor; ajustes manuais são modificadores temporários separados, somados só na exibição.
 - **Início:** removidos os cinco atalhos redundantes do mestre; avisos de privacidade escritos para quem está olhando ("oculto dos jogadores" para o mestre).
 - **Não incluído:** distribuição e transferência de loot, sintonização, itens mágicos adicionados pelo jogador, talentos e magias concedidos pelo mestre ou por itens, campos de história/personalidade (não existem no modelo), imagens de itens e envio de arquivo de retrato.
+
+### DEC-028 — Refinamento da ficha: edição, inventário, moedas e apresentação automática (25/11/2026)
+
+Prazo definitivo do Compêndio: **12/12/2026**. Substitui os pontos da DEC-027 indicados.
+
+- **Edição:** Cancelar e Salvar voltam à ficha; o Voltar do navegador sai da edição; alterações não salvas sempre pedem confirmação. A tela de edição não é estado de navegação: abrir um personagem salvo mostra a ficha. Um personagem tem uma aba só.
+- **Ficha:** três abas mantidas. PV com `− [1] +`; condições compactas com efeito consultável; recursos, espaços de magia e dados de vida com marcadores clicáveis (preenchido ou vazado, sem depender de cor); ataques, magias e características em cartões, com CD por origem (classe, raça ou concessão); filtros por Ação, Ação bônus, Reação e Passiva só quando as regras informam; favoritos. Detalhe de magia ou item aberto a partir da ficha nunca a encobre no computador.
+- **Concessões:** talentos, magias e habilidades são entregues pelo mestre; podem ficar presas a um item do inventário (valem só com ele). História e personalidade são campos privados da ficha.
+- **Moedas por campanha:** o mestre escolhe quais das cinco a mesa usa (a mesa do responsável usará **PC, PP e PO**; PE e PL desativadas). Desativar não apaga valores: ficam na ficha, fora da tela e do total. Entregas (equipamento inicial e, no futuro, recompensas, loot e transferências) em moeda desativada chegam, pelo mesmo valor, nas ativas (`entregarNasAtivas`); sem conversão exata, o valor fica como veio. Ícone SVG próprio por moeda (`src/moedas/IconeMoeda.tsx`), a reutilizar em loot, preços e transferências. Patrimônio total em PO.
+- **Disponibilidade de itens:** política explícita (`src/catalogue/disponibilidade.ts`): itens mundanos, equipamento de origem e as poções comuns (Cura e Escalada). O restante só pelo mestre, também na API (0013).
+- **Apresentação pública automática** (substitui a publicação manual e a exclusão do nível): é uma projeção da ficha, sem caixa de publicar; nome, alcunha, raça, classe e **nível** herdam, são personalizados ou ocultados; o servidor calcula o cartão, inclusive quando o mestre salva. Retrato único, com envio de arquivo (bucket `campaign-assets`).
+- **Imagens do 1.0:** requisito obrigatório de recuperação, registrado em [docs/IMAGENS-V1.md](docs/IMAGENS-V1.md).
+- **Banco:** migração **0013 proposta, não aplicada**. Personagens antigos passam a aparecer para a campanha na próxima gravação, sem os campos ocultos.
+- **Adiado:** loot, sintonização, galeria colaborativa, Assimilação, rolador 3D e anotações.
+

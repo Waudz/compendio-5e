@@ -11,6 +11,8 @@ import { NavItem } from "./NavItem";
 import { closeTabs, isPinned, navigate, openContentLink as openContent, otherNormalTabs, setPinned, type NavMode } from "./navigation";
 import { UnsavedContext, useUnsavedRegistry } from "./unsaved";
 import { findTab } from "./workspace";
+import { consumirVoltar, EVENTO_FECHAR_TELA, pedirFicha, registrarAliasPersonagem } from "./voltarInterno";
+import { lerMapaAba } from "./criador/recuperacao";
 import { tituloDe, useVersaoRegistros } from "./registrosStore";
 import { Panel } from "./Panel";
 import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
@@ -114,8 +116,19 @@ function Workspace({ userId }: { userId: string }) {
   }, [model, unsaved.api]);
   // Navegação: o menu seleciona uma aba existente ou cria outra, sem substituir conteúdo aberto.
   // Duas portas: openMenu preserva as abas; openContentLink abre consulta no grupo mais à direita (até dois grupos automáticos).
-  const openMenu = useCallback((s: TabSpec, mode: NavMode = "new") => { navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api]);
-  const openContentLink = useCallback((s: TabSpec, originTabId?: string) => { openContent(model, s, originTabId, mobile); onModelChange(model); }, [model, onModelChange, mobile]);
+  // Depois de recarregar, a aba de um personagem criado nela (`criador:novo-…`) continua sendo a aba dele.
+  const lembrarCriados = useCallback(() => model.visitNodes(n => {
+    const c = n instanceof TabNode ? n.getConfig() as { kind?: Kind; ref?: string } : null;
+    if (c?.kind !== "criador" || !c.ref || !campaignId) return;
+    const real = lerMapaAba(userId, campaignId, c.ref); if (real) registrarAliasPersonagem(real, c.ref);
+  }), [model, userId, campaignId]);
+  const abrindo = useCallback((s: TabSpec) => { if (s.kind === "ficha" || s.kind === "criador") { lembrarCriados(); pedirFicha(s.ref); } }, [lembrarCriados]);
+  const openMenu = useCallback((s: TabSpec, mode: NavMode = "new") => { abrindo(s); navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api, abrindo]);
+  const openContentLink = useCallback((s: TabSpec, originTabId?: string) => { abrindo(s); openContent(model, s, originTabId, mobile); onModelChange(model); }, [model, onModelChange, mobile, abrindo]);
+  useEffect(() => {
+    const fechar = (e: Event) => { const id = (e as CustomEvent<string>).detail; if (!findTab(modelRef.current, id)) return; closeTab(modelRef.current, id); onModelChange(modelRef.current); };
+    window.addEventListener(EVENTO_FECHAR_TELA, fechar); return () => window.removeEventListener(EVENTO_FECHAR_TELA, fechar);
+  }, [onModelChange]);
   // O histórico do navegador acompanha a seleção, não recria nem apaga abas.
   useEffect(() => {
     const selected = modelRef.current.getActiveTabset()?.getSelectedNode();
@@ -123,6 +136,7 @@ function Workspace({ userId }: { userId: string }) {
     historySelection.current = initial;
     if (initial) window.history.replaceState({ ...window.history.state, compendioTab: initial, compendioScope: scopeKey }, "");
     const onPop = (event: PopStateEvent) => {
+      if (consumirVoltar(event)) return;   // ex.: sair da edição da ficha antes de trocar de aba
       const state = event.state as { compendioTab?: string; compendioScope?: string } | null;
       if (state?.compendioScope !== scopeKey || !state.compendioTab) return;
       const target = findTab(modelRef.current, state.compendioTab);
@@ -210,7 +224,7 @@ function Workspace({ userId }: { userId: string }) {
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
     const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
-    if ((c?.kind === "documento" || c?.kind === "ficha") && c.ref) return tituloDe(c.ref) ?? n.getName();
+    if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? n.getName();
     if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
     if (c?.kind === "item" && c.ref) return srdItem(c.ref)?.nome ?? n.getName();
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();

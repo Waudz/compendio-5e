@@ -37,7 +37,7 @@ Esta seção prevalece sobre os registros datados mais acima.
 
 ## Ficha do personagem (25/11/2026)
 
-A ficha de jogo (D&D 5e 2014) tem um cabeçalho comum e três abas, **Ficha, Habilidades e Inventário**, com salvamento automático e controle de revisão. A **identidade pública** é só a apresentação aos outros jogadores (nome, alcunha, raça, classe, descrição), usa o **mesmo retrato** da ficha e nunca mostra mecânicas. Na Alpha não há compromisso de compatibilidade com formatos antigos. Detalhes e pendências em [DEC-027](DECISOES-E-ARQUITETURA.md) e na [continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md); direção de produto em [experiência do jogador](docs/ESPECIFICACAO-EXPERIENCIA-JOGADOR.md).
+Três abas (**Ficha**, **Habilidades**, **Inventário**) com cabeçalho compartilhado, PV com `− valor +`, condições compactas, recursos com marcadores, ataques e magias calculados (CD por origem), moedas por campanha, poções comuns, edição com Cancelar/Salvar e apresentação pública automática. Decisões em [DEC-028](DECISOES-E-ARQUITETURA.md); imagens recuperadas do 1.0 em [docs/IMAGENS-V1.md](docs/IMAGENS-V1.md). **Publicação depende da migração 0013** (proposta, não aplicada): ver "RETOMAR AQUI" em [docs/CONTINUIDADE-DESENVOLVIMENTO.md](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Prazo de entrega: 12/12/2026.
 
 ## Validação no GitHub Actions e previews
 

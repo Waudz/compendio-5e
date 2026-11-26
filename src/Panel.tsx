@@ -8,6 +8,7 @@ import { DiarioPanel, RegistroPagina } from "./Diario";
 import { PersonagensPanel } from "./Personagens";
 import { FichaRoteada } from "./FichaRoteada";
 import { CompendioPanel, ItemPagina } from "./Compendio";
+import { MagiaPagina } from "./compendio/MagiaPagina";
 import { CriadorGuiado } from "./criador/CriadorGuiado";
 import { EncontrosPanel, IniciativaPanel } from "./Iniciativa";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
@@ -26,6 +27,7 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "documento") return <RegistroPagina id={id}/>;
   if (kind === "ficha") return <FichaRoteada id={id} onOpenContent={onOpenContent}/>;
   if (kind === "item") return <ItemPagina id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "magia") return <MagiaPagina id={id}/>;
   if (kind === "criador") return <CriadorGuiado id={id} onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "compendio") return <CompendioPanel onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "personagens") return <PersonagensPanel onOpenContent={onOpenContent}/>;

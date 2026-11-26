@@ -1,0 +1,536 @@
+{
+ "origem": "Compêndio 1.0: bucket público \"catalogos\" e função catalogo_imagens_publicas()",
+ "base": "https://pdjzahpxjrlbqqtzkfdr.supabase.co/storage/v1/object/public/catalogos/",
+ "consultadoEm": "2026-11-25",
+ "itens": {
+  "animated-shield": {
+   "chaveV1": "srd51:item/animated-shield",
+   "caminho": "itens/1790b29e-e9df-4626-b465-a7b91903da65.png"
+  },
+  "arrow": {
+   "chaveV1": "srd51:item/arrow",
+   "caminho": "itens/46dd98df-ac27-4313-bdb6-1d282c963c92.png"
+  },
+  "arrow-catching-shield": {
+   "chaveV1": "srd51:item/arrow-catching-shield",
+   "caminho": "itens/ebd760a9-3e6d-4276-b6cb-db48ce8010c4.png"
+  },
+  "arrow-of-slaying": {
+   "chaveV1": "srd51:item/arrow-of-slaying",
+   "caminho": "itens/c7a92f5c-2603-447d-926b-3471a1557bb9.png"
+  },
+  "backpack": {
+   "chaveV1": "srd51:item/backpack",
+   "caminho": "itens/1578ec83-9374-4508-91e6-391e6c0680a2.png"
+  },
+  "battleaxe": {
+   "chaveV1": "srd51:item/battleaxe",
+   "caminho": "itens/e3c0a529-305d-4929-9ae0-6d2a3f2c2cc2.png"
+  },
+  "bedroll": {
+   "chaveV1": "srd51:item/bedroll",
+   "caminho": "itens/ab667e49-e63e-48c9-aaf5-47351bc1c0e5.png"
+  },
+  "blanket": {
+   "chaveV1": "srd51:item/blanket",
+   "caminho": "itens/ecc805c7-27fa-4888-a80c-fcf28fe523d0.png"
+  },
+  "blowgun": {
+   "chaveV1": "srd51:item/blowgun",
+   "caminho": "itens/ec16fdbb-14c6-4364-b5c5-322374bbc2b8.png"
+  },
+  "breastplate": {
+   "chaveV1": "srd51:item/breastplate",
+   "caminho": "itens/26b67da4-617f-4a7f-94dd-5dda09e3d3cf.png"
+  },
+  "case-map-or-scroll": {
+   "chaveV1": "srd51:item/case-map-or-scroll",
+   "caminho": "itens/f1f3352b-e51d-470e-ad76-65b4755c724e.png"
+  },
+  "chain-mail": {
+   "chaveV1": "srd51:item/chain-mail",
+   "caminho": "itens/19960f5d-e808-472f-8ba2-09a8d070e6b8.png"
+  },
+  "chain-shirt": {
+   "chaveV1": "srd51:item/chain-shirt",
+   "caminho": "itens/c8960c11-ae0f-4f9c-9a4e-85b0464fecee.png"
+  },
+  "clothes-common": {
+   "chaveV1": "srd51:item/clothes-common",
+   "caminho": "itens/e5901481-2fbe-4c88-a52e-718fc611da4c.png"
+  },
+  "clothes-fine": {
+   "chaveV1": "srd51:item/clothes-fine",
+   "caminho": "itens/721db1aa-a157-4b6a-838a-658bd26dce87.png"
+  },
+  "clothes-travelers": {
+   "chaveV1": "srd51:item/clothes-travelers",
+   "caminho": "itens/dd7db78b-9237-4453-883f-046792780e0b.png"
+  },
+  "club": {
+   "chaveV1": "srd51:item/club",
+   "caminho": "itens/f53701ac-eaae-496a-85cd-440496ff62d3.png"
+  },
+  "crossbow-bolt": {
+   "chaveV1": "srd51:item/crossbow-bolt",
+   "caminho": "itens/64acfe0f-be13-4a5a-bb4e-c0d5ab7dca07.png"
+  },
+  "crossbow-hand": {
+   "chaveV1": "srd51:item/crossbow-hand",
+   "caminho": "itens/2ccf3ab0-c369-4a51-b334-e2b54875b8c3.png"
+  },
+  "crossbow-heavy": {
+   "chaveV1": "srd51:item/crossbow-heavy",
+   "caminho": "itens/f07ee3e6-aedd-40d8-af72-04ddce4a6eb9.png"
+  },
+  "crossbow-light": {
+   "chaveV1": "srd51:item/crossbow-light",
+   "caminho": "itens/8454a7b1-665b-4fcc-853a-6ae8c1cdaa3d.png"
+  },
+  "dagger": {
+   "chaveV1": "srd51:item/dagger",
+   "caminho": "itens/c221d4e9-e882-422b-bc95-c8ccd228e808.png"
+  },
+  "dart": {
+   "chaveV1": "srd51:item/dart",
+   "caminho": "itens/562aa8d8-af0b-4a40-918c-04a757e73336.png"
+  },
+  "flail": {
+   "chaveV1": "srd51:item/flail",
+   "caminho": "itens/3186b550-3356-4b6f-9b7e-75d6aee9f1a4.png"
+  },
+  "glaive": {
+   "chaveV1": "srd51:item/glaive",
+   "caminho": "itens/56f9a44a-196a-4323-89a5-e867157b81a2.png"
+  },
+  "greataxe": {
+   "chaveV1": "srd51:item/greataxe",
+   "caminho": "itens/7a4f0ac6-1f0e-436a-af85-b6b3a1cda32f.png"
+  },
+  "greatclub": {
+   "chaveV1": "srd51:item/greatclub",
+   "caminho": "itens/95ac3f1e-5a76-4143-a9fc-a35056811adf.png"
+  },
+  "greatsword": {
+   "chaveV1": "srd51:item/greatsword",
+   "caminho": "itens/7906af11-996d-4c43-ad0b-0eb86c6730d9.png"
+  },
+  "halberd": {
+   "chaveV1": "srd51:item/halberd",
+   "caminho": "itens/e35ffbba-74b6-402f-9a45-2a53d4149b4c.png"
+  },
+  "half-plate-armor": {
+   "chaveV1": "srd51:item/half-plate-armor",
+   "caminho": "itens/ca78967d-4c87-481a-9551-f7bd0827bd40.png"
+  },
+  "handaxe": {
+   "chaveV1": "srd51:item/handaxe",
+   "caminho": "itens/d097b332-c94d-4710-a0e8-f4c38a40ee29.png"
+  },
+  "herbalism-kit": {
+   "chaveV1": "srd51:item/herbalism-kit",
+   "caminho": "itens/5743f981-23bc-4208-9c01-a853607bc570.png"
+  },
+  "hide-armor": {
+   "chaveV1": "srd51:item/hide-armor",
+   "caminho": "itens/3dc45507-4b0b-4fec-97e5-f7a5fba4c605.png"
+  },
+  "javelin": {
+   "chaveV1": "srd51:item/javelin",
+   "caminho": "itens/4a0088f5-4c70-4a00-bea1-4373738d220a.png"
+  },
+  "lance": {
+   "chaveV1": "srd51:item/lance",
+   "caminho": "itens/71e5e6a6-b365-4f1a-b2b5-0c9c283c5678.png"
+  },
+  "leather-armor": {
+   "chaveV1": "srd51:item/leather-armor",
+   "caminho": "itens/14eb7b17-ad0a-407c-96aa-5b0031af70b4.png"
+  },
+  "light-hammer": {
+   "chaveV1": "srd51:item/light-hammer",
+   "caminho": "itens/dfb271b1-de1e-4b6d-8f5b-193042b0649d.png"
+  },
+  "longbow": {
+   "chaveV1": "srd51:item/longbow",
+   "caminho": "itens/c5a5c6e3-4fd0-4f39-bb22-f3e4f9d47b23.png"
+  },
+  "longsword": {
+   "chaveV1": "srd51:item/longsword",
+   "caminho": "itens/821643d5-af24-46ba-8175-e8358ec8fe91.png"
+  },
+  "mace": {
+   "chaveV1": "srd51:item/mace",
+   "caminho": "itens/9ed18a66-ddae-455a-95f4-7f3dd096e7f8.png"
+  },
+  "maul": {
+   "chaveV1": "srd51:item/maul",
+   "caminho": "itens/67b64233-b00b-4608-a6aa-6602398e6933.png"
+  },
+  "mess-kit": {
+   "chaveV1": "srd51:item/mess-kit",
+   "caminho": "itens/d685347d-d482-4631-a92b-00deef9b2fbd.png"
+  },
+  "morningstar": {
+   "chaveV1": "srd51:item/morningstar",
+   "caminho": "itens/4f1b5fa4-60f2-4a11-9d0b-511693b4fade.png"
+  },
+  "net": {
+   "chaveV1": "srd51:item/net",
+   "caminho": "itens/65dc93b2-4a57-4523-ba6f-739f77506dfe.png"
+  },
+  "padded-armor": {
+   "chaveV1": "srd51:item/padded-armor",
+   "caminho": "itens/07e0e770-6c04-49bb-959d-b537da033e60.png"
+  },
+  "pike": {
+   "chaveV1": "srd51:item/pike",
+   "caminho": "itens/44098161-9b88-4093-a9fd-c6dfbb57aefc.png"
+  },
+  "plate-armor": {
+   "chaveV1": "srd51:item/plate-armor",
+   "caminho": "itens/b72b7496-1262-41ab-b8ce-cbc31ac18ad2.png"
+  },
+  "potion-of-healing-common": {
+   "chaveV1": "srd51:item/potion-of-healing-common",
+   "caminho": "itens/3b76381c-4cfd-4c77-a374-8ff6f33e5e0b.png"
+  },
+  "potion-of-healing-greater": {
+   "chaveV1": "srd51:item/potion-of-healing-greater",
+   "caminho": "itens/c3e4cf15-e6fd-43d8-ae42-aca293ab3158.png"
+  },
+  "potion-of-healing-superior": {
+   "chaveV1": "srd51:item/potion-of-healing-superior",
+   "caminho": "itens/f6c08c0f-8b15-41ea-b7ce-2c6ec84caa9a.png"
+  },
+  "potion-of-healing-supreme": {
+   "chaveV1": "srd51:item/potion-of-healing-supreme",
+   "caminho": "itens/e83d1ee0-bef4-4ca7-9c70-787c92c02ae6.png"
+  },
+  "pouch": {
+   "chaveV1": "srd51:item/pouch",
+   "caminho": "itens/2f7e30f1-b8d0-45f9-aa36-1a071c7e8ee1.png"
+  },
+  "quarterstaff": {
+   "chaveV1": "srd51:item/quarterstaff",
+   "caminho": "itens/016bb24b-4715-48bb-85e8-203a81373e85.png"
+  },
+  "rapier": {
+   "chaveV1": "srd51:item/rapier",
+   "caminho": "itens/4bc4a92d-78b9-4412-a2f2-5124e7b076e4.png"
+  },
+  "rations-1-day": {
+   "chaveV1": "srd51:item/rations-1-day",
+   "caminho": "itens/ee4bb6c2-261b-4935-9e64-4c1dd9c41ea7.png"
+  },
+  "ring-mail": {
+   "chaveV1": "srd51:item/ring-mail",
+   "caminho": "itens/8d2708b2-52fc-42dc-82d7-27fe3e72402f.png"
+  },
+  "rope-hempen-50-feet": {
+   "chaveV1": "srd51:item/rope-hempen-50-feet",
+   "caminho": "itens/e149417f-2b50-42be-8917-a3435d61c128.png"
+  },
+  "scale-mail": {
+   "chaveV1": "srd51:item/scale-mail",
+   "caminho": "itens/688b0c92-25f2-43a7-bbf1-41e3b06053b0.png"
+  },
+  "scimitar": {
+   "chaveV1": "srd51:item/scimitar",
+   "caminho": "itens/f4193fc0-0e38-431d-abed-48d03185f416.png"
+  },
+  "shield": {
+   "chaveV1": "srd51:item/shield",
+   "caminho": "itens/3feee219-2dd7-4e1f-b5f6-d7065e2c1eef.png"
+  },
+  "shield-of-missile-attraction": {
+   "chaveV1": "srd51:item/shield-of-missile-attraction",
+   "caminho": "itens/8eda1156-7993-4d59-b10a-b5a16e4bcc66.png"
+  },
+  "shortbow": {
+   "chaveV1": "srd51:item/shortbow",
+   "caminho": "itens/63ad53ab-4ded-4800-95c9-6cb0fa1cb839.png"
+  },
+  "shortsword": {
+   "chaveV1": "srd51:item/shortsword",
+   "caminho": "itens/c363be11-4630-4159-96a8-00e2f7d23d63.png"
+  },
+  "sickle": {
+   "chaveV1": "srd51:item/sickle",
+   "caminho": "itens/ae612dc9-a6ad-4569-8494-980085333c03.png"
+  },
+  "sling": {
+   "chaveV1": "srd51:item/sling",
+   "caminho": "itens/23e7108a-b82f-4688-903b-87bafbf8e97f.png"
+  },
+  "spear": {
+   "chaveV1": "srd51:item/spear",
+   "caminho": "itens/a3edcca7-f12d-411c-92c4-d4af0513060d.png"
+  },
+  "spellbook": {
+   "chaveV1": "srd51:item/spellbook",
+   "caminho": "itens/9d347489-6c70-4848-89e4-3919b1edfaba.png"
+  },
+  "spellguard-shield": {
+   "chaveV1": "srd51:item/spellguard-shield",
+   "caminho": "itens/c0b13e85-1de8-47c2-938c-9c43ee37d89b.png"
+  },
+  "splint-armor": {
+   "chaveV1": "srd51:item/splint-armor",
+   "caminho": "itens/933c4ae5-57ab-4d0e-8073-ee587e9a0c73.png"
+  },
+  "studded-leather-armor": {
+   "chaveV1": "srd51:item/studded-leather-armor",
+   "caminho": "itens/63072625-9cb0-487e-af61-15c6e918ea53.png"
+  },
+  "tinderbox": {
+   "chaveV1": "srd51:item/tinderbox",
+   "caminho": "itens/e021f528-0aea-4b4c-98bc-f9389ab9c0fc.png"
+  },
+  "torch": {
+   "chaveV1": "srd51:item/torch",
+   "caminho": "itens/1cfb6195-aa23-4f2a-8d7b-8835bbfa16eb.png"
+  },
+  "trident": {
+   "chaveV1": "srd51:item/trident",
+   "caminho": "itens/e6ac6f37-0fae-4a1b-8190-a9a200e421a0.png"
+  },
+  "war-pick": {
+   "chaveV1": "srd51:item/war-pick",
+   "caminho": "itens/24a51f18-6f6d-4837-b644-c0fd6cba5bdf.png"
+  },
+  "warhammer": {
+   "chaveV1": "srd51:item/warhammer",
+   "caminho": "itens/48700084-6a6e-4eaa-a122-f4a4c56fae64.png"
+  },
+  "waterskin": {
+   "chaveV1": "srd51:item/waterskin",
+   "caminho": "itens/4e932170-6a89-40c3-97d2-764d2afcc9c2.png"
+  },
+  "whip": {
+   "chaveV1": "srd51:item/whip",
+   "caminho": "itens/ed7446fa-656b-42a6-b8ce-76813557d822.png"
+  }
+ },
+ "monstros": {
+  "acolyte": {
+   "chaveV1": "srd_acolyte",
+   "caminho": "monstros/c96b87de-c994-4726-b9af-8b42b457c639.jpg"
+  },
+  "adult-black-dragon": {
+   "chaveV1": "srd_adult-black-dragon",
+   "caminho": "monstros/15b20742-c3af-4c86-ab70-ce097948f3c5.jpg"
+  },
+  "adult-red-dragon": {
+   "chaveV1": "srd_adult-red-dragon",
+   "caminho": "monstros/3bb347d2-7f11-4535-b866-e262dc7af042.jpg"
+  },
+  "adult-silver-dragon": {
+   "chaveV1": "srd_adult-silver-dragon",
+   "caminho": "monstros/725a77af-4546-4c5d-bf4f-e586ebff4c90.jpg"
+  },
+  "air-elemental": {
+   "chaveV1": "srd_air-elemental",
+   "caminho": "monstros/a79778b9-820d-42d6-9ada-c7614d987b51.jpg"
+  },
+  "ancient-black-dragon": {
+   "chaveV1": "srd_ancient-black-dragon",
+   "caminho": "monstros/bfecdc87-f5c4-44dd-8d97-99a672392154.jpg"
+  },
+  "ancient-red-dragon": {
+   "chaveV1": "srd_ancient-red-dragon",
+   "caminho": "monstros/5033344e-f014-4168-a76f-cc87337b9c15.jpg"
+  },
+  "archmage": {
+   "chaveV1": "srd_archmage",
+   "caminho": "monstros/659ea0ab-6d1b-4439-bf55-3c7554c57df0.webp"
+  },
+  "assassin": {
+   "chaveV1": "srd_assassin",
+   "caminho": "monstros/b1f1cdcf-d95e-4ed9-afaa-43f073a3fb4b.jpg"
+  },
+  "balor": {
+   "chaveV1": "srd_balor",
+   "caminho": "monstros/ee606fbb-2191-4bd5-a7f7-482ce5ad17f6.jpg"
+  },
+  "bandit": {
+   "chaveV1": "srd_bandit",
+   "caminho": "monstros/bc75202a-32d5-480c-8623-d99b88abdeb1.jpg"
+  },
+  "bandit-captain": {
+   "chaveV1": "srd_bandit-captain",
+   "caminho": "monstros/83ff2857-dbef-4ec8-8f79-0ba1da47dd93.jpg"
+  },
+  "berserker": {
+   "chaveV1": "srd_berserker",
+   "caminho": "monstros/5d0393a6-9b5a-4ff1-b94d-a1f228e84511.jpg"
+  },
+  "black-dragon-wyrmling": {
+   "chaveV1": "srd_black-dragon-wyrmling",
+   "caminho": "monstros/3fef5311-11d5-4bbd-b26d-4cebf25e2699.jpg"
+  },
+  "brown-bear": {
+   "chaveV1": "srd_brown-bear",
+   "caminho": "monstros/3f030a71-e292-4331-a2a3-2c9caca64fae.jpg"
+  },
+  "bugbear": {
+   "chaveV1": "srd_bugbear",
+   "caminho": "monstros/32c0d43a-10ae-4fbd-ac9a-6a7b9f69d9fc.webp"
+  },
+  "cloud-giant": {
+   "chaveV1": "srd_cloud-giant",
+   "caminho": "monstros/8a942427-cae1-4a1d-907b-4879365dc0f3.jpg"
+  },
+  "commoner": {
+   "chaveV1": "srd_commoner",
+   "caminho": "monstros/c268e5e1-3257-4936-ab4b-f34be657d4f6.jpg"
+  },
+  "cult-fanatic": {
+   "chaveV1": "srd_cult-fanatic",
+   "caminho": "monstros/222838e6-2d10-472b-a1eb-4eb9663bce34.jpg"
+  },
+  "cultist": {
+   "chaveV1": "srd_cultist",
+   "caminho": "monstros/86be8a02-4f66-44a4-9e11-ac12164f9b85.jpg"
+  },
+  "dire-wolf": {
+   "chaveV1": "srd_dire-wolf",
+   "caminho": "monstros/181f1ab9-927b-44da-96f5-05739dd6c7f5.jpg"
+  },
+  "doppelganger": {
+   "chaveV1": "srd_doppelganger",
+   "caminho": "monstros/dfda01ce-f079-41e4-86be-cf9a5a9a4cd3.jpg"
+  },
+  "drow": {
+   "chaveV1": "srd_drow",
+   "caminho": "monstros/cd68ac6d-8e65-4077-b85c-8983817f695b.jpg"
+  },
+  "druid": {
+   "chaveV1": "srd_druid",
+   "caminho": "monstros/1c5c9213-7460-41ba-ac16-ee461b370009.jpg"
+  },
+  "eagle": {
+   "chaveV1": "srd_eagle",
+   "caminho": "monstros/105cad2a-eb76-401c-aab5-e279a0d22aff.jpg"
+  },
+  "elk": {
+   "chaveV1": "srd_elk",
+   "caminho": "monstros/78ef22b7-0c1a-4c9d-a34a-bc6f3c72914f.jpg"
+  },
+  "fire-elemental": {
+   "chaveV1": "srd_fire-elemental",
+   "caminho": "monstros/1c6f160d-b390-498e-8247-3b6506817811.jpg"
+  },
+  "giant-eagle": {
+   "chaveV1": "srd_giant-eagle",
+   "caminho": "monstros/320a6890-f8ae-4063-aa71-b0f4be8ff434.jpg"
+  },
+  "giant-elk": {
+   "chaveV1": "srd_giant-elk",
+   "caminho": "monstros/d7bec4b3-537c-4ce0-a180-c46303a55c1c.webp"
+  },
+  "giant-spider": {
+   "chaveV1": "srd_giant-spider",
+   "caminho": "monstros/080ed1bd-2d4a-4551-8fbe-da59b5ce32a9.jpg"
+  },
+  "giant-vulture": {
+   "chaveV1": "srd_giant-vulture",
+   "caminho": "monstros/72560caf-92cc-437e-993e-e3f52a49dc0f.jpg"
+  },
+  "giant-wolf-spider": {
+   "chaveV1": "srd_giant-wolf-spider",
+   "caminho": "monstros/ea4410ce-d496-418f-a5cc-24376df6c5be.jpg"
+  },
+  "goblin": {
+   "chaveV1": "srd_goblin",
+   "caminho": "monstros/df8fc874-131b-4364-bf13-931df845f279.jpg"
+  },
+  "guard": {
+   "chaveV1": "srd_guard",
+   "caminho": "monstros/a0e375aa-5085-4df1-9498-feae64fdb259.jpg"
+  },
+  "hobgoblin": {
+   "chaveV1": "srd_hobgoblin",
+   "caminho": "monstros/819dcec9-1dcb-4be0-9404-a51cdc73f474.webp"
+  },
+  "knight": {
+   "chaveV1": "srd_knight",
+   "caminho": "monstros/3ab08f5c-4386-4195-b727-d25e22c2337b.jpg"
+  },
+  "mage": {
+   "chaveV1": "srd_mage",
+   "caminho": "monstros/06e6d6c4-92cb-4f55-a122-f0d94ee3fcec.jpg"
+  },
+  "minotaur": {
+   "chaveV1": "srd_minotaur",
+   "caminho": "monstros/e2016f09-765e-4eb9-8fe4-72d45877a3e6.jpg"
+  },
+  "noble": {
+   "chaveV1": "srd_noble",
+   "caminho": "monstros/2d2f32c3-020d-4fd1-89d9-e69286b2cd6e.jpg"
+  },
+  "panther": {
+   "chaveV1": "srd_panther",
+   "caminho": "monstros/11177460-f835-4b97-bd48-b1b93742c784.jpg"
+  },
+  "pegasus": {
+   "chaveV1": "srd_pegasus",
+   "caminho": "monstros/41bbf304-d7aa-45f2-bb70-3bd9316726db.jpg"
+  },
+  "rat": {
+   "chaveV1": "srd_rat",
+   "caminho": "monstros/abdb3956-da66-4d6b-ad45-8d407fc5ae1d.jpg"
+  },
+  "scout": {
+   "chaveV1": "srd_scout",
+   "caminho": "monstros/ccfc8eb0-0686-4d18-b577-7c453506ff67.jpg"
+  },
+  "spider": {
+   "chaveV1": "srd_spider",
+   "caminho": "monstros/d89f2123-658b-4393-9cc8-afb4744d71e3.webp"
+  },
+  "spy": {
+   "chaveV1": "srd_spy",
+   "caminho": "monstros/2dd5b613-a409-4a46-8201-8e694b382c90.jpg"
+  },
+  "swarm-of-rats": {
+   "chaveV1": "srd_swarm-of-rats",
+   "caminho": "monstros/27ec1554-4f4d-4dae-b5ab-10ef2e9fbdc1.jpg"
+  },
+  "tribal-warrior": {
+   "chaveV1": "srd_tribal-warrior",
+   "caminho": "monstros/f5085804-dffd-4ffc-954b-d2ed7ce64f51.jpg"
+  },
+  "veteran": {
+   "chaveV1": "srd_veteran",
+   "caminho": "monstros/9d47b1ac-6bcb-469b-bb99-5e5e020f6aa5.jpg"
+  },
+  "vulture": {
+   "chaveV1": "srd_vulture",
+   "caminho": "monstros/9e763bab-b94e-42da-9bcc-475459fdd9ba.jpg"
+  },
+  "winter-wolf": {
+   "chaveV1": "srd_winter-wolf",
+   "caminho": "monstros/82dc4b1d-aa60-4cfc-a0f3-dece8371983c.jpg"
+  },
+  "wolf": {
+   "chaveV1": "srd_wolf",
+   "caminho": "monstros/ccac66e3-eaf4-4df5-b543-e48a37c81360.jpg"
+  },
+  "zombie": {
+   "chaveV1": "srd_zombie",
+   "caminho": "monstros/b440bac0-8be7-44d7-bf37-e404f69743ea.jpg"
+  }
+ },
+ "semCorrespondencia": [],
+ "removidasNo1": [
+  {
+   "tipo": "item",
+   "chave": "srd51:item/abacus"
+  },
+  {
+   "tipo": "monstro",
+   "chave": "srd_adult-gold-dragon"
+  }
+ ]
+}

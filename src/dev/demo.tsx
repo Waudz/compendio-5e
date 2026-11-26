@@ -12,6 +12,8 @@ import { CampaignsProvider } from "../CampaignsContext";
 import type { CampaignApi, Invite, Member, Membership, Role } from "../campaigns";
 import type { Registro, RegistrosApi } from "../registros";
 import { ENQUADRAMENTO_PADRAO, lerEnquadramento, type CapaApi } from "../capa";
+import { ERRO_SEM_MOEDA, type ConfigCampanhaApi } from "../configCampanha";
+import { lerMoedasAtivas } from "../moedas/moedas";
 import { RegistrosProvider } from "../RegistrosContext";
 
 const CAMP = { id: "11111111-1111-4111-8111-111111111111", name: "Sociedade do Véu Negro", description: "Um festival em Daggerford vira um banho de sangue com a revelação de um culto que assola a região.", created_at: "2026-01-01T00:00:00Z" };
@@ -85,10 +87,22 @@ const capaDemo: CapaApi = {
   obter: async () => ({ ok: true, data: localStorage.getItem(CAPA_KEY) }),
   definir: async (_c, f) => { try { const u = await lerArquivo(f); localStorage.setItem(CAPA_KEY, u); localStorage.removeItem(ENQ_KEY); return { ok: true, data: u }; } catch { return { ok: false, error: "Imagem grande demais para o modo de demonstração." }; } },
   remover: async () => { localStorage.removeItem(CAPA_KEY); localStorage.removeItem(ENQ_KEY); return { ok: true, data: true }; },
-  enviar: async () => ({ ok: false, error: "Envio de retrato indisponível no modo de demonstração." }),
-  urlDe: async () => ({ ok: false, error: "sem imagem" }),
+  enviar: async (_c, f) => { try { const caminho = `demo/${crypto.randomUUID()}`; localStorage.setItem(`demo:retrato:${caminho}`, await lerArquivo(f)); return { ok: true, data: caminho }; } catch { return { ok: false, error: "Imagem grande demais para o modo de demonstração." }; } },
+  urlDe: async caminho => { const d = localStorage.getItem(`demo:retrato:${caminho}`); return d ? { ok: true, data: d } : { ok: false, error: "sem imagem" }; },
   apagar: async () => ({ ok: true, data: true }),
 };
+
+const MOEDAS_KEY = "demo:moedas:v1";
+const lerMoedasDemo = () => { try { return lerMoedasAtivas(JSON.parse(localStorage.getItem(MOEDAS_KEY) ?? "null")); } catch { return lerMoedasAtivas(null); } };
+/** Moedas da campanha na demonstração (no app real: `campaigns.enabled_coins`, gravada só pelo mestre). */
+const configDemo = (papel: Role): ConfigCampanhaApi => ({
+  moedas: async () => ({ ok: true, data: { suportado: true, ativas: lerMoedasDemo() } }),
+  salvarMoedas: async (_c, ativas) => {
+    if (!ativas.length) return { ok: false, error: ERRO_SEM_MOEDA };
+    if (papel !== "mestre") return { ok: false, error: "Apenas o mestre pode fazer isso." };
+    const lista = lerMoedasAtivas([...ativas]); localStorage.setItem(MOEDAS_KEY, JSON.stringify(lista)); return { ok: true, data: lista };
+  },
+});
 
 /** Servidor FALSO do combate/encontros para o modo de demonstração (`?demo=mestre&nuvem=1`, só em `npm run dev`): guarda no localStorage do navegador com a mesma
  *  semântica de versão do banco real. Serve para exercitar a interface do modo nuvem em E2E; NÃO prova nada sobre o Supabase. */
@@ -112,7 +126,7 @@ export function DemoRoot({ papel }: { papel: Role }) {
   const client = { auth: { getSession: async () => ({ data: { session: { user } }, error: null }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }), signOut: async () => ({ error: null }) } } as unknown as SupabaseClient;
   const campanhas = criarCampanhas(papel), registros = criarRegistros(papel, uid);
   try { localStorage.setItem(`compendio5e:active-campaign:${uid}`, CAMP.id); } catch { /* sem armazenamento */ }
-  return <AuthProvider client={client}><CampaignsProvider apiFactory={() => campanhas}><RegistrosProvider api={registros} capa={capaDemo}>
+  return <AuthProvider client={client}><CampaignsProvider apiFactory={() => campanhas}><RegistrosProvider api={registros} capa={capaDemo} config={configDemo(papel)}>
     {new URLSearchParams(window.location.search).get("nuvem") === "1"
       ? <NuvemContext.Provider value={nuvemDemo}><AuthGate><App/></AuthGate></NuvemContext.Provider>
       : <AuthGate><App/></AuthGate>}

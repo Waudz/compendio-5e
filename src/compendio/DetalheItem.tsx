@@ -3,6 +3,7 @@ import { useAbrirEmAba } from "../abrirEmAba";
 import { itemFacts, srdItem, srdItemFile, srdItemsCatalogue } from "../catalogue/srd-2014-items";
 import type { SrdItem } from "../catalogue/item-schema";
 import type { TabSpec } from "../workspace";
+import { imagemDoItem } from "../ficha/imagensCatalogo";
 
 export const itemSpec = (id: string, nome: string): TabSpec => ({ kind: "item", ref: id, title: nome });
 
@@ -10,7 +11,9 @@ export function DetalheItem({ item, onOpenContent }: { item: SrdItem; onOpenCont
   const { aoClicarDireito } = useAbrirEmAba();
   const desc = srdItemsCatalogue().definitions.find(d => d.ref.id === item.id)?.description ?? "";
   const arquivo = srdItemFile();
+  const imagem = imagemDoItem(item.id);
   return <>
+    {imagem && <img className="catalogo-imagem" src={imagem} alt={`Imagem de ${item.nome}`} loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/>}
     <p>{desc}</p>
     <dl className="item-fatos">{itemFacts(item).map(([r, v]) => <div key={r}><dt>{r}</dt><dd>{v}</dd></div>)}</dl>
     {item.pacote && <section aria-label="Conteúdo do pacote"><h2>Conteúdo do pacote</h2>

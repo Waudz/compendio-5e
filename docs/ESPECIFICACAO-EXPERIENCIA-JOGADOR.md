@@ -34,7 +34,7 @@ Uma única entidade de personagem/ficha. Identidade pública é somente a aprese
 - Dono e mestre acessam ficha verdadeira; demais somente projeção autorizada. RLS/servidor deve garantir privacidade, inclusive acesso direto. Não duplicar registros, não perder perfis existentes.
 - A lista unificada do #152 é correção intermediária; não significa que toda a identidade acima já foi implementada. A regra de publicação e transição de fichas antigas deve ser auditada antes de alterar dados.
 
-**Situação (DEC-027):** implementados nome obrigatório, alcunha independente, usar da ficha/personalizar/ocultar para nome, alcunha, raça e classe, descrição pública e retrato único (endereço https). **Pendentes:** nível como campo público (exige migração: o banco não aceita a chave) e envio de arquivo de imagem para o retrato (só endereço https). Registros existentes mantêm a visibilidade que tinham. Como o 2.0 está em Alpha, não há adaptação de formatos antigos.
+**Situação (DEC-028):** apresentação automática calculada da ficha, com nome obrigatório, alcunha independente, usar da ficha/personalizar/ocultar para nome, alcunha, raça, classe e nível, descrição pública e retrato único com envio de arquivo. Depende da migração 0013 (proposta).
 
 ## 4. Compêndio e descobertas
 Manter especificação do #150, com atualização de nomenclatura: Compêndio é o único nome da área.

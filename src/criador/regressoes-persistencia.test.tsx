@@ -36,7 +36,7 @@ async function abrirExistente() {
   };
   draft.previousRulesDraft = { ...structuredClone(draft), name: 'Memória privada anterior' };
   const identity = { ...defaultPublicIdentity(), alias: { mode: 'custom' as const, value: 'Rosto conhecido' }, name: { mode: 'custom' as const, value: 'Viajante' }, race: { mode: 'hidden' as const }, characterClass: { mode: 'hidden' as const } };
-  const criado = await api.criar('ca', draft, { identity, source: { name: draft.name, alias: '', race: 'Humano', characterClass: 'Guerreiro', portrait: '' }, publicar: true });
+  const criado = await api.criar('ca', draft, { identity, source: { name: draft.name, alias: '', race: 'Humano', characterClass: 'Guerreiro', level: '3', portrait: '' } });
   if (!criado.ok) throw new Error(criado.error);
   const apiCampanhas = { list: async () => ({ ok: true, data: [{ role: 'jogador', campaign: { id: 'ca', name: 'Mesa de teste', description: '', created_at: '' } }] }) } as unknown as CampaignApi;
   await renderApp({ user: me, api: apiCampanhas, fichas: api, registros: registrosEmMemoria('jogador', me.id, [], banco.registros) });
@@ -54,7 +54,6 @@ async function abrirExistente() {
   return { banco, api, nome, id: criado.data.id };
 }
 const salvar = () => fireEvent.click(screen.getByRole('button', { name: /^Salvar$/ }));
-const botaoSalvar = () => screen.getByRole('button', { name: /^Salvar$/ }) as HTMLButtonElement;
 
 it('não apresenta edição como persistida enquanto a requisição de salvar aguarda confirmação', async () => {
   const { banco, api, nome } = await abrirExistente();
@@ -75,7 +74,7 @@ it('não apresenta edição como persistida enquanto a requisição de salvar ag
     await act(async () => { concluir(); });
   }
   await waitFor(() => expect(banco.fichas[0].revision).toBe(2));
-  await waitFor(() => expect(botaoSalvar().disabled).toBe(true));
+  await screen.findByTestId('ficha-guiada-leitura');   // salvar volta para a ficha atualizada
   expect(banco.fichas[0].draft.name).toBe('Lira em edição');
   expect(screen.queryByText('Alterações não salvas.')).toBeNull();
 });
@@ -89,7 +88,6 @@ it('cancelar a troca de classe não suja a ficha nem reinicia recursos ou invent
   fireEvent.click(within(confirmacao).getByRole('button', { name: 'Cancelar troca de classe' }));
   expect(screen.queryByRole('region', { name: 'Confirmar classe' })).toBeNull();
   expect((screen.getByRole('combobox', { name: 'Classe' }) as HTMLSelectElement).value).toBe('fighter');
-  expect(botaoSalvar().disabled).toBe(true);
   expect(screen.queryByText('Alterações não salvas.')).toBeNull();
   const secoes = within(screen.getByRole('navigation', { name: 'Seções do personagem' }));
   fireEvent.click(secoes.getByRole('button', { name: 'Inventário' }));
@@ -110,10 +108,10 @@ it('renomear mantém IDs e duas instâncias do mesmo item, sem republicar dados 
   fireEvent.change(nome, { target: { value: 'Lira revisada' } });
   salvar();
   await waitFor(() => expect(banco.fichas[0].revision).toBe(2));
-  await waitFor(() => expect(botaoSalvar().disabled).toBe(true));
+  await screen.findByTestId('ficha-guiada-leitura');
   expect(banco.fichas).toHaveLength(1);
   expect(banco.fichas[0]).toMatchObject({ id, campaignId: ficha.campaignId, ownerId: ficha.ownerId });
-  expect(banco.fichas[0].draft).toEqual({ ...ficha.draft, name: 'Lira revisada' });
+  expect(banco.fichas[0].draft).toEqual({ ...ficha.draft, name: 'Lira revisada', publicLabels: { race: expect.any(String), characterClass: expect.any(String) } });
   expect(banco.fichas[0].draft.inventory.map(item => item.id)).toEqual(['instancia-inicial', 'instancia-adquirida']);
   expect(banco.registros.dados).toHaveLength(1);
   expect(banco.registros.dados[0]).toMatchObject({ id: publico.id, title: publico.title, meta: publico.meta });

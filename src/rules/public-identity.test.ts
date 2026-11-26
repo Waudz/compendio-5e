@@ -2,11 +2,11 @@ import {describe,expect,it} from 'vitest';
 import {defaultPublicIdentity,isPublicIdentity,presentation,publicIdentityCard} from './public-identity';
 
 describe('identidade pública do personagem',()=>{
- const source={name:'Elyra Voss',alias:'A Andarilha',race:'Tiefling',characterClass:'Feiticeira',portrait:'https://exemplo.com/r.png',level:9,hp:72,inventory:['secret']};
- it('por padrão usa os campos públicos da ficha e o mesmo retrato, sem nível, PV ou inventário',()=>{
+ const source={name:'Elyra Voss',alias:'A Andarilha',race:'Tiefling',characterClass:'Feiticeira',portrait:'https://exemplo.com/r.png',level:'9',hp:72,inventory:['secret']};
+ it('por padrão usa os campos públicos da ficha (inclusive o nível) e o mesmo retrato, sem PV ou inventário',()=>{
   const card=publicIdentityCard(defaultPublicIdentity(),source);
-  expect(card).toEqual({name:'Elyra Voss',alias:'A Andarilha',race:'Tiefling',characterClass:'Feiticeira',description:'',imageUrl:'https://exemplo.com/r.png'});
-  expect(JSON.stringify(card)).not.toMatch(/level|hp|inventory|secret/);
+  expect(card).toEqual({name:'Elyra Voss',alias:'A Andarilha',race:'Tiefling',characterClass:'Feiticeira',level:'9',description:'',imageUrl:'https://exemplo.com/r.png'});
+  expect(JSON.stringify(card)).not.toMatch(/hp|inventory|secret/);
  });
  it('campo não personalizado acompanha a ficha; o personalizado permanece',()=>{
   const identity={...defaultPublicIdentity(),name:{mode:'custom' as const,value:'A Viajante'}};

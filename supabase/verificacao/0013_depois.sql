@@ -1,0 +1,13 @@
+-- Conferência DEPOIS da 0013. SOMENTE LEITURA. Esperado: todas as linhas "ok_*" = sim e as três "digital_*" idênticas às de antes.
+select 'ok_moedas_todas_ativas' as item, case when not exists (select 1 from public.campaigns where enabled_coins <> array['cp','sp','ep','gp','pp']::text[]) then 'sim' else 'não' end as valor
+union all select 'ok_gatilhos', case when (select count(*) from pg_trigger where not tgisinternal and ((tgrelid = 'public.character_sheets'::regclass and tgname in ('character_sheets_entregas', 'character_sheets_apresentacao', 'character_sheets_guard')) or (tgrelid = 'public.notes'::regclass and tgname = 'notes_zz_ficha_guard'))) = 4 then 'sim' else 'não' end
+union all select 'ok_itens_livres_242', case when (select count(*) from private_ficha.itens_livres) = 242 then 'sim' else 'não' end
+union all select 'ok_api_sem_acesso_ao_esquema', case when not has_schema_privilege('authenticated', 'private_ficha', 'usage') and not has_schema_privilege('anon', 'private_ficha', 'usage') and not has_table_privilege('authenticated', 'private_ficha.itens_livres', 'select') then 'sim' else 'não' end
+union all select 'ok_rls_ligada', case when (select bool_and(relrowsecurity) from pg_class where oid in ('public.character_sheets'::regclass, 'public.notes'::regclass, 'public.campaigns'::regclass)) then 'sim' else 'não' end
+union all select 'ok_anon_sem_acesso', case when not has_table_privilege('anon', 'public.character_sheets', 'select') and not has_table_privilege('anon', 'public.notes', 'select') then 'sim' else 'não' end
+union all select 'ok_definer_com_search_path_fixo', case when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname in ('private', 'private_ficha') and p.prosecdef and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')) then 'sim' else 'não' end
+union all select 'campanhas', count(*)::text from public.campaigns
+union all select 'fichas', count(*)::text from public.character_sheets
+union all select 'digital_fichas', coalesce(md5(string_agg(character_id::text || ':' || revision || ':' || md5(draft::text), ',' order by character_id)), 'vazio') from public.character_sheets
+union all select 'digital_notas', coalesce(md5(string_agg(id::text || ':' || md5(coalesce(title, '') || visibility || meta::text || coalesce(body, '')), ',' order by id)), 'vazio') from public.notes
+union all select 'digital_campanhas', coalesce(md5(string_agg(id::text || ':' || md5(name || coalesce(description, '') || coalesce(cover_path, '') || coalesce(cover_framing::text, '')), ',' order by id)), 'vazio') from public.campaigns;

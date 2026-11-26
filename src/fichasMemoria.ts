@@ -1,8 +1,11 @@
 // Apoio aos testes e ao modo de demonstração (não é persistência real): API de fichas em memória que imita as regras do banco
-// (`supabase/migrations/0008_*`): dono participante ou mestre leem/gravam a ficha; revisão controlada pelo servidor; identidade pública só do dono.
+// (`supabase/migrations/0008_*` e `0013_*`): dono participante ou mestre leem/gravam a ficha; revisão controlada pelo servidor; escolhas
+// da identidade só do dono; apresentação sempre calculada da ficha e visível para a campanha; itens e concessões restritos para o jogador.
 // A validação das políticas REAIS é feita em `supabase/character-sheets.test.ts` (PostgreSQL isolado); isto serve para testar a interface.
+import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
 import type { CharacterDraft } from "./rules/character-domain";
-import { ERRO_CONFLITO_REVISAO, ERRO_SEM_FICHA, identidadeDe, projetarIdentidade, type FichasApi, type IdentidadeGravada } from "./fichas";
+import { ERRO_CONFLITO_REVISAO, ERRO_SEM_FICHA, identidadeDe, projetarIdentidade, retratoValido, type FichasApi, type IdentidadeGravada } from "./fichas";
+import { defaultPublicIdentity, type PublicIdentity } from "./rules/public-identity";
 import type { Registro } from "./registros";
 
 type Linha = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string };
@@ -22,9 +25,22 @@ const extrasDaFicha = (d: object) => {
   const x = d as { nickname?: unknown; portrait?: unknown };
   return {
     ...(typeof x.nickname === "string" && x.nickname.trim() ? { alcunha: x.nickname.trim() } : {}),
-    ...(typeof x.portrait === "string" && /^https:\/\/\S+$/.test(x.portrait) ? { retrato: x.portrait } : {}),
+    ...(retratoValido(x.portrait) ? { retrato: x.portrait } : {}),
   };
 };
+/** Regra do banco (0013): o jogador não cria nem aumenta item fora da lista, nem cria ou altera concessões. */
+function entregaProibida(novo: CharacterDraft, antes: CharacterDraft | null): string | null {
+  const total = (d: CharacterDraft | null, item: string) => (d?.inventory ?? []).filter(i => i.itemId === item).reduce((s, i) => s + i.quantity, 0);
+  for (const item of new Set((novo.inventory ?? []).map(i => i.itemId))) if (!jogadorPodeAdicionar(item) && total(novo, item) > total(antes, item)) return "Este item só pode ser entregue pelo mestre.";
+  const concedidos = (d: CharacterDraft | null) => ((d?.play as { concedidos?: unknown[] } | undefined)?.concedidos ?? []).map(c => JSON.stringify(c));
+  const anteriores = new Set(concedidos(antes));
+  return concedidos(novo).some(c => !anteriores.has(c)) ? "Só o mestre concede talentos, magias e habilidades." : null;
+}
+/** Apresentação calculada pelo servidor: as escolhas do dono aplicadas à ficha atual. */
+function projecaoDaFicha(identity: PublicIdentity, d: CharacterDraft, anterior: Record<string, unknown> | undefined) {
+  const antes = (anterior as { identidadePublica?: { card?: { race?: string; characterClass?: string } } } | undefined)?.identidadePublica?.card;
+  return projetarIdentidade({ identity, source: { name: d.name, alias: d.nickname ?? "", race: d.publicLabels?.race ?? antes?.race ?? "", characterClass: d.publicLabels?.characterClass ?? antes?.characterClass ?? "", level: String(d.level), portrait: d.portrait ?? "" } });
+}
 export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { banco: BancoFichas } {
   const mestre = (cid: string) => banco.campanhas[cid]?.mestre === uid;
   const membro = (cid: string) => mestre(cid) || !!banco.campanhas[cid]?.jogadores.includes(uid);
@@ -44,9 +60,10 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
     criar: async (cid, draft, identidade) => {
       if (banco.rede.caida) return semRede;
       if (!membro(cid)) return { ok: false, error: "Você não tem permissão para esta operação." };
+      const proibido = mestre(cid) ? null : entregaProibida(draft, null); if (proibido) return { ok: false, error: proibido };
       const id = `srv-${banco.fichas.length + 1}-${cid}`;
-      const p = projetarIdentidade(identidade);
-      banco.registros.dados.push({ id, kind: "character", campaignId: cid, ownerId: uid, title: p.titulo, content: [], visibility: identidade.publicar ? "campaign" : "private", meta: { guiado: true, ...p.meta }, version: 1, createdAt: agora(), updatedAt: agora() });
+      const p = projecaoDaFicha(identidade.identity, { ...draft, publicLabels: draft.publicLabels ?? { race: identidade.source.race, characterClass: identidade.source.characterClass } }, undefined);
+      banco.registros.dados.push({ id, kind: "character", campaignId: cid, ownerId: uid, title: p.titulo, content: [], visibility: "campaign", meta: { guiado: true, ...p.meta }, version: 1, createdAt: agora(), updatedAt: agora() });
       const l: Linha = { id, campaignId: cid, ownerId: uid, revision: 1, draft: { ...structuredClone(draft), id }, updatedAt: agora() };
       banco.fichas.push(l);
       return { ok: true, data: { id, revision: 1, updatedAt: l.updatedAt } };
@@ -56,10 +73,13 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
       const l = banco.fichas.find(x => x.id === id); if (!l || !le(l)) return { ok: false, error: ERRO_SEM_FICHA };   // sem oráculo: igual a inexistente
       if (l.revision !== esperada) return { ok: false, error: ERRO_CONFLITO_REVISAO };
       if (identidade && l.ownerId !== uid) return { ok: false, error: "Só o dono do personagem altera a identidade pública." };
+      const proibido = mestre(l.campaignId) ? null : entregaProibida(draft, l.draft); if (proibido) return { ok: false, error: proibido };
       l.draft = { ...structuredClone(draft), id }; l.revision += 1; l.updatedAt = agora();
-      if (identidade) {
-        const i = banco.registros.dados.findIndex(r => r.id === id); const p = projetarIdentidade(identidade);
-        if (i >= 0) banco.registros.dados[i] = { ...banco.registros.dados[i], title: p.titulo, visibility: identidade.publicar ? "campaign" : "private", meta: { guiado: true, ...p.meta }, version: banco.registros.dados[i].version + 1 };
+      const i = banco.registros.dados.findIndex(r => r.id === id);
+      if (i >= 0) {
+        const nota = banco.registros.dados[i];
+        const p = projecaoDaFicha(identidade?.identity ?? identidadeDe(nota.meta, true)?.identity ?? defaultPublicIdentity(), l.draft, nota.meta);
+        banco.registros.dados[i] = { ...nota, title: p.titulo, visibility: "campaign", meta: { guiado: true, ...p.meta }, version: nota.version + 1 };
       }
       return { ok: true, data: { id, revision: l.revision, updatedAt: l.updatedAt } };
     },

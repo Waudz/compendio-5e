@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Monstro } from "../catalogue/sistemas/dnd5e-2014/esquemas";
 import { formatarDeslocamento, formatarModificador, formatarND, formatarPontosDeVida, formatarSentidos, formatarXP, modificadorDe } from "../catalogue/sistemas/dnd5e-2014/formatar";
 import { rotuloGrupoAcao, rotuloPericia, rotuloTamanho, rotuloTipoCriatura, siglaAtributo } from "../catalogue/sistemas/dnd5e-2014/rotulos";
+import { imagemDoMonstro } from "../ficha/imagensCatalogo";
 
 const ORDEM = ["str", "dex", "con", "int", "wis", "cha"] as const;
 const GRUPOS = ["ACTION", "BONUS_ACTION", "REACTION", "LEGENDARY_ACTION", "LAIR_ACTION"] as const;
@@ -47,7 +48,9 @@ export function DetalheMonstro({ monstro: m, onAbrirMagia }: { monstro: Monstro;
   if (m.defesas.condicoesTexto) linhas.push(["Imunidades a condições", m.defesas.condicoesTexto]);
   linhas.push(["Sentidos", formatarSentidos(m)]);
   if (m.idiomas) linhas.push(["Idiomas", m.idiomas]);
+  const imagem = imagemDoMonstro(m.id);
   return <>
+    {imagem && <img className="catalogo-imagem" src={imagem} alt={`Imagem de ${m.nome}`} loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/>}
     <p className="muted cat-linha-tipo">{rotuloTipoCriatura(m.tipo)} {rotuloTamanho(m.tamanho).toLocaleLowerCase("pt-BR")}{m.tendencia ? `, ${m.tendencia.toLocaleLowerCase("pt-BR")}` : ""} · {m.en}</p>
     <dl className="item-fatos">
       <div><dt>Classe de Armadura</dt><dd>{m.ca}{m.caDetalhe ? ` (${m.caDetalhe})` : ""}</dd></div>

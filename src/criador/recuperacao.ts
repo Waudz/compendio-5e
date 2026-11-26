@@ -20,9 +20,9 @@ export function gravarRecuperacao(user: string, campaign: string, id: string, r:
 export function lerRecuperacao(user: string, campaign: string, id: string, store: Store | null = seguro()): Recuperacao | null {
   try {
     const raw = store?.getItem(chave(user, campaign, id)); if (!raw) return null;
-    const w = JSON.parse(raw) as { baseRevisao?: unknown; motivo?: unknown; em?: unknown; publicar?: unknown; estado?: { publicar?: unknown }; personagem?: unknown };
+    const w = JSON.parse(raw) as { baseRevisao?: unknown; motivo?: unknown; em?: unknown; personagem?: unknown };
     const p = lerPersonagemGuiado(JSON.stringify(w.personagem));
-    return { estado: { draft: p.draft, identity: p.identity, publicar: w.estado?.publicar === true }, baseRevisao: Number.isInteger(w.baseRevisao) ? (w.baseRevisao as number) : null, motivo: typeof w.motivo === "string" ? w.motivo : "", em: typeof w.em === "string" ? w.em : p.savedAt };
+    return { estado: { draft: p.draft, identity: p.identity }, baseRevisao: Number.isInteger(w.baseRevisao) ? (w.baseRevisao as number) : null, motivo: typeof w.motivo === "string" ? w.motivo : "", em: typeof w.em === "string" ? w.em : p.savedAt };
   } catch { return null; }   // cópia ilegível não é restaurada (nem derruba a tela)
 }
 export function limparRecuperacao(user: string, campaign: string, id: string, store: Store | null = seguro()) { try { store?.removeItem(chave(user, campaign, id)); } catch { /* ignora */ } }

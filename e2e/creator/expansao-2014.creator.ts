@@ -8,6 +8,7 @@ import {
   showSection,
   navigate,
   expectNoHorizontalOverflow,
+  openEditor,
 } from './helpers';
 async function checks(group: Locator, n: number, used = new Set<string>()) {
   let added = 0;
@@ -62,7 +63,7 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   await activate(page);
   await nameField(page).fill('Maga 2014');
   await nameField(page).focus();
-  for (let i = 0; i < 3; i++) await page.keyboard.press('Tab');   // Alcunha, Retrato e então Classe
+  for (let i = 0; i < 5; i++) await page.keyboard.press('Tab');   // Alcunha, Nível, envio do retrato, endereço e então Classe
   await expect(
     page.getByRole('combobox', { name: 'Classe', exact: true }),
   ).toBeFocused();
@@ -310,6 +311,7 @@ test('atributos rolados/antigos reabrem intactos e não passam por compra de pon
       exact: true,
     })
     .click();
+  await openEditor(page);
   await expect(nameField(page)).toHaveValue('Rolagens antigas');
   await expect(
     page.getByRole('combobox', { name: 'Método de atributos', exact: true }),

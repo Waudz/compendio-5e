@@ -4,6 +4,10 @@ import { origin } from './environment';
 export type DemoRole = 'mestre' | 'jogador';
 export const campaignName = 'Sociedade do Véu Negro';
 
+/** Imagens cadastradas no Compêndio 1.0: o teste as responde localmente (nada sai da máquina). Qualquer outro endereço continua bloqueado. */
+const IMAGENS_DO_1_0 = /^(https:\/\/pdjzahpxjrlbqqtzkfdr\.supabase\.co\/storage\/v1\/object\/public\/catalogos\/(itens|monstros)\/[0-9a-f-]{36}\.(jpg|png|webp)|https:\/\/waudz\.github\.io\/rastreador-dnd\/fotos\/srd_[a-z-]+\.jpg)$/;
+const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+
 /** Contexto descartável por teste; qualquer saída para outra origem falha fechada.
  * Não usar request/APIRequestContext, contas, tokens ou storageState de usuários aqui.
  */
@@ -16,6 +20,8 @@ export const test = base.extend<{ safety: void }>({
       const url = new URL(route.request().url());
       if (url.origin === origin || ['data:', 'blob:'].includes(url.protocol)) {
         await route.continue();
+      } else if (route.request().method() === 'GET' && route.request().resourceType() === 'image' && IMAGENS_DO_1_0.test(url.href)) {
+        await route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL });
       } else {
         external.push(url.origin + url.pathname); // sem query strings/tokens nos relatórios
         await route.abort('blockedbyclient');

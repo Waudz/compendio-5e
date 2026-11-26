@@ -60,10 +60,11 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
       const loc = armazenamentoLocalExperimental(userId, campanhaId); const p = loc.carregar(g.id);
       if (!p) { setAviso({ ok: false, t: "O rascunho local não foi encontrado." }); return; }
       if (!p.draft.name.trim()) { setAviso({ ok: false, t: "Dê um nome ao personagem (abra o rascunho e salve) antes de enviá-lo." }); return; }
-      const r = await fichas.criar(campanhaId, p.draft, { identity: p.identity, source: origemPublica(p.draft, p.draft.catalogueVersion === 'character-srd-2014-v2' ? rotuloRaca(p.draft.raceId) : 'Anão', rotuloClasse(p.draft.classId)), publicar: false });
+      const source = origemPublica(p.draft, p.draft.catalogueVersion === 'character-srd-2014-v2' ? rotuloRaca(p.draft.raceId) : 'Anão', rotuloClasse(p.draft.classId));
+      const r = await fichas.criar(campanhaId, { ...p.draft, publicLabels: { race: source.race, characterClass: source.characterClass } }, { identity: p.identity, source });
       if (!r.ok) { setAviso({ ok: false, t: `${r.error} O rascunho continua guardado neste navegador.` }); return; }
       loc.excluir(g.id); avisarRegistros(); setTentativa(n => n + 1);
-      setAviso({ ok: true, t: `“${p.draft.name}” foi enviado para a campanha e a cópia deste navegador foi removida. A identidade pública começou privada.` });
+      setAviso({ ok: true, t: `“${p.draft.name}” foi enviado para a campanha e a cópia deste navegador foi removida. Os outros jogadores veem só a apresentação dele.` });
     } catch (e) { setAviso({ ok: false, t: `${e instanceof Error ? e.message : "Não foi possível enviar."} O rascunho continua guardado neste navegador.` }); }
     finally { setEnviando(null); }
   };
@@ -77,7 +78,7 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
   return <div className="content personagens">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
-    <p className="muted">Cada participante cria o próprio personagem. A ficha é privada (dono e mestre); os outros jogadores veem só a apresentação que o dono mostrar.{fichas ? "" : " Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
+    <p className="muted">Cada participante cria o próprio personagem. A ficha é privada (dono e mestre); os outros jogadores veem só a apresentação, sem o que o dono ocultar.{fichas ? "" : " Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
     {aviso && <Aviso erro={!aviso.ok} t={aviso.t}/>}
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
     {dados?.avisoFichas && <Aviso erro t={`${dados.avisoFichas} A lista pode estar incompleta.`} onRetry={() => setTentativa(n => n + 1)}/>}
@@ -108,7 +109,7 @@ function CartaoPublicoGuiado({ reg }: { reg: Registro }) {
   const visto = presentation(c);
   return <div className="content ficha" data-testid="cartao-publico"><div className="eyebrow">PERSONAGEM</div>
     <div className="ficha-topo"><RetratoQuadrado tipo="personagem" src={c.imageUrl} tamanho={96}/><div><h1>{visto.nome}</h1>{visto.alcunha && <p className="identidade-alcunha"><em>{visto.alcunha}</em></p>}</div></div>
-    {c.race && <p>Raça: {c.race}</p>}{c.characterClass && <p>Classe: {c.characterClass}</p>}{c.description && <p>{c.description}</p>}
+    {c.race && <p>Raça: {c.race}</p>}{c.characterClass && <p>Classe: {c.characterClass}</p>}{c.level && <p>Nível: {c.level}</p>}{c.description && <p>{c.description}</p>}
     <p className="muted">Os detalhes da ficha são privados do jogador e do mestre.</p></div>;
 }
 

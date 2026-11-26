@@ -4,7 +4,7 @@
  */
 export type ModoPublico = 'sheet' | 'custom' | 'hidden';
 export type CampoPublico = { mode: ModoPublico; value?: string };
-export const CAMPOS_PUBLICOS = ['name', 'alias', 'race', 'characterClass'] as const;
+export const CAMPOS_PUBLICOS = ['name', 'alias', 'race', 'characterClass', 'level'] as const;
 export type ChavePublica = (typeof CAMPOS_PUBLICOS)[number];
 export type PublicIdentity = Record<ChavePublica, CampoPublico> & { description: string };
 /** Os únicos dados da ficha que a identidade pode usar. Nunca receba a ficha inteira aqui. */
@@ -13,7 +13,7 @@ export type PublicIdentityCard = Record<ChavePublica, string | null> & { descrip
 
 export const MODOS_PUBLICOS: readonly ModoPublico[] = ['sheet', 'custom', 'hidden'];
 export function defaultPublicIdentity(): PublicIdentity {
- return { name: { mode: 'sheet' }, alias: { mode: 'sheet' }, race: { mode: 'sheet' }, characterClass: { mode: 'sheet' }, description: '' };
+ return { name: { mode: 'sheet' }, alias: { mode: 'sheet' }, race: { mode: 'sheet' }, characterClass: { mode: 'sheet' }, level: { mode: 'sheet' }, description: '' };
 }
 /** Valida (sem consertar) uma identidade lida do navegador. */
 export function isPublicIdentity(v: unknown): v is PublicIdentity {
@@ -36,6 +36,7 @@ export function publicIdentityCard(identity: PublicIdentity, source: SheetPublic
   alias: resolver(identity.alias, source.alias),
   race: resolver(identity.race, source.race),
   characterClass: resolver(identity.characterClass, source.characterClass),
+  level: resolver(identity.level, source.level),
   description: identity.description,
   imageUrl: source.portrait.trim() || null,
  };

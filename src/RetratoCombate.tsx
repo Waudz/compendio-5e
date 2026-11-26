@@ -2,17 +2,33 @@
 import { Skull, Swords, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
-import { useFichas } from "./RegistrosContext";
+import { useCapa, useFichas } from "./RegistrosContext";
 
 export type TipoRetrato = "personagem" | "monstro" | "avulso";
+
+/** Retrato enviado (`storage:<campanha>/<arquivo>`) vira um endereço temporário; os demais valores passam como estão. */
+export function useEnderecoDaImagem(src: string | null | undefined): string | null {
+  const capa = useCapa();
+  const guardado = src?.startsWith("storage:") ? src.slice("storage:".length) : null;
+  const [assinado, setAssinado] = useState<{ de: string; url: string } | null>(null);
+  useEffect(() => {
+    if (!guardado || !capa) return;
+    let vivo = true;
+    void capa.urlDe(guardado).then(r => { if (vivo && r.ok) setAssinado({ de: guardado, url: r.data }); }, () => { /* sem acesso: fica o ícone padrão */ });
+    return () => { vivo = false; };
+  }, [guardado, capa]);
+  if (guardado) return assinado?.de === guardado ? assinado.url : null;
+  return src ?? null;
+}
 
 /** Decorativo (o nome já aparece em texto ao lado): `alt` vazio. Se a imagem falhar ao carregar, cai no placeholder. */
 export function RetratoQuadrado({ src, tipo = "avulso", tamanho = 44 }: { src?: string | null; tipo?: TipoRetrato; tamanho?: number }) {
   const [falhou, setFalhou] = useState(false);
-  useEffect(() => setFalhou(false), [src]);
+  const endereco = useEnderecoDaImagem(src);
+  useEffect(() => setFalhou(false), [endereco]);
   const Icone = tipo === "monstro" ? Skull : tipo === "personagem" ? UserRound : Swords;
   return <span className="retrato-q" data-tipo={tipo} style={{ width: tamanho, height: tamanho }}>
-    {src && !falhou ? <img src={src} alt="" loading="lazy" onError={() => setFalhou(true)}/> : <span className="retrato-q-vazio" aria-hidden="true" data-testid="retrato-placeholder"><Icone size={Math.round(tamanho * 0.5)}/></span>}
+    {endereco && !falhou ? <img src={endereco} alt="" loading="lazy" onError={() => setFalhou(true)}/> : <span className="retrato-q-vazio" aria-hidden="true" data-testid="retrato-placeholder"><Icone size={Math.round(tamanho * 0.5)}/></span>}
   </span>;
 }
 

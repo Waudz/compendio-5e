@@ -19,7 +19,8 @@ grant usage on schema public to anon, authenticated;
 alter default privileges in schema public grant all on tables to anon, authenticated;
 alter default privileges in schema public grant all on functions to anon, authenticated;
 ` + storageStub;
-const files = (ate?: string) => readdirSync(dir).filter(f => f.endsWith(".sql") && (!ate || f <= ate)).sort();
+/** Estes testes descrevem a 0007/0008; o que a 0013 (proposta) muda por cima delas é coberto em `ficha-regras.test.ts`. */
+const files = (ate = "0012_campaign_cover_framing.sql") => readdirSync(dir).filter(f => f.endsWith(".sql") && f <= ate).sort();
 const sql = (f: string) => readFileSync(join(dir, f), "utf8");
 
 type R = { rows: Record<string, unknown>[]; error?: string };

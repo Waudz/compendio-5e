@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { type Model, TabNode } from "flexlayout-react";
 import { ArrowLeft, BookOpen, Castle, House, Menu, NotebookPen, Swords, UserRound, ScrollText, X } from "lucide-react";
 import { type NavMode } from "./navigation";
+import { consumirVoltar, EVENTO_FECHAR_TELA, pedirFicha } from "./voltarInterno";
 import { Panel } from "./Panel";
 import { OrigemAbaContext } from "./abrirEmAba";
 import { tabId, visibleSections, defaultTitle, type TabSpec } from "./workspace";
@@ -82,6 +83,7 @@ export function Mobile(_props: Props) {
   /** Troca de tela: NUNCA descarta alterações não salvas em silêncio (pergunta antes, como fechar uma aba no desktop). */
   const irPara = (spec: TabSpec) => {
     setMenuOpen(false);
+    if (spec.kind === "ficha" || spec.kind === "criador") pedirFicha(spec.ref);
     if (tabId(spec) === current) return;
     unsaved.guard("all", () => {
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
@@ -93,6 +95,7 @@ export function Mobile(_props: Props) {
   };
   const navigate = irPara;
   const goBack = () => {
+    if (consumirVoltar()) return;
     if (!history.length) { irPara(home); return; }
     unsaved.guard("all", () => {
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
@@ -118,13 +121,20 @@ export function Mobile(_props: Props) {
       iniciadoBrowser.current = true;
       window.history.replaceState({ ...window.history.state, compendioMobile: true }, "", window.location.href);
     }
-    const aoVoltar = () => {
+    const aoVoltar = (e: Event) => {
+      if (consumirVoltar(e)) return;
       navegacaoBrowser.current = true;
       voltarPeloNavegador.current();
       navegacaoBrowser.current = false;
     };
     window.addEventListener("popstate", aoVoltar);
     return () => window.removeEventListener("popstate", aoVoltar);
+  }, []);
+  const fecharTela = useRef<(id: string) => void>(() => {});
+  fecharTela.current = id => { if (id.endsWith(`:${screen.ref}`)) goBack(); };
+  useEffect(() => {
+    const fechar = (e: Event) => fecharTela.current((e as CustomEvent<string>).detail);
+    window.addEventListener(EVENTO_FECHAR_TELA, fechar); return () => window.removeEventListener(EVENTO_FECHAR_TELA, fechar);
   }, []);
   useEffect(() => { window.dispatchEvent(new Event(EVENTO_TELA)); return restaurarRolagem(scroll.current, positions.current.get(current) ?? 0); }, [current]);
   /** Botão "Ficha" do jogador: abre A ficha (a usada por último, ou a mais recente dele), não só a lista; sem ficha ainda, abre a lista para criar. */

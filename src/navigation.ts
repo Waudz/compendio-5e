@@ -2,6 +2,7 @@
 // Fixação é propriedade da própria aba (`config.pinned`), não o atributo nativo do FlexLayout: o nativo agrupa as fixadas no
 // início, impede fechá-las pela interface e impede arrastá-las para fora do painel, o que contraria as decisões aprovadas.
 import { Actions, DockLocation, type Model, TabNode, TabSetNode } from "flexlayout-react";
+import { aliasDoPersonagem } from "./voltarInterno";
 import { activeGroup, findTab, groupCount, groups, tabId, tabJson, type TabSpec } from "./workspace";
 
 export type NavMode = "reuse" | "new" | "newPinned";
@@ -18,6 +19,14 @@ export function setPinned(m: Model, id: string, pinned: boolean): void {
 }
 
 const tabsOf = (g: TabSetNode) => g.getChildren().filter((c): c is TabNode => c instanceof TabNode);
+
+/** Um personagem tem uma aba só, venha ele da lista (`ficha:`), do rascunho local ou da criação (`criador:novo-…`). */
+export function abaDoRegistro(m: Model, spec: TabSpec): TabNode | undefined {
+  const direta = findTab(m, tabId(spec));
+  if (direta || (spec.kind !== "ficha" && spec.kind !== "criador")) return direta;
+  const nascida = aliasDoPersonagem(spec.ref);
+  return findTab(m, `ficha:${spec.ref}`) ?? findTab(m, `criador:${spec.ref}`) ?? (nascida ? findTab(m, `criador:${nascida}`) : undefined);
+}
 
 /** Seleciona a aba que já representa o registro (e atualiza o título, ex.: campanha renomeada). Não altera a fixação. */
 function focusExisting(m: Model, existing: TabNode, spec: TabSpec): void {
@@ -40,11 +49,11 @@ export function navigate(m: Model, spec: TabSpec, mode: NavMode = "reuse", isDir
     spec = { ...spec, instance };
   }
   const id = tabId(spec);
-  const existing = findTab(m, id);
+  const existing = abaDoRegistro(m, spec);
   if (existing) {
     focusExisting(m, existing, spec);
-    if (mode === "newPinned") setPinned(m, id, true);
-    return { action: "selected", tabId: id };
+    if (mode === "newPinned") setPinned(m, existing.getId(), true);
+    return { action: "selected", tabId: existing.getId() };
   }
   const group = activeGroup(m);
   if (!group) return { action: "selected", tabId: id };
@@ -69,15 +78,18 @@ export function closeTabs(m: Model, ids: string[]): void {
  * Criam automaticamente no máximo dois grupos; o terceiro só é criado manualmente. No celular, usam o grupo atual.
  */
 export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, mobile = false): NavResult {
-  void originTabId; // Mantido por compatibilidade com os chamadores.
   const id = tabId(spec);
-  const existing = findTab(m, id);
-  if (existing) { focusExisting(m, existing, spec); return { action: "selected", tabId: id }; }
+  const existing = abaDoRegistro(m, spec);
+  if (existing) { focusExisting(m, existing, spec); return { action: "selected", tabId: existing.getId() }; }
   // No desktop, consultas abrem sempre na coluna mais à direita, sem substituir a origem.
   // Apenas o segundo grupo é automático; o terceiro é sempre criado manualmente.
   // No celular não há colunas lado a lado: preserva as abas no grupo atual.
-  const last = groups(m).at(-1);
-  const target = mobile ? activeGroup(m) : last;
+  const colunas = groups(m);
+  let target = mobile ? activeGroup(m) : colunas.at(-1);
+  // Consulta feita DE UMA FICHA (magia, item) não pode encobri-la: se a ficha está na última coluna, vai para a coluna ao lado.
+  const origem = originTabId ? findTab(m, originTabId) : undefined;
+  const daFicha = !!origem && /^(ficha|criador):/.test(origem.getId()) && (spec.kind === "item" || spec.kind === "magia");
+  if (!mobile && daFicha && colunas.length > 1 && origem!.getParent() === target) target = colunas[colunas.length - 2];
   if (!target) return { action: "selected", tabId: id };
   const createRight = !mobile && groupCount(m) < 2;
   m.doAction(Actions.addTab(tabJson({ ...spec, pinned: true }), target.getId(), createRight ? DockLocation.RIGHT : DockLocation.CENTER, -1, true));
