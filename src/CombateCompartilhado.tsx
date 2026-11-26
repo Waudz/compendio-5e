@@ -1,3 +1,4 @@
+import { imagemDoMonstro } from "./ficha/imagensCatalogo";
 import { PesquisaCatalogo } from "./PesquisaCatalogo";
 import { RetratoQuadrado } from "./RetratoCombate";
 import { CONDICOES_5E } from "./rules/condicoes-5e";
@@ -134,7 +135,7 @@ export function SeletorMonstro({ rotulo, onEscolher, buscaControlada, ocultarVaz
     {dados.status === "carregando" && <p className="muted" role="status">Carregando o Bestiário…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar o Bestiário." onRetry={carregar}/>}
     {dados.status === "pronto" && <>
-      <PesquisaCatalogo somenteResultados={buscaControlada !== undefined} rotulo="Buscar monstro" valor={busca} onChange={setBusca} vazio={!achados.length} resultados={achados.map(m => <li key={m.id}><button type="button" className="btn-secondary" onClick={() => { onEscolher(m); setBusca(""); }} aria-label={`Adicionar ${m.nome} do Bestiário`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="monstro" tamanho={36}/><span><strong>{m.nome}</strong><small>ND {m.nd >= 1 ? m.nd : m.nd === 0.5 ? "1/2" : m.nd === 0.25 ? "1/4" : m.nd === 0.125 ? "1/8" : m.nd} · PV {m.pv} · CA {m.ca}</small></span></span></button></li>)}/>
+      <PesquisaCatalogo somenteResultados={buscaControlada !== undefined} rotulo="Buscar monstro" valor={busca} onChange={setBusca} vazio={!achados.length} resultados={achados.map(m => <li key={m.id}><button type="button" className="btn-secondary" onClick={() => { onEscolher(m); setBusca(""); }} aria-label={`Adicionar ${m.nome} do Bestiário`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="monstro" tamanho={36} src={imagemDoMonstro(m.id)}/><span><strong>{m.nome}</strong><small>ND {m.nd >= 1 ? m.nd : m.nd === 0.5 ? "1/2" : m.nd === 0.25 ? "1/4" : m.nd === 0.125 ? "1/8" : m.nd} · PV {m.pv} · CA {m.ca}</small></span></span></button></li>)}/>
     </>}
   </section>;
 }
