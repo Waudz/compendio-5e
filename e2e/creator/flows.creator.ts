@@ -1,5 +1,5 @@
 import { test, expect, startCreator, chooseFighter, showSection, equip, sections, nameField,
-  returnToCreator, leaveCreator, evidence, expectNoHorizontalOverflow, keyboardActivate } from './helpers';
+  returnToCreator, leaveCreator, evidence, expectNoHorizontalOverflow, keyboardActivate, openEditor } from './helpers';
 
 test('Personagens → criador: atributos, escolhas de Guerreiro e ficha calculada', async ({ page }, info) => {
   await startCreator(page); await chooseFighter(page);
@@ -70,9 +70,13 @@ test('alterações não salvas: salvar pelo diálogo e reabrir o personagem loca
     .getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByRole('alertdialog')).toBeHidden();
   await page.getByRole('button', { name: /^Guerreira E2E/ }).click();
+  await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
+  await openEditor(page);
   await expect(nameField(page)).toHaveValue('Guerreira E2E');
   await expect(page.getByRole('group',{name:/^Proficiências de Guerreiro/}).getByRole('checkbox', { name: 'Atletismo', exact: true })).toBeChecked();
-  await expect(page.getByRole('button', { name: 'Salvar', exact: true })).toBeDisabled();
+  await expect(page.getByText('Alterações não salvas.', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Cancelar', exact: true }).click();   // sem alterações: volta direto à ficha
+  await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
 });
 
 test('teclado: ordem do formulário e ativação das seções sem mouse', async ({ page }, info) => {
@@ -81,7 +85,11 @@ test('teclado: ordem do formulário e ativação das seções sem mouse', async 
   await page.keyboard.press('Tab');
   await expect(page.getByRole('textbox', { name: 'Alcunha', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('textbox', { name: 'Retrato do personagem', exact: true })).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Nível', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByLabel('Arquivo do retrato')).toBeFocused();   // o envio de retrato funciona sem mouse
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.campo-retrato summary')).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('combobox', { name: 'Classe', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');

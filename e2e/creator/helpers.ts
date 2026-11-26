@@ -52,10 +52,18 @@ export async function leaveCreator(page: Page) {
     await page.getByRole('menuitem', { name: 'Fechar aba', exact: true }).click();
   }
 }
+/** Um personagem salvo reabre na ficha de jogo; a edição é uma ação explícita. */
+export async function openEditor(page: Page) {
+  const editar = page.getByRole('button', { name: 'Editar personagem', exact: true });
+  await expect(editar.or(sections(page)).first()).toBeVisible();   // a edição pode estar em qualquer seção
+  if (await editar.isVisible()) await editar.click();
+  await expect(sections(page)).toBeVisible();
+}
 export async function returnToCreator(page: Page) {
   if (isMobile(page)) await page.getByRole('button', { name: 'Voltar', exact: true }).click();
   else await page.getByRole('tab').filter({ hasText: 'Guerreira E2E' }).click();
-  // Mobile remonta a ficha salva; desktop mantém a seção em memória.
+  // Mobile remonta o personagem salvo (na ficha); desktop mantém a seção em memória.
+  await openEditor(page);
   await showSection(page, 'Inventário');
   await expect(page.getByRole('region', { name: 'Inventário', exact: true })).toBeVisible();
 }

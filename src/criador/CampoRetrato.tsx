@@ -57,7 +57,7 @@ export function CampoRetrato({ valor, campaignId, onChange }: { valor: string; c
     <div className="campo-retrato-acoes">
       {!arquivo && <div className="row">
         <label className="btn-secondary file-btn"><Upload size={14} aria-hidden="true"/> {valor ? "Trocar retrato" : "Enviar retrato"}
-          <input type="file" hidden aria-label="Arquivo do retrato" accept={CAPA_TIPOS.join(",")} disabled={!capa} onChange={e => { escolher(e.target.files?.[0]); e.target.value = ""; }}/></label>
+          <input type="file" className="arquivo-invisivel" aria-label="Arquivo do retrato" accept={CAPA_TIPOS.join(",")} disabled={!capa} onChange={e => { escolher(e.target.files?.[0]); e.target.value = ""; }}/></label>
         {valor && <button type="button" className="btn-secondary" onClick={() => { setErro(null); onChange(""); }}><Trash2 size={14} aria-hidden="true"/> Remover retrato</button>}
       </div>}
       {arquivo && <>

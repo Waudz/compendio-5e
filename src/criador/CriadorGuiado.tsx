@@ -385,12 +385,12 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     {secao === "ficha" && <div className="criador-sec">
       {!modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudarComEntrega}/></Suspense>}
       <section className="criador-principal" aria-label="Identificação">
-        <CampoRetrato valor={draft.portrait ?? ""} campaignId={campaignId} onChange={portrait => mudar({ ...draft, portrait })}/>
         <div className="criador-campos">
           <label>Nome do personagem<input ref={nameRef} aria-label="Nome do personagem" value={draft.name} maxLength={120} onChange={e => mudar({ ...draft, name: e.target.value })}/></label>
           <label>Alcunha (opcional)<input aria-label="Alcunha" value={draft.nickname ?? ""} maxLength={120} onChange={e => mudar({ ...draft, nickname: e.target.value })}/></label>
           <label>Nível<select aria-label="Nível" value={draft.level} onChange={e => alterarNivel(Number(e.target.value))}>{(modern2014(draft) ? Array.from({ length: 20 }, (_, i) => i + 1) : [1, 2, 3, 4, 5, 6]).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
         </div>
+        <CampoRetrato valor={draft.portrait ?? ""} campaignId={campaignId} onChange={portrait => mudar({ ...draft, portrait })}/>
       </section>
       {modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudarComEntrega}/></Suspense>}{!modern2014(draft) && <p className="muted">Raça: Anão · Antecedente: Acólito · Classe: Guerreiro</p>}
       <fieldset><legend>Atributos-base (antes dos bônus raciais)</legend>

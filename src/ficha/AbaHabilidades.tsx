@@ -116,7 +116,7 @@ function CartaoMagia({ item, ataqueTemp, favorito, onAbrir, onRemover }: { item:
     {linha.length > 0 && <ul className="ficha-valores">{linha.map(v => <li key={v}>{v}</li>)}</ul>}
     <p className="muted">{[d.tempo, d.alcance && `Alcance: ${d.alcance}`, d.duracao && `Duração: ${d.duracao}`, d.consumo].filter(Boolean).join(" · ")}</p>
     <details><summary>Descrição completa<span className="sr-only"> de {magia.name}</span></summary><p className="ficha-texto">{magia.description.replace(/(\d)O\b/g, "$10")}</p></details>
-    <button type="button" className="ficha-link ficha-abrir" aria-label={`Abrir ${magia.name} no Compêndio`} onClick={onAbrir}>Abrir no Compêndio</button>
+    <button type="button" className="ficha-link ficha-abrir" aria-label={`Abrir no Compêndio: ${magia.name}`} onClick={onAbrir}>Abrir no Compêndio</button>
   </li>;
 }
 

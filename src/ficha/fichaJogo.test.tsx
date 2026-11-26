@@ -83,7 +83,7 @@ describe("ficha de jogo", () => {
     const publicoAntes = JSON.stringify(registros.dados[0]);
     await abrirFicha();
     fireEvent.change(screen.getByLabelText("Quantidade de pontos de vida"), { target: { value: "7" } });
-    fireEvent.click(screen.getByRole("button", { name: "Definir PV temporários" }));
+    fireEvent.click(screen.getByRole("button", { name: "PV temporários" }));
     fireEvent.change(screen.getByLabelText("Quantidade de pontos de vida"), { target: { value: "9" } });
     expect((screen.getByLabelText("Quantidade de pontos de vida") as HTMLInputElement).value).toBe("9");
     fireEvent.click(screen.getByRole("button", { name: "Aplicar dano" }));
@@ -400,7 +400,7 @@ describe("habilidades: filtros por ação, favoritos e detalhes sem perder a fic
     const magia = await screen.findByRole("listitem", { name: "Raio de Fogo" });
     expect(magia.textContent).toMatch(/Ataque mágico \+\d/);
     expect(magia.textContent).toMatch(/1d10 de dano/);
-    fireEvent.click(within(magia).getByRole("button", { name: /Abrir Raio de Fogo no Compêndio/ }));
+    fireEvent.click(within(magia).getByRole("button", { name: "Abrir no Compêndio: Raio de Fogo" }));
     expect(await screen.findByRole("heading", { name: "Raio de Fogo", level: 1 })).toBeTruthy();
     expect(document.querySelectorAll(".flexlayout__tabset")).toHaveLength(2);
     expect(screen.getByTestId("ficha-guiada-leitura")).toBeTruthy();

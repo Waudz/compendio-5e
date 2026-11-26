@@ -165,7 +165,7 @@ function Vida({ draft, maximo, onChange }: { draft: CharacterDraft; maximo: numb
       <button type="button" className="ficha-passo dano" disabled={!valido} aria-label="Aplicar dano" title="Aplicar dano" onClick={() => aplicar(() => causarDano(draft, n))}><Minus size={16} aria-hidden="true"/></button>
       <input type="number" inputMode="numeric" min={0} max={999} aria-label="Quantidade de pontos de vida" value={valor} onFocus={e => e.target.select()} onChange={e => setValor(e.target.value)} onBlur={() => { if (!inteiro) setValor("1"); }}/>
       <button type="button" className="ficha-passo cura" disabled={!valido} aria-label="Curar" title="Curar (até o máximo)" onClick={() => aplicar(() => curar(draft, maximo, n))}><Plus size={16} aria-hidden="true"/></button>
-      <button type="button" className="ficha-temp-botao" disabled={!inteiro} aria-label="Definir PV temporários" title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" onClick={() => aplicar(() => definirTemporarios(draft, n))}>Temp.</button>
+      <button type="button" className="ficha-temp-botao" disabled={!inteiro} title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" onClick={() => aplicar(() => definirTemporarios(draft, n))}>PV temporários</button>
     </form>
   </div>;
 }
