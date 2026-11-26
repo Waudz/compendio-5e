@@ -559,3 +559,9 @@ Referências: 12 telas aprovadas (cópia local em `Downloads\compendio-5e-refere
 **0014:** não foi ampliada nesta etapa. A decidir antes de aplicá-la: quais das operações acima entram nela e quais ficam para uma migração seguinte. **Limitação separada:** o teto de PV de **30 × nível** só barra valores absurdos; não é o máximo real do personagem, e quem edita a própria ficha ainda pode informar um máximo maior até esse teto. A validação exata exigiria as regras no banco.
 
 **Verificado nesta rodada (somente o afetado):** tipos; 636 testes de ficha, criador, Compêndio, moedas e regras (e os 1.351 de `src` antes dos ajustes finais de CSS); E2E de ficha, fluxos do criador, sincronização e acessibilidade em 320, 390 e 1440 px (40 aprovados, 2 pulados); build oficial. **Não rodados:** testes de banco, Playwright Base, Quality e demais larguras.
+
+### Conferência após a aprovação das capturas (26/11/2026)
+
+Direção visual aprovada pelas capturas; **falta o responsável navegar pelo Preview**. Não alterar a estrutura visual da ficha sem aprovação; bateria completa ainda não autorizada. A janela de poção mostra o resultado da rolagem separado da cura aplicada. O espaço vazio no fim das capturas anteriores vinha da janela de 2600 px usada na captura (altura mínima de 60% da janela); em 320, 390 e 1440 px, com a altura real, a sobra medida é zero nas três abas.
+
+Observado nas telas de criação e evolução, **sem correção** (não reformular agora): em Equipamentos iniciais aparece o identificador técnico `martial-weapons`; na revisão da subida de nível, a lista "Antes de confirmar" aparece como blocos cinza; o texto de Atributos ainda fala em "moldura".
