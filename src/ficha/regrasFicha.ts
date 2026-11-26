@@ -4,6 +4,7 @@
 import { srdItem } from "../catalogue/srd-2014-items";
 import { automaticSpells2014, choices2014, class2014, featureDescription2014, label2014, raceTraits2014, selected2014, shortId, spells2014, subclassFeatureIds2014, type Spell2014 } from "../criador/regras-2014";
 import { rotuloAtributo, rotuloOpcao } from "../criador/rotulos";
+import { origem2014 } from "../criador/origens-2014";
 import type { Ability } from "../rules/character-build-pilot";
 import type { CharacterDraft, CharacterSheet } from "../rules/character-domain";
 import type { Concedido } from "./estadoJogo";
@@ -94,10 +95,11 @@ export type OrigemCaracteristica = "Classe" | "Subclasse" | "Raça" | "Origem" |
 export type Caracteristica = { chave: string; nome: string; origem: OrigemCaracteristica; detalheOrigem?: string; resumo: string; descricao: string; recursos: string[]; valores: string[]; acao: TipoAcao | null };
 
 // ---------------------------------------------------------------- tipo de ação
-export type TipoAcao = "acao" | "bonus" | "reacao" | "passiva";
-export const ROTULO_ACAO: Record<TipoAcao, string> = { acao: "Ação", bonus: "Ação bônus", reacao: "Reação", passiva: "Passiva" };
+export type TipoAcao = "acao" | "bonus" | "reacao" | "passiva" | "especial";
+export const ROTULO_ACAO: Record<TipoAcao, string> = { acao: "Ação", bonus: "Ação bônus", reacao: "Reação", passiva: "Passiva", especial: "Especial" };
 /** Só características cujo tipo o SRD 2014 define sem ambiguidade; as demais ficam sem etiqueta (aparecem em "Todas"). */
 const ACAO_DE: [RegExp, TipoAcao][] = [
+  [/^arcane-recovery$|^action-surge|^indomitable-\d|^sneak-attack|^divine-smite$|^stunning-strike$/, "especial"],
   [/^(second-wind|rage|cunning-action)$|^bardic-inspiration-d/, "bonus"],
   [/^(uncanny-dodge|deflect-missiles)$/, "reacao"],
   [/^(breath-weapon|lay-on-hands|divine-sense)$|^wild-shape-cr|^channel-divinity$|^channel-divinity-(turn|preserve|sacred)/, "acao"],
@@ -106,7 +108,7 @@ const ACAO_DE: [RegExp, TipoAcao][] = [
 export const acaoDaCaracteristica = (id: string): TipoAcao | null => ACAO_DE.find(([re]) => re.test(id))?.[1] ?? null;
 /** Tempo de conjuração em português (a origem tem 14 magias com o valor técnico `bonus-action`). */
 export const tempoDeConjuracao = (t: string) => (t === "bonus-action" ? "1 ação bônus" : t);
-export const acaoDaMagia = (tempo: string | null): TipoAcao | null => (tempo === "1 ação" ? "acao" : tempo === "1 ação bônus" ? "bonus" : tempo === "1 reação" ? "reacao" : null);
+export const acaoDaMagia = (tempo: string | null): TipoAcao | null => (tempo === "1 ação" ? "acao" : tempo === "1 ação bônus" ? "bonus" : tempo === "1 reação" ? "reacao" : tempo ? "especial" : null);
 
 /** Primeira frase da descrição cadastrada (sem inventar resumo). */
 export function resumoDe(descricao: string): string {
@@ -132,15 +134,15 @@ export function valoresDe(id: string, draft: CharacterDraft, sheet: CharacterShe
   if (id === "second-wind") return [`Cura 1d10+${n}`, "Ação bônus"];
   if (id.startsWith("sneak-attack")) return [`Dano extra ${Math.ceil(n / 2)}d6`];
   if (id === "rage") return [`Dano corpo a corpo com Força +${porNivel(n, [[1, 2], [9, 3], [16, 4]])}`];
-  if (id === "ki" || id === "stunning-strike") return [`CD ${8 + p + mod("wis")}${id === "stunning-strike" ? " · salvaguarda de Constituição" : " (efeitos de Ki)"}`];
+  if (id === "ki" || id === "stunning-strike") return [`CD ${8 + p + mod("wis")}${id === "stunning-strike" ? " · teste de resistência de Constituição" : " (efeitos de Ki)"}`];
   if (id === "martial-arts") return [`Dado marcial 1d${porNivel(n, [[1, 4], [5, 6], [11, 8], [17, 10]])}`];
   if (id === "lay-on-hands") return [`Reserva de cura: ${5 * n} PV`];
   if (id.startsWith("bardic-inspiration")) return [`Dado de inspiração 1d${porNivel(n, [[1, 6], [5, 8], [10, 10], [15, 12]])}`];
   if (id === "divine-smite") return ["Dano radiante extra 2d8 (+1d8 por círculo acima do 1º, até 5d8)"];
-  if (id.startsWith("channel-divinity")) { const f = fonteDaClasse(draft, sheet); return f ? [`CD ${f.cd} (quando o efeito pedir salvaguarda)`] : []; }
+  if (id.startsWith("channel-divinity")) { const f = fonteDaClasse(draft, sheet); return f ? [`CD ${f.cd} (quando o efeito pedir teste de resistência)`] : []; }
   if (id === "breath-weapon") {
     const s = SOPRO[selected2014(draft, "dragon-ancestry")[0] ?? ""]; if (!s) return [];
-    return [`${porNivel(n, [[1, 2], [6, 3], [11, 4], [16, 5]])}d6 de dano de ${s[0]}`, `Salvaguarda de ${rotuloAtributo(s[1])} · CD ${8 + p + mod("con")}`, s[2]];
+    return [`${porNivel(n, [[1, 2], [6, 3], [11, 4], [16, 5]])}d6 de dano de ${s[0]}`, `Teste de resistência de ${rotuloAtributo(s[1])} · CD ${8 + p + mod("con")}`, s[2]];
   }
   return [];
 }
@@ -163,10 +165,11 @@ export function caracteristicasDaFicha(draft: CharacterDraft, sheet: CharacterSh
   };
   for (const f of sheet.features) add({ id: shortId(f), chave: f, nome: nomeDaCaracteristica(f), origem: daSubclasse.has(f) ? "Subclasse" : "Classe", detalheOrigem: label2014(draft.classId), descricao: featureDescription2014(f), valores: valoresDe(shortId(f), draft, sheet) });
   for (const t of raceTraits2014(draft)) add({ id: t.index, chave: "raca:" + t.index, nome: t.name, origem: "Raça", detalheOrigem: label2014(draft.raceId), descricao: t.desc.join("\n\n"), valores: valoresDe(t.index, draft, sheet) });
-  const origem = selected2014(draft, "background-feature")[0];
-  if (origem) add({ id: "origem", chave: "origem", nome: label2014(origem), origem: "Origem", detalheOrigem: label2014(draft.backgroundId), descricao: featureDescription2014(origem), valores: [] });
+  const origem = origem2014(draft.backgroundId);
+  const combinada = draft.backgroundId === "custom" ? selected2014(draft, "background-feature")[0]?.trim() : "";
+  if (origem) add({ id: "origem", chave: "origem", nome: origem.caracteristica, origem: "Origem", detalheOrigem: origem.nome, descricao: combinada || origem.resumo, valores: [] });
   for (const c of concedidos.filter(c => c.tipo !== "magia"))
-    add({ id: c.id, chave: c.id, nome: c.nome, origem: c.tipo === "talento" ? "Talento" : "Concedida", detalheOrigem: c.origem, descricao: c.descricao ?? "", valores: [c.cd != null ? `CD ${c.cd}${c.salvaguarda ? ` · salvaguarda de ${c.salvaguarda}` : ""}` : "", c.ataque != null ? `Ataque ${sinal(c.ataque)}` : "", c.efeito ?? ""].filter(Boolean) });
+    add({ id: c.id, chave: c.id, nome: c.nome, origem: c.tipo === "talento" ? "Talento" : "Concedida", detalheOrigem: c.origem, descricao: c.descricao ?? "", valores: [c.cd != null ? `CD ${c.cd}${c.salvaguarda ? ` · teste de resistência de ${c.salvaguarda}` : ""}` : "", c.ataque != null ? `Ataque ${sinal(c.ataque)}` : "", c.efeito ?? ""].filter(Boolean) });
   return out;
 }
 

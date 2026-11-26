@@ -1,0 +1,34 @@
+/* Telas de personagem D&D 5e: cartões simples com as cores e a tipografia do Compêndio. Os nomes `--dnd-*` existem para as telas de
+   criação e evolução que os usam; apontam para o azul do sistema. */
+.sistema-dnd {
+  --dnd-ouro: var(--accent);
+  --dnd-ouro-claro: var(--accent-text);
+  --dnd-cartao: var(--panel);
+  --dnd-moldura: var(--line);
+  --dnd-titulo: inherit;
+}
+.sistema-dnd .dnd-titulo { font-weight: 650; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.sistema-dnd .dnd-titulo::after, .sistema-dnd .ficha-bloco h2::after { content: ""; flex: 1 1 12px; height: 1px; background: var(--line); }
+.sistema-dnd .ficha-bloco h2 { display: flex; align-items: center; gap: 8px; }
+.selo-nivel { display: inline-block; font-size: 13px; font-weight: 650; color: var(--text); }
+
+/* atributos: seis cartões iguais, sempre em 6×1, 3×2 ou 2×3 */
+.ficha.sistema-dnd .ficha-atributos, .sistema-dnd .ficha-atributos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@container (min-width: 300px) { .ficha.sistema-dnd .ficha-atributos, .sistema-dnd .ficha-atributos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (min-width: 720px) { .ficha.sistema-dnd .ficha-atributos, .sistema-dnd .ficha-atributos { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.sistema-dnd .dnd-atributo { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); min-width: 0; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; container: atributo / inline-size; }
+.sistema-dnd .dnd-atributo-nome { font-size: 12px; color: var(--text-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sistema-dnd .dnd-atributo-valor { font-size: 20px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.dnd-atributo-mod { font-size: 13px; font-weight: 650; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.sistema-dnd .dnd-atributo.destaque { border-color: var(--accent); }
+.dnd-atributo-nota { font-size: 11px; color: var(--text-2); }
+.dnd-nome-curto { display: none; text-decoration: none; }
+@container atributo (max-width: 84px) {
+  .sistema-dnd .dnd-nome-longo { display: none; }
+  .sistema-dnd .dnd-nome-curto { display: inline; }
+}
+
+/* dados de vida */
+.dnd-dado path { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; }
+.dnd-dado.cheio path { fill: var(--accent); }
+.sistema-dnd .marcador.dado > span { width: auto; height: auto; border: 0; background: none; border-radius: 0; display: inline-flex; }

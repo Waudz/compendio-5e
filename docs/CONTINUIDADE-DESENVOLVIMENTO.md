@@ -495,6 +495,117 @@ Decisões em [DEC-028](../DECISOES-E-ARQUITETURA.md). **Prazo da Alpha: 12/12/20
 - Perfis simples antigos não usam a ficha nova; loot, sintonização, galeria colaborativa, anotações e rolador ficam para depois.
 
 
-## RETOMAR AQUI — Encontros, Iniciativa e Loot
+## Próxima grande etapa — Encontros, Iniciativa e Loot
 
 Seguir a [especificação aprovada](ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md). A primeira entrega começa pela auditoria das estruturas, migrações e testes existentes de identidade individual, vínculo com combate e persistência. Usar essa auditoria para delimitar a individualização, preservando IDs, estado e recompensas já entregues. O cenário de aceitação de loot continua sendo distribuir os equipamentos do primeiro goblin para Lydia e as moedas para Caleb, com baixa e histórico persistentes, sem alterar o segundo goblin.
+
+## RETOMAR AQUI — Personagem definitivo (branch feat/personagem-definitivo)
+
+Decisões em [DEC-029](../DECISOES-E-ARQUITETURA.md). **Não mesclar nem publicar antes da revisão e da aplicação da 0014.**
+
+### Aplicar a 0014 (responsável pela revisão)
+1. `supabase/verificacao/0014_antes.sql` (somente leitura): exigir `pre_requisitos_ok = sim` e `ja_aplicada = não`; guardar as impressões digitais.
+2. Aplicar `supabase/migrations/0014_vitais_inventario_atomicos.sql` dentro de `begin; ... commit;` (não reaplicar as anteriores).
+3. `supabase/verificacao/0014_depois.sql`: todas as linhas `ok_*` = sim (inclui `ok_protecoes_pv_e_app_antigo`) e as digitais iguais às de antes (comparar antes de alguém usar o app).
+4. Integrar o PR **logo em seguida** e confirmar o Pages. **Ordem obrigatória: banco primeiro, depois o aplicativo.** Publicar antes da 0014 deixa PV, uso e transferência de itens com erro (funções inexistentes). No intervalo depois da 0014, o aplicativo antigo recebe erro ao tentar mudar PV (não perde nada em silêncio).
+Reversão: `supabase/rollback/0014_vitais_inventario_atomicos_down.sql` junto com a volta do aplicativo anterior.
+
+### Limites e pendências reais
+- Tempo real: a interface foi exercitada com as fichas de demonstração (duas abas) e a API em memória; as funções do banco em PGlite e no Supabase isolado do CI. **Não testado** com sessões reais no projeto hospedado nem em celular físico.
+- O máximo de PV é calculado no aplicativo; o servidor o limita ao teto de 30 × nível (DEC-029). Um jogador ainda pode informar um máximo maior que o real dentro desse teto; validar o valor exato exigiria as regras no banco.
+- Regras: raças e classes são as do SRD 5.1; **uma subclasse por classe** (o 1.0 tem 8 extras com resumos próprios, ainda não trazidas); sem multiclasse; talentos só como melhoria já suportada pelo motor ou concessão do mestre.
+- Origens além do Acólito: dados mecânicos e resumos próprios do 1.0; o texto das características e variantes oficiais não é distribuído.
+- Imagens: seguem no armazenamento do 1.0 ([IMAGENS-V1](IMAGENS-V1.md)); falta cópia própria e a importação do acervo guardado nos aparelhos. Envio de imagem própria só existe para retrato e capa; itens, monstros, NPCs, locais e organizações ainda não aceitam envio (o editor está pronto para reutilizar).
+- Arquivos de retrato substituídos não são apagados do bucket.
+- A tabela `character_combat_status` e suas funções (0011) permanecem no banco, sem uso pelo aplicativo.
+
+### Revisão final antes do PR (26/11/2026)
+
+**Corrigido nesta revisão:**
+- **Capa da campanha:** o novo editor abria atrás da janela "Editar campanha" (modal) e ficava sem clique nem teclado; o mestre não conseguia enquadrar. Agora abre dentro da janela, e Escape fecha só o editor.
+- **Janela da campanha:** o campo de arquivo nativo aparecia cru e estourava a largura no celular (o estilo que o esconde só valia no criador).
+- **Menu de ações do item:** perto do fim da tela ficava atrás da barra inferior; agora abre para cima. "Deslocamento" não quebra mais no meio a 320 px.
+- **0014:** teto de PV no servidor e recusa visível da gravação do aplicativo antigo (DEC-029). Sem isso, o fim de combate numa aba antiga responderia "salvo" e perderia os PV.
+- **Testes:** E2E da capa migrado para o editor único (mesmas verificações, mais clique real e Escape); teclado do criador decide pela navegação visível (a 700 px o painel mostra a coluna de etapas); a demonstração segura a trava entre abas até o `localStorage` se propagar (duas operações simultâneas perdiam uma só no simulador; no banco quem garante é o bloqueio de linha).
+
+**Compatibilidade com o aplicativo antigo:** o 2.0 **não tem service worker nem manifest**: não há PWA instalada com cache próprio. O risco é de abas abertas ou do pacote em cache do navegador (GitHub Pages usa cache curto no HTML). Com a recusa acima, a aba antiga mostra erro; recarregar resolve. Ela também não mostra retratos com enquadramento (`#enq=`), só o ícone.
+
+**0014 em isolamento:** PGlite (aplicação sobre 0001–0013, conferências antes e depois com impressões digitais iguais, autorização, atomicidade, idempotência, reversão e reaplicação). Auth/REST/JWT/RLS no Supabase isolado: roda no CI do PR (`Alpha Supabase isolado`), não nesta máquina. **Nada aplicado em produção.**
+
+**Fidelidade ao Compêndio 1.0 (só referência, não alterado):** reaproveitados a geometria do enquadramento, o popup de edição de imagem, os dados e resumos das origens, os textos de condições e as regras de dano, cura, descanso e carga. Um único componente de enquadramento (retrato e capa); modal, menu de ações, etapas e moedas compartilhados. **Diferenças de organização:** ficha em três abas (1.0: Principal, Combate, Magias, Inventário, Personagem, Notas; decisão aprovada, DEC-027); criação em Identidade, Raça, Classe, Origem, Atributos, Equipamentos, Revisão (1.0: Classe e Nível, Raça, Origem, Atributos, Perícias, Magias, Equipamento, Revisão), com perícias e magias dentro de Classe (DEC-029). Confirmar com o responsável se a ordem do 1.0 for desejada.
+
+**Validação local do estado final:** tipos, 1712 unitários (139 arquivos), build oficial sem demonstração, Playwright Creator 140 (4 pulados), Base 116 (16 pulados) e Quality 88 (32 pulados), com Chrome instalado. **Não testado:** celular físico e sessão real no Supabase hospedado.
+
+## RETOMAR AQUI — Refinamento visual da ficha, aguardando aprovação (26/11/2026, PR #158)
+
+Referências: 12 telas aprovadas (cópia local em `Downloads\compendio-5e-referencias`; a do cabeçalho vigente é `01-cabecalho-v2-DEFINITIVO.png`). Decisões em [DEC-030](../DECISOES-E-ARQUITETURA.md). **Parar aqui até a aprovação visual.** Não mesclar, publicar nem aplicar migrações. A bateria completa roda depois da aprovação.
+
+**Ver a ficha de exemplo** (dados fictícios, só no navegador): `npm run dev` e abrir `/compendio-5e/?demo=jogador&fichas=1&nuvem=1&exemplo=1` → Personagens → Caleb Hawke. No preview compilado (`vite build --mode preview-demo`), o mesmo endereço sem o prefixo `/compendio-5e`. O exemplo só é criado se ainda não houver fichas de demonstração e não entra no build oficial.
+
+**Funciona:** cabeçalho (retrato abre o editor, indicadores, dano, cura, PV temporários, condições, defesas, descansos); aba Ficha; aba Habilidades (favoritos no topo, recursos, conjuração, círculos, filtros inclusive Especial, pesquisa, detalhes e Compêndio); inventário (moedas e passo ajustável, carga, filtros, grade e lista, equipar, usar poção em si, quantidade, transferir item com destinatário e "Todas", excluir, histórico recolhido); menu inferior em telas estreitas; criação, edição e subida de nível com o novo visual.
+
+**Só interface (desabilitado e explicado):**
+| Recurso | O que falta no banco |
+|---|---|
+| Curar outro personagem com poção | operação atômica que consome do dono e cura o destinatário (sem expor a ficha dele). `usar_consumivel` só cura o dono |
+| Transferir moedas | operação atômica, idempotente, com histórico nos dois lados |
+| Cargas (gastar e recuperar) | estado por exemplar (máximo, atual e regra vindos do catálogo, que ainda não os tem) e operação protegida. A janela abre para varinhas, cajados e cetros; o contador não é mostrado porque o dado não existe. Habilidades também não exibem cargas |
+| Sintonização | estado por exemplar, limite por personagem (padrão 3, ajustável pelo mestre) validado no servidor; benefícios condicionados (CA, testes, ataque, dano, resistências, magias e habilidades concedidas) |
+| Identificação | **os dados verdadeiros precisam sair da ficha que o jogador lê**: hoje o `itemId` real fica no `draft` do dono. Exige identificador seguro do exemplar e armazenamento só do mestre, com revelação por função. Por isso **não há botão nem estado de "não identificado"** na interface; nada foi simulado |
+| Histórico completo | recebimento de moedas/loot, cargas, identificação e sintonização entram junto das operações acima |
+
+**Efeitos de itens mágicos** continuam sem cálculo automático (exceto concessões do mestre ligadas ao item). Itens com cargas, sintonização ou propriedades individuais não são empilhados pelo aplicativo, mas o banco ainda não impede uma pilha vinda de fora.
+
+**0014:** não foi ampliada nesta etapa. A decidir antes de aplicá-la: quais das operações acima entram nela e quais ficam para uma migração seguinte. **Limitação separada:** o teto de PV de **30 × nível** só barra valores absurdos; não é o máximo real do personagem, e quem edita a própria ficha ainda pode informar um máximo maior até esse teto. A validação exata exigiria as regras no banco.
+
+**Verificado nesta rodada (somente o afetado):** tipos; 636 testes de ficha, criador, Compêndio, moedas e regras (e os 1.351 de `src` antes dos ajustes finais de CSS); E2E de ficha, fluxos do criador, sincronização e acessibilidade em 320, 390 e 1440 px (40 aprovados, 2 pulados); build oficial. **Não rodados:** testes de banco, Playwright Base, Quality e demais larguras.
+
+### Conferência após a aprovação das capturas (26/11/2026)
+
+Direção visual aprovada pelas capturas; **falta o responsável navegar pelo Preview**. Não alterar a estrutura visual da ficha sem aprovação; bateria completa ainda não autorizada. A janela de poção mostra o resultado da rolagem separado da cura aplicada. O espaço vazio no fim das capturas anteriores vinha da janela de 2600 px usada na captura (altura mínima de 60% da janela); em 320, 390 e 1440 px, com a altura real, a sobra medida é zero nas três abas.
+
+Observado nas telas de criação e evolução, **sem correção** (não reformular agora): em Equipamentos iniciais aparece o identificador técnico `martial-weapons`; na revisão da subida de nível, a lista "Antes de confirmar" aparece como blocos cinza; o texto de Atributos ainda fala em "moldura".
+
+### Aprovação pessoal no Preview e lista compacta (26/11/2026)
+
+O responsável testou o Preview e **aprovou o layout da ficha, de Habilidades e do inventário em grade: sem novas alterações visuais nessas telas.** Pediu um último ajuste só na **visualização em lista** (linhas baixas, imagem centralizada, textos agrupados, sem borda azul nos equipados), feito apenas em CSS e **aguardando aprovação das capturas**. A **bateria completa só roda depois dessa aprovação, uma única vez**; falhas são corrigidas de forma pontual, sem refatoração, mudança estética ou função nova.
+
+Pendências funcionais confirmadas (referência visual futura: captura da lista enviada em 26/11, com contador de cargas e "Não sintonizado"):
+
+- marcadores circulares e contador de cargas nos cartões e nas linhas dos itens;
+- consumo e recuperação de cargas **por exemplar**;
+- sintonização funcional;
+- **equipado e sintonizado são estados separados:** um item pode estar equipado sem sintonização, mas não concede os benefícios que dependem dela. Hoje a concessão do mestre presa a um item vale quando ele está no inventário (e equipado, se equipável), **sem** considerar sintonização.
+
+Continuam válidas as decisões da DEC-030 e os requisitos de segurança (identificação sem enviar os dados verdadeiros ao jogador; operações atômicas e protegidas no banco). Sem merge, publicação ou aplicação da 0014; revisão técnica final, segurança, banco e integração ficam com o ChatGPT.
+
+## RETOMAR AQUI — Pronto para a revisão técnica final (26/11/2026, PR #158)
+
+**Refinamento visual concluído e aprovado** pelo responsável: ficha, Habilidades e inventário (lista e grade). Sem novas alterações visuais nessas telas sem aprovação. Próxima etapa, com o **ChatGPT**: revisão técnica final, validação de segurança, decisão e aplicação da 0014 e integração na `main`. **Não mesclado, não publicado, 0014 não aplicada.**
+
+**Bateria completa local, executada uma vez no commit `6766e70` (Chrome instalado):**
+
+| Etapa | Resultado |
+|---|---|
+| Tipos (aplicativo e E2E) | ok |
+| Unitários, incluindo os de banco em PGlite | 1714 aprovados, 139 arquivos |
+| Scripts (`scripts/alpha/*.test.mjs`) | 3 aprovados |
+| Build oficial (sem demonstração) | ok |
+| Build de demonstração e `check-preview-demo` | ok |
+| Playwright Base | 116 aprovados, 16 pulados |
+| Playwright Quality | 88 aprovados, 32 pulados |
+| Playwright Creator | 132 aprovados, 4 pulados e **8 falhas** (um mesmo teste nas 8 larguras) |
+
+**Falha e correção (só no teste; o aplicativo não mudou):** `expansao-2014` "Maga completa" procurava o texto antigo da conjuração ("CD de magia 13" na lista "Conjuração"); passou a conferir a seção Conjuração (INT, CD 13, Ataque). Com isso o teste chegou ao fim e, em paralelo, estourou o limite de 30 s em 320, 360 e 390 px; sozinho leva cerca de 25 s, sem travamento nem diálogo. Recebeu `test.setTimeout(60_000)`, sem retirar verificações. Reexecutado o arquivo inteiro: 24 de 24 nas 8 larguras. A bateria não foi repetida.
+
+**Não verificado:** celular físico, sessão real no Supabase hospedado e aplicação da 0014 fora de ambiente isolado. A etapa com Auth/REST/JWT/RLS em Supabase isolado é a do CI do PR.
+
+**Pendências funcionais (nenhuma implementada nesta rodada):** curar outro personagem; transferir moedas; marcadores e contador de cargas nos cartões e linhas; consumo e recuperação de cargas por exemplar; sintonização funcional, separada do estado equipado (equipado sem sintonização não concede os benefícios que dependem dela); identificação, que exige tirar os dados verdadeiros da ficha lida pelo jogador; histórico dessas operações; efeitos automáticos de itens mágicos; validação do PV máximo real (hoje só o teto de 30 × nível); distribuição de loot; compartilhamento do conhecimento de itens mágicos (a decidir). Telas de criação e evolução, sem correção: identificador `martial-weapons` em Equipamentos iniciais, lista "Antes de confirmar" em blocos cinza e o texto "moldura" em Atributos. Detalhes e decisões aprovadas nas seções anteriores e na DEC-030.
+
+### Três ajustes no editor de personagem (26/11/2026, layout geral aprovado)
+
+- **Magias:** os grupos de escolha de magias são seções expansíveis, uma aberta por vez (começa na primeira incompleta), com o contador no título; as magias se distribuem em colunas conforme a largura. Vale no editor e na etapa de magias da subida de nível, que usam o mesmo componente. Pesquisa, seleção, limites, detalhes e motor de regras não mudaram.
+- **Marcas das etapas (editor):** azul com check = concluída; amarela com atenção = pendente; neutra = opcional não preenchida; sem números. A identidade pública conta como concluída quando acompanha a ficha ou apresenta nome ou alcunha; na criação, a marca de "Revisão e identidade pública" indica a identidade, e as escolhas que faltam aparecem nas etapas delas. Para o mestre, que não edita a identidade, a marca é neutra. A subida de nível continua como estava. No painel estreito segue o seletor, sem círculos.
+- **Ordem:** "História e personalidade" é a última etapa, depois da identidade pública, na criação (oito etapas; saiu de dentro de Identidade) e na edição.
+
+Verificação só do afetado: tipos (aplicativo e E2E), unitários de `src/criador` e `src/ficha` (425 aprovados), Playwright Creator `expansao-2014`, `flows` e `accessibility` nas 8 larguras (104 aprovados; `expansao-2014` repetido após o ajuste final das colunas, 24 de 24) e build oficial. A bateria completa não foi repetida. As pendências funcionais acima continuam; sem merge, publicação ou migração.

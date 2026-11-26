@@ -41,3 +41,7 @@ npx vite preview --mode preview-demo --host
 ```
 
 Com `--host`, o celular na mesma rede abre o endereço "Network" mostrado no terminal.
+
+## Ficha de exemplo
+
+`?demo=jogador&fichas=1&nuvem=1&exemplo=1` cria, só no navegador, o mago de exemplo usado para aprovar o visual da ficha (Personagens → Caleb Hawke). Só é criado quando ainda não há fichas de demonstração.

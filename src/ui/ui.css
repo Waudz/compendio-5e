@@ -1,0 +1,27 @@
+/* Componentes compartilhados da interface (independem do sistema de jogo). */
+.modal-fundo { position: fixed; inset: 0; z-index: 3500; background: rgba(6, 10, 16, .72); display: flex; align-items: center; justify-content: center; padding: 12px; overflow-y: auto; }
+.modal-caixa { width: 100%; max-height: 100%; overflow-y: auto; margin: auto; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.modal-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.modal-topo h2 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.modal-fechar { background: none; border: 0; color: var(--text-2); padding: 4px; display: inline-flex; border-radius: 6px; }
+.modal-corpo { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.modal-corpo p { margin: 0; color: var(--text-2); }
+.modal-corpo label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--text-2); }
+.modal-corpo input, .modal-corpo select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 9px 10px; font: inherit; font-size: 14px; min-width: 0; width: 100%; }
+.modal-acoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.modal-acoes button { display: inline-flex; align-items: center; gap: 6px; }
+
+.menu-acoes { position: relative; display: inline-flex; }
+.menu-acoes-gatilho { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 0; }
+.menu-acoes-lista { position: absolute; top: calc(100% + 4px); right: 0; z-index: 40; min-width: 180px; display: flex; flex-direction: column; gap: 2px; padding: 5px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px #0006; }
+.menu-acoes-lista button { display: flex; align-items: center; gap: 8px; background: none; border: 0; border-radius: 5px; color: var(--text); font: inherit; font-size: 13px; text-align: left; padding: 8px 9px; white-space: nowrap; width: 100%; margin: 0; }
+.menu-acoes-lista button:hover:not(:disabled), .menu-acoes-lista button:focus-visible { background: var(--hover); }
+.menu-acoes-lista button:disabled { color: var(--muted); cursor: default; }
+.menu-acoes-lista button.perigo { color: var(--danger); }
+.menu-acoes-titulo { margin: 0; padding: 6px 9px 8px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 650; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-acoes-lista button.perigo { border-top: 1px solid var(--line); border-radius: 0 0 5px 5px; margin-top: 3px; }
+/* telas muito estreitas: o menu vira uma janela inferior, acima da barra de navegação */
+@media (max-width: 480px) {
+  .menu-acoes-lista { position: fixed; left: 8px !important; right: 8px !important; top: auto !important; bottom: calc(var(--nav-h, 64px) + env(safe-area-inset-bottom) + 6px) !important; max-height: 60vh; overflow-y: auto; z-index: 3200; box-shadow: 0 0 0 100vmax #0007; }
+  .menu-acoes-lista button { padding: 12px 10px; font-size: 14px; }
+}

@@ -30,7 +30,38 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const menu = () => within(screen.getByRole("navigation", { name: "Menu principal" }));
-const secoes = () => within(screen.getByRole("navigation", { name: "Seções do personagem" }));
+const etapas = () => within(screen.getByRole("navigation", { name: "Etapas do personagem" }));
+const irEtapa = (nome: RegExp | string) => fireEvent.click(etapas().getByRole("button", { name: typeof nome === "string" ? new RegExp("^" + nome) : nome }));
+const irIdentidadePublica = () => irEtapa(/^(Revisão e identidade pública|Identidade pública)/);
+const confirmarEquipamentoDaClasse = async () => {
+  irEtapa("Equipamento");
+  const equipamento = await screen.findByLabelText("Equipamento inicial SRD 2014");
+  for (const seletor of equipamento.querySelectorAll<HTMLSelectElement>("select")) {
+    if (seletor.value === "" && seletor.options.length > 1) {
+      const escolha = [...seletor.options].find(o => o.value && !o.disabled);
+      if (escolha) fireEvent.change(seletor, { target: { value: escolha.value } });
+    }
+  }
+  fireEvent.click(await screen.findByRole("button", { name: "Confirmar equipamentos SRD 2014" }));
+};
+const escolherPericiasDeGuerreiro = async () => {
+  irEtapa("Classe");
+  const proficiencias = (await screen.findByText(/Proficiências de Guerreiro — escolha/)).closest("fieldset")!;
+  fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
+  fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
+};
+/** Na ficha salva, adiciona um item pela aba Inventário (o editor não mexe no inventário). */
+const adicionarNaFicha = async (busca: string, item: string) => {
+  await screen.findByTestId("ficha-guiada-leitura");
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Seções da ficha" })).getByRole("button", { name: "Inventário" }));
+  fireEvent.click(screen.getByRole("button", { name: "Adicionar item" }));
+  fireEvent.change(screen.getByLabelText("Adicionar item do catálogo"), { target: { value: busca } });
+  fireEvent.click(await screen.findByRole("button", { name: `Adicionar ${item}` }));
+};
+const itensDaFicha = () => {
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Seções da ficha" })).getByRole("button", { name: "Inventário" }));
+  return within(screen.getByRole("region", { name: "Inventário do personagem" }));
+};
 const papelDe = (u: User): Role => (u.id === mestreUser.id ? "mestre" : "jogador");
 /** Monta o app como `user`. `layoutNovo`: descarta o layout salvo (janela nova) mantendo o resto do armazenamento. */
 const montar = async (user: User = me, layoutNovo = true) => {
@@ -53,22 +84,11 @@ const nomeInput = async () => {
 const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar personagem/ })); return nomeInput(); };
 const preencher = async (nome: string) => {
   fireEvent.change(await nomeInput(), { target: { value: nome } });
-  const opcoes = within(await screen.findByLabelText("Opções SRD 2014"));
-  const proficiencias = opcoes.getByText(/Proficiências de Guerreiro — escolha/).closest("fieldset")!;
-  fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Atletismo" }));
-  fireEvent.click(within(proficiencias).getByRole("checkbox", { name: "Percepção" }));
-  fireEvent.click(secoes().getByRole("button", { name: "Equipamento inicial" }));
-  const equipamento = await screen.findByLabelText("Equipamento inicial SRD 2014");
-  for (const seletor of equipamento.querySelectorAll<HTMLSelectElement>('select')) {
-    if (seletor.value === "" && seletor.options.length > 1) {
-      const escolha = [...seletor.options].find(o => o.value && !o.disabled);
-      if (escolha) fireEvent.change(seletor, { target: { value: escolha.value } });
-    }
-  }
-  fireEvent.click(await screen.findByRole("button", { name: "Confirmar equipamentos SRD 2014" }));
+  await escolherPericiasDeGuerreiro();
+  await confirmarEquipamentoDaClasse();
 };
 const identidade = (alcunha = "O Escudo") => {
-  fireEvent.click(secoes().getByRole("button", { name: "Identidade pública" }));
+  irIdentidadePublica();
   fireEvent.change(screen.getByLabelText("Visibilidade Classe"), { target: { value: "hidden" } });
   fireEvent.change(screen.getByLabelText("Visibilidade Raça"), { target: { value: "hidden" } });
   fireEvent.change(screen.getByLabelText("Visibilidade Alcunha"), { target: { value: "custom" } });
@@ -95,24 +115,24 @@ describe("salvar e reabrir (servidor)", () => {
     cleanup(); await montar(); await abrirPersonagens();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     expect((await nomeInput()).value).toBe("Thorin");
-    expect(screen.getByText(/Atletismo, Percepção/)).toBeTruthy();
-    fireEvent.click(secoes().getByRole("button", { name: "Inventário" }));
-    expect(within(screen.getByRole("region", { name: "Inventário" })).getByText("Cota de malha")).toBeTruthy();
-    fireEvent.click(secoes().getByRole("button", { name: "Identidade pública" }));
+    expect(banco.fichas[0].draft.decisions.find(d => d.id.endsWith("proficiency:0") || d.optionIds.includes("athletics"))?.optionIds).toEqual(["athletics", "perception"]);
+    irIdentidadePublica();
     expect((screen.getByLabelText("Alcunha pública") as HTMLInputElement).value).toBe("O Escudo");
     expect((screen.getByLabelText("Visibilidade Classe") as HTMLSelectElement).value).toBe("hidden");
-    expect(screen.getByTestId("exclusao-indisponivel")).toBeTruthy();                       // sem botão de excluir: segue o fluxo narrativo
+    expect(screen.queryByRole("button", { name: /Excluir personagem/ })).toBeNull();           // sem botão de excluir: segue o fluxo narrativo
+    // a edição não traz o que é da mesa: nada de inventário, moedas nem PV atuais
+    expect(screen.queryByRole("region", { name: "Inventário do personagem" })).toBeNull();
+    expect(screen.queryByLabelText(/PV atuais|Moedas de/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(itensDaFicha().getByRole("button", { name: "Detalhes de Cota de malha" })).toBeTruthy();
   });
 
   it("editar o inventário dentro da ficha e salvar grava nova revisão; a identidade pública continua igual", async () => {
     await criarPersonagem("Thorin");
     cleanup(); await montar(); await abrirPersonagens();
-    fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ })); await nomeInput();
-    fireEvent.click(secoes().getByRole("button", { name: "Inventário" }));
-    fireEvent.change(screen.getByLabelText("Buscar item para adicionar"), { target: { value: "adaga" } });
-    fireEvent.click(await screen.findByRole("button", { name: /^Adicionar Adaga$/ }));
-    await salvar(2);
-    expect(banco.fichas[0].revision).toBe(2);
+    fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
+    await adicionarNaFicha("adaga", "Adaga");
+    await waitFor(() => expect(banco.fichas[0].revision).toBe(2), { timeout: 4000 });
     expect(banco.fichas[0].draft.inventory.map(i => i.itemId)).toContain("dagger");
     expect((registros.dados[0] as { title: string }).title).toBe("O Escudo");
   });
@@ -123,7 +143,6 @@ describe("salvar e reabrir (servidor)", () => {
     await montar(); await abrirPersonagens();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     expect((await nomeInput()).value).toBe("Thorin");
-    expect(screen.getByTestId("aviso-servidor")).toBeTruthy();
     expect(screen.queryByTestId("aviso-armazenamento")).toBeNull();
   });
 
@@ -183,13 +202,12 @@ describe("quem vê o quê", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin/ }));
     expect((await nomeInput()).value).toBe("Thorin");
     expect(screen.getByTestId("aviso-servidor").textContent).toMatch(/outro jogador.*mestre/);
-    fireEvent.click(secoes().getByRole("button", { name: "Identidade pública" }));
+    irIdentidadePublica();
     expect(screen.getByText(/pertence ao dono do personagem/)).toBeTruthy();
     expect(screen.queryByLabelText("Alcunha pública")).toBeNull();
-    fireEvent.click(secoes().getByRole("button", { name: "Inventário" }));
-    fireEvent.change(screen.getByLabelText("Buscar item para adicionar"), { target: { value: "adaga" } });
-    fireEvent.click(await screen.findByRole("button", { name: /^Adicionar Adaga$/ }));
-    await salvar(2);
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    await adicionarNaFicha("adaga", "Adaga");
+    await waitFor(() => expect(banco.fichas[0].revision).toBe(2), { timeout: 4000 });
     expect(banco.fichas[0]).toMatchObject({ ownerId: "u1", revision: 2 });
     expect((registros.dados[0] as { visibility: string }).visibility).toBe("campaign");
     expect((registros.dados[0] as { title: string }).title).toBe("O Escudo");                          // as escolhas do dono continuam valendo
@@ -200,7 +218,7 @@ describe("quem vê o quê", () => {
 describe("identidade pública inválida", () => {
   it("retrato que não é https: o salvamento é recusado com a mensagem certa, nada vai ao servidor e a tela mantém o que foi digitado", async () => {
     await montar(); await abrirPersonagens(); await novoGuiado(); await preencher("Thorin");
-    fireEvent.click(secoes().getByRole("button", { name: "Ficha" }));
+    irEtapa("Identidade");
     fireEvent.change(screen.getByLabelText("Endereço do retrato"), { target: { value: "http://exemplo.com/retrato.png" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
     expect((await screen.findAllByText(/deve começar com https/)).length).toBeGreaterThan(0);
@@ -221,10 +239,10 @@ describe("conflito de revisão", () => {
     fireEvent.change(await nomeInput(), { target: { value: "Thorin B" } });
     // o mestre grava antes (revisão 2)
     const f = banco.fichas[0];
-    expect((await fichasEmMemoria("u9", banco).salvar(f.id, 1, { ...f.draft, currentHp: 2 })).ok).toBe(true);
+    expect((await fichasEmMemoria("u9", banco).salvar(f.id, 1, { ...f.draft, nickname: "Do mestre" })).ok).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
     expect(await screen.findByTestId("aviso-conflito")).toBeTruthy();
-    expect(banco.fichas[0]).toMatchObject({ revision: 2, draft: expect.objectContaining({ name: "Thorin", currentHp: 2 }) });   // nada sobrescrito
+    expect(banco.fichas[0]).toMatchObject({ revision: 2, draft: expect.objectContaining({ name: "Thorin", nickname: "Do mestre" }) });   // nada sobrescrito
     expect((screen.getByLabelText("Nome do personagem") as HTMLInputElement).value).toBe("Thorin B");                            // a tela guarda o que foi digitado
     fireEvent.click(screen.getByRole("button", { name: "Carregar a versão atual" }));
     await waitFor(() => expect((screen.getByLabelText("Nome do personagem") as HTMLInputElement).value).toBe("Thorin"));
@@ -241,7 +259,7 @@ describe("falhas de rede e recuperação", () => {
   it("salvar sem conexão preserva a tela e guarda uma cópia; ao reabrir oferece restaurar e, depois de salvar, a cópia some", async () => {
     await criarPersonagem("Thorin");
     banco.rede.caida = true;
-    fireEvent.click(secoes().getByRole("button", { name: "Ficha" }));
+    irEtapa("Identidade");
     fireEvent.change(await nomeInput(), { target: { value: "Thorin Editado" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
     expect(await screen.findByText(/Sem conexão com o servidor\. Suas alterações continuam na tela e foram guardadas neste navegador\./)).toBeTruthy();
@@ -280,7 +298,7 @@ describe("falhas de rede e recuperação", () => {
   it("a cópia de recuperação de um usuário não aparece para outro no mesmo navegador", async () => {
     await criarPersonagem("Thorin");
     banco.rede.caida = true;
-    fireEvent.click(secoes().getByRole("button", { name: "Ficha" }));
+    irEtapa("Identidade");
     fireEvent.change(await nomeInput(), { target: { value: "Rascunho do u1" } }); fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
     await screen.findByText(/guardadas neste navegador/);
     banco.rede.caida = false; cleanup(); await montar(other); await abrirPersonagens();

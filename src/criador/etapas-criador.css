@@ -1,0 +1,58 @@
+/* Composição das etapas do criador D&D (usa a largura do painel pelo contêiner das etapas). */
+.criador.sistema-dnd > * { width: 100%; max-width: 1600px; margin-inline: auto; }
+.criador-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.criador-acoes { display: flex; gap: 8px; }
+.criador.sistema-dnd .criador-acoes button { width: auto; margin: 0; }
+.etapa-cabecalho h2 { margin: 0; font-size: 18px; }
+.etapa-cabecalho p { margin: 4px 0 0; font-size: 13px; }
+.criador.sistema-dnd .etapas-conteudo label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--text-2); min-width: 0; }
+.criador.sistema-dnd .etapas-conteudo label.check { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
+.criador.sistema-dnd .etapas-conteudo :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), select, textarea) { width: 100%; min-width: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 9px 10px; font: inherit; font-size: 14px; }
+.criador.sistema-dnd .etapas-conteudo button.btn-secondary, .criador.sistema-dnd .etapas-conteudo button.btn-primary { width: auto; align-self: flex-start; margin: 0; }
+.etapa-identidade { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; align-items: start; }
+.etapa-campos { display: flex; flex-direction: column; gap: 10px; }
+.etapa-historia { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px; }
+.etapa-largo { grid-column: 1 / -1; }
+.etapa-detalhes { border: 1px solid var(--dnd-moldura, var(--line)); background: var(--panel); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
+.etapa-detalhes h3 { margin: 0; font-family: var(--dnd-titulo, inherit); color: var(--dnd-ouro-claro, var(--text)); font-size: 16px; }
+.etapa-detalhes p { margin: 0; }
+.etapa-detalhes ul { margin: 0; padding-left: 18px; }
+.etapa-tracos summary { cursor: pointer; padding: 4px 0; font-size: 13px; }
+.etapa-nivel { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; align-items: end; }
+.etapa-rolagens { display: flex; flex-direction: column; gap: 6px; }
+.etapa-rolagem { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.etapa-atributos { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+/* o valor-base numa linha inteira; − e + abaixo: cabe em qualquer largura */
+.etapa-atributo-controle { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; width: 100%; }
+.etapa-atributo-controle > :is(select, input) { grid-column: 1 / -1; grid-row: 1; }
+.criador.sistema-dnd .etapas-conteudo .etapa-atributo-controle button { width: 100%; min-width: 0; padding: 6px 0; align-self: stretch; }
+.criador.sistema-dnd .etapas-conteudo .etapa-atributo-controle :is(select, input) { padding: 6px 4px; text-align: center; text-align-last: center; width: 100%; }
+.etapas-conteudo > .character-2014, .etapa-detalhes > .character-2014 { margin: 0; }
+.character-2014 fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.lista-de-opcoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 4px 12px; }
+.etapa-pendencias { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.etapa-detalhes .etapa-pendencias, .etapa-pendencias.compacta { padding-left: 0; }
+.etapa-pendencias li { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.etapa-pendencias.compacta button { text-align: left; font-size: 12px; }
+.resumo-personagem { border: 1px solid var(--dnd-moldura, var(--line)); background: var(--panel); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.resumo-topo { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.resumo-topo div { display: flex; flex-direction: column; min-width: 0; }
+.resumo-topo small { color: var(--text-2); font-size: 11px; }
+.resumo-personagem p { margin: 0; }
+.resumo-numeros { display: flex; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+.resumo-atributos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; font-variant-numeric: tabular-nums; }
+.resumo-atributos abbr { text-decoration: none; color: var(--text-2); text-transform: uppercase; font-size: 10px; }
+.resumo-pendencias { color: #d99a3d; font-weight: 650; }
+@container (max-width: 620px) { .etapa-atributos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (max-width: 300px) { .etapa-atributos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.subir-nivel h1 { display: flex; align-items: center; gap: 8px; }
+.subida-niveis { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 20px; color: var(--text-2); }
+.subida-niveis .selo-nivel { font-size: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 8px 16px; }
+.subida-tabela { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+.subida-tabela th, .subida-tabela td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; overflow-wrap: anywhere; }
+.subida-tabela thead th { background: var(--panel); font-size: 12px; }
+.subida-tabela tr.mudou td:last-child { color: var(--dnd-ouro-claro); font-weight: 700; }
+.subida-caracteristicas { list-style: none; margin: 0; padding: 0; }
+.etapa-detalhes ul.subida-caracteristicas { padding-left: 0; }
+.subida-caracteristicas summary { cursor: pointer; padding: 4px 0; }

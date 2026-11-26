@@ -1,38 +1,45 @@
 import AxeBuilder from '@axe-core/playwright';
-import { test, expect, startCreator, chooseFighter, showSection, equip, evidence, navigate,
-  expectNoHorizontalOverflow } from './helpers';
+import { test, expect, startCreator, completarGuerreira, salvarParaFicha, irEtapa, abaDaFicha, acaoDoItem, openEditor, evidence, navigate,
+  expectNoHorizontalOverflow, expectInsidePanel } from './helpers';
+import type { Page } from '@playwright/test';
 
-test('WCAG: nomes acessíveis e semântica do criador, equipamento, inventário e Compêndio', async ({ page }, info) => {
-  await startCreator(page); await chooseFighter(page);
+const verificador = (page: Page, info: Parameters<typeof evidence>[1]) => {
   const scans: { screen: string; violations: unknown[] }[] = [];
-  const scan = async (screen: string) => {
+  return { scans, scan: async (screen: string) => {
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     scans.push({ screen, violations: result.violations });
     await evidence(page, info, screen);
-  };
-  await scan('ficha'); await showSection(page, 'Equipamento inicial'); await scan('equipamento');
-  await equip(page); await showSection(page, 'Inventário'); await scan('inventario');
-  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-  await page.getByRole('button', { name: 'Consultar no Compêndio: Arco longo', exact: true }).click();
+  } };
+};
+
+test('WCAG: todas as etapas da criação, a ficha, as janelas do inventário, a subida de nível e o item no Compêndio', async ({ page }, info) => {
+  test.setTimeout(90_000);
+  await startCreator(page); await completarGuerreira(page);
+  const { scans, scan } = verificador(page, info);
+  for (const etapa of ['Identidade', 'Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão', 'História']) { await irEtapa(page, etapa); await scan(`etapa-${etapa}`); }
+  await salvarParaFicha(page);
+  for (const aba of ['Ficha', 'Habilidades', 'Inventário']) { await abaDaFicha(page, aba).click(); await scan(`ficha-${aba}`); }
+  await acaoDoItem(page, 'Arco longo', 'Ver detalhes'); await scan('item-detalhes');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
+  await openEditor(page); await scan('edicao');
+  await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await page.getByRole('button', { name: 'Subir de nível', exact: true }).click();
+  await expect(page.getByRole('navigation', { name: 'Etapas da subida de nível' })).toBeVisible(); await scan('subir-nivel');
+  await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  await abaDaFicha(page, 'Inventário').click();
+  await acaoDoItem(page, 'Arco longo', 'Ver detalhes');
+  await page.getByRole('button', { name: 'Abrir no Compêndio: Arco longo' }).click();
   await expect(page.getByRole('heading', { name: 'Arco longo', exact: true })).toBeVisible(); await scan('item');
   await info.attach('axe-criador', { body: JSON.stringify(scans, null, 2), contentType: 'application/json' });
   expect(scans.flatMap(s => s.violations.map(v => ({ screen: s.screen, violation: v })))).toEqual([]);
 });
 
-test('responsividade: controles úteis cabem no painel e Compêndio alterna lista/grade', async ({ page }, info) => {
-  await startCreator(page); await chooseFighter(page); await equip(page); await showSection(page, 'Inventário');
-  // Root scrollWidth sozinho não detecta conteúdo cortado por overflow:hidden no workspace.
-  const inventory = page.getByRole('region', { name: 'Inventário', exact: true });
-  const right = await inventory.evaluate(el => el.getBoundingClientRect().right);
-  for (const control of await inventory.getByRole('button').all()) {
-    await control.scrollIntoViewIfNeeded();
-    const box = await control.boundingBox(); expect(box).not.toBeNull();
-    expect.soft(box!.x, 'controle não deve sair pela esquerda').toBeGreaterThanOrEqual(0);
-    expect.soft(box!.x + box!.width, 'controle não deve ultrapassar o painel').toBeLessThanOrEqual(right + 1);
-  }
-  await expectNoHorizontalOverflow(page); await evidence(page, info, 'inventario-limites');
-  // Salvar antes de trocar de seção evita misturar este teste de layout com o guard.
-  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+test('responsividade: controles cabem no painel e o Compêndio alterna lista/grade', async ({ page }, info) => {
+  await startCreator(page); await completarGuerreira(page);
+  for (const etapa of ['Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão', 'História']) { await irEtapa(page, etapa); await expectInsidePanel(page); }
+  await salvarParaFicha(page);
+  await abaDaFicha(page, 'Inventário').click();
+  await expectInsidePanel(page, '.ficha-jogo'); await expectNoHorizontalOverflow(page); await evidence(page, info, 'inventario-limites');
   await navigate(page, 'Compêndio');
   const search = page.getByRole('searchbox', { name: 'Pesquisar no Compêndio', exact: true });
   await expect(search).toBeVisible(); await search.fill('dagger');

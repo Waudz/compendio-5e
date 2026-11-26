@@ -9,7 +9,7 @@ export function DetalheMagia({ magia: m }: { magia: Magia }) {
   ];
   if (m.area) fatos.push(["Área", formatarArea(m.area)]);
   if (m.ataque) fatos.push(["Ataque", m.ataque === "melee" ? "Ataque de magia corpo a corpo" : "Ataque de magia à distância"]);
-  if (m.salvaguarda) fatos.push(["Salvaguarda", `${rotuloAtributo(m.salvaguarda.atributo)} (${rotuloEfeitoSalvaguarda(m.salvaguarda.efeito)})`]);
+  if (m.salvaguarda) fatos.push(["Teste de resistência", `${rotuloAtributo(m.salvaguarda.atributo)} (${rotuloEfeitoSalvaguarda(m.salvaguarda.efeito)})`]);
   if (m.dano?.length) fatos.push(["Tipo de dano", m.dano.map(rotuloTipoDano).join(", ")]);
   fatos.push(["Classes", m.classes.length ? m.classes.map(rotuloClasse).join(", ") : "Nenhuma classe do SRD"]);
   return <>

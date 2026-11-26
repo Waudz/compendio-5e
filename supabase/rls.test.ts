@@ -225,7 +225,7 @@ describe("auditoria estrutural", () => {
   it("nenhuma função do schema public é executável por anon; só as de uso do app por authenticated", async () => {
     const r = await db.query<{ proname: string; anon: boolean; auth: boolean }>("select proname, has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'");
     expect(r.rows.filter(f => f.anon)).toEqual([]);
-    expect(r.rows.filter(f => f.auth).map(f => f.proname).sort()).toEqual(["can_read_note", "can_share_note", "clear_combat_status", "create_campaign", "create_guided_character", "create_invite", "is_master", "is_member", "is_note_owner", "join_campaign", "note_readable", "save_guided_character", "save_note_content", "set_combat_status", "shares_campaign"]);
+    expect(r.rows.filter(f => f.auth).map(f => f.proname).sort()).toEqual(["alterar_vitais", "can_read_note", "can_share_note", "clear_combat_status", "create_campaign", "create_guided_character", "create_invite", "is_master", "is_member", "is_note_owner", "join_campaign", "note_readable", "save_guided_character", "save_note_content", "set_combat_status", "shares_campaign", "transferir_item", "usar_consumivel"]);
   });
   it("RLS está ativa em todas as tabelas do schema public", async () => {
     const r = await db.query<{ relname: string; relrowsecurity: boolean }>("select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r'");

@@ -75,7 +75,7 @@ describe('magias', () => {
     const det = within(await screen.findByRole('article', { name: 'Detalhes de Bola de Fogo' }));
     const fato = (r: string) => det.getByText(r).nextSibling?.textContent;
     expect(fato('Tempo de conjuração')).toBe('1 ação'); expect(fato('Alcance')).toBe('45 m'); expect(fato('Componentes')).toBe('V, S, M (A tiny ball of bat guano and sulfur)');
-    expect(fato('Duração')).toBe('Instantânea'); expect(fato('Área')).toBe('Esfera de 6 m de raio'); expect(fato('Salvaguarda')).toBe('Destreza (metade do dano em caso de sucesso)');
+    expect(fato('Duração')).toBe('Instantânea'); expect(fato('Área')).toBe('Esfera de 6 m de raio'); expect(fato('Teste de resistência')).toBe('Destreza (metade do dano em caso de sucesso)');
     expect(fato('Tipo de dano')).toBe('fogo'); expect(fato('Classes')).toBe('Feiticeiro, Mago');
     expect(det.getByText('3º círculo')).toBeTruthy(); expect(det.getByText('Evocação')).toBeTruthy();
     expect(det.getByRole('region', { name: 'Descrição da magia' }).textContent).toMatch(/explosão de chamas/i);

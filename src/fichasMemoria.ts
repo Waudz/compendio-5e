@@ -4,17 +4,21 @@
 // A validação das políticas REAIS é feita em `supabase/character-sheets.test.ts` (PostgreSQL isolado); isto serve para testar a interface.
 import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
 import type { CharacterDraft } from "./rules/character-domain";
-import { ERRO_CONFLITO_REVISAO, ERRO_SEM_FICHA, identidadeDe, projetarIdentidade, retratoValido, type FichasApi, type IdentidadeGravada } from "./fichas";
+import { ERRO_CONFLITO_REVISAO, ERRO_SEM_FICHA, identidadeDe, projetarIdentidade, retratoValido, type FichasApi, type IdentidadeGravada, type ResultadoItem } from "./fichas";
+import { aplicarAcao, comVitais, vitaisDoDraft } from "./vitais/vitais";
+import { consumirItem, transferirEntre } from "./ficha/inventarioAcoes";
 import { defaultPublicIdentity, type PublicIdentity } from "./rules/public-identity";
 import type { Registro } from "./registros";
 
-type Linha = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string };
+type Linha = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string; vitalVersao?: number; operacoes?: string[] };
 export type BancoFichas = {
   fichas: Linha[];
   /** Notas públicas dos personagens guiados (a mesma lista usada por `registrosEmMemoria`, para a lista de Personagens enxergá-las). */
   registros: { dados: Registro[] };
   /** Simula queda de rede: toda chamada falha com a mensagem de "sem conexão". */
   rede: { caida: boolean };
+  /** "Tempo real" entre as APIs que usam o mesmo banco. */
+  ouvintes?: Set<() => void>;
   /** Participação atual: mestre e jogadores por campanha (a RLS lê isto do banco, nunca do cliente). */
   campanhas: Record<string, { mestre: string; jogadores: string[] }>;
 };
@@ -48,7 +52,46 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
   const semRede = { ok: false as const, error: "Sem conexão com o servidor." };
   let n = 0;
   const agora = () => new Date(Date.now() + ++n).toISOString();
+  const ouvintes = (banco.ouvintes ??= new Set());
+  const avisar = () => queueMicrotask(() => ouvintes.forEach(f => f()));
+  const vital = (l: Linha) => ({ id: l.id, revision: l.revision, versao: l.vitalVersao ?? 1, ...vitaisDoDraft(l.draft) });
+  const itemDe = (l: Linha): ResultadoItem => ({ ...vital(l), draft: structuredClone(l.draft), updatedAt: l.updatedAt });
+  const marcar = (l: Linha, draft: CharacterDraft, operacao: string, somenteVital: boolean) => {
+    l.draft = draft; l.operacoes = [operacao, ...(l.operacoes ?? [])].slice(0, 40); l.vitalVersao = (l.vitalVersao ?? 1) + 1; if (!somenteVital) l.revision += 1; l.updatedAt = agora();
+  };
+  const acessivel = (id: string) => { const l = banco.fichas.find(x => x.id === id); return l && le(l) ? l : null; };
   const api: FichasApi = {
+    lerVitais: async ids => banco.rede.caida ? semRede : { ok: true, data: ids.flatMap(id => { const l = acessivel(id); return l ? [{ ...vital(l), draft: structuredClone(l.draft) }] : []; }) },
+    alterarVitais: async (id, acao, operacao) => {
+      if (banco.rede.caida) return semRede;
+      const l = acessivel(id); if (!l) return { ok: false, error: ERRO_SEM_FICHA };
+      if (!l.operacoes?.includes(operacao)) { marcar(l, comVitais(l.draft, aplicarAcao(vitaisDoDraft(l.draft), acao)), operacao, true); avisar(); }
+      return { ok: true, data: vital(l) };
+    },
+    usarConsumivel: async (id, instancia, cura, maximo, operacao) => {
+      if (banco.rede.caida) return semRede;
+      const l = acessivel(id); if (!l) return { ok: false, error: ERRO_SEM_FICHA };
+      if (!l.operacoes?.includes(operacao)) {
+        const r = consumirItem(l.draft, instancia, cura, maximo, new Date(agora()));
+        if (!r.ok) return { ok: false, error: r.erro };
+        marcar(l, r.draft, operacao, false); avisar();
+      }
+      return { ok: true, data: itemDe(l) };
+    },
+    transferirItem: async (origem, destino, instancia, quantidade, operacao) => {
+      if (banco.rede.caida) return semRede;
+      const o = acessivel(origem); if (!o) return { ok: false, error: ERRO_SEM_FICHA };
+      if (!o.operacoes?.includes(operacao)) {
+        const t = banco.fichas.find(x => x.id === destino && x.campaignId === o.campaignId && x.id !== origem);
+        if (!t) return { ok: false, error: "O destinatário não é um personagem desta campanha. Nada foi alterado." };
+        const publico = banco.registros.dados.find(r => r.id === destino)?.title ?? "outro personagem";
+        const r = transferirEntre(o.draft, t.draft, instancia, quantidade, publico, () => `mem-${agora()}`, new Date(agora()));
+        if (!r.ok) return { ok: false, error: r.erro };
+        marcar(t, r.destino, operacao, false); marcar(o, r.origem, operacao, false); avisar();
+      }
+      return { ok: true, data: itemDe(o) };
+    },
+    assinar: (_filtro, aoMudar) => { ouvintes.add(aoMudar); return () => { ouvintes.delete(aoMudar); }; },
     listar: async cid => banco.rede.caida ? semRede : { ok: true, data: banco.fichas.filter(f => f.campaignId === cid && le(f)).map(f => ({ id: f.id, ownerId: f.ownerId, nome: f.draft.name.trim() || "Sem nome", ...extrasDaFicha(f.draft), classId: f.draft.classId, nivel: f.draft.level, revision: f.revision, updatedAt: f.updatedAt })) },
     carregar: async id => {
       if (banco.rede.caida) return semRede;
@@ -74,7 +117,8 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
       if (l.revision !== esperada) return { ok: false, error: ERRO_CONFLITO_REVISAO };
       if (identidade && l.ownerId !== uid) return { ok: false, error: "Só o dono do personagem altera a identidade pública." };
       const proibido = mestre(l.campaignId) ? null : entregaProibida(draft, l.draft); if (proibido) return { ok: false, error: proibido };
-      l.draft = { ...structuredClone(draft), id }; l.revision += 1; l.updatedAt = agora();
+      // como no banco (0014): a gravação da ficha inteira preserva o estado vital
+      l.draft = comVitais({ ...structuredClone(draft), id }, vitaisDoDraft(l.draft)); l.revision += 1; l.updatedAt = agora(); avisar();
       const i = banco.registros.dados.findIndex(r => r.id === id);
       if (i >= 0) {
         const nota = banco.registros.dados[i];

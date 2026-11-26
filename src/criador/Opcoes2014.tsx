@@ -1,18 +1,14 @@
 import './personagens-2014.css';
-import { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useId, useState } from 'react';
 import type { CharacterDraft } from '../rules/character-domain';
 import { srdItem, srdItemIds } from '../catalogue/srd-2014-items';
 import { applyStartingEquipmentSelection } from '../rules/starting-equipment-selection';
 import { rotuloAtributo, rotuloOpcao, rotuloPericia } from './rotulos';
 import {
   activate2014,
-  modern2014,
   classes2014,
-  class2014,
   spells2014,
-  hpMode2014,
-  hpRoll2014,
-  races2014,
   label2014,
   shortId,
   change2014,
@@ -20,32 +16,72 @@ import {
   selected2014,
   decide2014,
   featureDescription2014,
-  raceTraits2014,
   proficiency2014,
-  spellSlots2014,
   equipment2014,
   canonicalItem2014,
   equipmentCategory2014,
   proficiencyLabel2014,
-  resourceLabel2014,
-  grantBackground2014,
   equipmentRequirement2014,
-  automaticSpells2014,
-  statistics2014,
   sheet2014,
   type Choice2014,
   type Component,
 } from './regras-2014';
 
-function Choice({
+/** Escolhas de uma etapa. Os grupos de magias viram seções que se expandem, uma aberta por vez (começa na primeira incompleta);
+ * as demais escolhas continuam como estão. */
+export function ListaDeEscolhas({
+  draft,
+  escolhas,
+  onChange,
+}: {
+  draft: CharacterDraft;
+  escolhas: Choice2014[];
+  onChange: (d: CharacterDraft) => void;
+}) {
+  const magias = escolhas.filter((c) => c.kind === 'spell');
+  const [aberta, setAberta] = useState(
+    () => magias.find((c) => selected2014(draft, c.id).length < c.count)?.id ?? '',
+  );
+  return (
+    <div className="character-2014">
+      {escolhas
+        .filter((c) => c.kind !== 'spell')
+        .map((c) => (
+          <Choice key={c.id} draft={draft} choice={c} onChange={onChange} />
+        ))}
+      {magias.length > 0 && (
+        <div className="grupos-de-magia">
+          {magias.map((c) => (
+            <Choice
+              key={c.id}
+              draft={draft}
+              choice={c}
+              onChange={onChange}
+              secao={{
+                aberta: aberta === c.id,
+                alternar: () => setAberta(aberta === c.id ? '' : c.id),
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Choice({
   draft,
   choice,
   onChange,
+  secao,
 }: {
   draft: CharacterDraft;
   choice: Choice2014;
   onChange: (d: CharacterDraft) => void;
+  /** Seção expansível; a pesquisa e os detalhes abertos continuam guardados quando ela é recolhida. */
+  secao?: { aberta: boolean; alternar: () => void };
 }) {
+  const id = useId();
   const [search, setSearch] = useState('');
   const [previewSpell, setPreviewSpell] = useState('');
   const selected = selected2014(draft, choice.id);
@@ -122,12 +158,8 @@ function Choice({
         .includes(search.toLocaleLowerCase('pt-BR')),
   );
   const set = (ids: string[]) => onChange(decide2014(draft, choice.id, ids));
-  return (
-    <fieldset>
-      <legend>
-        {choice.name} — escolha {choice.count} ({selected.length}/{choice.count}
-        )
-      </legend>
+  const corpo = (
+    <>
       {choice.count === 1 && choice.kind !== 'spell' ? (
         <label>
           {choice.name}
@@ -156,14 +188,8 @@ function Choice({
               />
             </label>
           )}
-          <div
-            style={{
-              display: 'grid',
-              gap: 6,
-              maxHeight: 260,
-              overflowY: 'auto',
-            }}
-          >
+          {/* sem rolagem própria: as opções se distribuem em colunas e a etapa tem uma única rolagem */}
+          <div className="lista-de-opcoes">
             {options.map((o) => (
               <div className="character-spell-option" key={o.id}>
                 <label className="check" key={o.id}>
@@ -226,10 +252,50 @@ function Choice({
           </details>
         ) : null,
       )}
+    </>
+  );
+  if (secao)
+    return (
+      <div className="grupo-magia" role="group" aria-labelledby={id + '-titulo'}>
+        <h4>
+          <button
+            type="button"
+            className="grupo-magia-titulo"
+            aria-expanded={secao.aberta}
+            aria-controls={secao.aberta ? id + '-corpo' : undefined}
+            onClick={secao.alternar}
+          >
+            {secao.aberta ? (
+              <ChevronDown size={16} aria-hidden="true" />
+            ) : (
+              <ChevronRight size={16} aria-hidden="true" />
+            )}
+            <span id={id + '-titulo'} className="grupo-magia-rotulo">
+              <span>{choice.name}</span>{' '}
+              <span className="grupo-magia-contador">
+                {selected.length}/{choice.count}
+              </span>
+            </span>
+          </button>
+        </h4>
+        {secao.aberta && (
+          <div id={id + '-corpo'} className="grupo-magia-corpo">
+            {corpo}
+          </div>
+        )}
+      </div>
+    );
+  return (
+    <fieldset>
+      <legend>
+        {choice.name} — escolha {choice.count} ({selected.length}/{choice.count}
+        )
+      </legend>
+      {corpo}
     </fieldset>
   );
 }
-export function Opcoes2014({
+export function AtivarRegras2014({
   draft,
   onChange,
 }: {
@@ -238,13 +304,7 @@ export function Opcoes2014({
 }) {
   const [confirm, setConfirm] = useState(false);
   const [pendingClass, setPendingClass] = useState('');
-  const [symbol, setSymbol] = useState(() => {
-    const itemId = draft.inventory.find(i => i.id === 'background-acolyte:symbol')?.itemId;
-    return ['amulet', 'emblem', 'reliquary'].find(id => canonicalItem2014('srd51:item/' + id) === itemId) ?? 'amulet';
-  });
-  const [error, setError] = useState('');
-  if (!modern2014(draft))
-    return (
+  return (
       <section className="character-2014" aria-label="Opções SRD 2014">
         <p>
           As escolhas desta ficha estão preservadas. Para configurar classe,
@@ -306,207 +366,6 @@ export function Opcoes2014({
         )}
       </section>
     );
-  const set = (patch: Partial<CharacterDraft>) => {
-    try {
-      onChange(change2014(draft, patch));
-      setError('');
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Revise a mudança de personagem.',
-      );
-    }
-  };
-  return (
-    <section
-      className="character-2014"
-      aria-label="Opções SRD 2014"
-      style={{ display: 'grid', gap: 12 }}
-    >
-      <label>
-        Classe
-        <select
-          value={pendingClass || draft.classId}
-          onChange={(e) => setPendingClass(e.target.value === draft.classId ? '' : e.target.value)}
-        >
-          {classes2014.map((c) => (
-            <option key={c.id} value={shortId(c.id)}>
-              {label2014(c.id)}
-            </option>
-          ))}
-        </select>
-      </label>
-      {pendingClass && pendingClass !== draft.classId && (
-        <section aria-label="Confirmar classe" role="region">
-          <p>
-            Você está mudando de <strong>{label2014(draft.classId)}</strong> para{' '}
-            <strong>{label2014(pendingClass)}</strong>. A mudança só será aplicada
-            ao confirmar.
-          </p>
-          <p>
-            Trocar a classe reinicia escolhas de classe, recursos e a progressão
-            de PV. Nome, atributos, raça, origem e inventário são preservados; a
-            ficha salva só muda depois de Salvar.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              set({
-                classId: pendingClass,
-                decisions: draft.decisions.filter((c) =>
-                  /^(racial-|elf-|dwarf-|dragon-|background-|equipment-)/.test(
-                    c.id,
-                  ),
-                ),
-                spentResources: {},
-                hpRolls: undefined,
-              });
-              setPendingClass('');
-            }}
-          >
-            Confirmar troca de classe
-          </button>
-          <button type="button" onClick={() => setPendingClass('')}>
-            Cancelar troca de classe
-          </button>
-        </section>
-      )}
-      {error && <p role="alert">{error}</p>}
-      <label>
-        Raça
-        <select
-          value={draft.raceId}
-          onChange={(e) => set({ raceId: e.target.value })}
-        >
-          {races2014.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Origem
-        <select
-          value={draft.backgroundId}
-          onChange={(e) => set({ backgroundId: e.target.value })}
-        >
-          <option value="acolyte">Acólito (SRD 2014)</option>
-          <option value="custom">Origem personalizada (SRD 2014)</option>
-        </select>
-      </label>
-      {draft.backgroundId === 'custom' && (
-        <label>
-          Característica da origem combinada com o mestre
-          <textarea
-            maxLength={500}
-            value={selected2014(draft, 'background-feature')[0] ?? ''}
-            onChange={(e) =>
-              onChange(
-                decide2014(draft, 'background-feature', [e.target.value]),
-              )
-            }
-          />
-        </label>
-      )}
-      <section aria-label="Ganhos da origem">
-        <h3>Ganhos da origem</h3>
-        <p>
-          {draft.backgroundId === 'acolyte'
-            ? 'Intuição e Religião; dois idiomas; Abrigo dos Fiéis (auxílio de um templo da sua fé, conforme o mestre).'
-            : 'Escolha duas perícias e duas proficiências em idiomas/ferramentas. Combine a característica e o equipamento com o mestre; o pacote abaixo usa o Acólito do SRD.'}
-        </p>
-        <label>
-          Símbolo sagrado da origem
-          <select value={symbol} onChange={(e) => setSymbol(e.target.value)}>
-            {['amulet', 'emblem', 'reliquary'].map((id) => (
-              <option key={id} value={id}>
-                {itemName(canonicalItem2014('srd51:item/' + id))}
-              </option>
-            ))}
-          </select>
-        </label>
-        <ul aria-label="Itens concedidos pela origem">
-          <li>{itemName(canonicalItem2014('srd51:item/' + symbol))} ×1</li>
-          <li>Livro de orações ×1</li>
-          <li>Vareta de incenso ×5</li>
-          <li>Vestes sacerdotais ×1</li>
-          <li>Roupas comuns ×1</li>
-          <li>15 peças de ouro (PO)</li>
-        </ul>
-        <div style={{ marginTop: 12 }}>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => {
-              try {
-                onChange(grantBackground2014(draft, symbol));
-                setError('Equipamento da origem atualizado. Confira o inventário.');
-              } catch (e) {
-                setError(e instanceof Error ? e.message : 'Não foi possível atualizar a origem.');
-              }
-            }}
-          >
-            {selected2014(draft, 'background-equipment').includes('accepted')
-              ? 'Atualizar símbolo sagrado da origem'
-              : 'Adicionar itens da origem e 15 PO ao inventário'}
-          </button>
-        </div>
-        <p>Ao atualizar o símbolo, os demais itens e as 15 PO não são adicionados novamente.</p>
-      </section>
-      <p className="notice">
-        A origem concede perícias e idiomas; perícias repetidas exigem uma
-        escolha diferente. Traços e condições de uso aparecem na descrição, sem
-        aplicar bônus condicionais fora de contexto.
-      </p>
-      {choices2014(draft).map((ch) => (
-        <Choice key={ch.id} draft={draft} choice={ch} onChange={onChange} />
-      ))}
-      <details>
-        <summary>Traços raciais — {label2014(draft.raceId)}</summary>
-        {raceTraits2014(draft).map((t) => (
-          <details key={t.index}>
-            <summary>{t.name}</summary>
-            <p>{t.desc.join('\n\n')}</p>
-          </details>
-        ))}
-      </details>
-      <details>
-        <summary>Proficiências de classe</summary>
-        <ul>
-          {proficiency2014(draft).map((p) => (
-            <li key={p}>{proficiencyLabel2014(p)}</li>
-          ))}
-        </ul>
-      </details>
-      <p>
-        Espaços de magia:{' '}
-        {spellSlots2014(draft).some((n) => n > 0)
-          ? spellSlots2014(draft)
-              .map((n, i) => (n ? `${i + 1}º círculo: ${n}` : null))
-              .filter(Boolean)
-              .join(' · ')
-          : 'Sem espaços de magia'}
-      </p>
-      <details>
-        <summary>
-          Magias concedidas por raça/subclasse (não contam no preparo)
-        </summary>
-        {automaticSpells2014(draft).map((spell) => (
-          <details key={spell.id}>
-            <summary>
-              {spell.name} —{' '}
-              {spell.level === 0 ? 'truque' : spell.level + 'º círculo'}
-            </summary>
-            <p>{spell.description}</p>
-          </details>
-        ))}
-      </details>
-      <small>
-        Fonte: SRD 5.1 (2014), CC BY 4.0. Opções não SRD não são importadas
-        automaticamente.
-      </small>
-    </section>
-  );
 }
 const itemName = (id: string) => srdItem(id)?.nome ?? id;
 function expand(items: { itemId: string; quantity: number }[]) {
@@ -693,264 +552,6 @@ export function Equipamento2014({
         Confirmar equipamentos SRD 2014
       </button>
       {error && <p role="status">{error}</p>}
-    </section>
-  );
-}
-
-export function Resumo2014({
-  draft,
-  onChange,
-}: {
-  draft: CharacterDraft;
-  onChange: (d: CharacterDraft) => void;
-}) {
-  const sheet = sheet2014(draft),
-    stats = statistics2014(draft);
-  return (
-    <section className="character-2014" aria-label="Resumo de jogo SRD 2014">
-      <h2>Resumo de jogo</h2>
-      <p>
-        Proficiência +{stats.prof} · CA {stats.ac} · Percepção passiva{' '}
-        {stats.passivePerception} · Deslocamento {stats.speed} m
-      </p>
-      {stats.ambiguousArmor && (
-        <p role="alert">
-          Mais de uma armadura está equipada. Desequipe a armadura extra para
-          resolver a CA.
-        </p>
-      )}
-      {stats.armorWithoutProficiency && (
-        <p role="alert">
-          Armadura ou escudo sem proficiência: há penalidades em testes e
-          ataques que envolvem Força ou Destreza e você não pode conjurar magias
-          usando esse equipamento.
-        </p>
-      )}
-      {stats.spellDc !== null && (
-        <p>
-          CD de magia {stats.spellDc} · Ataque mágico +{stats.spellAttack}
-        </p>
-      )}
-      <label>
-        PV atuais
-        <input
-          type="number"
-          min={0}
-          max={sheet.maxHp}
-          value={draft.currentHp}
-          onChange={(e) => {
-            const n = Number(e.target.value);
-            if (Number.isSafeInteger(n) && n >= 0 && n <= sheet.maxHp)
-              onChange({ ...draft, currentHp: n });
-          }}
-        />
-      </label>
-      <fieldset>
-        <legend>PV na progressão</legend>
-        <label>
-          Ganho de PV por nível
-          <select
-            value={draft.hpRolls ? 'rolled' : 'fixed'}
-            onChange={(e) =>
-              onChange(hpMode2014(draft, e.target.value === 'rolled'))
-            }
-          >
-            <option value="fixed">Média fixa do dado de vida</option>
-            <option value="rolled">Rolagens informadas</option>
-          </select>
-        </label>
-        {draft.hpRolls && (
-          <>
-            <p>
-              No primeiro nível, usa-se o máximo do dado. As médias abaixo são
-              provisórias: informe e confirme seus resultados físicos de cada
-              nível.
-            </p>
-            {draft.hpRolls.map((roll, i) => (
-              <div key={i}>
-                <label>
-                  PV rolados no nível {i + 2} (d{class2014(draft).data.hitDie})
-                  <input
-                    type="number"
-                    min={1}
-                    max={class2014(draft).data.hitDie}
-                    value={roll}
-                    onChange={(e) => {
-                      const n = Number(e.target.value);
-                      if (
-                        Number.isSafeInteger(n) &&
-                        n >= 1 &&
-                        n <= class2014(draft).data.hitDie
-                      )
-                        onChange(hpRoll2014(draft, i + 2, n));
-                    }}
-                  />
-                </label>
-                {selected2014(draft, 'hp-roll-confirmed-' + (i + 2))[0] !==
-                  String(roll) && (
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() =>
-                      onChange(
-                        decide2014(draft, 'hp-roll-confirmed-' + (i + 2), [
-                          String(roll),
-                        ]),
-                      )
-                    }
-                  >
-                    Confirmar PV do nível {i + 2}
-                  </button>
-                )}
-              </div>
-            ))}
-          </>
-        )}
-      </fieldset>
-      <details>
-        <summary>Testes de resistência</summary>
-        <dl>
-          {Object.entries(stats.saves).map(([id, n]) => (
-            <div key={id}>
-              <dt>{rotuloAtributo(id)}</dt>
-              <dd>
-                {n >= 0 ? '+' : ''}
-                {n}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </details>
-      <details>
-        <summary>Ataques das armas equipadas</summary>
-        {stats.attacks.length ? (
-          stats.attacks.map((a) => (
-            <p key={a.id}>
-              {a.name}: ataque {a.bonus >= 0 ? '+' : ''}
-              {a.bonus}; dano {a.damage} {a.damageBonus >= 0 ? '+' : ''}
-              {a.damageBonus}
-              {!a.proficient ? ' · sem proficiência' : ''}
-              {a.heavyDisadvantage
-                ? ' · arma pesada: desvantagem para tamanho Pequeno'
-                : ''}
-            </p>
-          ))
-        ) : (
-          <p>Equipe uma arma no inventário para ver os ataques.</p>
-        )}
-        <p>
-          Condições de combate, crítico, dano com duas mãos e benefícios
-          condicionais são resolvidos conforme a descrição da característica.
-        </p>
-      </details>
-      <details>
-        <summary>Perícias e bônus calculados</summary>
-        <dl>
-          {Object.entries(stats.skills).map(([id, n]) => (
-            <div key={id}>
-              <dt>{rotuloPericia(id)}</dt>
-              <dd>
-                {n >= 0 ? '+' : ''}
-                {n}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </details>
-      <fieldset>
-        <legend>Moedas</legend>
-        {(['cp', 'sp', 'gp'] as const).map((coin, i) => (
-          <label key={coin}>
-            {['Cobre', 'Prata', 'Ouro'][i]}
-            <input
-              type="number"
-              min={0}
-              value={draft.currency?.[coin] ?? 0}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                if (Number.isSafeInteger(n) && n >= 0)
-                  onChange({
-                    ...draft,
-                    currency: {
-                      cp: 0,
-                      sp: 0,
-                      gp: 0,
-                      ...draft.currency,
-                      [coin]: n,
-                    },
-                  });
-              }}
-            />
-          </label>
-        ))}
-      </fieldset>
-      <details>
-        <summary>Recursos e dados de vida</summary>
-        {Object.entries(sheet.resources).map(([id, r]) => (
-          <div className="row" key={id}>
-            <span>
-              {resourceLabel2014(id)}:{' '}
-              {r.maximum === null ? 'ilimitado' : r.remaining + '/' + r.maximum}
-            </span>
-            <button
-              type="button"
-              disabled={r.remaining === 0}
-              aria-label={'Usar recurso ' + id}
-              onClick={() =>
-                onChange({
-                  ...draft,
-                  spentResources: {
-                    ...draft.spentResources,
-                    [id]: r.spent + 1,
-                  },
-                })
-              }
-            >
-              Usar
-            </button>
-            <button
-              type="button"
-              disabled={!r.spent}
-              aria-label={'Recuperar recurso ' + id}
-              onClick={() =>
-                onChange({
-                  ...draft,
-                  spentResources: {
-                    ...draft.spentResources,
-                    [id]: r.spent - 1,
-                  },
-                })
-              }
-            >
-              Recuperar
-            </button>
-          </div>
-        ))}
-        <p>
-          Usar um dado de vida registra o gasto. Role o dado físico e ajuste os
-          PV manualmente; a cura não é duplicada.
-        </p>
-      </details>
-      <details>
-        <summary>Equipar itens do inventário</summary>
-        {draft.inventory.map((i) => (
-          <label className="check" key={i.id}>
-            <input
-              type="checkbox"
-              checked={i.equipped}
-              onChange={(e) =>
-                onChange({
-                  ...draft,
-                  inventory: draft.inventory.map((x) =>
-                    x.id === i.id ? { ...x, equipped: e.target.checked } : x,
-                  ),
-                })
-              }
-            />
-            {i.customName ?? itemName(i.itemId)}
-          </label>
-        ))}
-      </details>
     </section>
   );
 }

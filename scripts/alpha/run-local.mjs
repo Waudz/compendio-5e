@@ -99,7 +99,7 @@ try {
     assert.ok(!denied.ok || denied.data.length === 0, 'player must not change coins');
     const item = (itemId, quantity) => ({id: itemId, itemId, quantity, equipped: false, origin: 'acquired'});
     const sheetOf = async token => (await ok(`/rest/v1/character_sheets?character_id=eq.${character.character_id}`, {token}))[0];
-    const save = async (token, patch) => { const cur = await sheetOf(token); return api('/rest/v1/rpc/save_guided_character', {token, method: 'POST', body: {p_id: character.character_id, p_expected_revision: cur.revision, p_draft: {...cur.draft, ...patch}}}); };
+    const save = async (token, patch) => { const cur = await sheetOf(token); return api('/rest/v1/rpc/save_guided_character', {token, method: 'POST', body: {p_id: character.character_id, p_expected_revision: cur.revision, p_draft: {...cur.draft, ...patch, _protocolo: 2}}}); };
     assert.ok((await save(p, {inventory: [item('potion-of-healing-common', 1)]})).ok);
     assert.equal((await save(p, {inventory: [item('potion-of-healing-greater', 1)]})).ok, false);
     assert.equal((await save(p, {inventory: [item('potion-of-healing-greater', 7), {...item('potion-of-healing-greater', -7), id: 'offset'}]})).ok, false, 'offsetting quantities must be refused');
@@ -178,6 +178,39 @@ try {
     assert.equal(sheet.draft.nome, 'Updated', 'status does not touch the sheet');
     assert.equal(await rpc('clear_combat_status', m, {p_campaign_id: a}), 1);
     assert.deepEqual(await ok(`/rest/v1/character_combat_status?character_id=eq.${id}`, {token: p}), []);
+  });
+  await check('vital state and inventory operations are atomic, idempotent and authorized (0014)', async () => {
+    const id = character.character_id;
+    const sheetOf = async token => (await ok(`/rest/v1/character_sheets?character_id=eq.${id}&select=draft,revision,vitals_version`, {token}))[0];
+    // the owner prepares hit points and an inventory through the ordinary full save
+    const start = await sheetOf(p);
+    await ok(`/rest/v1/character_sheets?character_id=eq.${id}`, {token: p, method: 'PATCH', body: {draft: {...start.draft, inventory: [{id: 'pocao', itemId: 'potion-of-healing-common', quantity: 2, equipped: false, origin: 'acquired'}]}}});
+    const before = await sheetOf(p);
+    const op = crypto.randomUUID();
+    const set = await rpc('alterar_vitais', m, {p_character_id: id, p_acao: {tipo: 'definir', valor: 9, maximo: 20}, p_operacao: op});
+    assert.equal(set.pv, 9); assert.equal(set.revision, before.revision, 'vital operations do not bump the sheet revision');
+    const hit = crypto.randomUUID();
+    for (let i = 0; i < 2; i++) assert.equal((await rpc('alterar_vitais', p, {p_character_id: id, p_acao: {tipo: 'dano', valor: 4}, p_operacao: hit})).pv, 5);
+    // a stale full save never overwrites hit points
+    const outdated = await api(`/rest/v1/character_sheets?character_id=eq.${id}`, {token: p, method: 'PATCH', body: {draft: {...before.draft, currentHp: 999}}});
+    assert.equal(outdated.ok, false, 'a pre-0014 client changing hit points must get a visible error');
+    await ok(`/rest/v1/character_sheets?character_id=eq.${id}`, {token: p, method: 'PATCH', body: {draft: {...before.draft, currentHp: 999, _protocolo: 2}}});
+    assert.equal((await sheetOf(m)).draft._protocolo, undefined, 'the transport marker is never stored');
+    assert.equal((await sheetOf(m)).draft.currentHp, 5);
+    assert.equal((await rpc('alterar_vitais', p, {p_character_id: id, p_acao: {tipo: 'cura', valor: 0, maximo: 20}, p_operacao: crypto.randomUUID()})).pv, 5);
+    // simultaneous damage from master and player is never lost
+    await Promise.all([m, p].map(token => rpc('alterar_vitais', token, {p_character_id: id, p_acao: {tipo: 'dano', valor: 1}, p_operacao: crypto.randomUUID()})));
+    assert.equal((await sheetOf(p)).draft.currentHp, 3);
+    const use = crypto.randomUUID();
+    for (let i = 0; i < 2; i++) { const r = await rpc('usar_consumivel', p, {p_character_id: id, p_instancia: 'pocao', p_cura: 6, p_maximo: 20, p_operacao: use}); assert.equal(r.pv, 9); assert.equal(r.draft.inventory[0].quantity, 1); }
+    for (const token of [o, undefined]) {
+      for (const [fn, body] of [['alterar_vitais', {p_character_id: id, p_acao: {tipo: 'dano', valor: 1}, p_operacao: crypto.randomUUID()}], ['usar_consumivel', {p_character_id: id, p_instancia: 'pocao', p_cura: 1, p_maximo: 20, p_operacao: crypto.randomUUID()}], ['transferir_item', {p_origem: id, p_destino: crypto.randomUUID(), p_instancia: 'pocao', p_quantidade: 1, p_operacao: crypto.randomUUID()}]]) {
+        const r = await api(`/rest/v1/rpc/${fn}`, {token, method: 'POST', body}); assert.equal(r.ok, false, `${fn} must be refused`);
+      }
+    }
+    const bad = await api('/rest/v1/rpc/transferir_item', {token: p, method: 'POST', body: {p_origem: id, p_destino: crypto.randomUUID(), p_instancia: 'pocao', p_quantidade: 1, p_operacao: crypto.randomUUID()}});
+    assert.equal(bad.ok, false, 'transfer to a character outside the campaign is refused');
+    assert.equal((await sheetOf(p)).draft.inventory[0].quantity, 1);
   });
   await check('password recovery remains available with signup disabled', async () => {
     await ok('/auth/v1/recover', {method: 'POST', body: {email: player.email}});

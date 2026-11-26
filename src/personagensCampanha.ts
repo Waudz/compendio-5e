@@ -2,6 +2,7 @@
 // (`character_sheets`). Não cria nem copia registros. Quem pode ler o quê é decidido pelo banco (RLS): `registros.list` só devolve o que o
 // usuário lê (publicados e os próprios) e `fichas.listar` só as fichas legíveis (as próprias; todas as da campanha para o mestre).
 import type { CapaApi } from "./capa";
+import { juntar, separar } from "./imagem/enquadramento";
 import type { Res } from "./campaigns";
 import { rotuloClasse } from "./criador/rotulos";
 import { cartaoPublico, ehGuiado, type FichasApi, type ResumoFicha } from "./fichas";
@@ -59,7 +60,7 @@ export function fonteAventureirosDoInicio(registros: RegistrosApi, capa: CapaApi
       if (!r.ok) return r;
       const lista = await Promise.all(r.data.personagens.filter(p => p.publicado || (p.guiado && p.comFicha)).map(async p => {
         let retratoUrl = p.retratoUrl;
-        if (!retratoUrl && p.retratoCaminho && capa) { const u = await capa.urlDe(p.retratoCaminho); if (u.ok) retratoUrl = u.data; }
+        if (!retratoUrl && p.retratoCaminho && capa) { const { base, enquadramento } = separar(p.retratoCaminho), u = await capa.urlDe(base); if (u.ok) retratoUrl = juntar(u.data, enquadramento); }
         const nota = rotuloPrivacidade(p, souMestre);
         return { id: p.id, nome: p.nome, ...(p.alcunha ? { alcunha: p.alcunha } : {}), classe: p.classe, nivel: p.nivel, retratoUrl, ...(nota ? { nota } : {}) };
       }));

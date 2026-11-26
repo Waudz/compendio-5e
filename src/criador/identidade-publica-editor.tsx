@@ -34,13 +34,16 @@ export default function PublicIdentityEditor({source,initialIdentity,onChange,on
   <label className="identidade-descricao">Descrição pública<textarea aria-label="Descrição pública" rows={3} maxLength={4000} value={identity.description}
    onChange={e=>aplicar({...identity,description:e.target.value})}/></label>
   </div>
+  {/* o MESMO cartão que a campanha vê no Início e em Personagens */}
   <section aria-label="Prévia para outros jogadores" className="identidade-previa">
-   <p className="eyebrow">PRÉVIA</p>
-   <RetratoQuadrado tipo="personagem" tamanho={96} src={retratoValido(card.imageUrl)?card.imageUrl:null}/>
-   <div><p className="identidade-nome">{shown.nome}</p>
-    {shown.alcunha&&<p className="identidade-alcunha"><em>{shown.alcunha}</em></p>}
-    {(card.race||card.characterClass||card.level)&&<p className="muted">{[card.race,card.characterClass,card.level&&`Nível ${card.level}`].filter(Boolean).join(' · ')}</p>}
-    {card.description&&<p>{card.description}</p>}</div>
+   <h3 className="identidade-previa-titulo">Prévia: como aparece no Início e em Personagens</h3>
+   <div className="home-char">
+    <RetratoQuadrado tipo="personagem" tamanho={72} src={retratoValido(card.imageUrl)?card.imageUrl:null}/>
+    <span><strong className="identidade-nome">{shown.nome}</strong>
+     {shown.alcunha&&<em className="home-char-alcunha identidade-alcunha">{shown.alcunha}</em>}
+     {(card.race||card.characterClass||card.level)&&<small>{[card.race,card.characterClass,card.level&&`Nível ${card.level}`].filter(Boolean).join(' · ')}</small>}</span>
+   </div>
+   {card.description&&<p className="identidade-texto">{card.description}</p>}
   </section>
   </div>
   {nothingToShow&&<p role="alert" className="notice err">Apresente ao menos o nome ou a alcunha.</p>}

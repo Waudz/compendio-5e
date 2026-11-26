@@ -19,20 +19,27 @@ import { cartaoPublico, ehGuiado } from "./fichas";
 import { presentation } from "./rules/public-identity";
 import { listarPersonagens, rotuloPrivacidade, type ListaPersonagens, type PersonagemCampanha } from "./personagensCampanha";
 import { RetratoQuadrado } from "./RetratoCombate";
+import { EditorEnquadramento } from "./imagem/EditorEnquadramento";
+import { estiloEnquadramento, juntar, separar, type Enquadramento } from "./imagem/enquadramento";
 import type { TabSpec } from "./workspace";
 
+/** URL temporária de um caminho do armazenamento (o enquadramento no fim do caminho é aplicado na exibição). */
+function useUrlDoCaminho(caminho: string | null) {
+  const capa = useCapa(); const [url, setUrl] = useState<string | null>(null);
+  const base = caminho ? separar(caminho).base : null;
+  useEffect(() => { setUrl(null); if (!base || !capa) return; let vivo = true; void capa.urlDe(base).then(r => { if (vivo && r.ok) setUrl(r.data); }); return () => { vivo = false; }; }, [base, capa]);
+  return url;
+}
 /** Retrato com URL temporária; sem retrato (ou se falhar) mostra a inicial. */
 function Retrato({ caminho, nome, tamanho = 44 }: { caminho: string | null; nome: string; tamanho?: number }) {
-  const capa = useCapa(); const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => { setUrl(null); if (!caminho || !capa) return; let vivo = true; void capa.urlDe(caminho).then(r => { if (vivo && r.ok) setUrl(r.data); }); return () => { vivo = false; }; }, [caminho, capa]);
-  return url ? <img className="retrato" src={url} alt="" width={tamanho} height={tamanho}/> : <span className="retrato retrato-inicial" style={{ width: tamanho, height: tamanho }} aria-hidden="true">{nome.slice(0, 1).toLocaleUpperCase("pt-BR") || <UserRound size={18}/>}</span>;
+  const url = useUrlDoCaminho(caminho);
+  return url ? <span className="retrato retrato-enquadrado" style={{ width: tamanho, height: tamanho }}><img src={url} alt="" style={estiloEnquadramento(separar(caminho!).enquadramento)}/></span> : <span className="retrato retrato-inicial" style={{ width: tamanho, height: tamanho }} aria-hidden="true">{nome.slice(0, 1).toLocaleUpperCase("pt-BR") || <UserRound size={18}/>}</span>;
 }
 
 /** Retrato de um cartão da lista: imagem pública (guiado), retrato do perfil simples, ou o espaço padrão. */
 function RetratoDaLista({ p }: { p: PersonagemCampanha }) {
-  const capa = useCapa(); const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => { setUrl(null); if (!p.retratoCaminho || !capa) return; let vivo = true; void capa.urlDe(p.retratoCaminho).then(r => { if (vivo && r.ok) setUrl(r.data); }); return () => { vivo = false; }; }, [p.retratoCaminho, capa]);
-  return <RetratoQuadrado src={p.retratoUrl ?? url} tipo="personagem" tamanho={56}/>;
+  const url = useUrlDoCaminho(p.retratoCaminho);
+  return <RetratoQuadrado src={p.retratoUrl ?? (url ? juntar(url, separar(p.retratoCaminho!).enquadramento) : null)} tipo="personagem" tamanho={56}/>;
 }
 
 /** Uma lista só: cada personagem aparece uma vez, com a ficha e a identidade pública vinculadas pelo mesmo registro. */
@@ -136,6 +143,8 @@ export function FichaPagina({ id, onOpenContent }: { id: string; onOpenContent?:
   };
   const secoes = <nav className="ficha-subnav" aria-label="Seções da ficha"><button type="button" className={subsecao === "ficha" ? "active" : ""} onClick={() => setSubsecao("ficha")}>Ficha</button><button type="button" className={subsecao === "inventario" ? "active" : ""} onClick={() => setSubsecao("inventario")}>Inventário</button></nav>;
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null), [busy, setBusy] = useState(false), [confirmar, setConfirmar] = useState(false);
+  const [novoRetrato, setNovoRetrato] = useState<{ arquivo: File; url: string } | null>(null), [ajustando, setAjustando] = useState(false);
+  const urlRetrato = useUrlDoCaminho(retrato);
   const aplicar = useCallback((r: Registro) => {
     const p = lerPerfil(r.meta); setReg(r); registrarTitulo(id, r.title); setNome(r.title); setClasse(p.classe); setNivel(String(p.nivel)); setPublico(r.visibility === "campaign"); setRetrato(p.retrato); setInventario(Array.isArray(r.meta.inventario) ? r.meta.inventario.filter((x): x is string => typeof x === "string") : []);
   }, [id]);
@@ -169,18 +178,28 @@ export function FichaPagina({ id, onOpenContent }: { id: string; onOpenContent?:
     if (!r.ok) { setMsg({ ok: false, t: r.error }); return false; }
     aplicar(r.data); setMsg({ ok: true, t: "Personagem salvo." }); avisarRegistros(); return true;
   };
-  const escolherRetrato = async (f: File | undefined) => {
+  const escolherRetrato = (f: File | undefined) => {
     if (!f || !capa) return; const bad = validarCapa(f); if (bad) { setMsg({ ok: false, t: bad }); return; }
-    setBusy(true); setMsg(null); const r = await capa.enviar(reg.campaignId, f); setBusy(false);
-    if (r.ok) setRetrato(r.data); else setMsg({ ok: false, t: r.error });   // vale ao salvar; o arquivo anterior é apagado depois do salvamento
+    setMsg(null); setNovoRetrato({ arquivo: f, url: URL.createObjectURL(f) });
   };
-  const excluir = async () => { setBusy(true); const r = await api.remove(reg.id); setBusy(false); if (!r.ok) { setMsg({ ok: false, t: r.error }); return; } if (original?.retrato && capa) void capa.apagar(original.retrato); setReg(null); avisarRegistros(); };
+  const fecharNovo = () => { if (novoRetrato) URL.revokeObjectURL(novoRetrato.url); setNovoRetrato(null); };
+  const enviarRetrato = async (e: Enquadramento) => {
+    if (!novoRetrato || !capa) return;
+    setBusy(true); const r = await capa.enviar(reg.campaignId, novoRetrato.arquivo); setBusy(false);
+    if (r.ok) setRetrato(juntar(r.data, e)); else setMsg({ ok: false, t: r.error });   // vale ao salvar; o arquivo anterior é apagado depois do salvamento
+    fecharNovo();
+  };
+  const excluir = async () => { setBusy(true); const r = await api.remove(reg.id); setBusy(false); if (!r.ok) { setMsg({ ok: false, t: r.error }); return; } if (original?.retrato && capa) void capa.apagar(separar(original.retrato).base); setReg(null); avisarRegistros(); };
   return <div className="content ficha auth wide" {...gesto}><div className="eyebrow">PERSONAGEM · {reg.visibility === "campaign" ? "VISÍVEL PARA A CAMPANHA" : "PRIVADO (SÓ VOCÊ VÊ)"}</div>
     {secoes}
-    <form noValidate onSubmit={e => { e.preventDefault(); void salvar().then(ok => { if (ok && original?.retrato && retrato !== original.retrato && capa) void capa.apagar(original.retrato); }); }}>
+    <form noValidate onSubmit={e => { e.preventDefault(); void salvar().then(ok => { if (ok && original?.retrato && (!retrato || separar(retrato).base !== separar(original.retrato).base) && capa) void capa.apagar(separar(original.retrato).base); }); }}>
       {subsecao === "ficha" && <><div className="ficha-topo"><Retrato caminho={retrato} nome={nome} tamanho={72}/>
-        <div className="row"><label className="btn-secondary file-btn">{retrato ? "Trocar retrato" : "Adicionar retrato"}<input type="file" hidden accept="image/jpeg,image/png,image/webp" disabled={busy || !capa} onChange={e => { void escolherRetrato(e.target.files?.[0]); e.target.value = ""; }}/></label>
+        <div className="row"><label className="btn-secondary file-btn">{retrato ? "Trocar retrato" : "Adicionar retrato"}<input type="file" className="arquivo-invisivel" accept="image/jpeg,image/png,image/webp" disabled={busy || !capa} onChange={e => { escolherRetrato(e.target.files?.[0]); e.target.value = ""; }}/></label>
+          {retrato && <button type="button" className="btn-secondary" disabled={!urlRetrato} onClick={() => setAjustando(true)}>Ajustar enquadramento</button>}
           {retrato && <button type="button" className="btn-secondary" onClick={() => setRetrato(null)}>Remover retrato</button>}</div></div>
+      {novoRetrato && <EditorEnquadramento titulo="Enquadrar retrato" src={novoRetrato.url} proporcao={1} previas={[96, 56]} ocupado={busy} confirmar="Usar esta imagem" onConfirmar={e => void enviarRetrato(e)} onCancelar={fecharNovo}/>}
+      {ajustando && retrato && urlRetrato && <EditorEnquadramento titulo="Ajustar enquadramento do retrato" src={urlRetrato} inicial={separar(retrato).enquadramento} proporcao={1} previas={[96, 56]}
+        onConfirmar={e => { setRetrato(juntar(retrato, e)); setAjustando(false); }} onCancelar={() => setAjustando(false)}/>}
       <label>Nome<input value={nome} maxLength={120} onChange={e => setNome(e.target.value)}/></label>
       <label>Classe<input value={classe} maxLength={40} onChange={e => setClasse(e.target.value)} placeholder="Ex.: Clériga"/></label>
       <label>Nível<input type="number" min={NIVEL_MIN} max={NIVEL_MAX} value={nivel} onChange={e => setNivel(e.target.value)}/></label>

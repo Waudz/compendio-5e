@@ -40,7 +40,7 @@ function Habilidade({ h, onAbrirMagia }: { h: Texto; onAbrirMagia?: (id: string)
 
 export function DetalheMonstro({ monstro: m, onAbrirMagia }: { monstro: Monstro; onAbrirMagia?: (id: string) => void }) {
   const linhas: [string, string][] = [];
-  if (m.salvaguardas && Object.keys(m.salvaguardas).length) linhas.push(["Salvaguardas", Object.entries(m.salvaguardas).map(([a, v]) => `${siglaAtributo(a)} ${formatarModificador(v)}`).join(", ")]);
+  if (m.salvaguardas && Object.keys(m.salvaguardas).length) linhas.push(["Testes de resistência", Object.entries(m.salvaguardas).map(([a, v]) => `${siglaAtributo(a)} ${formatarModificador(v)}`).join(", ")]);
   if (m.pericias && Object.keys(m.pericias).length) linhas.push(["Perícias", Object.entries(m.pericias).map(([a, v]) => `${rotuloPericia(a)} ${formatarModificador(v)}`).join(", ")]);
   if (m.defesas.vulnerabilidadesTexto) linhas.push(["Vulnerabilidades", m.defesas.vulnerabilidadesTexto]);
   if (m.defesas.resistenciasTexto) linhas.push(["Resistências", m.defesas.resistenciasTexto]);

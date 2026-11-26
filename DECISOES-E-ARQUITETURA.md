@@ -374,3 +374,28 @@ Prazo definitivo do Compêndio: **12/12/2026**. Substitui os pontos da DEC-027 i
 - **Banco:** migração **0013 proposta, não aplicada**. Personagens antigos passam a aparecer para a campanha na próxima gravação, sem os campos ocultos.
 - **Adiado:** loot, sintonização, galeria colaborativa, Assimilação, rolador 3D e anotações.
 
+### DEC-029 — Personagem: fonte única do estado vital, criação por etapas e identidade de D&D (26/11/2026)
+
+Prevalece sobre o que conflitar nas DEC-027 e DEC-028.
+
+- **Fonte única:** PV, PV temporários, condições e salvaguardas contra a morte existem só na ficha (`character_sheets.draft`). Mudam por **operações** no servidor (`alterar_vitais`), com a linha travada e identificador que impede repetição; a gravação da ficha inteira **preserva** esses campos e as operações não avançam a revisão. A Iniciativa lê e altera a ficha; não grava PV de personagem "ao finalizar". Sem o cartão "Estado em combate". A `character_combat_status` (0011) deixa de ser usada. Fila única no cliente (`src/vitais/`), com tempo real e releitura de reserva.
+- **Teto de PV (revisão de 26/11):** o banco não conhece as regras, então o aplicativo informa o PV máximo e o servidor o limita a **30 × nível** (curar, definir, ajustar, descansar, usar item e criar a ficha). Nenhum personagem 2014 legítimo chega ao teto. Isso impede valores absurdos; não prova o máximo exato. Quem edita a própria ficha já controla a construção (atributos, classe, nível).
+- **Aplicativo anterior à 0014:** o aplicativo atual envia `_protocolo: 2` ao gravar a ficha (o banco remove antes de guardar). Sem esse sinal, uma gravação que **mudaria** PV, temporários, condições ou morte é **recusada** (`aplicativo_desatualizado`), em vez de aceita e descartada em silêncio. O resto continua sendo salvo.
+- **Inventário:** usar (consumir) e transferir são funções atômicas no banco (`usar_consumivel`, `transferir_item`); a transferência preserva a instância (e as concessões presas a ela), registra nos dois lados e só sai de ficha própria (ou pelo mestre), para outro personagem guiado da mesma campanha.
+- **Layout:** margens proporcionais à largura do **painel**, uma única rolagem vertical por grupo, conteúdo centralizado.
+- **Imagens editáveis:** um editor só (`src/imagem/`), popup com arraste, roda, pinça e teclado; não destrutivo. O enquadramento do retrato viaja na referência (`#enq=zoom,x,y`).
+- **Identidade visual por sistema:** a de D&D fica em `src/dnd/`, escopada em `.sistema-dnd` (escudo de CA, D20 de nível, molduras de atributo, dados de vida, divisórias douradas). Componentes genéricos em `src/ui/` (modal, menu de ações, etapas e cartões de escolha), reutilizáveis por outros sistemas. Tema claro é preferência em Conta; o padrão continua escuro.
+- **Criação, edição e subida de nível:** criação em sete etapas com salto livre, pendências com atalho e salvamento incompleto; edição por categorias, sem controles de mesa; subida de nível em fluxo próprio, com comparação, que só altera nível, PV por nível e escolhas novas.
+- **Origens:** só o Acólito vem do SRD 5.1. As demais usam os dados mecânicos e os **resumos próprios** do Compêndio 1.0 (`src/criador/origens-2014.ts`); nenhum texto oficial é distribuído. Objetos sem item no catálogo usam `background-trinket` com o nome.
+- **Banco:** migração **0014 proposta, não aplicada** (inclui o enquadramento na validação da apresentação e o item `background-trinket`). Precisa ser aplicada **junto** com a publicação do aplicativo.
+
+### DEC-030 — Aparência aprovada da ficha e do inventário (26/11/2026)
+
+Substitui a **identidade visual** da DEC-029 (a lógica dela permanece). As referências aprovadas pelo responsável (12 telas) valem para organização, hierarquia e comportamento; cores e tipografia são as do Compêndio 2.0.
+
+- Sem molduras, dourado, serifa, D20 de nível, escudo na CA ou barra de vida. Ícones pequenos apenas funcionais.
+- Grades dos seis indicadores e dos seis atributos: **6×1, 3×2 ou 2×3** pela largura do painel.
+- Vocabulário visível: **"Testes de resistência"** (nomes internos não mudam; descrições do catálogo permanecem como cadastradas).
+- Tipo de ação **Especial**: só habilidades que o SRD resolve fora de ação, ação bônus e reação, e magias de conjuração longa. Sem classificação conhecida, a habilidade aparece só em "Todas".
+- Operação sem suporte no banco aparece **desabilitada e explicada**; nunca simula sucesso.
+- Decisões de produto já aprovadas e ainda sem implementação: mestre **e** jogador identificam itens (jogador no descanso curto ou com a magia Identificação; os dados verdadeiros nunca vão ao jogador pela API); dono e mestre recuperam cargas manualmente até o máximo; sintonização com limite 3, configurável por personagem pelo mestre e validado no servidor; transferência de moedas. **Pendente de decisão:** compartilhamento individual ou coletivo do conhecimento de itens mágicos.

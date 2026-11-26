@@ -1,75 +1,59 @@
-// Retrato ÚNICO do personagem: envio de arquivo do aparelho (com enquadramento quadrado antes de enviar), prévia, troca e remoção.
-// O arquivo vai para o bucket privado `campaign-assets` (participantes da campanha leem; tipo e tamanho validados aqui e no bucket).
-// O mesmo valor serve à ficha, à apresentação pública, ao Início, a Personagens e à Iniciativa.
-import { Trash2, Upload } from "lucide-react";
+// Retrato ÚNICO do personagem: envio de arquivo do aparelho ou endereço, com o editor compartilhado de enquadramento. O arquivo ORIGINAL
+// é enviado inteiro para o bucket privado `campaign-assets`; o enquadramento vai junto da referência e pode ser refeito quando quiser.
+// O mesmo valor serve à ficha, à apresentação pública, ao Início, a Personagens, à Iniciativa e aos Encontros.
+import { Crop, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CAPA_TIPOS, ENQUADRAMENTO_PADRAO, estiloEnquadramento, validarCapa, type Enquadramento } from "../capa";
+import { CAPA_TIPOS, validarCapa } from "../capa";
 import { retratoValido } from "../fichas";
+import { EditorEnquadramento } from "../imagem/EditorEnquadramento";
+import { juntar, separar, type Enquadramento } from "../imagem/enquadramento";
 import { useCapa } from "../RegistrosContext";
-import { RetratoQuadrado } from "../RetratoCombate";
+import { RetratoQuadrado, useEnderecoDaImagem } from "../RetratoCombate";
 
-export const LADO_RETRATO = 512;
-
-/** Recorta o quadrado enquadrado e reduz para 512 px. Sem suporte a canvas, devolve o arquivo original. */
-export async function recortarRetrato(arquivo: File, url: string, e: Enquadramento): Promise<File> {
-  try {
-    const img = new Image(); img.src = url; await img.decode();
-    const canvas = document.createElement("canvas"); canvas.width = canvas.height = LADO_RETRATO;
-    const ctx = canvas.getContext("2d"); if (!ctx || !img.naturalWidth) return arquivo;
-    const escala = (LADO_RETRATO / Math.min(img.naturalWidth, img.naturalHeight)) * e.zoom;
-    const w = img.naturalWidth * escala, h = img.naturalHeight * escala;
-    ctx.drawImage(img, (LADO_RETRATO - w) * (e.x / 100), (LADO_RETRATO - h) * (e.y / 100), w, h);
-    const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/webp", 0.9));
-    return blob && blob.type === "image/webp" ? new File([blob], "retrato.webp", { type: "image/webp" }) : arquivo;
-  } catch { return arquivo; }
-}
+const PREVIAS = [96, 56, 36];
+const NOTA = "A imagem original é preservada: você pode refazer o enquadramento depois.";
 
 export function CampoRetrato({ valor, campaignId, onChange }: { valor: string; campaignId: string; onChange: (v: string) => void }) {
   const capa = useCapa();
-  const [arquivo, setArquivo] = useState<File | null>(null), [url, setUrl] = useState<string | null>(null), [enq, setEnq] = useState<Enquadramento>(ENQUADRAMENTO_PADRAO);
+  const [arquivo, setArquivo] = useState<File | null>(null), [urlArquivo, setUrlArquivo] = useState<string | null>(null), [ajustando, setAjustando] = useState(false);
   const [enviando, setEnviando] = useState(false), [erro, setErro] = useState<string | null>(null);
+  const enderecoAtual = useEnderecoDaImagem(retratoValido(valor) ? separar(valor).base : null);
   useEffect(() => {
-    if (!arquivo || typeof URL.createObjectURL !== "function") { setUrl(null); return; }
-    const u = URL.createObjectURL(arquivo); setUrl(u); return () => URL.revokeObjectURL(u);
+    if (!arquivo || typeof URL.createObjectURL !== "function") { setUrlArquivo(null); return; }
+    const u = URL.createObjectURL(arquivo); setUrlArquivo(u); return () => URL.revokeObjectURL(u);
   }, [arquivo]);
   const escolher = (f: File | undefined) => {
     if (!f) return;
     const problema = validarCapa(f); if (problema) { setErro(problema); return; }
-    setErro(null); setEnq(ENQUADRAMENTO_PADRAO); setArquivo(f);
+    setErro(null); setArquivo(f);
   };
-  const enviar = async () => {
+  const enviar = async (e: Enquadramento) => {
     if (!arquivo || !capa) return;
     setEnviando(true); setErro(null);
-    const pronto = url ? await recortarRetrato(arquivo, url, enq) : arquivo;
-    const r = await capa.enviar(campaignId, pronto);
+    const r = await capa.enviar(campaignId, arquivo);
     setEnviando(false);
     if (!r.ok) { setErro(r.error); return; }
-    onChange(`storage:${r.data}`); setArquivo(null);
+    onChange(juntar(`storage:${r.data}`, e)); setArquivo(null);
   };
-  const controle = (rotulo: string, chave: keyof Enquadramento, min: number, max: number, passo: number) =>
-    <label>{rotulo}<input type="range" aria-label={rotulo} min={min} max={max} step={passo} value={enq[chave]} onChange={ev => setEnq(a => ({ ...a, [chave]: Number(ev.target.value) }))}/></label>;
-  const endereco = valor.startsWith("storage:") ? "" : valor;
+  const endereco = valor.startsWith("storage:") ? "" : separar(valor).base;
   return <div className="campo-retrato" role="group" aria-label="Retrato do personagem">
-    <div className="campo-retrato-atual">
-      {arquivo && url ? <span className="campo-retrato-previa"><img src={url} alt="Prévia do enquadramento" style={estiloEnquadramento(enq)}/></span>
-        : <RetratoQuadrado tipo="personagem" tamanho={112} src={retratoValido(valor) ? valor : null}/>}
-    </div>
+    <div className="campo-retrato-atual"><RetratoQuadrado tipo="personagem" tamanho={112} src={retratoValido(valor) ? valor : null}/></div>
     <div className="campo-retrato-acoes">
-      {!arquivo && <div className="row">
+      <div className="row">
         <label className="btn-secondary file-btn"><Upload size={14} aria-hidden="true"/> {valor ? "Trocar retrato" : "Enviar retrato"}
           <input type="file" className="arquivo-invisivel" aria-label="Arquivo do retrato" accept={CAPA_TIPOS.join(",")} disabled={!capa} onChange={e => { escolher(e.target.files?.[0]); e.target.value = ""; }}/></label>
+        {retratoValido(valor) && <button type="button" className="btn-secondary" disabled={!enderecoAtual} onClick={() => { setErro(null); setAjustando(true); }}><Crop size={14} aria-hidden="true"/> Ajustar enquadramento</button>}
         {valor && <button type="button" className="btn-secondary" onClick={() => { setErro(null); onChange(""); }}><Trash2 size={14} aria-hidden="true"/> Remover retrato</button>}
-      </div>}
-      {arquivo && <>
-        {controle("Zoom do retrato", "zoom", 1, 3, 0.05)}{controle("Posição horizontal do retrato", "x", 0, 100, 1)}{controle("Posição vertical do retrato", "y", 0, 100, 1)}
-        <div className="row"><button type="button" className="btn-primary" disabled={enviando} onClick={() => void enviar()}>{enviando ? "Enviando…" : "Usar esta imagem"}</button>
-          <button type="button" className="btn-secondary" disabled={enviando} onClick={() => setArquivo(null)}>Cancelar envio</button></div>
-      </>}
+      </div>
       <p className="muted">{capa ? "JPEG, PNG ou WebP de até 5 MB. Há um único retrato por personagem, visto pela campanha." : "O envio de arquivos exige conta na campanha. Use um endereço de imagem abaixo."}</p>
       <details><summary>Usar um endereço de imagem</summary>
         <label>Endereço https da imagem<input aria-label="Endereço do retrato" type="url" inputMode="url" placeholder="https://" value={endereco} maxLength={2000} onChange={e => onChange(e.target.value.trim())}/></label></details>
       {valor && !retratoValido(valor) && <p role="alert" className="notice err">O endereço deve começar com https:// e não ter espaços.</p>}
-      {erro && <p role="alert" className="notice err">{erro}</p>}
+      {erro && !arquivo && <p role="alert" className="notice err">{erro}</p>}
     </div>
+    {arquivo && urlArquivo && <EditorEnquadramento titulo="Enquadrar retrato" src={urlArquivo} proporcao={1} previas={PREVIAS} ocupado={enviando} erro={erro} nota={NOTA} confirmar="Usar esta imagem"
+      onConfirmar={e => void enviar(e)} onCancelar={() => { setArquivo(null); setErro(null); }}/>}
+    {ajustando && enderecoAtual && <EditorEnquadramento titulo="Ajustar enquadramento do retrato" src={enderecoAtual} inicial={separar(valor).enquadramento} proporcao={1} previas={PREVIAS} nota={NOTA}
+      onConfirmar={e => { onChange(juntar(valor, e)); setAjustando(false); }} onCancelar={() => setAjustando(false)}/>}
   </div>;
 }

@@ -50,7 +50,7 @@ async function abrirExistente() {
     if (editar) fireEvent.click(editar);
     return screen.getByLabelText('Nome do personagem') as HTMLInputElement;
   });
-  await screen.findByRole('combobox', { name: 'Classe' });
+  await screen.findByRole('navigation', { name: 'Etapas do personagem' });
   return { banco, api, nome, id: criado.data.id };
 }
 const salvar = () => fireEvent.click(screen.getByRole('button', { name: /^Salvar$/ }));
@@ -83,20 +83,14 @@ it('cancelar a troca de classe não suja a ficha nem reinicia recursos ou invent
   const { banco, api } = await abrirExistente();
   const persistido = structuredClone(banco.fichas[0]);
   const gravar = vi.spyOn(api, 'salvar');
-  fireEvent.change(screen.getByRole('combobox', { name: 'Classe' }), { target: { value: 'wizard' } });
-  const confirmacao = await screen.findByRole('region', { name: 'Confirmar classe' });
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'Etapas do personagem' })).getByRole('button', { name: /^Classe e nível/ }));
+  const classes = () => within(screen.getByRole('radiogroup', { name: 'Classe' }));
+  fireEvent.click(classes().getByRole('radio', { name: /^Mago/ }));
+  const confirmacao = await screen.findByRole('dialog', { name: 'Trocar para Mago?' });   // há recursos gastos a perder
   fireEvent.click(within(confirmacao).getByRole('button', { name: 'Cancelar troca de classe' }));
-  expect(screen.queryByRole('region', { name: 'Confirmar classe' })).toBeNull();
-  expect((screen.getByRole('combobox', { name: 'Classe' }) as HTMLSelectElement).value).toBe('fighter');
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(classes().getByRole('radio', { name: /^Guerreiro/ }).getAttribute('aria-checked')).toBe('true');
   expect(screen.queryByText('Alterações não salvas.')).toBeNull();
-  const secoes = within(screen.getByRole('navigation', { name: 'Seções do personagem' }));
-  fireEvent.click(secoes.getByRole('button', { name: 'Inventário' }));
-  const linhas = within(screen.getByRole('region', { name: 'Inventário' })).getAllByRole('listitem');
-  expect(linhas).toHaveLength(2);
-  expect(linhas.map(linha => linha.textContent)).toEqual([
-    expect.stringContaining('Relíquia inicial · quantidade 1'),
-    expect.stringContaining('Relíquia adquirida · quantidade 3'),
-  ]);
   expect(gravar).not.toHaveBeenCalled();
   expect(banco.fichas[0]).toEqual(persistido);
 });

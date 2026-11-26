@@ -36,6 +36,8 @@ Uma única entidade de personagem/ficha. Identidade pública é somente a aprese
 
 **Situação (DEC-028):** apresentação automática calculada da ficha, com nome obrigatório, alcunha independente, usar da ficha/personalizar/ocultar para nome, alcunha, raça, classe e nível, descrição pública e retrato único com envio de arquivo. Depende da migração 0013 (proposta).
 
+**Situação (DEC-029, 26/11/2026):** a ficha e a Iniciativa usam o mesmo estado de PV, temporários e condições; criação por etapas, edição por categorias e subida de nível em fluxo próprio; inventário com usar, transferir e excluir; editor único de imagens. Depende da migração 0014 (proposta).
+
 ## 4. Compêndio e descobertas
 Manter especificação do #150, com atualização de nomenclatura: Compêndio é o único nome da área.
 - Campanha: Personagens, Bestiário, Locais, Organizações, Descobertas.
