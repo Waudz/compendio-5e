@@ -1,3 +1,4 @@
+import { ehPaginaDoCompendio } from "./compendio/navegacao";
 import { NotificacoesProvider, SinoNotificacoes } from "./compendio/Notificacoes";
 import { useConhecimento, itemConhecido } from "./compendio/conhecimento";
 import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
@@ -128,7 +129,7 @@ function Workspace({ userId }: { userId: string }) {
   }), [model, userId, campaignId]);
   const abrindo = useCallback((s: TabSpec) => { if (s.kind === "ficha" || s.kind === "criador") { lembrarCriados(); pedirFicha(s.ref); } }, [lembrarCriados]);
   const openMenu = useCallback((s: TabSpec, mode: NavMode = "new") => { abrindo(s); navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api, abrindo]);
-  const openContentLink = useCallback((s: TabSpec, originTabId?: string) => { abrindo(s); openContent(model, s, originTabId, mobile); onModelChange(model); }, [model, onModelChange, mobile, abrindo]);
+  const openContentLink = useCallback((s: TabSpec, originTabId?: string, noGrupoDaOrigem?: boolean) => { abrindo(s); openContent(model, s, originTabId, mobile, noGrupoDaOrigem); onModelChange(model); }, [model, onModelChange, mobile, abrindo]);
   useEffect(() => {
     const fechar = (e: Event) => { const id = (e as CustomEvent<string>).detail; if (!findTab(modelRef.current, id)) return; closeTab(modelRef.current, id); onModelChange(modelRef.current); };
     window.addEventListener(EVENTO_FECHAR_TELA, fechar); return () => window.removeEventListener(EVENTO_FECHAR_TELA, fechar);
@@ -264,8 +265,9 @@ function Workspace({ userId }: { userId: string }) {
 
   const abrirEmAba = useMemo(() => ({
     abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem),
-    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem) }] }),
-  }), [openContentLink]);
+    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem) },
+      ...(!mobile && ehPaginaDoCompendio(s) ? [{ label: "Abrir como aba deste grupo", onSelect: () => openContentLink(s, origem, true) }] : [])] }),
+  }), [openContentLink, mobile]);
 
   return <NotificacoesProvider><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>

@@ -6,7 +6,7 @@ import { useUnsaved, useUnsavedGuard } from "../unsaved";
 import { useContext } from "react";
 import { OrigemAbaContext } from "../abrirEmAba";
 import { useEffect, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { ImagePlus, Trash2 } from "lucide-react";
 import { useVersaoRegistros } from "../registrosStore";
 import { useCampaigns } from "../CampaignsContext";
 import { Aviso } from "../Diario";
@@ -306,17 +306,22 @@ export function EditorConhecimento({
           </>
         </select>
       </label>
-      <label>
-        Imagem privada (JPEG, PNG, WebP; até 5 MiB)
+      <div className="cd-arquivo">
+        <label className="file-btn btn-secondary">
+        <ImagePlus size={15} aria-hidden="true" /> Escolher imagem
         <input
           type="file"
+          className="arquivo-invisivel"
+          aria-label="Escolher imagem privada (JPEG, PNG, WebP; até 5 MiB)"
           accept="image/jpeg,image/png,image/webp"
           onChange={(e) => {
             setFile(e.target.files?.[0]);
             setRemoveImage(false);setFraming(ENQUADRAMENTO_PADRAO);
           }}
         />
-      </label>
+        </label>
+        <small className="muted">{file ? file.name : "Privada. JPEG, PNG ou WebP; até 5 MiB."}</small>
+      </div>
       {preview&&!removeImage&&<div className="cd-editor-portrait"><RetratoQuadrado src={juntar(preview,framing)} tamanho={100}/><button className="btn-secondary" onClick={()=>setCrop(true)}>Ajustar enquadramento</button></div>}
       {crop&&preview&&<EditorEnquadramento titulo="Enquadrar imagem" src={preview} inicial={framing} proporcao={1} onCancelar={()=>setCrop(false)} onConfirmar={value=>{setFraming(value);setCrop(false);}}/>}
       {entry?.imagePath && (

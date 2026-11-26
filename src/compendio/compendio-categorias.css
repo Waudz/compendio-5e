@@ -101,3 +101,6 @@
 .cd-result { display:grid; gap:4px; width:100%; text-align:left; color:var(--text); background:var(--panel); border:0; border-radius:7px; padding:12px; margin-bottom:6px; font:inherit; }.cd-result small { color:var(--text-2); }
 .mobile-topbar .mobile-page-title { min-width:0; }.mobile-topbar .cd-bell { flex-shrink:0; }
 @media(max-width:480px){.cd-cards.grade {grid-template-columns:repeat(2,minmax(0,1fr));}.cd-tools {gap:6px;}.cd-order {margin-left:auto;}.cd-heading > div {gap:5px;}.cd-identity {gap:10px;}.cd-identity .retrato-q {width:76px !important;height:76px !important;}.cd-identity h1 {font-size:21px;}.cd-cards.lista .cd-card-main {padding-right:50px;}.cd-cards.lista footer > small {display:none;}}
+.cd-arquivo { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-block:12px; }
+.cd-arquivo .file-btn { display:inline-flex; flex-direction:row; align-items:center; margin:0; width:auto; overflow:hidden; }
+.cd-arquivo small { min-width:0; overflow-wrap:anywhere; }

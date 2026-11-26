@@ -39,7 +39,7 @@ export function CompendioCatalogo({onOpenContent,categoriaInicial='itens',onVolt
  const allRows=[...rowsBase,...customs];const rows=allRows.slice(0,limit);const total=allRows.length;
  const pesquisar=(q:string)=>{setQuery(q);setLimit(PAGINA);};
  const ativos=Object.values(filters).filter(v=>v!==''&&v!==false).length;
- return <div className="content cd-page compendio cat"><CabecalhoCategoria title={cat.rotulo} onBack={onVoltar??(()=>onOpenContent({kind:'secao',ref:'compendio'}))}/>
+ return <div className="content cd-page compendio cat"><CabecalhoCategoria title={cat.id==='monstros'?'Bestiário':cat.rotulo} onBack={onVoltar??(()=>onOpenContent({kind:'secao',ref:'compendio'}))}/>
  {categoriaInicial==='classes'&&<div className="cd-filters" role="group" aria-label="Categorias de classe">{['classes','subclasses'].map(id=><button key={id} aria-pressed={catId===id} onClick={()=>{setCatId(id);setQuery('');setFilters({});setOrder('');setLimit(PAGINA);}}>{id==='classes'?'Classes':'Subclasses'}</button>)}</div>}
  {cat.id==='talentos'&&<p className="muted">Características do SRD utilizadas pelo motor. Esta consulta não é um catálogo completo de talentos de suplementos.</p>}
  <FerramentasCategoria searchLabel="Pesquisar no Compêndio" query={query} onQuery={pesquisar} view={view} onView={setView} order={order} onOrder={setOrder} sortOptions={[{value:'',label:query?'Relevância':'Padrão'},...cat.ordenacoes.map(x=>({value:x.id,label:x.rotulo}))]}/>

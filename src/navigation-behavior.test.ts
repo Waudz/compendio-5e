@@ -27,6 +27,14 @@ describe("navegação que preserva o espaço de trabalho", () => {
     expect(ids(m)[1]).toEqual(["item:espada", "item:escudo", "item:arco"]);
     expect(isColumnsOnly(m.toJson())).toBe(true);
   });
+  it("consulta pode abrir como aba do próprio grupo, sem criar coluna nem duplicar", () => {
+    const m = createModel();
+    openContentLink(m, { kind: "registro", ref: "julkoun" }, "secao:personagens", false, true);
+    expect(ids(m)).toEqual([["secao:personagens", "registro:julkoun"]]);
+    openContentLink(m, { kind: "registro", ref: "julkoun" }, "secao:personagens");
+    expect(ids(m).flat().filter(x => x === "registro:julkoun")).toHaveLength(1);
+    expect(isColumnsOnly(m.toJson())).toBe(true);
+  });
   it("não duplica consulta existente", () => {
     const m = createModel();
     openContentLink(m, { kind: "item", ref: "espada" });

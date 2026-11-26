@@ -11,6 +11,7 @@ import {useConhecimento,type Conhecimento} from './conhecimento';
 import {identidadeSpec,monstroSpec,registroSpec} from './navegacao';
 import {normalizar} from '../catalogue/nucleo/busca';
 export const nomesCategoria:Record<string,string>={npc:'Personagens',character:'Personagens',monster:'Bestiário',location:'Locais',organization:'Organizações',discovery:'Descobertas',item:'Descobertas'};
+export const nomesRegistro:Record<string,string>={npc:'NPC',character:'Aventureiro',monster:'Criatura',location:'Local',organization:'Organização',discovery:'Descoberta',item:'Item descoberto'};
 export type LinhaCompendio={/** Linha extra mostrada só na grade. */resumo?:string;id:string;title:string;subtitle:string;category:string;body:string;image?:string|null;spec:TabSpec;entry?:Conhecimento;pc?:Aventureiro;filter?:string};
 export function useIdentidades(){const source=useAventureiros(),{active}=useCampaigns(),{user}=useAuth(),version=useVersaoRegistros();
  const scope=`${user?.id}:${active?.campaign.id}`;
@@ -25,7 +26,7 @@ export function useLinhasCampanha(includeMonsters=false){
  const rows=useMemo<LinhaCompendio[]>(()=>{
   const entries=known.items.map(e=>{
    const m=(active?.role==='mestre'||e.knowledge===4)&&e.systemId==='dnd5e-2014'?monsters.find(x=>x.id===e.definitionId):undefined;
-   return {id:e.id,title:e.title,category:e.category,subtitle:e.category==='npc'?['NPC',e.fields?.identity,e.fields?.region].filter(Boolean).join(' · '):e.category==='monster'&&m?`ND ${m.nd} · CA ${m.ca} · PV ${m.pv}`:nomesCategoria[e.category],body:[deBlocos(e.description??[]),...Object.values(e.fields??{}),...(e.relatedTerms??[]),...(m?[m.en,...m.tracos.map(t=>t.n+' '+t.t),...m.acoes.map(a=>a.n+' '+a.t)]:[])].join(' '),spec:registroSpec(e.id,e.title),entry:e,filter:e.category==='npc'?'NPCs':e.category==='monster'?m?.tipo:e.fields?.type};
+   return {id:e.id,title:e.title,category:e.category,subtitle:e.category==='npc'?['NPC',e.fields?.identity,e.fields?.region].filter(Boolean).join(' · '):e.category==='monster'&&m?`ND ${m.nd} · CA ${m.ca} · PV ${m.pv}`:nomesRegistro[e.category],body:[deBlocos(e.description??[]),...Object.values(e.fields??{}),...(e.relatedTerms??[]),...(m?[m.en,...m.tracos.map(t=>t.n+' '+t.t),...m.acoes.map(a=>a.n+' '+a.t)]:[])].join(' '),spec:registroSpec(e.id,e.title),entry:e,filter:e.category==='npc'?'NPCs':e.category==='monster'?m?.tipo:e.fields?.type};
   });
   const chars=pcs.items.map(p=>({id:p.id,title:p.nome,subtitle:[p.classe,p.alcunha].filter(Boolean).join(' · '),category:'character',body:[p.nome,p.classe,p.alcunha,p.descricao].filter(Boolean).join(' '),image:p.retratoUrl,pc:p,spec:identidadeSpec(p.id,p.nome),filter:'Aventureiros'}));
   const full=active?.role==='mestre'?monsters.filter(m=>!known.items.some(e=>e.category==='monster'&&e.definitionId===m.id&&e.systemId==='dnd5e-2014')).map(m=>({id:'monster-'+m.id,title:m.nome,subtitle:`${m.tipo} · ND ${m.nd}`,category:'monster',body:[m.en,...m.tracos.map(t=>t.n+' '+t.t),...m.acoes.map(a=>a.n+' '+a.t)].join(' '),image:imagemDoMonstro(m.id),spec:monstroSpec(m.id,m.nome),filter:m.tipo})):[];

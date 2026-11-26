@@ -624,3 +624,31 @@ PR **#159**: https://github.com/Waudz/compendio-5e/pull/159. Branch `feat/compen
 - Validação local: suíte completa 1.733 aprovada antes da verificação adicional de versão nula; SQL final 13/13 e testes de navegação afetados 49/49. Base detectou quatro expectativas antigas de rolagem na entrada compacta; testes agora entram em Regras → Itens mantendo as mesmas verificações, confirmadas na CI. Quality local 88/88 aplicáveis. Capturas locais desktop/mobile em `test-results/capturas/` (não versionadas).
 - Último acabamento: portadores voltam a ser consultados na atualização da projeção (inclusive após transferência em outra sessão); mudança de papel limpa a projeção em memória. Teste de regressão adicionado. Os workflows do SHA final do PR devem continuar aprovados antes da revisão.
 - Limites: ilustrações de categorias são provisórias/licenciadas; acervo pessoal do navegador ainda depende de exportação; 0014/0015 exigem revisão e aplicação autorizada separada. Identificação/sintonização, construtor completo de monstros customizados, galeria global e PWA não foram antecipados. **Não integrar nem publicar sem revisão final.**
+
+## RETOMAR AQUI — Compêndio: páginas, vínculos, pesquisa e notificações (26/11/2026)
+
+Branch `codex/compendio-paginas-vinculos`, a partir de `dc04e83` (PR #159, já na `main`). O Codex iniciou e parou pelo limite de uso; o trabalho local foi salvo como estava no commit `d5680cd` e concluído em seguida. **Não mesclado, não publicado, 0016 não aplicada.** Revisão técnica, segurança, banco, integração e publicação ficam com o ChatGPT. Decisões na DEC-032; banco em `COMPENDIO-CONHECIMENTO.md` (seção 0016).
+
+**Entregue:** Campanha e Regras lado a lado em painel largo (abas no estreito, pela largura do painel); pesquisa global nas duas áreas, sem diferenciar acentos, com termos relacionados; sino no cabeçalho do aplicativo, contador em Descobertas e leitura individual; listas com componentes comuns (pesquisa, filtros, ordem, lista/grade); páginas individuais de registro, identidade, criatura e regra; editor em janela com campos por categoria e enquadramento de imagem; vínculos por ID, nos dois sentidos, removíveis sem apagar registros; no máximo dois grupos no desktop; retorno preservando pesquisa, filtros, ordem, visualização e rolagem.
+
+**Corrigido na conclusão:** checagem de tipos (retorno das páginas de item e magia); o mestre voltou a poder revelar um item pela página dele; contagem de filtros ativos, "Limpar filtros" só quando há filtro, resumo na grade e rótulo "Ordenar por"; opção "Abrir como aba deste grupo"; contador de novidades acessível; campo de imagem com botão do aplicativo; ícone da categoria quando não há imagem; nomes no singular; aviso quando não há vínculos. Removidos os componentes que as páginas substituíram.
+
+**Validação local (Windows, dados de demonstração e banco isolado):**
+
+| Etapa | Resultado |
+|---|---|
+| Tipos (aplicativo e E2E) | ok |
+| Vitest, incluindo os testes de banco em PGlite | 1739 aprovados, 141 arquivos |
+| `scripts/alpha/local-only.test.mjs` | 4 aprovados |
+| Build e `check-build-oficial` | ok |
+| Playwright Quality | 88 aprovados, 32 condicionais pulados |
+| Playwright Base | 126 aprovados, 16 pulados e 14 falhas de testes da interface anterior |
+| Playwright Creator | 131 aprovados, 4 pulados e 9 falhas (8 da interface anterior e 1 intermitente) |
+
+**Depois da bateria, só testes mudaram.** `compendio-conhecimento` e `encontros-identidade` foram adaptados (janela de edição, páginas próprias, dois grupos): 18 aprovados e 2 pulados nas 4 larguras. `creator/catalogo` (monstro → magia em páginas): 8 de 8. O arrasto da ficha em 360 px falhou uma vez em paralelo e passou 3 de 3 isolado. As suítes completas Base e Creator não foram repetidas no computador; o CI do PR as executa.
+
+**Não verificado:** Supabase hospedado, aplicação da 0016 fora do banco isolado, Auth/REST/JWT em stack real (é o workflow Alpha Supabase isolado do PR) e celular físico.
+
+**Limites e pendências:** "Mapa", "Habitantes" e documentos são texto ou vínculos (não há anexo de mapa/documento); membros e habitantes se registram por vínculo; o editor é uma janela, não uma página; a base de vínculos ainda não é usada nas anotações do mestre; registro de monstro personalizado não tem construtor de ficha. Fora do escopo e não iniciados: PWA, Loot, Encontros, quadro infinito, dados 3D e Assimilação. As pendências funcionais da ficha continuam as registradas acima.
+
+**Ordem obrigatória na publicação:** aplicar a 0016 **antes** de publicar este aplicativo. Sem ela, o mestre não consegue salvar registros do Compêndio (o aplicativo recusa e informa a migração necessária, sem gravar) e vínculos e notificações mostram erro.

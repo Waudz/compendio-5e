@@ -1,5 +1,5 @@
 // Retrato padronizado do combate e dos encontros: quadrado, cantos levemente arredondados, imagem existente (ficha/catálogo) ou placeholder único.
-import { Skull, Swords, UserRound } from "lucide-react";
+import { Skull, Swords, UserRound, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
 import { useCapa, useFichas } from "./RegistrosContext";
@@ -25,12 +25,12 @@ export function useEnderecoDaImagem(src: string | null | undefined): string | nu
 }
 
 /** Decorativo (o nome já aparece em texto ao lado): `alt` vazio. Se a imagem falhar ao carregar, cai no placeholder. */
-export function RetratoQuadrado({ src, tipo = "avulso", tamanho = 44 }: { src?: string | null; tipo?: TipoRetrato; tamanho?: number }) {
+export function RetratoQuadrado({ src, tipo = "avulso", tamanho = 44, icone }: { src?: string | null; tipo?: TipoRetrato; tamanho?: number; /** Substitui o ícone padrão quando não há imagem. */ icone?: LucideIcon }) {
   const [falhou, setFalhou] = useState(false);
   const referencia = useEnderecoDaImagem(src);
   const { base: endereco, enquadramento } = referencia ? separar(referencia) : { base: null, enquadramento: null };
   useEffect(() => setFalhou(false), [endereco]);
-  const Icone = tipo === "monstro" ? Skull : tipo === "personagem" ? UserRound : Swords;
+  const Icone = icone ?? (tipo === "monstro" ? Skull : tipo === "personagem" ? UserRound : Swords);
   return <span className="retrato-q" data-tipo={tipo} style={{ width: tamanho, height: tamanho }}>
     {endereco && !falhou ? <img src={endereco} alt="" loading="lazy" style={estiloEnquadramento(enquadramento!)} onError={() => setFalhou(true)}/> : <span className="retrato-q-vazio" aria-hidden="true" data-testid="retrato-placeholder"><Icone size={Math.round(tamanho * 0.5)}/></span>}
   </span>;

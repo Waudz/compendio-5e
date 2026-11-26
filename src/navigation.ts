@@ -75,14 +75,14 @@ export function closeTabs(m: Model, ids: string[]): void {
 }
 
 /** Links de conteúdo: focam o registro existente ou abrem na última coluna à direita.
- * Criam automaticamente no máximo dois grupos; o terceiro só é criado manualmente. No celular, usam o grupo atual.
+ * Há no máximo dois grupos. No celular, usam o grupo atual; "neste grupo" abre como aba ao lado da origem.
  */
-export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, mobile = false): NavResult {
+export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, mobile = false, noGrupoDaOrigem = false): NavResult {
   const id = tabId(spec);
   const existing = abaDoRegistro(m, spec);
   if (existing) { focusExisting(m, existing, spec); return { action: "selected", tabId: existing.getId() }; }
   // No desktop, consultas abrem sempre na coluna mais à direita, sem substituir a origem.
-  // Apenas o segundo grupo é automático; o terceiro é sempre criado manualmente.
+  // Só o segundo grupo é criado automaticamente (é também o limite).
   // No celular não há colunas lado a lado: preserva as abas no grupo atual.
   const colunas = groups(m);
   let target = mobile ? activeGroup(m) : colunas.at(-1);
@@ -90,8 +90,10 @@ export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, m
   const origem = originTabId ? findTab(m, originTabId) : undefined;
   const daFicha = !!origem && /^(ficha|criador):/.test(origem.getId()) && (spec.kind === "item" || spec.kind === "magia");
   if (!mobile && daFicha && colunas.length > 1 && origem!.getParent() === target) target = colunas[colunas.length - 2];
+  const daOrigem = noGrupoDaOrigem ? (origem?.getParent() ?? activeGroup(m)) : undefined;
+  if (daOrigem instanceof TabSetNode) target = daOrigem;
   if (!target) return { action: "selected", tabId: id };
-  const createRight = !mobile && groupCount(m) < 2;
+  const createRight = !mobile && !daOrigem && groupCount(m) < 2;
   m.doAction(Actions.addTab(tabJson({ ...spec, pinned: true }), target.getId(), createRight ? DockLocation.RIGHT : DockLocation.CENTER, -1, true));
   const created = findTab(m, id);
   const parent = created?.getParent();

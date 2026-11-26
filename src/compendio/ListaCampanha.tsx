@@ -25,7 +25,7 @@ export function ListaCampanha({category,onBack,onOpenContent}:{category:string;o
  <FerramentasCategoria query={query} onQuery={setQuery} view={view} onView={setView} order={order} onOrder={setOrder} filters={<div className="cd-filters" role="group" aria-label="Filtros da categoria">{filters.map(f=><button key={f} aria-pressed={filter===f} onClick={()=>setFilter(f)}>{f}</button>)}</div>}/>
  {data.loading&&<p role="status">Carregando registros…</p>}{data.error&&<Aviso erro t={data.error} onRetry={data.refresh}/>}{category==='personagens'&&data.pcError&&<Aviso erro t={data.pcError}/>}
  {!data.loading&&!shown.length&&<p className="muted">{query?'Nenhum resultado para esta pesquisa.':'Nenhum registro disponível nesta categoria.'}</p>}
- <p role="status" className="muted">{shown.length} resultados{shown.length>limit?` (mostrando ${limit})`:""}</p>
+ <p role="status" className="muted">{shown.length} {shown.length===1?'resultado':'resultados'}{shown.length>limit?` (mostrando ${limit})`:""}</p>
  <CartoesCategoria rows={shown.slice(0,limit)} view={view} onOpen={onOpenContent} listLabel="Resultados do Compêndio"/>{shown.length>limit&&<button className="btn-secondary" onClick={()=>setLimit(v=>v+60)}>Mostrar mais</button>}
  {create&&<EditorConhecimento category={categories[category]} entry={null} onDone={id=>{setCreate(false);data.refresh();if(id)onOpenContent(registroSpec(id));}}/>}
  </div>;
