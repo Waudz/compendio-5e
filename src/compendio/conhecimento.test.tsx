@@ -109,7 +109,7 @@ describe("Compêndio unificado", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Grade" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Voltar às categorias" }),
+      document.querySelector(".cd-back")!,
     );
     fireEvent.click(portal("Itens"));
     expect(
@@ -126,7 +126,7 @@ describe("Compêndio unificado", () => {
     await mount("jogador", api([row()]));
     fireEvent.click(portal("Bestiário"));
     const button = await screen.findByRole("button", {
-      name: "Criatura revelada",
+      name: /^Criatura revelada /,
     });
     fireEvent.click(button);
     expect(screen.queryByText("SEGREDO")).toBeNull();
@@ -136,7 +136,7 @@ describe("Compêndio unificado", () => {
       target: { value: "goblin" },
     });
     expect(
-      screen.queryByRole("button", { name: "Criatura revelada" }),
+      screen.queryByRole("button", { name: /^Criatura revelada / }),
     ).toBeNull();
   });
   it("itens mágicos revelados ficam pesquisáveis sem liberar adição livre; os desconhecidos ficam fora", async () => {
@@ -205,7 +205,7 @@ describe("Compêndio unificado", () => {
     await mount("jogador", codex);
     fireEvent.click(portal("Descobertas"));
     fireEvent.click(
-      await screen.findByRole("button", { name: "Anel revelado" }),
+      await screen.findByRole("button", { name: /^Anel revelado / }),
     );
     expect(await screen.findByText("Com: Portador A")).toBeTruthy();
     vi.mocked(codex.holders).mockResolvedValue([

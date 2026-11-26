@@ -104,20 +104,19 @@ describe("preencher o painel vazio", () => {
 });
 
 describe("limite de colunas e indicadores", () => {
-  it("com 3 painéis, dividir a aba única seria o 4º: o indicador não é oferecido e nada acontece", () => {
-    const m = createModel(); openTab(m, sec("iniciativa")); openTab(m, sec("encontros"));
-    moveToNewColumn(m, "secao:iniciativa", "right"); moveToNewColumn(m, "secao:encontros", "left");   // 3 painéis, cada um com 1 aba
+  it("com 2 painéis, dividir a aba única seria o 3º: o indicador não é oferecido e nada acontece", () => {
+    const m = createModel(); openTab(m, sec("iniciativa")); moveToNewColumn(m, "secao:iniciativa", "right");   // [personagens][iniciativa]
     expect(groupCount(m)).toBe(MAX_GROUPS);
     const g = groups(m)[1];
     expect(classifyDrop(m, g.getChildren()[0] as never, g, DockLocation.LEFT).allowed).toBe(false);
     expect(drop(m, g.getChildren()[0].getId(), g.getId(), DockLocation.RIGHT)).toBe(false);
     expect(moveToNewColumn(m, g.getChildren()[0].getId(), "left")).toBe(true);        // mas reposicionar ainda é permitido
-    expect(groupCount(m)).toBe(3);
+    expect(groupCount(m)).toBe(2);
   });
-  it("com 2 painéis dividir a aba única ainda cabe (vira 3)", () => {
-    const m = createModel(); openTab(m, sec("iniciativa")); moveToNewColumn(m, "secao:iniciativa", "right");   // [personagens][iniciativa]
-    expect(drop(m, "secao:iniciativa", groups(m)[1].getId(), DockLocation.RIGHT)).toBe(true);
-    expect(groupCount(m)).toBe(3); expect(valid(m)).toBe(true);
+  it("com 1 painel dividir a aba única ainda cabe (vira 2)", () => {
+    const m = createModel();
+    expect(drop(m, "secao:personagens", groups(m)[0].getId(), DockLocation.RIGHT)).toBe(true);
+    expect(groupCount(m)).toBe(2); expect(valid(m)).toBe(true);
   });
   it("nunca oferece em cima/embaixo nem operações que não mudam nada (vizinho imediato)", () => {
     const m = createModel(); openTab(m, sec("iniciativa")); moveToNewColumn(m, "secao:iniciativa", "right");   // [personagens][iniciativa]
@@ -198,11 +197,11 @@ describe("salvar e restaurar painéis vazios", () => {
       { type: "tabset", weight: 30, children: [] }] } })!;
     expect(j.layout.children).toHaveLength(2);
   });
-  it("mais de 3 grupos: descarta vazios antes de fundir abas", () => {
+  it("mais de 2 grupos: descarta vazios antes de fundir abas", () => {
     const j = sanitizeLayout({ layout: { type: "row", children: [
       { type: "tabset", weight: 25, children: [{ id: "secao:personagens" }] }, { type: "tabset", weight: 25, children: [] },
       { type: "tabset", weight: 25, children: [{ id: "secao:iniciativa" }] }, { type: "tabset", weight: 25, children: [{ id: "secao:encontros" }] }] } })!;
-    expect(j.layout.children).toHaveLength(3);
+    expect(j.layout.children).toHaveLength(2);
     expect(j.layout.children!.flatMap(g => (g as { children: unknown[] }).children)).toHaveLength(3);   // nenhuma aba perdida
   });
 });

@@ -74,17 +74,15 @@ describe('Compêndio na navegação real', () => {
     expect(resultados()).toHaveLength(60);
   });
 
-  it('abrir um item mostra os dados da definição compartilhada no painel de detalhe; "Abrir em nova aba" cria a aba com o nome do item', async () => {
+  it('abrir um item cria a página dele, em aba com o nome do item, com os dados da definição compartilhada', async () => {
     await montar(); await abrirCompendio();
     pesquisar('espada longa'); fireEvent.click(cartao('Espada longa'));
     const detalhe = await screen.findByRole('article', { name: 'Detalhes de Espada longa' });
-    expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio']);                                                       // detalhe em painel, sem abrir aba por padrão
     const fatos = within(detalhe.querySelector('.item-fatos') as HTMLElement);
     expect(fatos.getByText('Dano').nextSibling?.textContent).toBe('1d8 cortante (1d10 com duas mãos)');
     expect(fatos.getByText('Custo').nextSibling?.textContent).toBe('15 po');
     expect(fatos.getByText('Peso').nextSibling?.textContent).toBe('1,5 kg');
     expect(within(detalhe).getByText(/Atribuição/)).toBeTruthy();
-    fireEvent.click(within(detalhe).getByRole('button', { name: /Abrir em nova aba/ }));
     expect(await screen.findByRole('heading', { name: 'Espada longa', level: 1 })).toBeTruthy();
     expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio', 'Espada longa']);
   });
@@ -118,7 +116,7 @@ describe('Compêndio na navegação real', () => {
 
 describe('Compêndio no celular', () => {
   beforeEach(() => { mobile = true; });
-  it('barra inferior abre o Compêndio, abrir item mostra o detalhe e "Voltar à lista" retorna à busca', async () => {
+  it('barra inferior abre o Compêndio, o item ocupa a tela e voltar retorna à busca', async () => {
     await montar();
     const barra = () => within(screen.getByRole('navigation', { name: 'Navegação mobile' }));
     await waitFor(() => expect(document.querySelector('.mobile-page-title')?.textContent).toBe(camp.name));
@@ -128,7 +126,7 @@ describe('Compêndio no celular', () => {
     pesquisar('escudo'); fireEvent.click(cartao('Escudo', 'Escudo'));
     expect(await screen.findByRole('article', { name: 'Detalhes de Escudo' })).toBeTruthy();
     expect(screen.queryByRole('tablist')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Voltar à lista' }));
+    fireEvent.click(document.querySelector<HTMLButtonElement>('.cd-page .cd-back')!);
     expect(screen.queryByRole('article', { name: 'Detalhes de Escudo' })).toBeNull();
     expect(await screen.findByLabelText('Pesquisar no Compêndio')).toBeTruthy();
   });

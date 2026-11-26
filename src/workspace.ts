@@ -119,7 +119,7 @@ export function sanitizeLayout(data: unknown): IJsonModel | null {
       ...(tabs.length ? {} : { enableDeleteWhenEmpty: false }) });   // vazio intencional: não é apagado automaticamente
   }
   if (!groups.some(g => g.children!.length) ) return { ...defaultLayout(), layout: { type: "row", children: [{ type: "tabset", id: "grupo-1", weight: 100, active: true, children: [] }] } };
-  // Mais de 3 grupos: descarta primeiro painéis vazios, depois funde o excedente no último grupo mantido.
+  // Grupos além do limite: descarta primeiro painéis vazios, depois funde o excedente no último grupo mantido.
   while (groups.length > MAX_GROUPS && groups.some(g => !g.children!.length)) groups.splice(groups.map(g => !g.children!.length).lastIndexOf(true), 1);
   while (groups.length > MAX_GROUPS) { const extra = groups.pop()!; groups[MAX_GROUPS - 1].children!.push(...extra.children!); groups[MAX_GROUPS - 1].weight! += extra.weight!; }
   const ids = new Set<string>();

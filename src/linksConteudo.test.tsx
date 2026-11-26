@@ -100,15 +100,16 @@ describe("link de conteúdo (desktop)", () => {
     expect(JSON.stringify(saved().layout)).toMatch(/documento:d1/); expect((JSON.stringify(saved().layout).match(/documento:d1/g) ?? []).length).toBe(1);
   });
 
-  it("com três painéis o registro continua único e vai para o painel de quem clicou", async () => {
+  it("não abre um terceiro painel: o registro continua único e vai para o painel de quem clicou", async () => {
     await renderApp();
     fireEvent.click(nav("Iniciativa"), { ctrlKey: true }); fireEvent.click(nav("Encontros"), { ctrlKey: true });
     fireEvent.contextMenu(tabEl("Iniciativa")); pick("Abrir em nova coluna à direita");
     fireEvent.contextMenu(tabEl("Encontros")); pick("Abrir em nova coluna à direita");
-    expect(saved().layout.children).toHaveLength(3);
-    link("link d2", 2);
+    expect(saved().layout.children).toHaveLength(2);
+    link("link d2", 1);
     const groups = saved().layout.children as { children: { id: string }[] }[];
-    expect(groups.map(g => g.children.map(t => t.id))).toEqual([["secao:personagens"], ["secao:iniciativa"], ["secao:encontros", "documento:d2"]]);
+    expect((JSON.stringify(groups).match(/documento:d2/g) ?? [])).toHaveLength(1);
+    expect(groups[1].children.map(t => t.id)).toContain("documento:d2");
   });
 
   it("a marca de permanente é salva sem títulos e restaurada ao recarregar", async () => {

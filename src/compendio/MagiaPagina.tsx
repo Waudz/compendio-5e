@@ -5,9 +5,10 @@ import type { Magia } from "../catalogue/sistemas/dnd5e-2014/esquemas";
 import { Aviso } from "../Diario";
 import { registrarTitulo } from "../registrosStore";
 import {VoltarCompendio} from "./Paginas";
+import type { TabSpec } from "../workspace";
 import { DetalheMagia } from "./DetalheMagia";
 
-export function MagiaPagina({ id }: { id: string }) {
+export function MagiaPagina({ id, onOpenContent }: { id: string; onOpenContent: (s: TabSpec) => void }) {
   const [dados, setDados] = useState<{ id: string; magia?: Magia; erro?: boolean } | null>(null), [tentativa, setTentativa] = useState(0);
   useEffect(() => {
     let vivo = true; setDados(null);
@@ -15,6 +16,6 @@ export function MagiaPagina({ id }: { id: string }) {
     return () => { vivo = false; };
   }, [id, tentativa]);
   if (!dados || dados.id !== id) return <div className="content"><p className="muted" role="status">Carregando magia…</p></div>;
-  return <div className="content cd-page"><VoltarCompendio/>{dados.magia ? <article aria-label={`Detalhes de ${dados.magia.nome}`}><h1>{dados.magia.nome}</h1><DetalheMagia magia={dados.magia}/></article>
+  return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/>{dados.magia ? <article aria-label={`Detalhes de ${dados.magia.nome}`}><h1>{dados.magia.nome}</h1><DetalheMagia magia={dados.magia}/></article>
     : <Aviso erro t={dados.erro ? "Não foi possível carregar a magia." : "Magia não encontrada."} onRetry={dados.erro ? () => setTentativa(n => n + 1) : undefined}/>}</div>;
 }

@@ -216,7 +216,7 @@ function CompendioInicio({
   useEffect(()=>{const el=root.current;if(!el||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(entries=>setWide((entries[0]?.contentRect.width??0)>=760));observer.observe(el);return()=>observer.disconnect();},[categoria]);
   useEffect(()=>{const handler=(event:Event)=>{const cat=(event as CustomEvent<string>).detail;if(cat){setCategoria(cat);setGrupo(['personagens','monstros','locais','organizacoes','descobertas'].includes(cat)?'Campanha':'Regras');}};window.addEventListener(VOLTAR_COMPENDIO,handler);return()=>window.removeEventListener(VOLTAR_COMPENDIO,handler);},[]);
   useEffect(()=>{navegacao.set(scope,{grupo,categoria,query});},[scope,grupo,categoria,query]);
-  if(categoria)return ['personagens','locais','organizacoes','descobertas'].includes(categoria)||(categoria==='monstros'&&active?.role!=='mestre')?<ListaCampanha key={`${scope}:${categoria}`} category={categoria} onBack={voltar} onOpenContent={onOpenContent}/>:<CompendioCatalogo key={`${scope}:${categoria}`} categoriaInicial={categoria} onVoltar={voltar} paginasIndividuais onOpenContent={onOpenContent}/>;
+  if(categoria)return ['personagens','locais','organizacoes','descobertas'].includes(categoria)||(categoria==='monstros'&&active?.role!=='mestre')?<ListaCampanha key={`${scope}:${categoria}`} category={categoria} onBack={voltar} onOpenContent={onOpenContent}/>:<CompendioCatalogo key={`${scope}:${categoria}`} categoriaInicial={categoria} onVoltar={voltar} onOpenContent={onOpenContent}/>;
   return <div className="content compendio-inicio cd-home" ref={root} data-wide={wide} onTouchStart={e=>{if((e.target as HTMLElement).closest('input,textarea,select'))return;const t=e.touches[0];toque.current={x:t.clientX,y:t.clientY};}} onTouchCancel={()=>{toque.current=null;}} onTouchEnd={e=>{const start=toque.current;toque.current=null;if(!start||wide)return;const t=e.changedTouches[0],dx=t.clientX-start.x,dy=t.clientY-start.y;if(Math.abs(dx)>65&&Math.abs(dx)>1.4*Math.abs(dy))setGrupo(dx<0?'Regras':'Campanha');}}>
    <h1>Compêndio</h1><PesquisaGlobal query={query} onQuery={setQuery} onOpenContent={onOpenContent}/>
    {!query.trim()&&<>{!wide&&<div className="cat-categorias" role="group" aria-label="Áreas do Compêndio">{(['Campanha','Regras'] as const).map(g=><button key={g} aria-pressed={grupo===g} onClick={()=>setGrupo(g)}>{g}</button>)}</div>}
@@ -284,10 +284,11 @@ export function ItemPagina({
       </div>
     );
   return (
-    <div className="content cd-page item-pagina"><VoltarCompendio/><article aria-label={`Detalhes de ${item.nome}`}>
+    <div className="content cd-page item-pagina"><VoltarCompendio onOpenContent={onOpenContent}/><article aria-label={`Detalhes de ${item.nome}`}>
       <div className="eyebrow">COMPÊNDIO · ITEM</div>
       <h1>{item.nome}</h1>
       <p className="muted">{item.en}</p>
+      <RevelarReferencia category="item" id={id} nome={item.nome}/>
       <DetalheItem item={item} onOpenContent={onOpenContent} /></article>
     </div>
   );
@@ -299,5 +300,5 @@ export function MonstroPagina({id,onOpenContent}:{id:string;onOpenContent:(s:Tab
  useEffect(()=>{let alive=true;if(allowed)void import('./catalogue/contratos').then(c=>c.todosOsMonstros()).then(ms=>{const monster=ms.find(m=>m.id===id);if(alive){setData({id,monster});if(monster)registrarTitulo(id,monster.nome);}},()=>{if(alive)setData({id,error:'Não foi possível carregar a criatura.'});});return()=>{alive=false;};},[id,allowed]);
  if(!allowed)return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t={knowledge.loading?'Verificando conhecimento…':'Criatura não revelada com informações completas nesta campanha.'}/></div>;
  const m=data?.id===id?data.monster:undefined;
- return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RevelarReferencia category="monster" id={id} nome={m.nome}/></div></header><DetalheMonstro monstro={m} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
+ return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RevelarReferencia category="monster" id={id} nome={m.nome}/></div></header><article aria-label={`Detalhes de ${m.nome}`}><DetalheMonstro monstro={m} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></article></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
 }

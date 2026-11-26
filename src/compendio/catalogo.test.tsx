@@ -29,11 +29,13 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const menu = () => within(screen.getByRole('navigation', { name: 'Menu principal' }));
 const montar = () => renderApp({ api: apiC(mestre) });
 const abrirCompendio = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Compêndio' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Compêndio' })); await screen.findByRole('heading', { name: 'Compêndio' }); categoria('Itens'); };
+const voltarDoCatalogo = () => document.querySelector<HTMLButtonElement>('.compendio.cat .cd-back');
 const categoria = (nome: string) => {
-  const back=screen.queryByRole('button',{name:'Voltar às categorias'});if(back)fireEvent.click(back);
-  fireEvent.click(screen.getByRole('button',{name:nome==='Monstros'?'Campanha':'Regras'}));
-  fireEvent.click(screen.getByRole('button',{name:new RegExp('^'+(nome==='Monstros'?'Bestiário':nome)+' ')}));
+  const back = voltarDoCatalogo(); if (back) fireEvent.click(back);
+  const area = screen.queryByRole('button', { name: nome === 'Monstros' ? 'Campanha' : 'Regras' }); if (area) fireEvent.click(area);
+  fireEvent.click(screen.getByRole('button', { name: new RegExp('^' + (nome === 'Monstros' ? 'Bestiário' : nome) + ' ') }));
 };
+const abas = () => [...document.querySelectorAll('.flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content')].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ''));
 const pesquisar = (t: string) => fireEvent.change(screen.getByLabelText('Pesquisar no Compêndio'), { target: { value: t } });
 const resultados = () => within(screen.getByRole('list', { name: 'Resultados do Compêndio' })).queryAllByRole('listitem');
 /** Cartão pelo texto visível (nome + subtítulo). Sem subtítulo, o nome precisa ser seguido de espaço ou fim (cuidado com nomes que são prefixo de outros). */
@@ -45,7 +47,7 @@ const contagem = () => /^(\d+) resultado/.exec(screen.getAllByRole('status').map
 describe('categorias e carregamento', () => {
   it('mostra Itens, Magias e Monstros; Itens abre primeiro e já está pronto (dados em memória, sem esqueleto)', async () => {
     await montar(); await abrirCompendio();
-    expect(screen.getByRole('button',{name:'Voltar às categorias'})).toBeTruthy();
+    expect(voltarDoCatalogo()).toBeTruthy();
     expect(screen.queryByTestId('compendio-esqueleto')).toBeNull(); expect(contagem()).toBe('578');
   });
 
@@ -166,29 +168,32 @@ describe('lista, grade e detalhe', () => {
     categoria('Monstros'); fireEvent.click(screen.getByRole('button',{name:'Grade'})); pesquisar('goblin'); expect(cartao('Goblin').textContent).toMatch(/CA 15 · PV 7/);
   });
 
-  it('trocar de categoria limpa pesquisa, filtros, ordenação e fecha o detalhe; o estado de cada categoria não vaza para a outra', async () => {
+  it('o estado de cada categoria não vaza para a outra e é preservado ao voltar', async () => {
     await montar(); await abrirCompendio(); categoria('Magias'); await waitFor(() => expect(contagem()).toBe('319'));
-    pesquisar('bola de fogo'); filtro('escola', 'evocation'); fireEvent.click(cartao('Bola de Fogo', '3º círculo')); await screen.findByRole('article', { name: 'Detalhes de Bola de Fogo' });
+    pesquisar('bola de fogo'); filtro('escola', 'evocation');
     categoria('Monstros'); await waitFor(() => expect(contagem()).toBe('323'));
-    expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe(''); expect(screen.queryByRole('article')).toBeNull();
+    expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('');
     expect(screen.queryByLabelText('Filtrar por escola')).toBeNull(); expect(screen.getByLabelText('Filtrar por tipo')).toBeTruthy();
     categoria('Itens'); expect(contagem()).toBe('578');
+    categoria('Magias'); await waitFor(() => expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('bola de fogo'));
+    expect(document.querySelector('.cat-filtros summary')?.textContent).toBe('Filtros (1 ativo)');
   });
 
-  it('fechar o detalhe e o realce do cartão ativo; o painel dividido é marcado por classe (o layout em duas colunas é por container query)', async () => {
+  it('o detalhe abre em página própria, sem dividir a lista; abrir de novo não duplica a aba', async () => {
     await montar(); await abrirCompendio(); categoria('Magias'); await waitFor(() => expect(contagem()).toBe('319'));
     pesquisar('egide'); fireEvent.click(cartao('Égide'));
     const det = await screen.findByRole('article', { name: 'Detalhes de Égide' });
-    expect(document.querySelector('.cat-corpo.com-detalhe')).toBeTruthy(); expect(cartao('Égide').getAttribute('aria-current')).toBe('true');
-    fireEvent.click(within(det).getByRole('button', { name: 'Fechar detalhes' }));
-    expect(screen.queryByRole('article')).toBeNull(); expect(document.querySelector('.cat-corpo.com-detalhe')).toBeNull();
+    expect(det.closest('.compendio.cat')).toBeNull(); expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio', 'Égide']);
+    expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('egide');
+    fireEvent.click(cartao('Égide')); expect(abas().filter(a => a === 'Égide')).toHaveLength(1);
   });
 
-  it('item: detalhe no painel com "Abrir em nova aba" e conteúdo de pacote clicável (mesma definição do criador)', async () => {
+  it('página de item: conteúdo de pacote clicável (mesma definição do criador) e o mestre pode revelar o item na campanha', async () => {
     await montar(); await abrirCompendio();
     pesquisar('pacote de explorador'); fireEvent.click(cartao('Pacote de Explorador'));
     const det = within(await screen.findByRole('article', { name: 'Detalhes de Pacote de Explorador' }));
-    expect(det.getByRole('region', { name: 'Conteúdo do pacote' })).toBeTruthy(); expect(det.getByRole('button', { name: /Abrir em nova aba/ })).toBeTruthy();
+    expect(det.getByRole('region', { name: 'Conteúdo do pacote' })).toBeTruthy();
+    expect(det.getByRole('button', { name: 'Revelar na campanha' })).toBeTruthy();
   });
 });
 
@@ -200,7 +205,8 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
     await montar(); await abrirCompendio();
     for (const c of ['Itens', 'Magias', 'Monstros']) { categoria(c); await waitFor(() => expect(resultados().length).toBeGreaterThan(0)); expect(resultados()[0].querySelector('button')?.hasAttribute('aria-label')).toBe(false); }
     fireEvent.click(resultados()[0].querySelector('button')!); await screen.findByRole('article');
-    expect(divergentes(document.querySelector('.cat') as HTMLElement)).toEqual([]);
+    expect(divergentes(document.body.querySelector('.compendio.cat') as HTMLElement)).toEqual([]);
+    expect(divergentes(document.querySelector('article')!.closest('.content') as HTMLElement)).toEqual([]);
   });
   it('controles têm nome acessível: pesquisa, ordenação, filtros, visualização e categorias', async () => {
     await montar(); await abrirCompendio(); categoria('Magias'); await waitFor(() => expect(contagem()).toBe('319'));
@@ -216,21 +222,17 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
     filtro('círculo', '0'); expect(contagem()).toBe('24');
     pesquisar('luz'); fireEvent.click(cartao('Luz')); await screen.findByRole('article', { name: 'Detalhes de Luz' });
     expect(screen.queryByRole('tablist')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Voltar à lista' }));
-    expect(screen.queryByRole('article')).toBeNull(); expect(screen.getByLabelText('Pesquisar no Compêndio')).toBeTruthy();
+    fireEvent.click(document.querySelector<HTMLButtonElement>('.cd-page .cd-back')!);
+    await waitFor(() => expect(screen.queryByRole('article')).toBeNull()); expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('luz'); expect(contagem()).not.toBe('319');
   });
 
-  it('monstro -> magia: o nome da magia na conjuração é um botão que abre a magia; "Voltar para <monstro>" retorna à ficha', async () => {
+  it('monstro -> magia: o nome da magia na conjuração abre a página da magia e a ficha da criatura continua aberta', async () => {
     await montar(); await abrirCompendio(); categoria('Monstros'); await waitFor(() => expect(contagem()).toBe('323'));
     pesquisar('arquimago'); fireEvent.click(cartao('Arquimago'));
     const ficha = await screen.findByRole('article', { name: 'Detalhes de Arquimago' });
     fireEvent.click(within(ficha).getByRole('button', { name: 'Abrir a magia parar o tempo' }));
-    const magia = await screen.findByRole('article', { name: 'Detalhes de Parar o Tempo' });
-    expect(within(magia).getByText('MAGIA')).toBeTruthy();
-    expect(within(magia).queryByRole('button', { name: 'Voltar à lista' })).toBeNull();
-    fireEvent.click(within(magia).getByRole('button', { name: 'Voltar para Arquimago' }));
-    await screen.findByRole('article', { name: 'Detalhes de Arquimago' });
-    expect(screen.getByRole('article',{name:'Detalhes de Arquimago'})).toBeTruthy();
+    expect(await screen.findByRole('article', { name: 'Detalhes de Parar o Tempo' })).toBeTruthy();
+    await waitFor(() => expect(abas()).toEqual(expect.arrayContaining(['Arquimago', 'Parar o Tempo'])));
   });
 
   it('ficha composta mostra as formas com CA, PV, deslocamento e ações; o Burro é marcado como legado (não SRD); toda ficha avisa que a tradução é de IA sem revisão humana', () => {

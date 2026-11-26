@@ -2,12 +2,11 @@ import { Modal } from "../ui/Modal";
 import { EditorEnquadramento } from "../imagem/EditorEnquadramento";
 import { ENQUADRAMENTO_PADRAO, juntar, type Enquadramento } from "../imagem/enquadramento";
 import { CAMPOS } from "./campos";
-import { useAuth } from "../AuthContext";
 import { useUnsaved, useUnsavedGuard } from "../unsaved";
 import { useContext } from "react";
 import { OrigemAbaContext } from "../abrirEmAba";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Plus, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { useVersaoRegistros } from "../registrosStore";
 import { useCampaigns } from "../CampaignsContext";
 import { Aviso } from "../Diario";
@@ -27,20 +26,7 @@ import {
   type Conhecimento,
   type CodexCategoria,
   type EdicaoConhecimento,
-  type CodexAviso,
 } from "./conhecimento";
-const consultas = new WeakMap<
-  object,
-  Map<string, { query: string; selected?: string }>
->();
-const nomes: Record<CodexCategoria, string> = {
-  npc: "NPCs",
-  location: "Locais",
-  organization: "Organizações",
-  discovery: "Descobertas",
-  monster: "Bestiário",
-  item: "Itens descobertos",
-};
 export function ImagemConhecida({ path, framing, tamanho=160 }: { path: string; framing?:Enquadramento; tamanho?:number }) {
   const api = useCodexApi();
   const [image, setImage] = useState<{ path: string; url: string }>();
@@ -170,111 +156,6 @@ export function DetalheConhecido({
         </dl>
       )}
     </>
-  );
-}
-export function RegistrosCampanha({
-  category,
-  onOpenContent,
-}: {
-  category: CodexCategoria;
-  onOpenContent: (s: TabSpec) => void;
-}) {
-  const { active } = useCampaigns(),
-    { api, items, loading, error, refresh } = useConhecimento();
-  const { client, user } = useAuth();
-  const cache = useMemo(() => {
-    if (!client) return new Map<string, { query: string; selected?: string }>();
-    let c = consultas.get(client);
-    if (!c) {
-      c = new Map();
-      consultas.set(client, c);
-    }
-    return c;
-  }, [client]);
-  const cacheKey = `${user?.id}:${active?.campaign.id}:${category}`;
-  const pref = cache.get(cacheKey);
-  const [edit, setEdit] = useState<Conhecimento | null | undefined>();
-  const [selected, setSelected] = useState<string | undefined>(pref?.selected);
-  const [query, setQuery] = useState(pref?.query ?? "");
-  useEffect(() => {
-    cache.set(cacheKey, { query, selected });
-  }, [cache, cacheKey, query, selected]);
-  const master = active?.role === "mestre";
-  const entries = items.filter(
-    (x) =>
-      (x.category === category ||
-        (category === "discovery" && x.category === "item")) &&
-      x.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
-  );
-  if (!active) return null;
-  return (
-    <section className="codex-registros">
-      <div className="row">
-        <h2>{nomes[category]}</h2>
-        {master && (
-          <button
-            className="btn-secondary"
-            disabled={!!error || loading}
-            onClick={() => setEdit(null)}
-          >
-            <Plus size={15} /> Novo registro
-          </button>
-        )}
-      </div>
-      <label>
-        Pesquisar {nomes[category]}
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </label>
-      {loading && <p role="status">Carregando conhecimento…</p>}
-      {error && <Aviso erro t={error} onRetry={refresh} />}
-      {!error && !loading && !entries.length && (
-        <p className="muted">
-          {master
-            ? "Nenhum registro nesta categoria."
-            : "Nenhuma descoberta revelada nesta categoria."}
-        </p>
-      )}
-      <ul className="codex-entradas">
-        {entries.map((e) => (
-          <li key={e.id}>
-            <button
-              className="btn-secondary"
-              onClick={() => setSelected(selected === e.id ? undefined : e.id)}
-            >
-              {e.title}
-              {master && ` · conhecimento ${e.knowledge}/4`}
-            </button>
-            {master && (
-              <button
-                className="icon-btn"
-                aria-label={`Editar ${e.title}`}
-                onClick={() => setEdit(e)}
-              >
-                <Pencil size={16} />
-              </button>
-            )}
-            {selected === e.id && (
-              <DetalheConhecido entry={e} onOpenContent={onOpenContent} />
-            )}
-          </li>
-        ))}
-      </ul>
-      {edit !== undefined && api && (
-        <EditorConhecimento
-          key={edit?.id ?? "novo"}
-          entry={edit}
-          category={category}
-          onDone={() => {
-            setEdit(undefined);
-            refresh();
-          }}
-        />
-      )}
-    </section>
   );
 }
 export function EditorConhecimento({
@@ -533,79 +414,5 @@ export function RevelarReferencia({
         />
       )}
     </>
-  );
-}
-export function AvisosConhecimento() {
-  const { items, api, refresh } = useConhecimento();
-  const [open, setOpen] = useState(false),
-    [notices, setNotices] = useState<CodexAviso[]>([]),
-    [error, setError] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    setNotices([]);
-    if (open && api)
-      void api.notices().then(
-        (n) => {
-          if (alive) setNotices(n);
-        },
-        () => {
-          if (alive) setError(true);
-        },
-      );
-    return () => {
-      alive = false;
-    };
-  }, [open, api, items]);
-  return (
-    <div className="codex-avisos">
-      <button
-        className="btn-secondary"
-        aria-label="Notificações de descobertas"
-        aria-expanded={open}
-        onClick={() => {
-          setOpen(!open);
-          refresh();
-        }}
-      >
-        <Bell size={16} />
-      </button>
-      {open && (
-        <section aria-label="Notificações de descobertas">
-          <h2>Descobertas recentes</h2>
-          {error && (
-            <p role="alert">Não foi possível carregar as notificações.</p>
-          )}
-          {notices.map((n) => {
-            const e = items.find((i) => i.id === n.entry_id);
-            return e ? (
-              <p key={n.id}>
-                <strong>{e.title}</strong> · conhecimento {n.knowledge}
-                {!n.read_at && (
-                  <button
-                    className="btn-link"
-                    onClick={() =>
-                      void api?.seen(n.id).then(
-                        () =>
-                          setNotices((xs) =>
-                            xs.map((x) =>
-                              x.id === n.id
-                                ? { ...x, read_at: new Date().toISOString() }
-                                : x,
-                            ),
-                          ),
-                        () => setError(true),
-                      )
-                    }
-                  >
-                    Marcar como lida
-                  </button>
-                )}
-              </p>
-            ) : null;
-          })}
-          {!notices.length && !error && <p>Nenhuma novidade.</p>}
-        </section>
-      )}
-    </div>
   );
 }

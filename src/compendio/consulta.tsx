@@ -11,7 +11,7 @@ import {useConhecimento,type Conhecimento} from './conhecimento';
 import {identidadeSpec,monstroSpec,registroSpec} from './navegacao';
 import {normalizar} from '../catalogue/nucleo/busca';
 export const nomesCategoria:Record<string,string>={npc:'Personagens',character:'Personagens',monster:'Bestiário',location:'Locais',organization:'Organizações',discovery:'Descobertas',item:'Descobertas'};
-export type LinhaCompendio={id:string;title:string;subtitle:string;category:string;body:string;image?:string|null;spec:TabSpec;entry?:Conhecimento;pc?:Aventureiro;filter?:string};
+export type LinhaCompendio={/** Linha extra mostrada só na grade. */resumo?:string;id:string;title:string;subtitle:string;category:string;body:string;image?:string|null;spec:TabSpec;entry?:Conhecimento;pc?:Aventureiro;filter?:string};
 export function useIdentidades(){const source=useAventureiros(),{active}=useCampaigns(),{user}=useAuth(),version=useVersaoRegistros();
  const scope=`${user?.id}:${active?.campaign.id}`;
  const [state,setState]=useState<{scope:string;items:Aventureiro[];error?:string}>();
