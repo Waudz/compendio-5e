@@ -481,6 +481,10 @@ Decisões: [DEC-028](../DECISOES-E-ARQUITETURA.md). **Prazo definitivo: 12/12/20
 
 **Estado:** implementado e validado localmente. **Publicação bloqueada pela migração 0013**, que o responsável precisa autorizar: o aplicativo novo envia o nível na apresentação e o banco atual (0008) recusa chaves novas, então publicar antes quebraria o salvamento das fichas. Não integrar à `main` antes de aplicar a 0013.
 
+**Revisão de segurança da 0013 (antes de qualquer aplicação):** a versão inicial tinha falhas, corrigidas e cobertas por testes em `supabase/ficha-regras.test.ts`: (1) texto de campo oculto, título e imagem de formatos antigos ficavam na linha de `notes` que a campanha lê (o servidor agora reconstrói as escolhas e só guarda texto em campo personalizado); (2) quantidades positivas e negativas que se anulavam enganavam a soma (formato agora exigido de todos: lista, quantidade inteira de 1 a 1.000.000, identificadores únicos); (3) a instância de item que sustenta uma concessão podia ser reaproveitada pelo jogador; funções internas deixaram de ser chamáveis pela API. **Limite conhecido:** o modo de cada campo (segue a ficha, personalizado ou oculto) continua legível por quem lê a apresentação; os textos ocultos não.
+
+**Aplicação:** rodar `supabase/verificacao/0013_antes.sql` (somente leitura), conferir as condições do cabeçalho, aplicar a migração dentro de `begin; ... commit;`, rodar `supabase/verificacao/0013_depois.sql` e comparar as três impressões digitais.
+
 **Ordem para publicar:** 1) autorização expressa; 2) aplicar `supabase/migrations/0013_ficha_moedas_itens_identidade.sql` no projeto `compendio-5e` (não reaplicar as anteriores); 3) integrar o PR e confirmar o Pages; 4) o mestre configura as moedas em Início → Editar campanha (mesa do responsável: PC, PP e PO). Reversão: `supabase/rollback/0013_ficha_moedas_itens_identidade_down.sql` junto com a volta do aplicativo anterior.
 
 **Pendências reais:**

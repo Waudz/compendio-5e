@@ -225,3 +225,21 @@ describe("revisão adversarial: quantidades, concessões e privacidade pela API"
       expect((await as(db, U.bia, q)).error, q).toMatch(/permission denied/);
   });
 });
+
+describe("conferências de aplicação (supabase/verificacao)", () => {
+  const ler = (f: string) => readFileSync(join(__dirname, "verificacao", f), "utf8");
+  it("rodam no banco com dados, antes e depois, e as impressões digitais não mudam com a migração", async () => {
+    const f = await boot("0012");
+    const cid = await mesa(f);
+    const r = await as(f, U.bia, "select * from public.create_guided_character($1, 'x', $2::jsonb, false, $3::jsonb)", [cid, JSON.stringify({ identidadePublica: { settings: { imageUrl: null, title: "Antigo", name: { mode: "real" }, surname: { mode: "hidden", customValue: "x" }, race: { mode: "real" }, characterClass: { mode: "real" }, description: "" }, card: { imageUrl: null, title: "", name: "T", surname: null, race: null, characterClass: null, description: "" } } }), JSON.stringify(ficha())]);
+    expect(r.error).toBeUndefined();
+    const consulta = async (arquivo: string) => Object.fromEntries((await f.query<{ item: string; valor: string }>(ler(arquivo))).rows.map(x => [x.item, x.valor]));
+    const antes = await consulta("0013_antes.sql");
+    expect(antes).toMatchObject({ pre_requisitos_ok: "sim", ja_aplicada: "não", fichas: "1", fichas_fora_do_formato: "0", apresentacoes_com_texto_oculto_gravado_total: "1", apresentacoes_com_texto_oculto_gravado_ja_visiveis: "0" });
+    expect(antes.apresentacoes_privadas_que_passam_a_aparecer_na_proxima_gravacao).toBe("1");
+    await f.exec("begin;\n" + readFileSync(join(dir, "0013_ficha_moedas_itens_identidade.sql"), "utf8") + "\ncommit;");
+    const depois = await consulta("0013_depois.sql");
+    for (const [k, v] of Object.entries(depois)) if (k.startsWith("ok_")) expect(v, k).toBe("sim");
+    for (const k of ["campanhas", "fichas", "digital_fichas", "digital_notas", "digital_campanhas"]) expect(depois[k], k).toBe(antes[k]);
+  });
+});
