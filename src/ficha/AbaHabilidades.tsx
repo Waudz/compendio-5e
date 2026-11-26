@@ -7,82 +7,97 @@ import { resourceLabel2014, spells2014 } from "../criador/regras-2014";
 import { rotuloAtributo } from "../criador/rotulos";
 import { ATRIBUTOS_CONJ, comEstado, concedidosAtivos, MAX_CONCEDIDOS, recargaDe, somaTemporaria, usarRecurso, type Concedido, type TipoConcedido } from "./estadoJogo";
 import { Marcadores } from "./Marcadores";
-import { caracteristicasDaFicha, dadosDaArma, dadosDaMagia, formulaDano, magiasDaFicha, type Caracteristica, type MagiaDaFicha, type OrigemCaracteristica } from "./regrasFicha";
+import { caracteristicasDaFicha, dadosDaArma, dadosDaMagia, formulaDano, magiasDaFicha, acaoDaMagia, ROTULO_ACAO, type Caracteristica, type MagiaDaFicha, type OrigemCaracteristica, type TipoAcao } from "./regrasFicha";
 import { novoId, sinal, type PropsAba } from "./tipos";
 
 const ICONE: Record<OrigemCaracteristica, typeof Star> = { Classe: Swords, Subclasse: Shield, "Raça": Dna, Origem: BookOpen, Talento: Star, Concedida: Gift };
 
-export type PropsHabilidades = PropsAba & { /** Só o mestre entrega talentos, magias e habilidades. */ podeConceder?: boolean };
+export type FiltroHab = "todas" | TipoAcao | "favoritos";
+const FILTROS_HAB: [FiltroHab, string][] = [["todas", "Todas"], ["acao", ROTULO_ACAO.acao], ["bonus", ROTULO_ACAO.bonus], ["reacao", ROTULO_ACAO.reacao], ["passiva", ROTULO_ACAO.passiva], ["favoritos", "Favoritos"]];
 
-export function AbaHabilidades({ draft, sheet, stats, estado, onChange, podeConceder = false }: PropsHabilidades) {
+export type PropsHabilidades = PropsAba & { /** Só o mestre entrega talentos, magias e habilidades. */ podeConceder?: boolean; filtro?: FiltroHab; onFiltro?: (f: FiltroHab) => void };
+
+export function AbaHabilidades({ draft, sheet, stats, estado, onChange, onOpenContent, podeConceder = false, filtro: filtroDeFora, onFiltro }: PropsHabilidades) {
+  const [filtroLocal, setFiltroLocal] = useState<FiltroHab>("todas");
+  const filtro = filtroDeFora ?? filtroLocal, escolherFiltro = onFiltro ?? setFiltroLocal;
+  const passa = (chave: string, acao: TipoAcao | null) => filtro === "todas" || (filtro === "favoritos" ? estado.favoritos.includes(chave) : acao === filtro);
+  const favorito = (chave: string, nome: string) => { const marcado = estado.favoritos.includes(chave); return <button type="button" className={"ficha-favorito" + (marcado ? " marcado" : "")} aria-pressed={marcado} aria-label={`Favoritar ${nome}`} title={marcado ? "Retirar dos favoritos" : "Marcar como favorito"}
+    onClick={() => onChange(comEstado(draft, { favoritos: marcado ? estado.favoritos.filter(x => x !== chave) : [...estado.favoritos, chave] }))}><Star size={14} aria-hidden="true" fill={marcado ? "currentColor" : "none"}/></button>; };
   const concedidos = concedidosAtivos(draft, estado);
-  const magias = magiasDaFicha(draft, sheet, concedidos);
-  const caracteristicas = caracteristicasDaFicha(draft, sheet, concedidos);
+  const todasAsMagiasDaFicha = magiasDaFicha(draft, sheet, concedidos);
+  const magias = todasAsMagiasDaFicha.filter(m => passa(`magia:${m.chave}`, acaoDaMagia(dadosDaMagia(m.magia).tempo)));
+  const todas = caracteristicasDaFicha(draft, sheet, concedidos);
+  const caracteristicas = todas.filter(c => passa(`carac:${c.chave}`, c.acao));
+  const ataquesDoMotor = stats.attacks.filter(a => passa(`ataque:${a.id}`, "acao")), ataquesProprios = estado.ataques.filter(a => passa(`ataque:${a.id}`, "acao"));
+  const semFiltro = filtro === "todas";
   const espacos = Object.entries(sheet.resources).filter(([id]) => id.startsWith("spell-slot-")).sort(([a], [b]) => a.localeCompare(b, "pt-BR", { numeric: true }));
-  const ligados = new Set(caracteristicas.flatMap(c => c.recursos));
+  const ligados = new Set(todas.flatMap(c => c.recursos));
   const soltos = Object.keys(sheet.resources).filter(id => id !== "hit-dice" && !id.startsWith("spell-slot-") && !ligados.has(id));
   const ataqueTemp = somaTemporaria(estado, "attacks");
-  const fontes = [...new Map(magias.flatMap(m => (m.fonte && m.cdFixa == null ? [[m.fonte.chave, m.fonte] as const] : []))).values()];
+  const fontes = [...new Map(todasAsMagiasDaFicha.flatMap(m => (m.fonte && m.cdFixa == null ? [[m.fonte.chave, m.fonte] as const] : []))).values()];
   if (stats.spellDc != null && !fontes.some(f => f.chave === "classe")) {
     const atributo = ATRIBUTOS_CONJ.find(a => 8 + stats.prof + Math.floor((sheet.abilities[a] - 10) / 2) === stats.spellDc) ?? "int";
     fontes.unshift({ chave: "classe", rotulo: "Classe", atributo, cd: stats.spellDc, ataque: stats.spellAttack ?? 0 });
   }
-  const temMagia = magias.length > 0 || espacos.length > 0 || stats.spellDc != null;
+  const temMagia = semFiltro ? todasAsMagiasDaFicha.length > 0 || espacos.length > 0 || stats.spellDc != null : magias.length > 0;
+  const nada = !semFiltro && !temMagia && ataquesDoMotor.length + ataquesProprios.length + caracteristicas.length === 0;
   const circulos = [...new Set(magias.map(m => m.magia.level))];
   const usos = (id: string) => { const r = sheet.resources[id]; return <Marcadores rotulo={resourceLabel2014(id)} maximo={r.maximum} disponiveis={r.remaining}
     recarga={`descanso ${recargaDe(id, draft.classId, draft.level)}`} onUsar={d => onChange(usarRecurso(draft, sheet, id, d))}/>; };
   const remover = (id: string) => onChange(comEstado(draft, { concedidos: estado.concedidos.filter(c => c.id !== id) }));
 
   return <div className="ficha-pilha">
-    <section className="ficha-bloco" aria-label="Ataques">
+    <div className="ficha-filtro-acao" role="group" aria-label="Filtrar por tipo de ação">{FILTROS_HAB.map(([v, r]) => <button key={v} type="button" className={filtro === v ? "ativo" : ""} aria-pressed={filtro === v} onClick={() => escolherFiltro(v)}>{r}</button>)}</div>
+    {nada && <p className="muted" role="status">{filtro === "favoritos" ? "Nenhum favorito ainda. Use a estrela de um ataque, magia ou habilidade." : "Nada deste tipo nas regras cadastradas para este personagem."}</p>}
+    {(semFiltro || ataquesDoMotor.length + ataquesProprios.length > 0) && <section className="ficha-bloco" aria-label="Ataques">
       <h2>Ataques {ataqueTemp !== 0 && <small className="ficha-temp">{sinal(ataqueTemp)} temporário no ataque</small>}</h2>
-      {stats.attacks.length + estado.ataques.length > 0 ? <ul className="ficha-cartoes">
-        {stats.attacks.map((a, i) => { const arma = dadosDaArma(a.id); return <li key={a.id + i} className="ficha-cartao" aria-label={`Ataque: ${a.name}`}>
-          <div className="ficha-cartao-topo"><Swords size={16} aria-hidden="true"/><h3>{a.name}</h3></div>
+      {ataquesDoMotor.length + ataquesProprios.length > 0 ? <ul className="ficha-cartoes">
+        {ataquesDoMotor.map((a, i) => { const arma = dadosDaArma(a.id); return <li key={a.id + i} className="ficha-cartao" aria-label={`Ataque: ${a.name}`}>
+          <div className="ficha-cartao-topo"><Swords size={16} aria-hidden="true"/><h3>{a.name}</h3>{favorito(`ataque:${a.id}`, a.name)}</div>
           <dl className="ficha-dados"><dt>Ataque</dt><dd><strong>{sinal(a.bonus + ataqueTemp)}</strong>{!a.proficient && <small className="muted"> sem proficiência</small>}</dd>
             <dt>Dano</dt><dd><strong>{formulaDano(a.damage, a.damageBonus)}</strong>{arma?.tipo ? ` ${arma.tipo}` : ""}{arma?.duasMaos ? ` (${formulaDano(arma.duasMaos, a.damageBonus)} com duas mãos)` : ""}</dd>
             {arma?.alcance && <><dt>Alcance</dt><dd>{arma.alcance}</dd></>}</dl>
           {arma && arma.propriedades.length > 0 && <p className="ficha-etiqueta-linha">{arma.propriedades.join(", ")}</p>}
           {a.heavyDisadvantage && <p className="muted">Arma pesada: desvantagem para tamanho Pequeno.</p>}
         </li>; })}
-        {estado.ataques.map(a => <li key={a.id} className="ficha-cartao" aria-label={`Ataque: ${a.nome}`}>
-          <div className="ficha-cartao-topo"><Swords size={16} aria-hidden="true"/><h3>{a.nome}</h3><small className="ficha-selo">personalizado</small>
+        {ataquesProprios.map(a => <li key={a.id} className="ficha-cartao" aria-label={`Ataque: ${a.nome}`}>
+          <div className="ficha-cartao-topo"><Swords size={16} aria-hidden="true"/><h3>{a.nome}</h3><small className="ficha-selo">personalizado</small>{favorito(`ataque:${a.id}`, a.nome)}
             <button type="button" className="ficha-remover" aria-label={`Remover ataque ${a.nome}`} onClick={() => onChange(comEstado(draft, { ataques: estado.ataques.filter(x => x.id !== a.id) }))}><X size={14} aria-hidden="true"/></button></div>
           <dl className="ficha-dados">{a.bonus && <><dt>Ataque</dt><dd><strong>{a.bonus}</strong></dd></>}{a.dano && <><dt>Dano</dt><dd><strong>{a.dano}</strong></dd></>}</dl>
           {a.notas && <p className="muted">{a.notas}</p>}
         </li>)}
       </ul> : <p className="muted">Equipe uma arma no Inventário ou crie um ataque personalizado.</p>}
-      <NovoAtaque draft={draft} estado={estado} onChange={onChange}/>
-    </section>
+      {semFiltro && <NovoAtaque draft={draft} estado={estado} onChange={onChange}/>}
+    </section>}
 
     {temMagia && <section className="ficha-bloco" aria-label="Magias">
       <h2>Magias</h2>
       {fontes.length > 0 && <ul className="ficha-fontes" aria-label="Conjuração">{fontes.map(f => <li key={f.chave}><strong>{f.rotulo}</strong><span>Atributo: {rotuloAtributo(f.atributo)}</span><span>CD de magia <strong>{f.cd}</strong></span><span>Ataque mágico <strong>{sinal(f.ataque + ataqueTemp)}</strong></span></li>)}</ul>}
       {espacos.length > 0 && <ul className="ficha-linhas" aria-label="Espaços de magia">{espacos.map(([id]) => <li key={id} className="ficha-recurso"><strong>{resourceLabel2014(id)}</strong>{usos(id)}</li>)}</ul>}
       {circulos.map(n => <div key={n} className="ficha-circulo"><h3>{n === 0 ? "Truques" : `${n}º círculo`}</h3>
-        <ul className="ficha-cartoes">{magias.filter(m => m.magia.level === n).map(m => <CartaoMagia key={m.chave} item={m} ataqueTemp={ataqueTemp} onRemover={podeConceder && m.concedida ? () => remover(m.chave) : undefined}/>)}</ul></div>)}
-      {magias.length === 0 && <p className="muted">Nenhuma magia escolhida. Use Editar personagem para escolher.</p>}
+        <ul className="ficha-cartoes">{magias.filter(m => m.magia.level === n).map(m => <CartaoMagia key={m.chave} item={m} ataqueTemp={ataqueTemp} favorito={favorito(`magia:${m.chave}`, m.magia.name)} onAbrir={() => onOpenContent({ kind: "magia", ref: m.magia.id, title: m.magia.name })} onRemover={podeConceder && m.concedida ? () => remover(m.chave) : undefined}/>)}</ul></div>)}
+      {todasAsMagiasDaFicha.length === 0 && <p className="muted">Nenhuma magia escolhida. Use Editar personagem para escolher.</p>}
     </section>}
 
     {caracteristicas.length > 0 && <section className="ficha-bloco" aria-label="Características">
       <h2>Características e habilidades</h2>
-      <ul className="ficha-cartoes">{caracteristicas.map(c => <CartaoCaracteristica key={c.chave} item={c} usos={usos}
+      <ul className="ficha-cartoes">{caracteristicas.map(c => <CartaoCaracteristica key={c.chave} item={c} usos={usos} favorito={favorito(`carac:${c.chave}`, c.nome)}
         onRemover={podeConceder && estado.concedidos.some(x => x.id === c.chave) ? () => remover(c.chave) : undefined}/>)}</ul>
     </section>}
 
-    {soltos.length > 0 && <section className="ficha-bloco" aria-label="Recursos de classe e raça">
+    {semFiltro && soltos.length > 0 && <section className="ficha-bloco" aria-label="Recursos de classe e raça">
       <h2>Outros recursos</h2>
       <ul className="ficha-linhas">{soltos.map(id => <li key={id} className="ficha-recurso"><strong>{resourceLabel2014(id)}</strong>{usos(id)}</li>)}</ul>
     </section>}
 
-    {podeConceder && <Conceder draft={draft} estado={estado} onChange={onChange}/>}
+    {semFiltro && podeConceder && <Conceder draft={draft} estado={estado} onChange={onChange}/>}
   </div>;
 }
 
-function CartaoCaracteristica({ item, usos, onRemover }: { item: Caracteristica; usos: (id: string) => React.ReactNode; onRemover?: () => void }) {
+function CartaoCaracteristica({ item, usos, favorito, onRemover }: { item: Caracteristica; usos: (id: string) => React.ReactNode; favorito: React.ReactNode; onRemover?: () => void }) {
   const Icone = ICONE[item.origem];
   return <li className="ficha-cartao" aria-label={item.nome}>
-    <div className="ficha-cartao-topo"><Icone size={16} aria-hidden="true"/><h3>{item.nome}</h3><small className="ficha-selo">{item.origem}{item.detalheOrigem && item.origem !== "Raça" ? ` · ${item.detalheOrigem}` : ""}</small>
+    <div className="ficha-cartao-topo"><Icone size={16} aria-hidden="true"/><h3>{item.nome}</h3><small className="ficha-selo">{item.origem}{item.detalheOrigem && item.origem !== "Raça" ? ` · ${item.detalheOrigem}` : ""}</small>{item.acao && <small className="ficha-selo ficha-selo-acao">{ROTULO_ACAO[item.acao]}</small>}{favorito}
       {onRemover && <button type="button" className="ficha-remover" aria-label={`Retirar ${item.nome}`} onClick={onRemover}><X size={14} aria-hidden="true"/></button>}</div>
     {item.recursos.map(id => <div key={id} className="ficha-recurso">{item.recursos.length > 1 && <span>{resourceLabel2014(id)}</span>}{usos(id)}</div>)}
     {item.valores.length > 0 && <ul className="ficha-valores">{item.valores.map(v => <li key={v}>{v}</li>)}</ul>}
@@ -91,16 +106,17 @@ function CartaoCaracteristica({ item, usos, onRemover }: { item: Caracteristica;
   </li>;
 }
 
-function CartaoMagia({ item, ataqueTemp, onRemover }: { item: MagiaDaFicha; ataqueTemp: number; onRemover?: () => void }) {
+function CartaoMagia({ item, ataqueTemp, favorito, onAbrir, onRemover }: { item: MagiaDaFicha; ataqueTemp: number; favorito: React.ReactNode; onAbrir: () => void; onRemover?: () => void }) {
   const { magia, fonte, origem } = item, d = dadosDaMagia(magia);
   const cd = item.cdFixa ?? fonte?.cd, ataque = item.ataqueFixo ?? fonte?.ataque;
   const linha = [d.salvaguarda && `Salvaguarda de ${d.salvaguarda}${cd != null ? ` · CD ${cd}` : ""}`, d.ataque && ataque != null && `Ataque mágico ${sinal(ataque + ataqueTemp)}`, d.dano, d.cura].filter((x): x is string => !!x);
   return <li className="ficha-cartao" aria-label={magia.name}>
-    <div className="ficha-cartao-topo">{d.dano ? <Flame size={16} aria-hidden="true"/> : <Sparkles size={16} aria-hidden="true"/>}<h3>{magia.name}</h3><small className="ficha-selo">{origem}{magia.ritual ? " · ritual" : ""}</small>
+    <div className="ficha-cartao-topo">{d.dano ? <Flame size={16} aria-hidden="true"/> : <Sparkles size={16} aria-hidden="true"/>}<h3>{magia.name}</h3><small className="ficha-selo">{origem}{magia.ritual ? " · ritual" : ""}</small>{favorito}
       {onRemover && <button type="button" className="ficha-remover" aria-label={`Retirar ${magia.name}`} onClick={onRemover}><X size={14} aria-hidden="true"/></button>}</div>
     {linha.length > 0 && <ul className="ficha-valores">{linha.map(v => <li key={v}>{v}</li>)}</ul>}
     <p className="muted">{[d.tempo, d.alcance && `Alcance: ${d.alcance}`, d.duracao && `Duração: ${d.duracao}`, d.consumo].filter(Boolean).join(" · ")}</p>
     <details><summary>Descrição completa<span className="sr-only"> de {magia.name}</span></summary><p className="ficha-texto">{magia.description.replace(/(\d)O\b/g, "$10")}</p></details>
+    <button type="button" className="ficha-link ficha-abrir" aria-label={`Abrir ${magia.name} no Compêndio`} onClick={onAbrir}>Abrir no Compêndio</button>
   </li>;
 }
 

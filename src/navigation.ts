@@ -78,15 +78,18 @@ export function closeTabs(m: Model, ids: string[]): void {
  * Criam automaticamente no máximo dois grupos; o terceiro só é criado manualmente. No celular, usam o grupo atual.
  */
 export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, mobile = false): NavResult {
-  void originTabId; // Mantido por compatibilidade com os chamadores.
   const id = tabId(spec);
   const existing = abaDoRegistro(m, spec);
   if (existing) { focusExisting(m, existing, spec); return { action: "selected", tabId: existing.getId() }; }
   // No desktop, consultas abrem sempre na coluna mais à direita, sem substituir a origem.
   // Apenas o segundo grupo é automático; o terceiro é sempre criado manualmente.
   // No celular não há colunas lado a lado: preserva as abas no grupo atual.
-  const last = groups(m).at(-1);
-  const target = mobile ? activeGroup(m) : last;
+  const colunas = groups(m);
+  let target = mobile ? activeGroup(m) : colunas.at(-1);
+  // Consulta feita DE UMA FICHA (magia, item) não pode encobri-la: se a ficha está na última coluna, vai para a coluna ao lado.
+  const origem = originTabId ? findTab(m, originTabId) : undefined;
+  const daFicha = !!origem && /^(ficha|criador):/.test(origem.getId()) && (spec.kind === "item" || spec.kind === "magia");
+  if (!mobile && daFicha && colunas.length > 1 && origem!.getParent() === target) target = colunas[colunas.length - 2];
   if (!target) return { action: "selected", tabId: id };
   const createRight = !mobile && groupCount(m) < 2;
   m.doAction(Actions.addTab(tabJson({ ...spec, pinned: true }), target.getId(), createRight ? DockLocation.RIGHT : DockLocation.CENTER, -1, true));

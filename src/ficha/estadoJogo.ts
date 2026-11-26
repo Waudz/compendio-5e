@@ -27,7 +27,9 @@ export const MAX_CONCEDIDOS = 40;
 export type EstadoJogo = {
   condicoes: string[]; inspiracao: boolean; morte: { sucessos: number; falhas: number };
   modificadores: ModTemporario[]; defesas: Defesa[]; ataques: AtaquePersonalizado[]; historico: Movimento[]; concedidos: Concedido[];
+  /** Ataques, magias e características marcados como favoritos (`ataque:…`, `magia:…`, `carac:…`). */ favoritos: string[];
 };
+export const MAX_FAVORITOS = 60;
 export const MAX_HISTORICO = 40;
 
 const obj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -48,6 +50,7 @@ export function lerEstadoJogo(draft: { play?: unknown }): EstadoJogo {
     ataques: lista(p.ataques, 20, x => (texto(x.id, 60) && texto(x.nome, 60).trim() ? { id: texto(x.id, 60), nome: texto(x.nome, 60), bonus: texto(x.bonus, 20), dano: texto(x.dano, 60), ...(texto(x.notas, 200) ? { notas: texto(x.notas, 200) } : {}) } : null)),
     historico: lista(p.historico, MAX_HISTORICO, x => (texto(x.texto, 160) ? { em: texto(x.em, 30), texto: texto(x.texto, 160) } : null)),
     concedidos: lista(p.concedidos, MAX_CONCEDIDOS, lerConcedido),
+    favoritos: Array.isArray(p.favoritos) ? [...new Set(p.favoritos.filter((x): x is string => typeof x === "string" && !!x && x.length <= 120))].slice(0, MAX_FAVORITOS) : [],
   };
 }
 function lerConcedido(x: Record<string, unknown>): Concedido | null {

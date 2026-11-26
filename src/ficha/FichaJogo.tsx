@@ -12,7 +12,7 @@ import type { CharacterDraft } from "../rules/character-domain";
 import { useFecharMenu } from "../useFecharMenu";
 import type { TabSpec } from "../workspace";
 import { AbaFicha } from "./AbaFicha";
-import { AbaHabilidades } from "./AbaHabilidades";
+import { AbaHabilidades, type FiltroHab } from "./AbaHabilidades";
 import { AbaInventario, type FiltroInv, type VistaInv } from "./AbaInventario";
 import { causarDano, comEstado, curar, defesasDerivadas, definirTemporarios, descansoCurto, descansoLongo, lerEstadoJogo, ROTULO_DEFESA, somaTemporaria, type AlvoMod } from "./estadoJogo";
 import { metros, sinal } from "./tipos";
@@ -20,8 +20,8 @@ import type { ChaveMoeda } from "../moedas/moedas";
 
 export type AbaId = "ficha" | "habilidades" | "inventario";
 const ABAS: [AbaId, string][] = [["ficha", "Ficha"], ["habilidades", "Habilidades"], ["inventario", "Inventário"]];
-type Memoria = { aba: AbaId; rolagem: Partial<Record<AbaId, number>>; vista: VistaInv; filtro: FiltroInv };
-const PADRAO: Memoria = { aba: "ficha", rolagem: {}, vista: "lista", filtro: "todos" };
+type Memoria = { aba: AbaId; rolagem: Partial<Record<AbaId, number>>; vista: VistaInv; filtro: FiltroInv; filtroHab: FiltroHab };
+const PADRAO: Memoria = { aba: "ficha", rolagem: {}, vista: "lista", filtro: "todos", filtroHab: "todas" };
 const lerMemoria = (chave: string): Memoria => {
   try { const m = JSON.parse(sessionStorage.getItem(chave) ?? "null") as Partial<Memoria> | null; return m && ABAS.some(([a]) => a === m.aba) ? { ...PADRAO, ...m, rolagem: { ...m.rolagem } } : { ...PADRAO, rolagem: {} }; }
   catch { return { ...PADRAO, rolagem: {} }; }
@@ -147,7 +147,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
     <nav className="ficha-subnav" aria-label="Seções da ficha">{ABAS.map(([id, rotulo]) => <button key={id} type="button" className={mem.aba === id ? "active" : ""} aria-current={mem.aba === id ? "true" : undefined} onClick={() => trocarAba(id)}>{rotulo}</button>)}</nav>
     <div className="ficha-conteudo" data-aba={mem.aba}>
       {mem.aba === "ficha" && <AbaFicha {...propsAba}/>}
-      {mem.aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder}/>}
+      {mem.aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder} filtro={mem.filtroHab} onFiltro={filtroHab => mudarMemoria({ filtroHab })}/>}
       {mem.aba === "inventario" && <AbaInventario {...propsAba} moedas={moedas} mestre={podeConceder} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
     </div>
     <p className="muted ficha-dado">Dado de vida d{class2014(draft).data.hitDie} · cálculos das regras SRD 5.1 (2014).</p>

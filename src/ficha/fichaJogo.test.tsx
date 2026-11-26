@@ -372,3 +372,40 @@ describe("inventário: moedas da campanha, poções e informações dos itens", 
     await salvou(() => expect(draftSalvo().currency).toEqual({ cp: 5, sp: 20, ep: 7, gp: 11, pp: 3 }));
   });
 });
+
+describe("habilidades: filtros por ação, favoritos e detalhes sem perder a ficha", () => {
+  const filtro = (nome: string) => fireEvent.click(within(screen.getByRole("group", { name: "Filtrar por tipo de ação" })).getByRole("button", { name: nome }));
+
+  it("filtra pelo tipo de ação que as regras informam e lembra os favoritos", async () => {
+    await semear(); await abrirFicha(); irPara("Habilidades");
+    filtro("Ação bônus");
+    expect(screen.getByRole("listitem", { name: /Retomar o Fôlego|Second Wind/ })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Ataques" })).toBeNull();
+    filtro("Reação");
+    expect(screen.getByText(/Nada deste tipo/)).toBeTruthy();
+    filtro("Favoritos");
+    expect(screen.getByText(/Nenhum favorito ainda/)).toBeTruthy();
+    filtro("Todas");
+    const cartao = screen.getByRole("listitem", { name: /Retomar o Fôlego|Second Wind/ });
+    fireEvent.click(within(cartao).getByRole("button", { name: /^Favoritar/ }));
+    filtro("Favoritos");
+    expect(within(screen.getByRole("region", { name: "Características" })).getAllByRole("listitem", { name: /Retomar o Fôlego|Second Wind/ })).toHaveLength(1);
+    await salvou(() => expect((draftSalvo().play as { favoritos: string[] }).favoritos).toHaveLength(1));
+  });
+
+  it("a magia abre no segundo grupo de abas e a ficha continua aberta na mesma aba", async () => {
+    await semear();
+    banco.fichas[0].draft = { ...banco.fichas[0].draft, classId: "wizard", decisions: [{ id: "cantrips", optionIds: ["fire-bolt"] }] };
+    await abrirFicha(); irPara("Habilidades");
+    const magia = await screen.findByRole("listitem", { name: "Raio de Fogo" });
+    expect(magia.textContent).toMatch(/Ataque mágico \+\d/);
+    expect(magia.textContent).toMatch(/1d10 de dano/);
+    fireEvent.click(within(magia).getByRole("button", { name: /Abrir Raio de Fogo no Compêndio/ }));
+    expect(await screen.findByRole("heading", { name: "Raio de Fogo", level: 1 })).toBeTruthy();
+    expect(document.querySelectorAll(".flexlayout__tabset")).toHaveLength(2);
+    expect(screen.getByTestId("ficha-guiada-leitura")).toBeTruthy();
+    // cada grupo mantém a sua aba selecionada: a ficha de um lado, a magia do outro (a visibilidade real é conferida no Playwright)
+    const selecionadas = [...document.querySelectorAll(".flexlayout__tab_button--selected .flexlayout__tab_button_content")].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ""));
+    expect(selecionadas.sort()).toEqual(["Raio de Fogo", "Thorin"]);
+  });
+});

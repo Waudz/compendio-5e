@@ -84,14 +84,29 @@ export function dadosDaMagia(m: Spell2014): DadosDaMagia {
     ataque: /ataque mágico/i.test(antesDeCirculos),
     dano: dano ? `${dano[1]} de dano${dano[2] ? ` (${dano[2].toLocaleLowerCase("pt-BR")})` : ""}` : null,
     cura: cura ? `cura ${cura[1].replace(/o modificador do seu atributo de conjuração/i, "o modificador de conjuração")}` : null,
-    alcance: parte("Alcance"), duracao: parte("Duração"), tempo: partes.length > 1 ? partes[1] : null,
+    alcance: parte("Alcance"), duracao: parte("Duração"), tempo: partes.length > 1 ? tempoDeConjuracao(partes[1]) : null,
     consumo: m.level === 0 ? "Truque: não gasta espaço" : `Gasta um espaço de ${m.level}º círculo ou superior${m.ritual ? " (ou ritual)" : ""}`,
   };
 }
 
 // ---------------------------------------------------------------- características
 export type OrigemCaracteristica = "Classe" | "Subclasse" | "Raça" | "Origem" | "Talento" | "Concedida";
-export type Caracteristica = { chave: string; nome: string; origem: OrigemCaracteristica; detalheOrigem?: string; resumo: string; descricao: string; recursos: string[]; valores: string[] };
+export type Caracteristica = { chave: string; nome: string; origem: OrigemCaracteristica; detalheOrigem?: string; resumo: string; descricao: string; recursos: string[]; valores: string[]; acao: TipoAcao | null };
+
+// ---------------------------------------------------------------- tipo de ação
+export type TipoAcao = "acao" | "bonus" | "reacao" | "passiva";
+export const ROTULO_ACAO: Record<TipoAcao, string> = { acao: "Ação", bonus: "Ação bônus", reacao: "Reação", passiva: "Passiva" };
+/** Só características cujo tipo o SRD 2014 define sem ambiguidade; as demais ficam sem etiqueta (aparecem em "Todas"). */
+const ACAO_DE: [RegExp, TipoAcao][] = [
+  [/^(second-wind|rage|cunning-action)$|^bardic-inspiration-d/, "bonus"],
+  [/^(uncanny-dodge|deflect-missiles)$/, "reacao"],
+  [/^(breath-weapon|lay-on-hands|divine-sense)$|^wild-shape-cr|^channel-divinity$|^channel-divinity-(turn|preserve|sacred)/, "acao"],
+  [/fighting-style-|unarmored-defense|extra-attack|^(darkvision|dwarven-resilience|dwarven-combat-training|fey-ancestry|gnome-cunning|brave|halfling-nimbleness|hellish-resistance|keen-senses|danger-sense|martial-arts|jack-of-all-trades|remarkable-athlete|improved-critical|champion-improved-critical|superior-critical|aura-of-protection|aura-of-courage|divine-health|purity-of-body|diamond-soul)$/, "passiva"],
+];
+export const acaoDaCaracteristica = (id: string): TipoAcao | null => ACAO_DE.find(([re]) => re.test(id))?.[1] ?? null;
+/** Tempo de conjuração em português (a origem tem 14 magias com o valor técnico `bonus-action`). */
+export const tempoDeConjuracao = (t: string) => (t === "bonus-action" ? "1 ação bônus" : t);
+export const acaoDaMagia = (tempo: string | null): TipoAcao | null => (tempo === "1 ação" ? "acao" : tempo === "1 ação bônus" ? "bonus" : tempo === "1 reação" ? "reacao" : null);
 
 /** Primeira frase da descrição cadastrada (sem inventar resumo). */
 export function resumoDe(descricao: string): string {
@@ -136,12 +151,12 @@ export function caracteristicasDaFicha(draft: CharacterDraft, sheet: CharacterSh
   const daSubclasse = new Set(subclassFeatureIds2014(draft));
   const recursosDe = (id: string) => RECURSO_DE.filter(([r, re]) => r in sheet.resources && re.test(id)).map(([r]) => r);
   const usados = new Set<string>(), nomes = new Set<string>(), out: Caracteristica[] = [];
-  const add = (c: Omit<Caracteristica, "resumo" | "recursos"> & { id: string }) => {
+  const add = (c: Omit<Caracteristica, "resumo" | "recursos" | "acao"> & { id: string }) => {
     const { id, ...resto } = c, chaveNome = resto.nome.toLocaleLowerCase("pt-BR") + "|" + resto.descricao;
     if (nomes.has(chaveNome)) return;
     nomes.add(chaveNome);
     const recursos = recursosDe(id).filter(r => !usados.has(r)); recursos.forEach(r => usados.add(r));
-    out.push({ ...resto, recursos, resumo: resumoDe(resto.descricao) });
+    out.push({ ...resto, recursos, resumo: resumoDe(resto.descricao), acao: acaoDaCaracteristica(id) });
   };
   for (const f of sheet.features) add({ id: shortId(f), chave: f, nome: nomeDaCaracteristica(f), origem: daSubclasse.has(f) ? "Subclasse" : "Classe", detalheOrigem: label2014(draft.classId), descricao: featureDescription2014(f), valores: valoresDe(shortId(f), draft, sheet) });
   for (const t of raceTraits2014(draft)) add({ id: t.index, chave: "raca:" + t.index, nome: t.name, origem: "Raça", detalheOrigem: label2014(draft.raceId), descricao: t.desc.join("\n\n"), valores: valoresDe(t.index, draft, sheet) });
