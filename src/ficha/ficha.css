@@ -236,15 +236,18 @@
 .ficha-itens.grade .item-nome { padding: 0 7px; }
 .ficha-itens.grade .item-dados { padding: 3px 7px 6px; }
 .ficha-itens.grade .item-rodape { margin-top: auto; border-top: 1px solid var(--line); padding: 2px 2px 2px 7px; }
-/* lista: as mesmas informações em linhas */
-.ficha-itens.lista { grid-template-columns: minmax(0, 1fr); }
-.ficha-itens.lista .item-cartao { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nome rodape" "dados rodape"; align-items: center; column-gap: 8px; padding: 6px 4px 6px 6px; }
-.ficha.ficha-jogo .ficha-itens.lista button.item-abrir { grid-area: nome; display: flex; align-items: center; gap: 10px; }
-.ficha-itens.lista .item-imagem { width: 44px; height: 44px; border-radius: 6px; }
-.ficha-itens.lista .item-dados { grid-area: dados; padding-left: 54px; }
-.ficha-itens.lista .item-rodape { grid-area: rodape; }
+/* lista: as mesmas informações em linhas baixas. A imagem quadrada ocupa a altura da linha (centralizada), com nome e dados agrupados
+   ao lado; ação e reticências à direita. A imagem continua dentro do botão de detalhes, só posicionada em relação à linha. */
+.ficha-itens.lista { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.ficha-itens.lista .item-cartao { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nome rodape" "dados rodape"; align-content: center; align-items: center; column-gap: 6px; min-height: 58px; padding: 4px 2px 4px 62px; }
+.ficha-itens.lista .item-cartao.equipado { border-color: var(--line); }
+.ficha.ficha-jogo .ficha-itens.lista button.item-abrir { grid-area: nome; display: block; min-height: 0; line-height: 1.2; }
+.ficha-itens.lista .item-imagem { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 7px; }
+.ficha-itens.lista .item-nome { display: block; }
+.ficha-itens.lista .item-dados { grid-area: dados; gap: 0; line-height: 1.3; }
+.ficha-itens.lista .item-rodape { grid-area: rodape; justify-self: end; align-self: center; }
 .ficha-itens.lista .item-tipo { display: none; }
-@container (max-width: 300px) { .ficha-itens.lista .item-imagem { display: none; } .ficha-itens.lista .item-dados { padding-left: 0; } }
+@container (max-width: 300px) { .ficha-itens.lista .item-imagem { display: none; } .ficha-itens.lista .item-cartao { padding-left: 8px; } }
 
 /* histórico */
 .ficha-historico { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }

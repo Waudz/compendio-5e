@@ -565,3 +565,16 @@ Referências: 12 telas aprovadas (cópia local em `Downloads\compendio-5e-refere
 Direção visual aprovada pelas capturas; **falta o responsável navegar pelo Preview**. Não alterar a estrutura visual da ficha sem aprovação; bateria completa ainda não autorizada. A janela de poção mostra o resultado da rolagem separado da cura aplicada. O espaço vazio no fim das capturas anteriores vinha da janela de 2600 px usada na captura (altura mínima de 60% da janela); em 320, 390 e 1440 px, com a altura real, a sobra medida é zero nas três abas.
 
 Observado nas telas de criação e evolução, **sem correção** (não reformular agora): em Equipamentos iniciais aparece o identificador técnico `martial-weapons`; na revisão da subida de nível, a lista "Antes de confirmar" aparece como blocos cinza; o texto de Atributos ainda fala em "moldura".
+
+### Aprovação pessoal no Preview e lista compacta (26/11/2026)
+
+O responsável testou o Preview e **aprovou o layout da ficha, de Habilidades e do inventário em grade: sem novas alterações visuais nessas telas.** Pediu um último ajuste só na **visualização em lista** (linhas baixas, imagem centralizada, textos agrupados, sem borda azul nos equipados), feito apenas em CSS e **aguardando aprovação das capturas**. A **bateria completa só roda depois dessa aprovação, uma única vez**; falhas são corrigidas de forma pontual, sem refatoração, mudança estética ou função nova.
+
+Pendências funcionais confirmadas (referência visual futura: captura da lista enviada em 26/11, com contador de cargas e "Não sintonizado"):
+
+- marcadores circulares e contador de cargas nos cartões e nas linhas dos itens;
+- consumo e recuperação de cargas **por exemplar**;
+- sintonização funcional;
+- **equipado e sintonizado são estados separados:** um item pode estar equipado sem sintonização, mas não concede os benefícios que dependem dela. Hoje a concessão do mestre presa a um item vale quando ele está no inventário (e equipado, se equipável), **sem** considerar sintonização.
+
+Continuam válidas as decisões da DEC-030 e os requisitos de segurança (identificação sem enviar os dados verdadeiros ao jogador; operações atômicas e protegidas no banco). Sem merge, publicação ou aplicação da 0014; revisão técnica final, segurança, banco e integração ficam com o ChatGPT.
