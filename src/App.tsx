@@ -249,7 +249,7 @@ function Workspace({ userId }: { userId: string }) {
   });
   labelRef.current = id => { const t = findTab(model, id); return t ? titleOf(t) : id; };
   const renderTab = useCallback((n: TabNode, v: { content: ReactNode; leading?: ReactNode }) => {
-    v.content = <>{titleOf(n)}{isPinned(n) && <span className="sr-only"> (fixada)</span>}</>;   // marca visual + texto acessível
+    v.content = <><span className="workspace-tab-title" title={titleOf(n)}>{titleOf(n)}</span>{isPinned(n) && <span className="sr-only"> (fixada)</span>}</>;   // marca visual + texto acessível
     if (isPinned(n)) v.leading = <Pin size={12} className="pin-icon" aria-hidden="true"/>;
   }, [titleOf]);
   const activeTab = model.getActiveTabset()?.getSelectedNode();
@@ -265,12 +265,12 @@ function Workspace({ userId }: { userId: string }) {
   const abrirEmAba = useMemo(() => ({
     abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem, true),
     mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
-      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => window.dispatchEvent(new CustomEvent("compendio:abrir-local", {detail:{origem,s}})) }] }),
-  }), [openContentLink, mobile]);
+      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else window.dispatchEvent(new CustomEvent("compendio:abrir-local", {detail:{origem:origem ?? model.getActiveTabset()?.getSelectedNode()?.getId(),s}})); } }] }),
+  }), [openContentLink, mobile, model]);
 
   return <NotificacoesProvider><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
-      <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}<SinoNotificacoes onOpenContent={openContentLink}/></div>
+      <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}<SinoNotificacoes onOpenContent={s => { const origem = model.getActiveTabset()?.getSelectedNode()?.getId(); if (!mobile && origem) window.dispatchEvent(new CustomEvent("compendio:abrir-local", {detail:{origem,s}})); else openContentLink(s, origem, true); }}/></div>
       <div className="campaign">
         <NavItem spec={homeSpec}
           className={activeId === (active ? `campanha:${active.campaign.id}` : `secao:${campaignsHub.page}`) ? "campaign-main selected" : "campaign-main"}
