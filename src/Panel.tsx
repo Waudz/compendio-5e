@@ -2,7 +2,8 @@ import { useContext, useState, useRef, useLayoutEffect, useEffect } from "react"
 import { VoltarPaginaContext } from "./voltarPagina";
 import { useCampaigns } from "./CampaignsContext";
 import { useUnsaved } from "./unsaved";
-import { OrigemAbaContext } from "./abrirEmAba";
+import { estaVisivel } from "./voltarInterno";
+import { OrigemAbaContext, ehAreaDeEdicao } from "./abrirEmAba";
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
 import { MonstroPagina } from "./Compendio";
 import { ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
@@ -78,5 +79,6 @@ function CompendioLocal(props:PanelProps) {
     guard(()=>{positions.current[index]=scroller()?.scrollTop??0;positions.current.length=index+1;setPages(p=>[...p.slice(0,index+1),s]);setIndex(index+1);});
   };
   useEffect(()=>{const listener=(e:Event)=>{const d=(e as CustomEvent<{origem?:string;s:TabSpec}>).detail;if(d?.origem===origin)open(d.s);};window.addEventListener("compendio:abrir-local",listener);return()=>window.removeEventListener("compendio:abrir-local",listener);},[origin,pages,index,props.onOpenContent]);
-  return <div ref={root}><div className="workspace-history" role="group" aria-label="Histórico da aba"><button type="button" aria-label="Voltar na aba" disabled={index===0} onClick={back}><ArrowLeft size={16}/></button><button type="button" aria-label="Avançar na aba" disabled={index===pages.length-1} onClick={()=>move(index+1)}><ArrowRight size={16}/></button></div><VoltarPaginaContext.Provider value={back}>{pages.map((p,i)=><div key={i+":"+p.kind+":"+p.ref} hidden={i!==index}><ConteudoPanel {...props} kind={p.kind} entity={p.ref} onOpenContent={open}/></div>)}</VoltarPaginaContext.Provider></div>;
+  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(!root.current?.contains(document.activeElement)||!estaVisivel(root.current)||ehAreaDeEdicao(e.target)||!e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==="ArrowLeft"&&index>0){e.preventDefault();back();}else if(e.key==="ArrowRight"&&index<pages.length-1){e.preventDefault();move(index+1);}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);},[index,pages,origin]);
+  return <div ref={root} tabIndex={-1}><div className="workspace-history" role="group" aria-label="Histórico da aba"><button type="button" aria-label="Voltar na aba" disabled={index===0} onClick={back}><ArrowLeft size={16}/></button><button type="button" aria-label="Avançar na aba" disabled={index===pages.length-1} onClick={()=>move(index+1)}><ArrowRight size={16}/></button></div><VoltarPaginaContext.Provider value={back}>{pages.map((p,i)=><div key={i+":"+p.kind+":"+p.ref} hidden={i!==index}><ConteudoPanel {...props} kind={p.kind} entity={p.ref} onOpenContent={open}/></div>)}</VoltarPaginaContext.Provider></div>;
 }
