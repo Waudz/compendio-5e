@@ -5,6 +5,8 @@ import { registrarTitulo } from "./registrosStore";
 import { VoltarCompendio } from "./compendio/Paginas";
 import { RegistrarDescoberta } from "./compendio/RegistrosCampanha";
 import { VisaoRegistro } from "./compendio/VisaoRegistro";
+import { AcoesDefinicao } from "./compendio/EditorDefinicao";
+import { carregarDefinicao, useDefinicao, useDefinicoes, type Definicao } from "./compendio/definicoes";
 import { PesquisaGlobal } from "./compendio/PesquisaGlobal";
 import { ListaCampanha } from "./compendio/ListaCampanha";
 import { useNotificacoes } from "./compendio/Notificacoes";
@@ -27,7 +29,6 @@ import {
   Swords,
 } from "lucide-react";
 import "./compendio/compendio-categorias.css";
-import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { DetalheMonstro } from "./compendio/DetalheMonstro";
 // Compêndio: ponto de entrada da seção (painel do catálogo) e da página de item (aba `item:<id>`, aberta pelo inventário do criador e pelos pacotes).
 // O painel é o catálogo genérico de `src/compendio/` (itens, magias e monstros de D&D 5e 2014); a página de item reutiliza o mesmo detalhe.
@@ -222,6 +223,9 @@ export function ItemPagina({
   const unavailable = useCatalogueCampaign(onOpenContent);
   const { active } = useCampaigns(),
     { items, loading, error } = useConhecimento();
+  const definicoes = useDefinicoes();
+  const definicao = useDefinicao("item", id.startsWith("monstro:") ? undefined : id);
+  useEffect(() => { if (definicao?.campanha) registrarTitulo(id, definicao.nome); }, [id, definicao?.nome]);
   if (unavailable) return unavailable;
   if (active?.role !== "mestre") {
     if (id.startsWith("monstro:")) {
@@ -258,7 +262,10 @@ export function ItemPagina({
       );
   }
   if (id.startsWith("monstro:")) return <MonstroPagina id={id.slice(8)} onOpenContent={onOpenContent}/>;
-  const item = srdItem(id);
+  const efetiva = definicao?.kind === "item" ? definicao : undefined;
+  const item = efetiva?.item ?? srdItem(id);
+  if (!item && (definicoes.carregando || (id.startsWith("custom-") && definicoes.lista.some((d) => d.definitionId === id))))
+    return <div className="content"><p role="status">Carregando item…</p></div>;
   if (!item)
     return (
       <div className="content">
@@ -275,18 +282,20 @@ export function ItemPagina({
       <h1>{item.nome}</h1>
       <p className="muted">{item.en}</p>
       <RegistrarDescoberta category="item" id={id} onOpenContent={onOpenContent}/>
-      <DetalheItem item={item} onOpenContent={onOpenContent} /></article>
+      {efetiva && <AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}
+      <DetalheItem item={item} descricao={efetiva?.descricao} personalizado={!!efetiva?.campanha} onOpenContent={onOpenContent} /></article>
     </div>
   );
 }
 
 export function MonstroPagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
  const {active}=useCampaigns(),knowledge=useConhecimento();const allowed=active?.role==='mestre'||knowledge.items.some(x=>x.systemId==='dnd5e-2014'&&x.category==='monster'&&x.definitionId===id);
- const [data,setData]=useState<{id:string;monster?:Monstro;error?:string}>();
- useEffect(()=>{let alive=true;if(allowed)void import('./catalogue/contratos').then(c=>c.todosOsMonstros()).then(ms=>{const monster=ms.find(m=>m.id===id);if(alive){setData({id,monster});if(monster)registrarTitulo(id,monster.nome);}},()=>{if(alive)setData({id,error:'Não foi possível carregar a criatura.'});});return()=>{alive=false;};},[id,allowed]);
+ const definicoes=useDefinicoes();
+ const [data,setData]=useState<{id:string;definicao?:Definicao;error?:string}>();
+ useEffect(()=>{let alive=true;if(allowed&&!definicoes.carregando)void carregarDefinicao('monster',id,definicoes.lista).then(definicao=>{if(alive){setData({id,definicao});if(definicao)registrarTitulo(id,definicao.nome);}},()=>{if(alive)setData({id,error:'Não foi possível carregar a criatura.'});});return()=>{alive=false;};},[id,allowed,definicoes.lista,definicoes.carregando]);
  if(!allowed)return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t={knowledge.loading?'Verificando conhecimento…':'Criatura não revelada com informações completas nesta campanha.'}/></div>;
- const m=data?.id===id?data.monster:undefined;
- return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RegistrarDescoberta category="monster" id={id} onOpenContent={onOpenContent}/></div></header><article aria-label={`Detalhes de ${m.nome}`}><DetalheMonstro monstro={m} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></article></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
+ const efetiva=data?.id===id&&data.definicao?.kind==='monster'?data.definicao:undefined,m=efetiva?.monstro;
+ return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RegistrarDescoberta category="monster" id={id} onOpenContent={onOpenContent}/></div></header>{efetiva&&<AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}<article aria-label={`Detalhes de ${m.nome}`}><DetalheMonstro monstro={m} personalizado={!!efetiva?.campanha} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></article></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
 }
 
 /** Categorias são destinos do mesmo histórico, não páginas escondidas dentro do índice. */

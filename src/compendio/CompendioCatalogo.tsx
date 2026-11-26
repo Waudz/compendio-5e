@@ -16,6 +16,9 @@ import {jogadorPodeAdicionar} from '../catalogue/disponibilidade';
 import {imagemDoItem,imagemDoMonstro} from '../ficha/imagensCatalogo';
 import type {TabSpec} from '../workspace';
 import {itemSpec} from './DetalheItem';
+import {aplicarDaCampanha,useDefinicoes} from './definicoes';
+import {CriarDefinicao} from './EditorDefinicao';
+import {indexar} from '../catalogue/nucleo/busca';
 import {EsqueletoLista} from './Esqueleto';
 import {useConhecimento,itemConhecido} from './conhecimento';
 import {regraSpec,monstroSpec,registroSpec} from './navegacao';
@@ -34,14 +37,16 @@ export function CompendioCatalogo({onOpenContent,categoriaInicial='itens',onVolt
  const [loaded,setLoaded]=useState<{cat:Qualquer;index?:Indice<unknown>;error?:string}>(()=>({cat,index:indiceDisponivel(cat)}));
  useEffect(()=>{let alive=true;void carregarIndice(cat).then(index=>{if(alive)setLoaded({cat,index});},()=>{if(alive)setLoaded({cat,error:'Não foi possível carregar '+cat.rotulo.toLocaleLowerCase()+'. Tente novamente.'});});return()=>{alive=false;};},[cat,retry]);
  useEffect(()=>{cache.set(key,{cat:catId,query,filters,order,view,limit});},[key,catId,query,filters,order,view,limit]);
- const index=loaded.cat===cat?loaded.index:indiceDisponivel(cat),error=loaded.cat===cat?loaded.error:undefined;
+ const padrao=loaded.cat===cat?loaded.index:indiceDisponivel(cat),error=loaded.cat===cat?loaded.error:undefined;
+ const definicoes=useDefinicoes(),tipo=cat.id==='itens'?'item' as const:cat.id==='monstros'?'monster' as const:undefined;
+ const index=useMemo(()=>padrao&&tipo&&definicoes.lista.some(d=>d.kind===tipo)?indexar(cat,aplicarDaCampanha(tipo,padrao.itens as {id:string}[],definicoes.lista)):padrao,[padrao,tipo,definicoes.lista]);
  const results=useMemo(()=>index?consultar(index,{texto:query,filtros:filters,ordenar:order||undefined} as Consulta).filter(x=>cat.id==='monstros'?active?.role==='mestre':cat.id!=='itens'||active?.role==='mestre'||jogadorPodeAdicionar(cat.idDe(x))||itemConhecido(knowledge.items,cat.idDe(x))):[],[index,query,filters,order,cat,knowledge.items,active?.role]);
  const rowsBase=results.map(item=>{const id=cat.idDe(item),title=cat.nomeDe(item);const entry=cat.id==='monstros'?knowledge.items.find(e=>e.category==='monster'&&e.systemId==='dnd5e-2014'&&e.definitionId===id):undefined;return {id,title:entry?.title??title,entry,subtitle:cat.subtituloDe(item),resumo:cat.resumoDe?.(item),category:cat.id,body:cat.corpoDe?.(item)??'',image:cat.id==='itens'?imagemDoItem(id):cat.id==='monstros'?imagemDoMonstro(id):null,spec:entry?registroSpec(entry.id,entry.title):cat.id==='itens'?itemSpec(id,title):cat.id==='magias'?{kind:'magia' as const,ref:id,title}:cat.id==='monstros'?monstroSpec(id,title):regraSpec(cat.id,id,title)};});
  const customs=cat.id==='monstros'&&active?.role==='mestre'&&index&&!Object.values(filters).some(Boolean)?knowledge.items.filter(e=>e.category==='monster'&&e.systemId==='dnd5e-2014'&&!index.itens.some(x=>cat.idDe(x)===e.definitionId)&&[e.title,deBlocos(e.description??[])].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(e=>({id:e.id,title:e.title,subtitle:'Registro personalizado',category:'monster',body:deBlocos(e.description??[]),entry:e,spec:registroSpec(e.id,e.title)})):[];
  const allRows=[...rowsBase,...customs];const rows=allRows.slice(0,limit);const total=allRows.length;
  const pesquisar=(q:string)=>{setQuery(q);setLimit(PAGINA);};
  const ativos=Object.values(filters).filter(v=>v!==''&&v!==false).length;
- return <div className="content cd-page compendio cat"><CabecalhoCategoria title={cat.id==='monstros'?'Bestiário':cat.rotulo} onBack={onVoltar??(()=>onOpenContent({kind:'secao',ref:'compendio'}))}/>
+ return <div className="content cd-page compendio cat"><CabecalhoCategoria title={cat.id==='monstros'?'Bestiário':cat.rotulo} onBack={onVoltar??(()=>onOpenContent({kind:'secao',ref:'compendio'}))} actions={tipo&&active?.role==='mestre'&&!definicoes.indisponivel&&knowledge.api?.saveDefinition?<CriarDefinicao kind={tipo} onOpenContent={onOpenContent}/>:undefined}/>
  {categoriaInicial==='classes'&&<div className="cd-filters" role="group" aria-label="Categorias de classe">{['classes','subclasses'].map(id=><button key={id} aria-pressed={catId===id} onClick={()=>{setCatId(id);setQuery('');setFilters({});setOrder('');setLimit(PAGINA);}}>{id==='classes'?'Classes':'Subclasses'}</button>)}</div>}
  {cat.id==='talentos'&&<p className="muted">Características do SRD utilizadas pelo motor. Esta consulta não é um catálogo completo de talentos de suplementos.</p>}
  <FerramentasCategoria searchLabel="Pesquisar no Compêndio" query={query} onQuery={pesquisar} view={view} onView={setView} order={order} onOrder={setOrder} sortOptions={[{value:'',label:query?'Relevância':'Padrão'},...cat.ordenacoes.map(x=>({value:x.id,label:x.rotulo}))]}/>

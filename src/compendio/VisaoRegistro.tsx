@@ -14,7 +14,8 @@ import { ImagemConhecida } from './RegistrosCampanha';
 import { ListaVinculos, type ControlesVinculo } from './Vinculos';
 import { DetalheMonstro } from './DetalheMonstro';
 import { DetalheItem } from './DetalheItem';
-import { useDefinicao } from './definicoes';
+import { secoesDaDefinicao, useDefinicao } from './definicoes';
+import { mesmasSecoes } from './ficha';
 import { nomesRegistro, type LinhaCompendio } from './consulta';
 import type { TabSpec } from '../workspace';
 
@@ -79,7 +80,9 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
   const demais = habitantes.length ? links.filter(l => l.relation !== 'Habitante') : links;
   const textoHabitantes = entry.category === 'location' ? longos.find(f => f.id === 'inhabitants') : undefined;
   // O jogador com identificação completa recebe o ID e vê o mesmo componente da definição.
-  const definicao = useDefinicao(entry.category, controles ? undefined : entry.definitionId, entry.systemId);
+  const carregada = useDefinicao(entry.category, controles ? undefined : entry.definitionId, entry.systemId);
+  // Se a campanha personalizou a definição, vale a ficha liberada pelo servidor, nunca o original do catálogo.
+  const definicao = carregada && (!entry.sheet?.length || mesmasSecoes(secoesDaDefinicao(carregada), entry.sheet)) ? carregada : undefined;
   const campoLongo = (f: Campo) => <section key={f.id}><h2>{f.label} {olho(f.id, f.label)}</h2><p className="cd-texto">{entry.fields?.[f.id]}</p></section>;
   return <>
     <div className="cd-identity">
@@ -109,8 +112,8 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
     </section>}
     {!controles && (definicao
       ? <div className="cd-definition">{definicao.kind === 'monster'
-        ? <DetalheMonstro monstro={definicao.monstro} mostrarImagem={false} onAbrirMagia={ref => onOpenContent({ kind: 'magia', ref })}/>
-        : <><DetalheItem item={definicao.item} descricao={definicao.descricao} onOpenContent={onOpenContent} mostrarImagem={false}/></>}</div>
+        ? <DetalheMonstro monstro={definicao.monstro} mostrarImagem={false} personalizado={!!definicao.campanha} onAbrirMagia={ref => onOpenContent({ kind: 'magia', ref })}/>
+        : <DetalheItem item={definicao.item} descricao={definicao.descricao} personalizado={!!definicao.campanha} onOpenContent={onOpenContent} mostrarImagem={false}/>}</div>
       : !!entry.sheet?.length && <section className="cd-sheet" aria-label="Informações conhecidas"><h2>Informações conhecidas</h2><dl className="cd-campos">{entry.sheet.map(s => <div key={s.k}><dt>{s.l}</dt><dd>{s.v}</dd></div>)}</dl></section>)}
     {(demais.length > 0 || controles) && <section className="cd-relations" aria-label="Registros relacionados">
       <h2>Registros relacionados</h2>

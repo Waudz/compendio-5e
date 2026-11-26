@@ -9,6 +9,7 @@ import type {TabSpec} from '../workspace';
 import {imagemDoMonstro} from '../ficha/imagensCatalogo';
 import {useConhecimento,type Conhecimento} from './conhecimento';
 import {filtroDaDescoberta} from './campos';
+import {aplicarDaCampanha,useDefinicoes} from './definicoes';
 import {identidadeSpec,monstroSpec,registroSpec} from './navegacao';
 import {normalizar} from '../catalogue/nucleo/busca';
 export const nomesCategoria:Record<string,string>={npc:'Personagens',character:'Personagens',monster:'Bestiário',location:'Locais',organization:'Organizações',discovery:'Descobertas',item:'Descobertas','catalog-item':'Itens'};
@@ -21,9 +22,10 @@ export function useIdentidades(){const source=useAventureiros(),{active}=useCamp
  return {items:state?.scope===scope?state.items:[],loading:!!source&&state?.scope!==scope,error:state?.scope===scope?state.error:undefined};
 }
 export function useLinhasCampanha(includeMonsters=false){
- const known=useConhecimento(),pcs=useIdentidades(),{active}=useCampaigns();
- const [monsters,setMonsters]=useState<Awaited<ReturnType<typeof import('../catalogue/contratos').todosOsMonstros>>>([]);
+ const known=useConhecimento(),pcs=useIdentidades(),{active}=useCampaigns(),definicoes=useDefinicoes();
+ const [padrao,setMonsters]=useState<Awaited<ReturnType<typeof import('../catalogue/contratos').todosOsMonstros>>>([]);
  useEffect(()=>{let alive=true;if(!includeMonsters)return;void import('../catalogue/contratos').then(c=>c.todosOsMonstros()).then(ms=>{if(alive)setMonsters(ms);},()=>{});return()=>{alive=false;};},[includeMonsters]);
+ const monsters=useMemo(()=>padrao.length?aplicarDaCampanha('monster',padrao,definicoes.lista):padrao,[padrao,definicoes.lista]);
  const rows=useMemo<LinhaCompendio[]>(()=>{
   const entries=known.items.map(e=>{
    const m=e.systemId==='dnd5e-2014'&&e.category==='monster'?monsters.find(x=>x.id===e.definitionId):undefined;

@@ -21,10 +21,11 @@
 | `0015` | **Compêndio: projeção de conhecimento, registros narrativos canônicos, notificações e Storage privado** | **PROPOSTA, não aplicada** | requer 0001–0014; `docs/COMPENDIO-CONHECIMENTO.md`; testes SQL e Auth/REST/JWT isolados; rollback arquiva índice/notificações, preserva notes e arquivos |
 | `0016` | **páginas do Compêndio: campos opcionais, enquadramento, vínculos bidirecionais e feed com contadores completos** | **PROPOSTA, não aplicada** | requer 0015; testes `compendio-rls.test.ts`; reversão `rollback/0016_compendio_paginas_vinculos_down.sql` arquiva vínculos e campos; não altera registros existentes ao aplicar |
 | `0017` | **Compêndio: conhecimento por campo, prévia do jogador, relações tipadas/inversas com divulgação própria, descobertas e um aviso por operação** | **PROPOSTA, não aplicada** | requer 0015 e 0016; converte os níveis 0–4 existentes sem ampliar o acesso; testes `compendio-rls.test.ts`; reversão `rollback/0017_compendio_conhecimento_granular_down.sql` (falha para o lado fechado e arquiva o estado). **Aplicar junto com a publicação do aplicativo correspondente** |
-| `0018` | registros rápidos e pendências do Planejamento | reservada (não implementada) | depende da 0006; **antigas reservas "0007", "0012", "0013" e "0014"** |
-| `0019` | vínculos entre páginas (`note_links`, derivada do conteúdo) | reservada (não implementada) | depende da 0005; **antigas reservas "0008", "0013", "0014" e "0015"** |
-| `0020` | audiências de notas (compartilhamento granular, D3) | reservada (não implementada) | **antigas reservas "0009", "0015" e "0016"**: reescreve a regra de leitura; manter a assinatura de `can_read_note` |
-| `0021`+ | reservas futuras | reservada (não implementada) | **antiga reserva "0010+"** |
+| `0018` | **monstros e itens personalizados por campanha** (substituição, criação, restauração), com a página registrada acompanhando a definição | **PROPOSTA, não aplicada** | requer 0017; só o mestre lê e grava; testes `compendio-rls.test.ts`; reversão `rollback/0018_compendio_definicoes_campanha_down.sql` (arquiva antes) |
+| `0019` | registros rápidos e pendências do Planejamento | reservada (não implementada) | depende da 0006; **antigas reservas "0007", "0012", "0013" e "0014"** |
+| `0020` | vínculos entre páginas (`note_links`, derivada do conteúdo) | reservada (não implementada) | depende da 0005; **antigas reservas "0008", "0013", "0014" e "0015"** |
+| `0021` | audiências de notas (compartilhamento granular, D3) | reservada (não implementada) | **antigas reservas "0009", "0015" e "0016"**: reescreve a regra de leitura; manter a assinatura de `can_read_note` |
+| `0022`+ | reservas futuras | reservada (não implementada) | **antiga reserva "0010+"** |
 
 
 > A reserva anterior de "0005" para audiências/vínculos de notas (documentos de 19/11/2026) foi **substituída** pela numeração acima: o Planejamento não depende das audiências e é aplicado antes.

@@ -39,7 +39,7 @@ function Habilidade({ h, onAbrirMagia }: { h: Texto; onAbrirMagia?: (id: string)
   </div>;
 }
 
-export function DetalheMonstro({ monstro: m, onAbrirMagia, mostrarImagem=true }: { monstro: Monstro; onAbrirMagia?: (id: string) => void; mostrarImagem?:boolean }) {
+export function DetalheMonstro({ monstro: m, onAbrirMagia, mostrarImagem=true, personalizado=false }: { monstro: Monstro; onAbrirMagia?: (id: string) => void; mostrarImagem?:boolean; personalizado?:boolean }) {
   const linhas: [string, string][] = [];
   if (m.salvaguardas && Object.keys(m.salvaguardas).length) linhas.push(["Testes de resistência", Object.entries(m.salvaguardas).map(([a, v]) => `${siglaAtributo(a)} ${formatarModificador(v)}`).join(", ")]);
   if (m.pericias && Object.keys(m.pericias).length) linhas.push(["Perícias", Object.entries(m.pericias).map(([a, v]) => `${rotuloPericia(a)} ${formatarModificador(v)}`).join(", ")]);
@@ -71,9 +71,11 @@ export function DetalheMonstro({ monstro: m, onAbrirMagia, mostrarImagem=true }:
       <table className="cat-formas"><thead><tr><th scope="col">Forma</th><th scope="col">CA</th><th scope="col">PV</th><th scope="col">Deslocamento</th><th scope="col">Ações</th></tr></thead>
         <tbody>{m.formas.map(f => <tr key={f.id}><th scope="row">{f.rotulo}</th><td>{f.ca}</td><td>{f.pv}</td><td>{formatarDeslocamento(f.deslocamento)}</td>
           <td>{f.acoes.length ? f.acoes.map(a => [...m.acoes, ...m.tracos].find(x => x.en === a)?.n ?? a).join(", ") : "nenhuma"}</td></tr>)}</tbody></table></section>}
+    {personalizado ? <p className="muted fonte">Conteúdo desta campanha.</p> : <>
     {m.origem === "legado"
       ? <p className="muted fonte" role="note">Origem: Compêndio 1.0 (legado). <strong>Não confirmado no SRD 5.1</strong>: não é tratado como conteúdo SRD até a origem e a licença serem esclarecidas · identificador <code>{`legado:monster:${m.id}:1`}</code>.</p>
       : <p className="muted fonte">Fonte: SRD 5.1 (2014), licença CC BY 4.0 · identificador <code>{`srd-2014:monster:${m.id}:1`}</code>. Distâncias em metros (pés × 0,3).</p>}
     <p className="muted fonte" role="note">Tradução para o português produzida com apoio de IA (a partir do Compêndio 1.0 e de complementos), <strong>ainda sem revisão humana</strong>. Em caso de dúvida sobre uma regra, vale o texto original em inglês.</p>
+    </>}
   </>;
 }

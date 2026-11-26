@@ -8,7 +8,7 @@ import { imagemDoItem } from "../ficha/imagensCatalogo";
 
 export const itemSpec = (id: string, nome: string): TabSpec => ({ kind: "item", ref: id, title: nome });
 
-export function DetalheItem({ item, onOpenContent, descricao, mostrarImagem = true }: { item: SrdItem; onOpenContent: (s: TabSpec) => void; /** Texto de um item personalizado. */ descricao?: string; mostrarImagem?: boolean }) {
+export function DetalheItem({ item, onOpenContent, descricao, mostrarImagem = true, personalizado = false }: { item: SrdItem; onOpenContent: (s: TabSpec) => void; /** Texto de um item personalizado. */ descricao?: string; mostrarImagem?: boolean; personalizado?: boolean }) {
   const { aoClicarDireito, aoClicar, aoBotaoDoMeio } = useAbrirEmAba();
   const desc = descricao ?? srdItemsCatalogue().definitions.find(d => d.ref.id === item.id)?.description ?? "";
   const arquivo = srdItemFile();
@@ -20,7 +20,7 @@ export function DetalheItem({ item, onOpenContent, descricao, mostrarImagem = tr
     {item.pacote && <section aria-label="Conteúdo do pacote"><h2>Conteúdo do pacote</h2>
       <ul>{item.pacote.map(c => { const parte = srdItem(c.id); const s = itemSpec(c.id, parte?.nome ?? c.id);
         return <li key={c.id}>{c.qtd} × <button type="button" className="link" onClick={e => {if(!aoClicar(e,s))onOpenContent(s);}} onAuxClick={e=>aoBotaoDoMeio(e,s)} onMouseDown={e=>{if(e.button===1)e.preventDefault();}} onContextMenu={e => aoClicarDireito(e, s)}>{parte?.nome ?? c.id}</button></li>; })}</ul></section>}
-    <p className="muted fonte">Fonte: {arquivo.source.title}, revisão {arquivo.revision} · identificador <code>{`${arquivo.source.id}:item:${item.id}:${arquivo.revision}`}</code> · licença {arquivo.source.license}. Peso em kg e alcance em metros seguem a convenção do projeto.</p>
-    <details className="muted"><summary>Atribuição</summary><p>{arquivo.source.attribution}</p></details>
+    {personalizado ? <p className="muted fonte">Conteúdo desta campanha.</p> : <><p className="muted fonte">Fonte: {arquivo.source.title}, revisão {arquivo.revision} · identificador <code>{`${arquivo.source.id}:item:${item.id}:${arquivo.revision}`}</code> · licença {arquivo.source.license}. Peso em kg e alcance em metros seguem a convenção do projeto.</p>
+    <details className="muted"><summary>Atribuição</summary><p>{arquivo.source.attribution}</p></details></>}
   </>;
 }

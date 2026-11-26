@@ -12,6 +12,7 @@ import { useAuth } from "../AuthContext";
 import { useCampaigns } from "../CampaignsContext";
 import type { BlocoTexto } from "../inicio";
 import type { Secao } from "./ficha";
+import type { LinhaDefinicao, TipoDefinicao } from "./definicoes";
 export type CodexCategoria =
   | "npc"
   | "location"
@@ -89,6 +90,10 @@ export interface CodexApi {
   image(path: string): Promise<Blob>;
   holders(cid: string, id: string): Promise<{ id: string; title: string }[]>;
   seen(id: number): Promise<void>;
+  /** Personalização do catálogo (0018), somente do mestre. */
+  definitions?(cid: string): Promise<LinhaDefinicao[]>;
+  saveDefinition?(cid: string, d: LinhaDefinicao, sheet: Secao[], baseName?: string): Promise<number>;
+  removeDefinition?(cid: string, kind: TipoDefinicao, id: string, version: number, sheet?: Secao[], originalName?: string): Promise<void>;
 }
 export const ERRO_CODEX =
   "Não foi possível acessar o conhecimento da campanha. Verifique a conexão e a configuração da migração do Compêndio.";
@@ -123,6 +128,17 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
       throw Error(`Atualização do banco necessária: migração 00${VERSAO_BANCO_CODEX}. Nada foi gravado.`);
   };
   return {
+    definitions: async (cid) =>
+      (conferir(await client.from("campaign_definitions").select("kind,definition_id,base_id,version,data").eq("campaign_id", cid).order("updated_at")) as { kind: TipoDefinicao; definition_id: string; base_id: string | null; version: number; data: LinhaDefinicao["data"] }[])
+        .map((r) => ({ kind: r.kind, definitionId: r.definition_id, baseId: r.base_id ?? undefined, version: r.version, data: r.data })),
+    saveDefinition: async (cid, d, sheet, baseName) =>
+      conferir(await client.rpc("codex_definition_save", { p_campaign: cid, p_kind: d.kind, p_definition_id: d.definitionId, p_version: d.version, p_base_id: d.baseId ?? null, p_data: d.data, p_sheet: sheet, p_base_name: baseName ?? null })) as number,
+    removeDefinition: async (cid, kind, id, version, sheet, originalName) => {
+      const r = await client.rpc("codex_definition_remove", { p_campaign: cid, p_kind: kind, p_definition_id: id, p_version: version, p_sheet: sheet ?? null, p_original_name: originalName ?? null });
+      if ((r.error as { message?: string } | null)?.message?.includes("definicao_em_uso"))
+        throw Error("Há uma página da campanha ligada a esta criação. Remova a página antes de excluir.");
+      semErro(r);
+    },
     links: async (cid, id) => conferir(await client.rpc("codex_links_for", { p_campaign: cid, p_entry: id })) as CodexLink[],
     link: async (cid, source, target, r) => conferir(await client.rpc("codex_link", { p_campaign: cid, p_source: source, p_target: target, p_kind: r.kind, p_relation: r.label, p_inverse: r.inverse, p_revealed: !!r.revealed })) as string,
     unlink: async (cid, id) => semErro(await client.rpc("codex_unlink", { p_campaign: cid, p_link: id })),

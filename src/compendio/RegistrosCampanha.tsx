@@ -65,7 +65,8 @@ export async function garantirRegistro(api: CodexApi, campaignId: string, items:
     if (registered && entry.registered === false) await api.save(campaignId, entry.id, entry.version, { ...edicaoDe(entry), registered: true });
     return entry.id;
   }
-  const definition = await carregarDefinicao(category, definitionId);
+  const daMesa = (await api.definitions?.(campaignId).catch(() => [])) ?? [];
+  const definition = await carregarDefinicao(category, definitionId, daMesa);
   if (!definition) throw Error("Definição não encontrada nesta campanha.");
   return api.save(campaignId, null, 0, {
     category, systemId: "dnd5e-2014", definitionId, title: definition.nome.slice(0, 120), description: [], fields: {},

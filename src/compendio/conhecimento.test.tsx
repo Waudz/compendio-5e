@@ -263,5 +263,22 @@ describe("Compêndio unificado", () => {
     expect(criado.sheet!.length).toBeGreaterThan(2);
     expect(await codexDemo(false, "ca").list("ca")).toEqual([]);
   });
+  it("criar item com 'Registrar como descoberta' gera a definição da campanha e a página secreta ligada a ela", async () => {
+    const codex = codexDemo(true, "ca");
+    await mount("mestre", codex);
+    fireEvent.click(screen.getByRole("button", { name: "Regras" }));
+    fireEvent.click(portal("Itens"));
+    fireEvent.click(await screen.findByRole("button", { name: "Criar item" }));
+    const janela = screen.getByRole("dialog", { name: "Novo item" });
+    fireEvent.change(within(janela).getByLabelText("Nome"), { target: { value: "Chave do Corvo" } });
+    fireEvent.change(within(janela).getByLabelText(/^Descrição e efeitos/), { target: { value: "Abre o entreposto" } });
+    fireEvent.click(within(janela).getByLabelText("Registrar como descoberta"));
+    fireEvent.click(within(janela).getByRole("button", { name: "Salvar" }));
+    expect(await screen.findByRole("heading", { name: "Chave do Corvo" })).toBeTruthy();
+    const [definicao] = await codex.definitions!("ca");
+    const [registro] = await codex.list("ca");
+    expect(registro).toMatchObject({ category: "item", definitionId: definicao.definitionId, visible: false });
+    expect(registro.sheet!.at(-1)).toMatchObject({ k: "effects", v: "Abre o entreposto" });
+  });
 });
 

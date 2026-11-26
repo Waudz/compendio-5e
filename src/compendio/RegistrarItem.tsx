@@ -9,12 +9,14 @@ import { linhasDoCatalogo } from './Vinculos';
 import { SeletorRegistro } from './SeletorRegistro';
 import { garantirRegistro } from './RegistrosCampanha';
 import { registroSpec } from './navegacao';
+import { useDefinicoes } from './definicoes';
 import type { TabSpec } from '../workspace';
 
 export function RegistrarItemExistente({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
   const { active } = useCampaigns(), data = useLinhasCampanha();
   const [open, setOpen] = useState(false), [selected, setSelected] = useState(''), [query, setQuery] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
-  const rows = useMemo(() => open ? [...data.rows.filter(r => r.entry?.category === 'item' && r.entry.registered === false), ...linhasDoCatalogo(data.rows)] : [], [open, data.rows]);
+  const { lista } = useDefinicoes();
+  const rows = useMemo(() => open ? [...data.rows.filter(r => r.entry?.category === 'item' && r.entry.registered === false), ...linhasDoCatalogo(data.rows, lista)] : [], [open, data.rows, lista]);
   const chosen = rows.find(r => r.id === selected);
   const registrar = () => {
     if (!data.api || !active || !chosen) return;

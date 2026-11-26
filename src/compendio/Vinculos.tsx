@@ -11,6 +11,7 @@ import { avisarConhecimento, type CodexLink } from './conhecimento';
 import { ImagemLinha } from './ComponentesCategoria';
 import { SeletorRegistro } from './SeletorRegistro';
 import { garantirRegistro } from './RegistrosCampanha';
+import { aplicarDaCampanha, useDefinicoes, type LinhaDefinicao } from './definicoes';
 import { nomesCategoria, useLinhasCampanha, type LinhaCompendio } from './consulta';
 import { identidadeSpec, registroSpec } from './navegacao';
 import { agruparVinculos, montarRelacao, OPCOES_RELACAO, PERSONALIZADA } from './relacoes';
@@ -19,9 +20,9 @@ import type { TabSpec } from '../workspace';
 const CATALOGO = 'catalog:';
 
 /** Itens do catálogo ainda sem página na campanha. Escolher um cria só a referência secreta: sem descoberta e sem inventário. */
-export function linhasDoCatalogo(rows: readonly LinhaCompendio[]): LinhaCompendio[] {
+export function linhasDoCatalogo(rows: readonly LinhaCompendio[], daMesa: readonly LinhaDefinicao[] = []): LinhaCompendio[] {
   const usados = new Set(rows.flatMap(r => (r.entry?.category === 'item' && r.entry.definitionId ? [r.entry.definitionId] : [])));
-  return srdItemFile().items.filter(i => !usados.has(i.id)).map(i => ({
+  return aplicarDaCampanha('item', srdItemFile().items, daMesa).filter(i => !usados.has(i.id)).map(i => ({
     id: CATALOGO + i.id, title: i.nome, category: 'catalog-item', subtitle: 'Item do catálogo', body: i.en, image: imagemDoItem(i.id), spec: { kind: 'item', ref: i.id, title: i.nome },
   }));
 }
@@ -70,7 +71,8 @@ export function NovoVinculoBotao({ id, vinculos }: { id: string; vinculos: Retur
   const { active } = useCampaigns(), { data, links, reload } = vinculos;
   const [open, setOpen] = useState(false), [target, setTarget] = useState(''), [query, setQuery] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [relation, setRelation] = useState('related:a'), [custom, setCustom] = useState({ ida: '', volta: '' }), [revealed, setRevealed] = useState(false);
-  const candidates = useMemo(() => open ? [...data.rows.filter(r => (r.entry || r.pc) && r.id !== id), ...linhasDoCatalogo(data.rows)] : [], [open, data.rows, id]);
+  const { lista } = useDefinicoes();
+  const candidates = useMemo(() => open ? [...data.rows.filter(r => (r.entry || r.pc) && r.id !== id), ...linhasDoCatalogo(data.rows, lista)] : [], [open, data.rows, id, lista]);
   if (active?.role !== 'mestre') return null;
   const chosen = candidates.find(r => r.id === target);
   const rascunho = montarRelacao(relation, id, target, custom);

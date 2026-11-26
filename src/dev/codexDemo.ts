@@ -1,5 +1,7 @@
 /** Somente demonstração isolada; a autorização de produção é SQL (0017), não este adaptador. */
 import type { CodexApi, CodexLink, Conhecimento } from "../compendio/conhecimento";
+import type { LinhaDefinicao } from "../compendio/definicoes";
+import type { Secao } from "../compendio/ficha";
 
 type Salvo = Conhecimento & { revealed: string[]; announced: string[] };
 type Link = { id: string; source: string; target: string; kind: string; label: string; inverse: string; revealed: boolean };
@@ -53,6 +55,11 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
     e.announced = [...new Set([...e.announced, ...keys])];
     store(key, all);
   };
+  const sync = (definitionId: string, sheet: Secao[], oldName: string | undefined, newName: string) => {
+    const all = read(), mine = all.filter((e) => e.definitionId === definitionId);
+    store(key, all.map((e) => (mine.some((m) => m.id === e.id) ? { ...e, sheet, title: e.title === oldName ? newName : e.title, version: e.version + 1 } : e)));
+    for (const e of mine) announce(e.id);
+  };
   const find = (id: string, version?: number) => {
     const e = read().find((x) => x.id === id);
     if (!e || (version !== undefined && e.version !== version)) throw Error("Conflito de versão.");
@@ -97,6 +104,23 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
     upload: async () => { throw Error("Upload exige Storage privado. A demonstração não envia arquivos."); },
     image: async () => { throw Error("Imagem indisponível."); },
     holders: async () => [],
+    definitions: async (cid) => { check(); scope(cid); return parse<LinhaDefinicao>(key + ":definitions"); },
+    saveDefinition: async (cid, d, sheet, baseName) => {
+      check(); scope(cid);
+      const all = parse<LinhaDefinicao>(key + ":definitions"), same = (x: LinhaDefinicao) => x.kind === d.kind && x.definitionId === d.definitionId, old = all.find(same);
+      if ((old?.version ?? 0) !== d.version) throw Error("Conflito de versão.");
+      store(key + ":definitions", [...all.filter((x) => !same(x)), { ...d, version: d.version + 1 }]);
+      sync(d.definitionId, sheet, (old?.data.definition as { nome?: string } | undefined)?.nome ?? baseName, (d.data.definition as { nome: string }).nome);
+      return d.version + 1;
+    },
+    removeDefinition: async (cid, kind, id, version, sheet, originalName) => {
+      check(); scope(cid);
+      const all = parse<LinhaDefinicao>(key + ":definitions"), old = all.find((x) => x.kind === kind && x.definitionId === id);
+      if (!old || old.version !== version) throw Error("Conflito de versão.");
+      if (id.startsWith("custom-")) { if (read().some((e) => e.definitionId === id)) throw Error("Há uma página da campanha ligada a esta criação."); }
+      else sync(id, sheet!, (old.data.definition as { nome: string }).nome, originalName!);
+      store(key + ":definitions", all.filter((x) => x !== old));
+    },
     seen: async (id) => { if (!master) store(key + ":notices", notices().map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))); },
   };
 }

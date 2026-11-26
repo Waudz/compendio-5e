@@ -287,6 +287,39 @@ describe("Compêndio: conhecimento granular e isolamento", () => {
     await reveal(ids[1], ["name"], { visible: false });
     expect((await feedOf()).unread).toBe(feed.unread - 2);
   });
+  it("definições da campanha: só o mestre; página registrada acompanha edição e restauração; catálogo e outra campanha intactos", async () => {
+    const def = (id: string, nome: string) => JSON.stringify({ definition: { id, nome } });
+    const sheet = (v: string) => JSON.stringify([{ k: "ac", l: "CA", v }]);
+    const saveDef = (user: string, id: string, version: number, nome: string, value: string, campaign = cid, base: string | null = "Adaga") =>
+      as(user, "select public.codex_definition_save($1,'item',$2,$3,null,$4::jsonb,$5::jsonb,$6) r", [campaign, id, version, def(id, nome), sheet(value), base]);
+    const remove = (user: string, id: string, version: number) =>
+      as(user, "select public.codex_definition_remove($1,'item',$2,$3,$4::jsonb,'Adaga')", [cid, id, version, sheet("original")]);
+    const entry = await save(master, null, 0, { category: "item", systemId: "dnd5e-2014", definitionId: "club", title: "Adaga", sheet: JSON.parse(sheet("original")) });
+    await reveal(entry, ["name", "sheet"]);
+    for (const user of [player, other]) {
+      expect((await saveDef(user, "club", 0, "Invasão", "x")).error).toMatch(/sem_permissao/);
+      expect((await remove(user, "club", 1)).error).toMatch(/sem_permissao/);
+    }
+    expect((await saveDef(master, "club", 0, "Adaga do Corvo", "editada")).rows).toEqual([{ r: 1 }]);
+    expect((await seen(entry))!.title).toBe("Adaga do Corvo");
+    expect((await seen(entry))!.sheet).toEqual(JSON.parse(sheet("editada")));
+    expect((await as(player, "select * from public.campaign_definitions")).rows).toEqual([]);
+    expect((await as(other, "select * from public.campaign_definitions")).rows).toEqual([]);
+    expect((await as(master, "insert into public.campaign_definitions(campaign_id,kind,definition_id,data) values($1,'item','x',$2::jsonb)", [cid, def("x", "X")])).error).toMatch(/permission denied/);
+    expect((await saveDef(master, "club", 0, "Duplicada", "x")).error).toMatch(/conflito_de_versao/);
+    expect((await saveDef(master, "club", 1, "Adaga do Corvo", "v2")).rows).toEqual([{ r: 2 }]);
+    expect((await saveDef(master, "club", 0, "Outra mesa", "x", otherCampaign)).error).toMatch(/sem_permissao/);
+    expect((await saveDef(other, "club", 0, "Outra mesa", "alheia", otherCampaign)).error).toBeUndefined();
+    expect((await seen(entry))!.sheet).toEqual(JSON.parse(sheet("v2")));
+    expect((await remove(master, "club", 2)).error).toBeUndefined();
+    expect((await seen(entry))!.title).toBe("Adaga");
+    expect((await seen(entry))!.sheet).toEqual(JSON.parse(sheet("original")));
+    expect((await db.query<Row>("select count(*)::int n from public.campaign_definitions where campaign_id=$1", [cid])).rows).toEqual([{ n: 0 }]);
+    expect((await saveDef(master, "custom-abc", 0, "Chave", "c", cid, null)).error).toBeUndefined();
+    await save(master, null, 0, { category: "item", systemId: "dnd5e-2014", definitionId: "custom-abc", title: "Chave" });
+    expect((await remove(master, "custom-abc", 1)).error).toMatch(/definicao_em_uso/);
+    expect((await as(master, "select public.codex_definition_save($1,'item','custom-z',0,null,$2::jsonb,'[]'::jsonb)", [cid, def("outro-id", "Z")])).error).toMatch(/check constraint/);
+  });
   it("ex-mestre perde acesso até ao notes de que continua dono", async () => {
     const id = await save(master, null, 0, payload());
     await db.exec("alter table public.campaign_members disable trigger user");
@@ -343,6 +376,20 @@ describe("0017 sobre dados existentes", () => {
     } finally {
       db = previous;
       await old.close();
+    }
+  }, 60000);
+  it("reversão da 0018 arquiva as definições e volta à capacidade 17", async () => {
+    const fresh = new PGlite(), previous = db;
+    await fresh.exec(stub);
+    db = fresh;
+    try {
+      for (const f of readdirSync(join(__dirname, "migrations")).filter((x) => x.endsWith(".sql")).sort()) await db.exec(readFileSync(join(__dirname, "migrations", f), "utf8"));
+      await db.exec(readFileSync(join(__dirname, "rollback", "0018_compendio_definicoes_campanha_down.sql"), "utf8"));
+      expect((await db.query<Row>("select public.codex_capabilities() r")).rows).toEqual([{ r: 17 }]);
+      expect((await db.query<Row>("select count(*)::int n from private_codex_archive.definition_snapshots")).rows).toEqual([{ n: 1 }]);
+    } finally {
+      db = previous;
+      await fresh.close();
     }
   }, 60000);
 });
