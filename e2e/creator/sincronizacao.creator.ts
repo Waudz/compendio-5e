@@ -107,15 +107,15 @@ test('poção e transferência: curam, baixam a quantidade, vão para o outro pe
   const pocao = (await page.getByRole('listitem', { name: /^poção de cura$/i }).getAttribute('aria-label'))!;
   await acaoDoItem(page, pocao, 'Usar');
   await page.getByRole('dialog').getByRole('spinbutton').fill('5');
-  await page.getByRole('button', { name: 'Usar e curar' }).dblclick();
+  await page.getByRole('dialog').getByRole('button', { name: /^Curar Lydia Sync em 5 PV/ }).dblclick();
   await expect(page.getByTestId('ficha-pv')).toHaveText('8 / 12');
   await expect(page.getByRole('listitem', { name: pocao, exact: true })).toContainText('×1');
   await acaoDoItem(page, 'Flecha', 'Transferir');
   const janela = page.getByRole('dialog', { name: 'Transferir Flecha' });
-  await janela.getByLabel('Para quem').selectOption('pj-toran');
+  await janela.getByRole('radio', { name: 'Toran Sync' }).check();
   await janela.getByRole('spinbutton').fill('5');
   await evidence(page, info, 'transferir');
-  await janela.getByRole('button', { name: 'Transferir' }).click();
+  await janela.getByRole('button', { name: 'Transferir 5 para Toran Sync' }).click();
   await expect(page.getByRole('listitem', { name: 'Flecha', exact: true })).toContainText('×15');
   await page.getByText(/Histórico de movimentações/).click();
   await expect(page.getByRole('region', { name: 'Histórico de movimentações' })).toContainText('Enviou 5× Flecha para Toran Sync');

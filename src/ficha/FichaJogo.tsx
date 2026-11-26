@@ -2,8 +2,10 @@
 // celular. Os cálculos vêm do motor `regras-2014`; o que muda durante o jogo é guardado no próprio rascunho (`estadoJogo`). A aba, a
 // rolagem de cada aba e a exibição do inventário são lembradas nesta sessão do navegador, por personagem.
 import './ficha.css';
-import { ChevronsUp, Minus, MoreHorizontal, Pencil, Plus, X } from "lucide-react";
-import { D20Nivel, EscudoCA, Indicador, IndicadorPV } from "../dnd/elementos";
+import { ChevronsUp, Coffee, Droplet, Flame, Image as ImageIcon, Minus, Moon, MoreHorizontal, Pencil, Plus, Shield, Skull, Snowflake, X, Zap, type LucideIcon } from "lucide-react";
+import { Indicador, IndicadorPV } from "../dnd/elementos";
+import { CampoRetrato } from "../criador/CampoRetrato";
+import { Modal } from "../ui/Modal";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { label2014, raceTraits2014, selected2014, sheet2014, statistics2014 } from "../criador/regras-2014";
 import { origem2014 } from "../criador/origens-2014";
@@ -130,37 +132,47 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
   const propsAba = { draft, sheet, stats, estado, onChange, onOpenContent, vital };
 
   const origem = origem2014(draft.backgroundId)?.nome ?? label2014(draft.backgroundId);
+  const [editandoRetrato, setEditandoRetrato] = useState(false);
+  const nomeExibido = draft.name.trim() || "Personagem sem nome";
   return <div ref={raiz} className="content ficha auth wide ficha-jogo sistema-dnd" data-testid="ficha-guiada-leitura" {...gesto}>
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
     <section className="ficha-cabecalho" aria-label="Resumo do personagem">
       <div className="ficha-identidade">
-        <span className="dnd-retrato"><RetratoQuadrado tipo="personagem" tamanho={96} src={retratoValido(draft.portrait) ? draft.portrait : null}/><D20Nivel nivel={draft.level} tamanho={46}/></span>
-        <div className="ficha-nomes"><h1>{draft.name.trim() || "Personagem sem nome"}</h1>
+        <button type="button" className="ficha-retrato" aria-label="Alterar retrato" title="Alterar retrato" onClick={() => setEditandoRetrato(true)}><RetratoQuadrado tipo="personagem" tamanho={104} src={retratoValido(draft.portrait) ? draft.portrait : null}/></button>
+        <div className="ficha-nomes"><h1>{nomeExibido}</h1>
           {draft.nickname?.trim() && <p className="identidade-alcunha"><em>{draft.nickname.trim()}</em></p>}
-          <p className="muted">{[raca, label2014(draft.classId) + (subclasse ? ` (${label2014(subclasse)})` : ""), origem].join(" · ")}</p></div>
-        <div className="ficha-acoes">
-          <button type="button" className="btn-secondary ficha-botao" aria-label="Editar personagem" onClick={onEditar}><Pencil size={14} aria-hidden="true"/> Editar<span className="ficha-so-largo"> personagem</span></button>
-          <button type="button" className="btn-secondary ficha-botao" aria-label="Subir de nível" disabled={draft.level >= 20} onClick={onProgredir}><ChevronsUp size={14} aria-hidden="true"/> Subir<span className="ficha-so-largo"> de nível</span></button>
-          <MenuAcoes draft={draft} maximo={sheet.maxHp} onChange={onChange} vital={vital}/></div>
+          <p className="ficha-linha-origem">{[raca, label2014(draft.classId) + (subclasse ? ` (${label2014(subclasse)})` : ""), origem].join(" · ")}</p>
+          <p className="ficha-linha-nivel">Nível {draft.level}</p>
+          <div className="ficha-acoes">
+            <button type="button" className="ficha-botao" aria-label="Editar personagem" onClick={onEditar}><Pencil size={13} aria-hidden="true"/> Editar</button>
+            <button type="button" className="ficha-botao" disabled={draft.level >= 20} onClick={onProgredir}><ChevronsUp size={13} aria-hidden="true"/> Subir de nível</button>
+            <MenuAcoes onRetrato={() => setEditandoRetrato(true)}/></div>
+        </div>
       </div>
       <div className="ficha-numeros">
-        <EscudoCA valor={stats.ac + temp("ac")} extra={extra("ac")}/>
+        <Indicador tipo="ca" rotulo="CA" valor={stats.ac + temp("ac")} extra={extra("ac")}/>
         <IndicadorPV atual={draft.currentHp} maximo={sheet.maxHp} temporarios={draft.temporaryHp}/>
         <Indicador tipo="iniciativa" rotulo="Iniciativa" valor={sinal(stats.initiative + temp("initiative"))} extra={extra("initiative")}/>
         <Indicador tipo="percepcao" rotulo="Percepção passiva" valor={stats.passivePerception + temp("passivePerception")} extra={extra("passivePerception")}/>
         <Indicador tipo="deslocamento" rotulo="Deslocamento" valor={metros(Math.max(0, stats.speed + temp("speed")))} extra={extra("speed")}/>
         <Indicador tipo="proficiencia" rotulo="Proficiência" valor={sinal(stats.prof)}/>
       </div>
-      <div className="dnd-controles">
-        <Vida draft={draft} maximo={sheet.maxHp} vital={vital}/>
-        <Condicoes draft={draft} vital={vital}/>
+      <div className="ficha-painel-jogo">
+        <div className="ficha-controles">
+          <Vida draft={draft} maximo={sheet.maxHp} vital={vital}/>
+          <Condicoes draft={draft} vital={vital}/>
+        </div>
+        {defesas.length > 0 && <div className="ficha-defesas">{(Object.keys(ROTULO_DEFESA) as (keyof typeof ROTULO_DEFESA)[]).map(tipo => { const l = [...new Set(defesas.filter(d => d.tipo === tipo).map(d => d.texto))]; return l.length ? <p key={tipo}><span className="ficha-defesas-rotulo">{PLURAL_DEFESA[tipo]}</span>{l.map(t => { const Icone = iconeDeDano(t); return <span key={t} className="ficha-etiqueta"><Icone size={12} aria-hidden="true"/> {t.charAt(0).toLocaleUpperCase("pt-BR") + t.slice(1)}</span>; })}</p> : null; })}</div>}
+        <Descansos draft={draft} maximo={sheet.maxHp} onChange={onChange} vital={vital}/>
       </div>
-      {defesas.length > 0 && <p className="ficha-defesas">{(Object.keys(ROTULO_DEFESA) as (keyof typeof ROTULO_DEFESA)[]).flatMap(tipo => { const l = defesas.filter(d => d.tipo === tipo).map(d => d.texto); return l.length ? [<span key={tipo}><strong>{ROTULO_DEFESA[tipo]}:</strong> {[...new Set(l)].join(", ")}</span>] : []; })}</p>}
     </section>
+    <nav className="ficha-subnav" aria-label="Seções da ficha">{ABAS.map(([id, rotulo]) => <button key={id} type="button" className={mem.aba === id ? "active" : ""} aria-current={mem.aba === id ? "true" : undefined} onClick={() => trocarAba(id)}>{rotulo}</button>)}</nav>
     {salvamento}
     {avisos}
     {sheet.pending.length > 0 && <p className="notice" role="note">Ficha com escolhas pendentes. Use Editar personagem para concluir.</p>}
-    <nav className="ficha-subnav" aria-label="Seções da ficha">{ABAS.map(([id, rotulo]) => <button key={id} type="button" className={mem.aba === id ? "active" : ""} aria-current={mem.aba === id ? "true" : undefined} onClick={() => trocarAba(id)}>{rotulo}</button>)}</nav>
+    {editandoRetrato && <Modal titulo={`Retrato de ${nomeExibido}`} onFechar={() => setEditandoRetrato(false)} sistema="sistema-dnd" largura={520}>
+      <div className="criador"><CampoRetrato valor={draft.portrait ?? ""} campaignId={campaignId ?? ""} onChange={portrait => onChange({ ...draft, portrait })}/></div>
+    </Modal>}
     <div className="ficha-conteudo" data-aba={mem.aba}>
       {mem.aba === "ficha" && <AbaFicha {...propsAba}/>}
       {mem.aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder} filtro={mem.filtroHab} onFiltro={filtroHab => mudarMemoria({ filtroHab })}/>}
@@ -179,7 +191,7 @@ function Vida({ draft, maximo, vital }: { draft: CharacterDraft; maximo: number;
     <button type="button" className="ficha-passo dano" disabled={!valido} aria-label="Aplicar dano" title="Aplicar dano" onClick={() => aplicar({ tipo: "dano", valor: n })}><Minus size={16} aria-hidden="true"/></button>
     <input type="number" inputMode="numeric" min={0} max={999} placeholder="1" aria-label="Quantidade de pontos de vida" value={valor} onFocus={e => e.target.select()} onChange={e => setValor(e.target.value)} onBlur={() => { if (!inteiro) setValor("1"); }}/>
     <button type="button" className="ficha-passo cura" disabled={!valido} aria-label="Curar" title="Curar (até o máximo)" onClick={() => aplicar({ tipo: "cura", valor: n, maximo })}><Plus size={16} aria-hidden="true"/></button>
-    <button type="button" className="ficha-temp-botao" disabled={!inteiro} title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" onClick={() => aplicar({ tipo: "temporarios", valor: n })}>PV temporários</button>
+    <button type="button" className="ficha-temp-botao" disabled={!inteiro} title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" aria-label={`PV temp. ${draft.temporaryHp}: definir PV temporários`} onClick={() => aplicar({ tipo: "temporarios", valor: n })}>PV temp. {draft.temporaryHp}</button>
   </form>;
 }
 
@@ -191,12 +203,10 @@ function Condicoes({ draft, vital }: { draft: CharacterDraft; vital: (a: AcaoVit
   useFecharMenu(aberto, menu, gatilho, () => setAberto(false));
   const disponiveis = CONDICOES_5E.filter(c => !ativas.includes(c));
   return <div className="ficha-condicoes" role="group" aria-label="Condições">
-    <span className="ficha-condicoes-rotulo">Condições</span>
     {ativas.map(c => <span key={c} className="ficha-chip ativa"><button type="button" className="ficha-chip-nome" aria-expanded={vendo === c} onClick={() => setVendo(v => (v === c ? null : c))}>{c}</button>
       <button type="button" aria-label={`Remover condição ${c}`} onClick={() => { vital({ tipo: "condicao", nome: c, ativa: false }); setVendo(null); }}><X size={12} aria-hidden="true"/></button></span>)}
-    {ativas.length === 0 && <span className="muted">nenhuma</span>}
     <span className="ficha-menu">
-      <button ref={gatilho} type="button" className="ficha-mais" aria-label="Adicionar condição" aria-haspopup="true" aria-expanded={aberto} disabled={disponiveis.length === 0} onClick={() => setAberto(a => !a)}><Plus size={14} aria-hidden="true"/></button>
+      <button ref={gatilho} type="button" className="ficha-temp-botao" aria-label="Condições +: adicionar condição" aria-haspopup="true" aria-expanded={aberto} disabled={disponiveis.length === 0} onClick={() => setAberto(a => !a)}>Condições +</button>
       {aberto && <div ref={menu} className="barra-menu ficha-menu-lista ficha-lista-condicoes" role="group" aria-label="Escolher condição">
         {disponiveis.map(c => <button key={c} type="button" className="barra-item" title={CONDICOES_TEXTO[c]} onClick={() => { vital({ tipo: "condicao", nome: c, ativa: true }); setAberto(false); }}>{c}</button>)}
       </div>}
@@ -205,28 +215,38 @@ function Condicoes({ draft, vital }: { draft: CharacterDraft; vital: (a: AcaoVit
   </div>;
 }
 
-function MenuAcoes({ draft, maximo, onChange, vital }: { draft: CharacterDraft; maximo: number; onChange: (d: CharacterDraft) => void; vital: (a: AcaoVital) => void }) {
-  const [aberto, setAberto] = useState(false), [confirmar, setConfirmar] = useState<"curto" | "longo" | null>(null), [aviso, setAviso] = useState("");
+/** Reticências do cabeçalho: ações que não precisam ficar à vista. */
+function MenuAcoes({ onRetrato }: { onRetrato: () => void }) {
+  const [aberto, setAberto] = useState(false);
   const menu = useRef<HTMLDivElement>(null), gatilho = useRef<HTMLButtonElement>(null);
-  useFecharMenu(aberto, menu, gatilho, () => { setAberto(false); setConfirmar(null); });
-  const fechar = () => { setAberto(false); setConfirmar(null); };
+  useFecharMenu(aberto, menu, gatilho, () => setAberto(false));
+  return <div className="ficha-menu">
+    <button ref={gatilho} type="button" className="ficha-botao" aria-haspopup="true" aria-expanded={aberto} aria-label="Mais ações do personagem" title="Mais ações" onClick={() => setAberto(a => !a)}><MoreHorizontal size={15} aria-hidden="true"/></button>
+    {aberto && <div ref={menu} className="barra-menu ficha-menu-lista" role="group" aria-label="Ações do personagem">
+      <button type="button" className="barra-item" onClick={() => { setAberto(false); onRetrato(); }}><ImageIcon size={14} aria-hidden="true"/> Alterar retrato</button>
+    </div>}
+  </div>;
+}
+
+/** Descanso curto e longo, com confirmação. */
+function Descansos({ draft, maximo, onChange, vital }: { draft: CharacterDraft; maximo: number; onChange: (d: CharacterDraft) => void; vital: (a: AcaoVital) => void }) {
+  const [confirmar, setConfirmar] = useState<"curto" | "longo" | null>(null), [aviso, setAviso] = useState("");
   const descansar = () => {
     if (confirmar === "curto") { onChange(descansoCurto(draft)); setAviso("Descanso curto registrado. Para recuperar PV, use dados de vida, role o dado e informe a cura."); }
     else { const r = descansoLongo(draft, maximo); if (r.ok) { onChange(r.draft); vital({ tipo: "descanso", maximo }); setAviso("Descanso longo registrado."); } else setAviso(r.motivo); }
-    fechar();
+    setConfirmar(null);
   };
-  return <div className="ficha-menu">
-    <button ref={gatilho} type="button" className="btn-secondary ficha-botao" aria-haspopup="true" aria-expanded={aberto} aria-label="Ações" title="Descansos e outras ações" onClick={() => { if (aberto) fechar(); else { setAberto(true); setAviso(""); } }}><MoreHorizontal size={16} aria-hidden="true"/></button>
-    {aberto && <div ref={menu} className="barra-menu ficha-menu-lista" role="group" aria-label="Ações do personagem">
-      {confirmar ? <>
-        <p>{confirmar === "curto" ? "Registrar descanso curto?" : "Registrar descanso longo? Os PV e os recursos serão recuperados."}</p>
-        <button type="button" className="btn-primary" onClick={descansar}>Confirmar descanso</button>
-        <button type="button" className="btn-secondary" onClick={() => setConfirmar(null)}>Cancelar</button>
-      </> : <>
-        <button type="button" className="barra-item" onClick={() => setConfirmar("curto")}>Descanso curto</button>
-        <button type="button" className="barra-item" onClick={() => setConfirmar("longo")}>Descanso longo</button>
-      </>}
-    </div>}
-    {aviso && <p role="status" className="ficha-menu-aviso">{aviso}</p>}
+  return <div className="ficha-descansos">
+    <button type="button" onClick={() => { setAviso(""); setConfirmar("curto"); }}><Coffee size={13} aria-hidden="true"/> Descanso curto</button>
+    <button type="button" onClick={() => { setAviso(""); setConfirmar("longo"); }}><Moon size={13} aria-hidden="true"/> Descanso longo</button>
+    {aviso && <p role="status">{aviso}</p>}
+    {confirmar && <Modal titulo={confirmar === "curto" ? "Descanso curto" : "Descanso longo"} onFechar={() => setConfirmar(null)} sistema="sistema-dnd"
+      acoes={<><button type="button" className="btn-secondary" onClick={() => setConfirmar(null)}>Cancelar</button><button type="button" className="btn-primary" data-foco onClick={descansar}>Confirmar descanso</button></>}>
+      <p>{confirmar === "curto" ? "Registrar descanso curto?" : "Registrar descanso longo? Os PV e os recursos serão recuperados."}</p>
+    </Modal>}
   </div>;
 }
+
+const PLURAL_DEFESA = { resistencia: "Resistências", imunidade: "Imunidades", vulnerabilidade: "Vulnerabilidades" } as const;
+const ICONES_DE_DANO: [RegExp, LucideIcon][] = [[/fogo/i, Flame], [/frio/i, Snowflake], [/el[ée]tric|rel[âa]mpago/i, Zap], [/[áa]cido/i, Droplet], [/veneno/i, Skull]];
+const iconeDeDano = (texto: string): LucideIcon => ICONES_DE_DANO.find(([re]) => re.test(texto))?.[1] ?? Shield;

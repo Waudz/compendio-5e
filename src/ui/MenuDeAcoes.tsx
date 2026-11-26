@@ -6,7 +6,7 @@ import "./ui.css";
 
 export type AcaoDeMenu = { rotulo: string; icone: LucideIcon; acao: () => void; perigo?: boolean; desabilitada?: boolean; motivo?: string };
 
-export function MenuDeAcoes({ rotulo, acoes }: { rotulo: string; acoes: AcaoDeMenu[] }) {
+export function MenuDeAcoes({ rotulo, acoes, titulo }: { rotulo: string; acoes: AcaoDeMenu[]; /** Nome mostrado no alto do menu. */ titulo?: string }) {
   const [aberto, setAberto] = useState(false);
   const menu = useRef<HTMLDivElement | null>(null), gatilho = useRef<HTMLButtonElement>(null);
   useFecharMenu(aberto, menu, gatilho, () => setAberto(false));
@@ -22,6 +22,7 @@ export function MenuDeAcoes({ rotulo, acoes }: { rotulo: string; acoes: AcaoDeMe
       const fundo = window.innerHeight - (window.matchMedia?.("(max-width:700px)").matches ? 70 : 0), topo = gatilho.current?.getBoundingClientRect().top ?? 0;
       if (caixa.height && caixa.bottom > fundo && topo - caixa.height - 60 > 0) { el.style.top = "auto"; el.style.bottom = "calc(100% + 4px)"; }
     }} className="menu-acoes-lista" role="menu" aria-label={rotulo}>
+      {titulo && <p className="menu-acoes-titulo" aria-hidden="true">{titulo}</p>}
       {acoes.map(a => <button key={a.rotulo} type="button" role="menuitem" className={a.perigo ? "perigo" : ""} disabled={a.desabilitada} title={a.desabilitada ? a.motivo : undefined}
         onClick={() => { setAberto(false); a.acao(); }}><a.icone size={14} aria-hidden="true"/> {a.rotulo}</button>)}
     </div>}

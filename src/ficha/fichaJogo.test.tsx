@@ -58,7 +58,7 @@ const abrirFicha = async (user: User = me) => {
 const abas = () => within(screen.getByRole("navigation", { name: "Seções da ficha" }));
 const irPara = (nome: string) => fireEvent.click(abas().getByRole("button", { name: nome }));
 const draftSalvo = () => banco.fichas[0].draft;
-const numero = (rotulo: string) => within(screen.getByRole("region", { name: "Resumo do personagem" })).getByText(rotulo).parentElement!.querySelector("strong")!.textContent;
+const numero = (rotulo: string) => within(screen.getByRole("region", { name: "Resumo do personagem" })).getByText(rotulo).closest(".dnd-indicador")!.querySelector("strong")!.textContent;
 const salvou = (verifica: () => void) => waitFor(verifica, { timeout: 4000 });
 /** As ações de um item ficam no menu de reticências dele. */
 const acaoDoItem = (item: string, acao: string) => { fireEvent.click(screen.getByRole("button", { name: `Ações de ${item}` })); fireEvent.click(screen.getByRole("menuitem", { name: acao })); };
@@ -74,10 +74,11 @@ describe("ficha de jogo", () => {
     expect(topo.getByText("Escudo de Pedra").tagName).toBe("EM");
     expect(ficha.querySelector(".ficha-identidade img")?.getAttribute("src")).toBe(RETRATO);
     expect(topo.getByText(/Anão da Colina · Guerreiro · Acólito/)).toBeTruthy();
-    expect(topo.getByRole("img", { name: "Nível 3" })).toBeTruthy();
+    expect(topo.getByText("Nível 3")).toBeTruthy();
+    expect(topo.getByRole("button", { name: "Alterar retrato" })).toBeTruthy();
     expect(screen.getByTestId("ficha-pv").textContent).toMatch(/^20 \/ \d+$/);
     expect(numero("CA")).toBe("11"); expect(numero("Iniciativa")).toBe("+1"); expect(numero("Proficiência")).toBe("+2");
-    expect(topo.getByText(/Resistência:/).parentElement!.textContent).toMatch(/veneno/);
+    expect(topo.getByText("Resistências").parentElement!.textContent).toMatch(/Veneno/);
     expect(screen.getByRole("region", { name: "Perícias" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Notas|Anotações da ficha/ })).toBeNull();
   });
@@ -87,12 +88,12 @@ describe("ficha de jogo", () => {
     const publicoAntes = JSON.stringify(registros.dados[0]);
     await abrirFicha();
     fireEvent.change(screen.getByLabelText("Quantidade de pontos de vida"), { target: { value: "7" } });
-    fireEvent.click(screen.getByRole("button", { name: "PV temporários" }));
+    fireEvent.click(screen.getByRole("button", { name: /definir PV temporários/ }));
     fireEvent.change(screen.getByLabelText("Quantidade de pontos de vida"), { target: { value: "9" } });
     expect((screen.getByLabelText("Quantidade de pontos de vida") as HTMLInputElement).value).toBe("9");
     fireEvent.click(screen.getByRole("button", { name: "Aplicar dano" }));
     expect((screen.getByLabelText("Quantidade de pontos de vida") as HTMLInputElement).value).toBe("1");   // o valor volta a 1
-    fireEvent.click(screen.getByRole("button", { name: "Adicionar condição" }));
+    fireEvent.click(screen.getByRole("button", { name: /adicionar condição/ }));
     fireEvent.click(within(screen.getByRole("group", { name: "Escolher condição" })).getByRole("button", { name: "Envenenado" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Inspiração" }));
     await salvou(() => expect(draftSalvo()).toMatchObject({ currentHp: 18, temporaryHp: 0, play: { condicoes: ["Envenenado"], inspiracao: true } }));
@@ -123,8 +124,8 @@ describe("ficha de jogo", () => {
     fireEvent.change(ataques.getByLabelText("Dano do ataque"), { target: { value: "1d4+2" } });
     fireEvent.click(ataques.getByRole("button", { name: "Adicionar" }));
     expect(ataques.getByText("Cabeçada")).toBeTruthy();
-    fireEvent.click(within(screen.getByRole("region", { name: "Habilidades de classe e subclasse" })).getByRole("button", { name: /^Usar Retomar o Fôlego/ }));
-    expect(within(screen.getByRole("region", { name: "Habilidades de classe e subclasse" })).getByRole("button", { name: /^Recuperar Retomar o Fôlego/ })).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("region", { name: "Recursos de classe" })).getByRole("button", { name: /^Usar Retomar o Fôlego/ }));
+    expect(within(screen.getByRole("region", { name: "Recursos de classe" })).getByRole("button", { name: /^Recuperar Retomar o Fôlego/ })).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Magias" })).toBeNull();   // guerreiro sem magia: sem seção vazia
     irPara("Ficha");
     fireEvent.click(screen.getByRole("button", { name: "Adicionar efeito temporário" }));
@@ -150,7 +151,7 @@ describe("ficha de jogo", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Alterar quantidade" }));
     fireEvent.change(within(screen.getByRole("dialog", { name: "Quantidade de Adaga" })).getByLabelText("Quantidade"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar quantidade" }));
-    fireEvent.change(screen.getByLabelText("Filtrar inventário"), { target: { value: "armas" } });
+    fireEvent.click(within(screen.getByRole("group", { name: "Filtrar inventário" })).getByRole("button", { name: "Armas" }));
     const itens = within(screen.getByRole("region", { name: "Inventário do personagem" }));
     expect(itens.queryByText("Mochila")).toBeNull();
     fireEvent.click(itens.getByRole("button", { name: "Detalhes de Adaga" }));
@@ -194,10 +195,9 @@ describe("ficha de jogo", () => {
     expect(abaDoGesto("ficha", -100, 80)).toBeNull();
   });
 
-  it("descansos ficam no menu de ações, com confirmação", async () => {
+  it("descansos ficam no cabeçalho, com confirmação", async () => {
     await semear();
     await abrirFicha();
-    fireEvent.click(screen.getByRole("button", { name: "Ações" }));
     fireEvent.click(screen.getByRole("button", { name: "Descanso longo" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirmar descanso" }));
     await salvou(() => expect(draftSalvo().currentHp).toBeGreaterThan(20));
@@ -389,7 +389,7 @@ describe("inventário: moedas da campanha, poções e informações dos itens", 
     await waitFor(() => expect(oferecidos()).toContain("Adicionar Poção de cura"));
     expect(oferecidos().sort()).toEqual(["Adicionar Poção de cura", "Adicionar Poção de escalada"]);
     fireEvent.click(screen.getByRole("button", { name: "Adicionar Poção de cura" }));
-    expect(within(screen.getByRole("listitem", { name: "Poção de cura" })).getByText(/recupera 2d4\+2 PV/)).toBeTruthy();
+    expect(within(screen.getByRole("listitem", { name: "Poção de cura" })).getByText("2d4+2 PV")).toBeTruthy();
   });
 
   it("o mestre pode entregar qualquer item", async () => {
@@ -402,7 +402,7 @@ describe("inventário: moedas da campanha, poções e informações dos itens", 
 
   it("arma mostra o dano básico mesmo sem equipar; armadura mostra a CA", async () => {
     await semear(); await abrirFicha(); irPara("Inventário");
-    expect(within(screen.getByRole("listitem", { name: "Espada longa" })).getByText(/Dano básico 1d8 cortante \(1d10 com duas mãos\)/)).toBeTruthy();
+    expect(within(screen.getByRole("listitem", { name: "Espada longa" })).getByText(/1d8 cortante/).textContent).toBe("1d8 cortante (1d10 com duas mãos)");
     expect(within(screen.getByRole("listitem", { name: "Cota de malha" })).getByText(/CA 16/)).toBeTruthy();
   });
 
@@ -443,9 +443,10 @@ describe("habilidades: filtros por ação, favoritos e detalhes sem perder a fic
     // os favoritos ficam no topo, sem precisar de filtro, e são o MESMO dado: gastar num lugar reflete no outro
     const favoritos = within(screen.getByRole("region", { name: "Favoritos" }));
     expect(favoritos.getAllByRole("listitem", { name: /Retomar o Fôlego|Second Wind/ })).toHaveLength(1);
-    expect(screen.getByRole("region", { name: "Favoritos" }).compareDocumentPosition(screen.getByRole("region", { name: "Ataques" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Favoritos" }).compareDocumentPosition(screen.getByRole("region", { name: "Recursos de classe" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(favoritos.getByRole("button", { name: /^Retomar o Fôlego/ }));
     fireEvent.click(favoritos.getByRole("button", { name: /^Usar Retomar o Fôlego/ }));
-    expect(within(screen.getByRole("region", { name: "Habilidades de classe e subclasse" })).getByRole("button", { name: /^Recuperar Retomar o Fôlego/ })).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Recursos de classe" })).getByRole("button", { name: /^Recuperar Retomar o Fôlego/ })).toBeTruthy();
     await salvou(() => expect((draftSalvo().play as { favoritos: string[] }).favoritos).toHaveLength(1));
   });
 
@@ -454,8 +455,9 @@ describe("habilidades: filtros por ação, favoritos e detalhes sem perder a fic
     banco.fichas[0].draft = { ...banco.fichas[0].draft, classId: "wizard", decisions: [{ id: "cantrips", optionIds: ["fire-bolt"] }] };
     await abrirFicha(); irPara("Habilidades");
     const magia = await screen.findByRole("listitem", { name: "Raio de Fogo" });
-    expect(magia.textContent).toMatch(/Ataque mágico \+\d/);
+    expect(magia.textContent).toMatch(/\+\d para atingir/);
     expect(magia.textContent).toMatch(/1d10 de dano/);
+    fireEvent.click(within(magia).getByRole("button", { name: /^Raio de Fogo/ }));
     fireEvent.click(within(magia).getByRole("button", { name: "Abrir no Compêndio: Raio de Fogo" }));
     expect(await screen.findByRole("heading", { name: "Raio de Fogo", level: 1 })).toBeTruthy();
     expect(document.querySelectorAll(".flexlayout__tabset")).toHaveLength(2);
@@ -463,6 +465,28 @@ describe("habilidades: filtros por ação, favoritos e detalhes sem perder a fic
     // cada grupo mantém a sua aba selecionada: a ficha de um lado, a magia do outro (a visibilidade real é conferida no Playwright)
     const selecionadas = [...document.querySelectorAll(".flexlayout__tab_button--selected .flexlayout__tab_button_content")].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ""));
     expect(selecionadas.sort()).toEqual(["Raio de Fogo", "Thorin"]);
+  });
+});
+
+describe("controles ainda sem operação no banco ficam desabilitados e não alteram nada", () => {
+  it("curar outro personagem e transferir moedas aparecem como indisponíveis", async () => {
+    const outra = await fichasEmMemoria(me.id, banco).criar("ca", { ...rascunho, name: "Lydia", nickname: "", inventory: [] }, { identity: defaultPublicIdentity(), source: { name: "Lydia", alias: "", race: "Humana", characterClass: "Clériga", level: "3", portrait: "" } });
+    if (!outra.ok) throw new Error(outra.error);
+    await semear(); banco.fichas.reverse();
+    banco.fichas[0].draft.inventory = [{ id: "p", itemId: "potion-of-healing-common", quantity: 1, equipped: false, origin: "acquired" }];
+    await abrirFicha(); irPara("Inventário");
+    const antes = JSON.stringify(banco.fichas);
+    fireEvent.click(screen.getByRole("button", { name: /^Usar Poção de [Cc]ura/ }));
+    const pocao = within(screen.getByRole("dialog"));
+    expect(((await pocao.findByRole("radio", { name: "Lydia" })) as HTMLInputElement).disabled).toBe(true);
+    expect((pocao.getByRole("radio", { name: /Thorin \(você\)/ }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(pocao.getByRole("button", { name: "Fechar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Transferir moedas" }));
+    const moedas = within(screen.getByRole("dialog", { name: "Transferir moedas" }));
+    expect((moedas.getByRole("button", { name: "Transferir moedas" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(moedas.getByText(/ainda não está disponível/)).toBeTruthy();
+    fireEvent.click(moedas.getByRole("button", { name: "Fechar" }));
+    expect(JSON.stringify(banco.fichas)).toBe(antes);
   });
 });
 
@@ -481,11 +505,12 @@ describe("itens: usar, transferir e excluir", () => {
     const nome = screen.getByRole("listitem", { name: /Poção de [Cc]ura/ }).getAttribute("aria-label")!;
     acaoDoItem(nome, "Usar");
     const janela = within(screen.getByRole("dialog", { name: `Usar ${nome}` }));
-    const confirmar = janela.getByRole("button", { name: "Usar e curar" }) as HTMLButtonElement;
+    const confirmar = janela.getByRole("button", { name: "Curar Thorin" }) as HTMLButtonElement;
     expect(confirmar.disabled).toBe(true);                                   // sem resultado não há consumo
-    const campo = janela.getByLabelText(/Resultado da rolagem de 2d4\+2 \(de 4 a 10\)/);
+    const campo = janela.getByLabelText(/Resultado da cura \(2d4\+2: de 4 a 10\)/);
     fireEvent.change(campo, { target: { value: "11" } }); expect(confirmar.disabled).toBe(true);
     fireEvent.change(campo, { target: { value: "7" } });
+    expect(confirmar.textContent).toBe("Curar Thorin em 7 PV");
     fireEvent.click(confirmar); fireEvent.click(confirmar);                    // clique duplo não consome duas vezes
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(draftSalvo().currentHp).toBe(12);
@@ -497,7 +522,7 @@ describe("itens: usar, transferir e excluir", () => {
   });
 
   it("transferir move a quantidade para outro personagem da campanha e a ficha de origem se atualiza", async () => {
-    const outra = await fichasEmMemoria(me.id, banco).criar("ca", { ...rascunho, name: "Lydia", inventory: [] }, { identity: defaultPublicIdentity(), source: { name: "Lydia", alias: "", race: "Humana", characterClass: "Clériga", level: "3", portrait: "" } });
+    const outra = await fichasEmMemoria(me.id, banco).criar("ca", { ...rascunho, name: "Lydia", nickname: "", inventory: [] }, { identity: defaultPublicIdentity(), source: { name: "Lydia", alias: "", race: "Humana", characterClass: "Clériga", level: "3", portrait: "" } });
     if (!outra.ok) throw new Error(outra.error);
     const origem = await semear();
     banco.fichas.reverse();                                                   // a ficha de Thorin volta a ser a primeira
@@ -505,11 +530,12 @@ describe("itens: usar, transferir e excluir", () => {
     await abrirFicha(); irPara("Inventário");
     acaoDoItem("Flecha", "Transferir");
     const janela = within(screen.getByRole("dialog", { name: "Transferir Flecha" }));
-    fireEvent.change(await janela.findByLabelText("Para quem"), { target: { value: outra.data.id } });
+    fireEvent.click(await janela.findByRole("radio", { name: "Lydia" }));
     fireEvent.change(janela.getByLabelText(/Quantidade/), { target: { value: "21" } });
     expect((janela.getByRole("button", { name: "Transferir" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(janela.getByLabelText(/Quantidade/), { target: { value: "5" } });
-    fireEvent.click(janela.getByRole("button", { name: "Transferir" }));
+    expect(janela.getByRole("button", { name: /^Transferir/ }).textContent).toBe("Transferir 5 para Lydia");
+    fireEvent.click(janela.getByRole("button", { name: /^Transferir/ }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(banco.fichas.find(f => f.id === origem)!.draft.inventory).toMatchObject([{ id: "f", quantity: 15 }]);
     expect(banco.fichas.find(f => f.id === outra.data.id)!.draft.inventory).toMatchObject([{ itemId: "arrow", quantity: 5, equipped: false }]);

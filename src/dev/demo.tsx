@@ -16,6 +16,7 @@ import { ERRO_SEM_MOEDA, type ConfigCampanhaApi } from "../configCampanha";
 import { lerMoedasAtivas } from "../moedas/moedas";
 import { RegistrosProvider } from "../RegistrosContext";
 import { fichasDemo } from "./fichasDemo";
+import { semearFichaExemplo } from "./fichaExemplo";
 
 const CAMP = { id: "11111111-1111-4111-8111-111111111111", name: "Sociedade do Véu Negro", description: "Um festival em Daggerford vira um banho de sangue com a revelação de um culto que assola a região.", created_at: "2026-01-01T00:00:00Z" };
 const KEY = "demo:registros:v2";
@@ -128,6 +129,7 @@ export function DemoRoot({ papel }: { papel: Role }) {
   const campanhas = criarCampanhas(papel), registros = criarRegistros(papel, uid);
   try { localStorage.setItem(`compendio5e:active-campaign:${uid}`, CAMP.id); } catch { /* sem armazenamento */ }
   const comFichas = new URLSearchParams(window.location.search).get("fichas") === "1";
+  if (comFichas && new URLSearchParams(window.location.search).get("exemplo") === "1") semearFichaExemplo(CAMP.id, "demo:fichas:v1", KEY, carregar());
   const fichas = comFichas ? fichasDemo(uid, CAMP.id, { ler: carregar, gravar: d => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch { /* cota */ } } }) : undefined;
   return <AuthProvider client={client}><CampaignsProvider apiFactory={() => campanhas}><RegistrosProvider api={registros} capa={capaDemo} config={configDemo(papel)} fichas={fichas}>
     {new URLSearchParams(window.location.search).get("nuvem") === "1"

@@ -1,109 +1,34 @@
-/* Identidade visual do D&D 5e: fantasia medieval discreta sobre a interface do Compêndio. Tudo escopado em `.sistema-dnd`. */
+/* Telas de personagem D&D 5e: cartões simples com as cores e a tipografia do Compêndio. Os nomes `--dnd-*` existem para as telas de
+   criação e evolução que os usam; apontam para o azul do sistema. */
 .sistema-dnd {
-  --dnd-ouro: #bba16e;
-  --dnd-ouro-claro: #e2cc9f;
-  --dnd-cartao: #202a37;
-  --dnd-moldura: color-mix(in srgb, var(--dnd-ouro) 55%, var(--line));
-  --dnd-titulo: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --dnd-ouro: var(--accent);
+  --dnd-ouro-claro: var(--accent-text);
+  --dnd-cartao: var(--panel);
+  --dnd-moldura: var(--line);
+  --dnd-titulo: inherit;
 }
-:root[data-tema="claro"] .sistema-dnd { --dnd-ouro: #7c6230; --dnd-ouro-claro: #5e4a22; --dnd-cartao: #ffffff; }
+.sistema-dnd .dnd-titulo { font-weight: 650; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.sistema-dnd .dnd-titulo::after, .sistema-dnd .ficha-bloco h2::after { content: ""; flex: 1 1 12px; height: 1px; background: var(--line); }
+.sistema-dnd .ficha-bloco h2 { display: flex; align-items: center; gap: 8px; }
+.selo-nivel { display: inline-block; font-size: 13px; font-weight: 650; color: var(--text); }
 
-/* títulos de seção com divisória dourada */
-.sistema-dnd .ficha-bloco h2, .sistema-dnd .dnd-titulo { font-family: var(--dnd-titulo); font-weight: 700; color: var(--dnd-ouro-claro); letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
-.sistema-dnd .ficha-bloco h2::after, .sistema-dnd .dnd-titulo::after { content: ""; flex: 1 1 12px; height: 1px; background: linear-gradient(90deg, var(--dnd-ouro), transparent); opacity: .6; }
-
-/* ---------------------------------------------------------------- cabeçalho */
-.sistema-dnd .ficha-cabecalho { background: var(--dnd-cartao); border: 1px solid var(--dnd-moldura); box-shadow: inset 0 0 0 3px var(--dnd-cartao), inset 0 0 0 4px color-mix(in srgb, var(--dnd-ouro) 22%, transparent); padding: 16px; gap: 12px; }
-.sistema-dnd .ficha-identidade .retrato-q { border: 2px solid var(--dnd-ouro); border-radius: 10px; }
-.sistema-dnd .ficha-nomes h1 { font-family: var(--dnd-titulo); font-size: 26px; line-height: 1.15; }
-.sistema-dnd .identidade-alcunha { color: var(--dnd-ouro-claro); }
-/* o D20 do nível se apoia no canto do retrato */
-.dnd-retrato { position: relative; display: inline-flex; margin: 0 8px 10px 0; flex: none; }
-.dnd-retrato .dnd-d20 { position: absolute; right: -14px; bottom: -14px; filter: drop-shadow(0 1px 2px #0008); }
-.dnd-retrato .dnd-d20 .dnd-forma { fill: var(--dnd-cartao); }
+/* atributos: seis cartões iguais, sempre em 6×1, 3×2 ou 2×3 */
+.ficha.sistema-dnd .ficha-atributos, .sistema-dnd .ficha-atributos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+@container (min-width: 300px) { .ficha.sistema-dnd .ficha-atributos, .sistema-dnd .ficha-atributos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (min-width: 720px) { .ficha.sistema-dnd .ficha-atributos, .sistema-dnd .ficha-atributos { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.sistema-dnd .dnd-atributo { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); min-width: 0; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; container: atributo / inline-size; }
+.sistema-dnd .dnd-atributo-nome { font-size: 12px; color: var(--text-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sistema-dnd .dnd-atributo-valor { font-size: 20px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.dnd-atributo-mod { font-size: 13px; font-weight: 650; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.sistema-dnd .dnd-atributo.destaque { border-color: var(--accent); }
+.dnd-atributo-nota { font-size: 11px; color: var(--text-2); }
 .dnd-nome-curto { display: none; text-decoration: none; }
-
-.dnd-d20 { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.dnd-d20 svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.dnd-d20 .dnd-forma { fill: color-mix(in srgb, var(--dnd-ouro) 16%, transparent); stroke: var(--dnd-ouro); stroke-width: 2.5; stroke-linejoin: round; }
-.dnd-d20 .dnd-filete { fill: none; stroke: var(--dnd-ouro); stroke-width: 1; opacity: .5; stroke-linejoin: round; }
-.dnd-d20 strong { position: relative; font-family: var(--dnd-titulo); font-size: 18px; line-height: 1; margin-top: 4px; color: var(--dnd-ouro-claro); text-shadow: 0 0 4px var(--dnd-cartao), 0 0 4px var(--dnd-cartao); }
-
-/* seis indicadores: uma linha em painel largo; três por linha em painel estreito */
-.sistema-dnd .ficha-numeros { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-.sistema-dnd .dnd-indicador { border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; min-width: 0; min-height: 76px; background: color-mix(in srgb, var(--bg) 55%, transparent); }
-.sistema-dnd .dnd-indicador > span:first-child { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; line-height: 1.2; overflow-wrap: anywhere; }
-.dnd-indicador-valor { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
-.dnd-indicador-valor > svg { color: var(--dnd-ouro); flex: none; }
-.sistema-dnd .dnd-indicador strong { font-size: 20px; font-variant-numeric: tabular-nums; line-height: 1.15; }
-.sistema-dnd .dnd-ca { border-color: transparent; background: none; padding: 0; }
-.dnd-escudo { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 58px; }
-.dnd-escudo svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.dnd-escudo .dnd-forma { fill: color-mix(in srgb, var(--dnd-ouro) 14%, transparent); stroke: var(--dnd-ouro); stroke-width: 2.5; stroke-linejoin: round; }
-.dnd-escudo .dnd-filete { fill: none; stroke: var(--dnd-ouro); stroke-width: 1; opacity: .55; }
-.sistema-dnd .dnd-escudo strong { position: relative; font-family: var(--dnd-titulo); font-size: 22px; margin-top: -4px; }
-.sistema-dnd .dnd-pv { border-color: var(--dnd-moldura); }
-.sistema-dnd .dnd-pv .dnd-indicador-valor > svg { color: #e5646e; fill: #e5646e; }
-.sistema-dnd .dnd-pv strong { font-size: 22px; white-space: nowrap; }
-.dnd-pv.baixo strong, .dnd-pv.caido strong { color: var(--danger, #f87171); }
-
-/* controles de PV: − [1] + · PV temporários · Condições, sempre nesta ordem */
-.dnd-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.sistema-dnd.ficha.ficha-jogo .dnd-controles form.ficha-vida-ajuste { flex: 0 1 auto; min-width: 0; flex-wrap: wrap; }
-.sistema-dnd.ficha .ficha-passo.dano:not(:disabled) { background: #7f2b33; border-color: #dc5656; color: #fff; }
-.sistema-dnd.ficha .ficha-passo.cura:not(:disabled) { background: #1d6b47; border-color: #2bb673; color: #fff; }
-.sistema-dnd .dnd-controles .ficha-condicoes { flex: 1 1 180px; min-width: 0; }
-
-/* ---------------------------------------------------------------- atributos */
-.sistema-dnd .ficha-atributos { gap: 10px; }
-/* cada moldura decide se cabe o nome inteiro pela PRÓPRIA largura (ficha, criação, edição ou subida de nível) */
-.sistema-dnd .dnd-atributo { border: 0; padding: 0; gap: 0; background: none; min-width: 0; display: flex; flex-direction: column; align-items: center; container: atributo / inline-size; }
-.dnd-atributo-quadro { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 2px 18px; min-height: 78px; border: 1.5px solid var(--dnd-moldura); border-radius: 14px 14px 10px 10px; background: radial-gradient(ellipse at top, color-mix(in srgb, var(--dnd-ouro) 14%, transparent), transparent 70%), color-mix(in srgb, var(--bg) 55%, transparent); }
-/* cantoneiras: o filete interno da ficha clássica */
-.dnd-atributo-quadro::before { content: ""; position: absolute; inset: 4px; border: 1px solid color-mix(in srgb, var(--dnd-ouro) 28%, transparent); border-radius: 10px 10px 6px 6px; pointer-events: none; }
-.sistema-dnd .dnd-atributo-nome { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
-.sistema-dnd .dnd-atributo-quadro strong { font-family: var(--dnd-titulo); font-size: 26px; line-height: 1.2; }
-.sistema-dnd .dnd-atributo-valor { position: relative; margin-top: -13px; min-width: 40px; padding: 2px 10px; text-align: center; border: 1.5px solid var(--dnd-moldura); border-radius: 999px; background: var(--dnd-cartao); font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.dnd-atributo.destaque .dnd-atributo-quadro { border-color: var(--dnd-ouro-claro); }
-.dnd-atributo-nota { font-size: 11px; color: var(--dnd-ouro-claro); margin-top: 2px; text-align: center; }
-
-/* ---------------------------------------------------------------- dados de vida e marcadores */
-.dnd-dado path { fill: none; stroke: var(--dnd-ouro); stroke-width: 1.8; stroke-linejoin: round; }
-.dnd-dado.cheio path { fill: var(--dnd-ouro); }
-.sistema-dnd .marcador.cheio > span { background: var(--dnd-ouro); border-color: var(--dnd-ouro); }
-.sistema-dnd .marcador > span { border-color: var(--dnd-ouro); }
-.sistema-dnd .marcador.dado > span { width: auto; height: auto; border: 0; background: none; border-radius: 0; display: inline-flex; }
-.sistema-dnd .ficha-marca.ativa { background: var(--dnd-ouro); border-color: var(--dnd-ouro); }
-.sistema-dnd .ficha-subnav button.active { border-bottom-color: var(--dnd-ouro); color: var(--dnd-ouro-claro); }
-.sistema-dnd .ficha-chip.ativa { border-color: var(--dnd-ouro); }
-
-/* painel estreito e celular */
-@container (max-width: 640px) {
-  .sistema-dnd .ficha-identidade { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
-  .sistema-dnd .ficha-acoes { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: center; }
-  .sistema-dnd .ficha-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .sistema-dnd .ficha-cabecalho { padding: 12px; gap: 10px; }
-  .sistema-dnd .ficha-nomes h1 { font-size: 21px; }
-}
-@container (max-width: 520px) {
-  .sistema-dnd .ficha-atributos { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-}
-@container (max-width: 300px) {
-  .sistema-dnd .ficha-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-  .sistema-dnd .dnd-indicador > span:first-child { font-size: 9px; letter-spacing: 0; }
-  .sistema-dnd .dnd-indicador strong, .sistema-dnd .dnd-pv strong { font-size: 17px; }
-  .sistema-dnd .ficha-atributos { gap: 4px; }
-  .sistema-dnd .dnd-atributo-nome { font-size: 10px; letter-spacing: 0; }
-  .sistema-dnd .ficha-identidade { grid-template-columns: minmax(0, 1fr); justify-items: start; }
-  .dnd-retrato .retrato-q { width: 64px !important; height: 64px !important; }
-  .sistema-dnd .dnd-atributo-quadro strong { font-size: 21px; }
-}
-
-@container atributo (max-width: 106px) {
+@container atributo (max-width: 84px) {
   .sistema-dnd .dnd-nome-longo { display: none; }
   .sistema-dnd .dnd-nome-curto { display: inline; }
 }
-/* painel de celular estreito: "Deslocamento" cabe sem quebrar no meio da palavra */
-@container (max-width: 340px) {
-  .sistema-dnd .dnd-indicador > span:first-child { font-size: 9.5px; letter-spacing: 0; }
-}
+
+/* dados de vida */
+.dnd-dado path { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; }
+.dnd-dado.cheio path { fill: var(--accent); }
+.sistema-dnd .marcador.dado > span { width: auto; height: auto; border: 0; background: none; border-radius: 0; display: inline-flex; }

@@ -389,3 +389,13 @@ Prevalece sobre o que conflitar nas DEC-027 e DEC-028.
 - **Origens:** só o Acólito vem do SRD 5.1. As demais usam os dados mecânicos e os **resumos próprios** do Compêndio 1.0 (`src/criador/origens-2014.ts`); nenhum texto oficial é distribuído. Objetos sem item no catálogo usam `background-trinket` com o nome.
 - **Banco:** migração **0014 proposta, não aplicada** (inclui o enquadramento na validação da apresentação e o item `background-trinket`). Precisa ser aplicada **junto** com a publicação do aplicativo.
 
+### DEC-030 — Aparência aprovada da ficha e do inventário (26/11/2026)
+
+Substitui a **identidade visual** da DEC-029 (a lógica dela permanece). As referências aprovadas pelo responsável (12 telas) valem para organização, hierarquia e comportamento; cores e tipografia são as do Compêndio 2.0.
+
+- Sem molduras, dourado, serifa, D20 de nível, escudo na CA ou barra de vida. Ícones pequenos apenas funcionais.
+- Grades dos seis indicadores e dos seis atributos: **6×1, 3×2 ou 2×3** pela largura do painel.
+- Vocabulário visível: **"Testes de resistência"** (nomes internos não mudam; descrições do catálogo permanecem como cadastradas).
+- Tipo de ação **Especial**: só habilidades que o SRD resolve fora de ação, ação bônus e reação, e magias de conjuração longa. Sem classificação conhecida, a habilidade aparece só em "Todas".
+- Operação sem suporte no banco aparece **desabilitada e explicada**; nunca simula sucesso.
+- Decisões de produto já aprovadas e ainda sem implementação: mestre **e** jogador identificam itens (jogador no descanso curto ou com a magia Identificação; os dados verdadeiros nunca vão ao jogador pela API); dono e mestre recuperam cargas manualmente até o máximo; sintonização com limite 3, configurável por personagem pelo mestre e validado no servidor; transferência de moedas. **Pendente de decisão:** compartilhamento individual ou coletivo do conhecimento de itens mágicos.

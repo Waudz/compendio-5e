@@ -65,7 +65,7 @@ describe("características", () => {
     const sopro = caracteristicasDaFicha(d, sheet2014(d)).find(c => c.chave === "raca:breath-weapon")!;
     const s = sheet2014(d);
     expect(sopro.valores).toContain("3d6 de dano de veneno");
-    expect(sopro.valores).toContain(`Salvaguarda de Constituição · CD ${8 + 3 + Math.floor((s.abilities.con - 10) / 2)}`);
+    expect(sopro.valores).toContain(`Teste de resistência de Constituição · CD ${8 + 3 + Math.floor((s.abilities.con - 10) / 2)}`);
   });
 });
 

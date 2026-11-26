@@ -10,6 +10,8 @@ import type { TabSpec } from "../workspace";
 import { Modal } from "../ui/Modal";
 import { infoDoItem } from "./infoItem";
 import { lerEstadoJogo } from "./estadoJogo";
+import { imagemDoItem } from "./imagensCatalogo";
+import { MOEDAS, type Carteira, type ChaveMoeda } from "../moedas/moedas";
 
 export const nomeDaInstancia = (i: InventoryEntry) => (typeof i.customName === "string" && i.customName ? i.customName : srdItem(i.itemId)?.nome ?? i.itemId);
 export const kg = (n: number) => `${n.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`;
@@ -46,9 +48,22 @@ export function DetalhesItem({ item, draft, onFechar, onOpenContent }: Comum & {
   </Modal>;
 }
 
-export function UsarItem({ item, vida, maximo, onFechar, onUsar }: Comum & { vida: number; maximo: number; onUsar: (cura: number) => Promise<string | null> }) {
+/** Cabeçalho das janelas de item: imagem, nome e o que importa. */
+function Resumo({ item, linhas }: { item: InventoryEntry; linhas: (string | null)[] }) {
+  const url = imagemDoItem(item.itemId);
+  return <div className="janela-item">{url && <img src={url} alt="" onError={e => { e.currentTarget.hidden = true; }}/>}<div><strong>{nomeDaInstancia(item)}</strong>{linhas.filter(Boolean).map(l => <p key={l}>{l}</p>)}</div></div>;
+}
+/** Escolha de uma pessoa entre opções, com as indisponíveis claramente desabilitadas. */
+function Opcoes({ rotulo, nome, opcoes, valor, onEscolher }: { rotulo: string; nome: string; valor: string; onEscolher: (id: string) => void; opcoes: { id: string; rotulo: string; desabilitada?: boolean }[] }) {
+  return <fieldset className="janela-opcoes"><legend>{rotulo}</legend>
+    {opcoes.map(o => <label key={o.id} className={o.desabilitada ? "indisponivel" : ""}><input type="radio" name={nome} value={o.id} checked={valor === o.id} disabled={o.desabilitada} onChange={() => onEscolher(o.id)}/> {o.rotulo}</label>)}
+  </fieldset>;
+}
+
+export function UsarItem({ item, vida, maximo, nomeProprio, campaignId, personagemId, onFechar, onUsar }: Comum & { vida: number; maximo: number; nomeProprio: string; campaignId?: string; personagemId?: string; onUsar: (cura: number) => Promise<string | null> }) {
   const d = srdItem(item.itemId), nome = nomeDaInstancia(item);
   const faixa = d?.cura ? faixaDaFormula(d.cura) : null;
+  const { lista } = useDestinos(faixa ? campaignId : undefined, personagemId);
   const [rolagem, setRolagem] = useState(""), [ocupado, setOcupado] = useState(false), [erro, setErro] = useState<string | null>(null);
   const n = Number(rolagem), valido = !faixa || (rolagem.trim() !== "" && Number.isInteger(n) && n >= faixa.min && n <= faixa.max);
   const confirmar = async () => {
@@ -58,14 +73,44 @@ export function UsarItem({ item, vida, maximo, onFechar, onUsar }: Comum & { vid
     setOcupado(false);
     if (r) setErro(r); else onFechar();
   };
-  return <Modal titulo={`Usar ${nome}`} onFechar={onFechar} ocupado={ocupado} sistema="sistema-dnd"
-    acoes={<><button type="button" className="btn-secondary" onClick={onFechar} disabled={ocupado}>Cancelar</button><button type="button" className="btn-primary" disabled={!valido || ocupado} onClick={() => void confirmar()}>{ocupado ? "Usando…" : faixa ? "Usar e curar" : "Confirmar consumo"}</button></>}>
+  const outros = lista ?? [];
+  return <Modal titulo={`Usar ${nome}`} onFechar={onFechar} ocupado={ocupado} sistema="sistema-dnd">
+    <Resumo item={item} linhas={[d?.cura ? `${d.cura} PV` : null, `${item.quantity} disponíve${item.quantity > 1 ? "is" : "l"}`]}/>
     {faixa ? <form onSubmit={e => { e.preventDefault(); void confirmar(); }}>
-      <label>Resultado da rolagem de {d!.cura} (de {faixa.min} a {faixa.max})<input type="number" inputMode="numeric" min={faixa.min} max={faixa.max} value={rolagem} onChange={e => setRolagem(e.target.value)}/></label>
-      <p>PV agora: {vida} de {maximo}{valido ? `. Depois: ${Math.min(maximo, vida + (vida < maximo ? n : 0))} de ${maximo}.` : "."}</p>
+      <Opcoes rotulo="Utilizar em" nome="alvo-da-cura" valor="proprio" onEscolher={() => {}} opcoes={[{ id: "proprio", rotulo: `${nomeProprio} (você)` }, ...outros.map(p => ({ id: p.id, rotulo: p.nome, desabilitada: true }))]}/>
+      {outros.length > 0 && <p className="janela-pendente">Curar outro personagem ainda não está disponível.</p>}
+      <label>Resultado da cura ({d!.cura}: de {faixa.min} a {faixa.max})<input type="number" inputMode="numeric" min={faixa.min} max={faixa.max} value={rolagem} onChange={e => setRolagem(e.target.value)}/></label>
+      <p>PV agora: {vida} de {maximo}{valido ? `. Depois: ${Math.min(maximo, vida + (vida < maximo ? n : 0))} de ${maximo}.` : "."} Uma unidade sai do seu inventário.</p>
     </form> : <p>Este item não tem efeito automatizado no catálogo. Uma unidade sai do inventário; aplique o efeito na mesa.</p>}
-    <p>Restam {item.quantity} antes do uso.</p>
     {erro && <p role="alert" className="notice err">{erro}</p>}
+    <button type="button" className="btn-primary janela-principal" disabled={!valido || ocupado} onClick={() => void confirmar()}>{ocupado ? "Usando…" : !faixa ? "Confirmar consumo" : valido ? `Curar ${nomeProprio} em ${n} PV` : `Curar ${nomeProprio}`}</button>
+  </Modal>;
+}
+
+/** Varinhas, cajados e cetros mágicos guardam cargas. O catálogo ainda não traz o máximo nem a regra de cada um. */
+export const temCargas = (itemId: string) => /^(wand|staff|rod)-of-/.test(itemId);
+/** Janela preparada: sem contagem de cargas por exemplar no banco, nada é alterado. */
+export function RecuperarCargas({ item, onFechar }: Comum) {
+  return <Modal titulo="Recuperar cargas" onFechar={onFechar} sistema="sistema-dnd">
+    <Resumo item={item} linhas={["Cargas ainda não registradas neste item"]}/>
+    <p className="janela-pendente">A contagem e a recuperação de cargas ainda não estão disponíveis. Controle as cargas na mesa, pela descrição do item.</p>
+    <label>Quantidade recuperada<span className="janela-linha"><input type="number" disabled value=""/><button type="button" className="btn-secondary" disabled>Todas</button></span></label>
+    <button type="button" className="btn-primary janela-principal" disabled>Recuperar cargas</button>
+  </Modal>;
+}
+
+/** Janela preparada: a transferência de moedas precisa de uma operação protegida no banco. */
+export function TransferirMoedas({ carteira, ativas, campaignId, personagemId, onFechar }: { carteira: Carteira | undefined; ativas: readonly ChaveMoeda[]; campaignId?: string; personagemId?: string; onFechar: () => void }) {
+  const { lista } = useDestinos(campaignId, personagemId);
+  const [moeda, setMoeda] = useState<ChaveMoeda>(ativas.includes("gp") ? "gp" : ativas[0]), [quantidade, setQuantidade] = useState("1"), [destino, setDestino] = useState("");
+  const saldo = carteira?.[moeda] ?? 0;
+  return <Modal titulo="Transferir moedas" onFechar={onFechar} sistema="sistema-dnd">
+    <p className="janela-pendente">A transferência de moedas ainda não está disponível. Nada é alterado por esta janela.</p>
+    <label>Moeda<select value={moeda} onChange={e => setMoeda(e.target.value as ChaveMoeda)}>{MOEDAS.filter(m => ativas.includes(m.chave)).map(m => <option key={m.chave} value={m.chave}>{m.nome} ({m.sigla})</option>)}</select></label>
+    <p>Saldo disponível: {saldo}</p>
+    <label>Quantidade<span className="janela-linha"><input type="number" min={1} max={saldo} value={quantidade} onChange={e => setQuantidade(e.target.value)}/><button type="button" className="btn-secondary" onClick={() => setQuantidade(String(saldo))}>Todas</button></span></label>
+    {lista && lista.length > 0 && <Opcoes rotulo="Destinatário" nome="destino-moedas" valor={destino} onEscolher={setDestino} opcoes={lista.map(p => ({ id: p.id, rotulo: p.nome }))}/>}
+    <button type="button" className="btn-primary janela-principal" disabled>Transferir moedas</button>
   </Modal>;
 }
 
@@ -97,13 +142,15 @@ export function TransferirItem({ item, campaignId, personagemId, onFechar, onTra
     setOcupado(false);
     if (r) setErro(r); else onFechar();
   };
-  return <Modal titulo={`Transferir ${nome}`} onFechar={onFechar} ocupado={ocupado} sistema="sistema-dnd"
-    acoes={<><button type="button" className="btn-secondary" onClick={onFechar} disabled={ocupado}>Cancelar</button><button type="button" className="btn-primary" disabled={!destino || !valida || ocupado} onClick={() => void confirmar()}>{ocupado ? "Transferindo…" : "Transferir"}</button></>}>
+  const escolhido = lista?.find(p => p.id === destino)?.nome;
+  return <Modal titulo={`Transferir ${nome}`} onFechar={onFechar} ocupado={ocupado} sistema="sistema-dnd">
+    <Resumo item={item} linhas={[`${item.quantity} disponíve${item.quantity > 1 ? "is" : "l"}`]}/>
     {lista === null ? <p role="status">Carregando personagens…</p> : lista.length === 0 ? <p>{erroLista ?? "Não há outro personagem desta campanha para receber o item."}</p> : <>
-      <label>Para quem<select value={destino} onChange={e => setDestino(e.target.value)}><option value="">Escolha um personagem</option>{lista.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></label>
-      <label>Quantidade (de 1 a {item.quantity})<input type="number" inputMode="numeric" min={1} max={item.quantity} value={texto} onChange={e => setTexto(e.target.value)}/></label>
+      <Opcoes rotulo="Destinatário" nome="destino-item" valor={destino} onEscolher={setDestino} opcoes={lista.map(p => ({ id: p.id, rotulo: p.nome }))}/>
+      <label>Quantidade (de 1 a {item.quantity})<span className="janela-linha"><input type="number" inputMode="numeric" min={1} max={item.quantity} value={texto} onChange={e => setTexto(e.target.value)}/><button type="button" className="btn-secondary" onClick={() => setTexto(String(item.quantity))}>Todas</button></span></label>
       <p>O item sai do seu inventário e chega desequipado, com os mesmos dados. A movimentação fica no histórico dos dois.</p></>}
     {erro && <p role="alert" className="notice err">{erro}</p>}
+    <button type="button" className="btn-primary janela-principal" disabled={!destino || !valida || ocupado} onClick={() => void confirmar()}>{ocupado ? "Transferindo…" : escolhido && valida ? `Transferir ${quantidade} para ${escolhido}` : "Transferir"}</button>
   </Modal>;
 }
 

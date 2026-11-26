@@ -18,3 +18,10 @@
 .menu-acoes-lista button:hover:not(:disabled), .menu-acoes-lista button:focus-visible { background: var(--hover); }
 .menu-acoes-lista button:disabled { color: var(--muted); cursor: default; }
 .menu-acoes-lista button.perigo { color: var(--danger); }
+.menu-acoes-titulo { margin: 0; padding: 6px 9px 8px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 650; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-acoes-lista button.perigo { border-top: 1px solid var(--line); border-radius: 0 0 5px 5px; margin-top: 3px; }
+/* telas muito estreitas: o menu vira uma janela inferior, acima da barra de navegação */
+@media (max-width: 480px) {
+  .menu-acoes-lista { position: fixed; left: 8px !important; right: 8px !important; top: auto !important; bottom: calc(var(--nav-h, 64px) + env(safe-area-inset-bottom) + 6px) !important; max-height: 60vh; overflow-y: auto; z-index: 3200; box-shadow: 0 0 0 100vmax #0007; }
+  .menu-acoes-lista button { padding: 12px 10px; font-size: 14px; }
+}

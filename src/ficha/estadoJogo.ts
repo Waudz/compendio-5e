@@ -7,7 +7,7 @@ import type { ChaveMoeda } from "../moedas/moedas";
 
 
 export type AlvoMod = "ac" | "initiative" | "speed" | "passivePerception" | "saves" | "attacks";
-export const ROTULO_ALVO: Record<AlvoMod, string> = { ac: "CA", initiative: "Iniciativa", speed: "Deslocamento (m)", passivePerception: "Percepção passiva", saves: "Salvaguardas", attacks: "Ataques" };
+export const ROTULO_ALVO: Record<AlvoMod, string> = { ac: "CA", initiative: "Iniciativa", speed: "Deslocamento (m)", passivePerception: "Percepção passiva", saves: "Testes de resistência", attacks: "Ataques" };
 export type TipoDefesa = "resistencia" | "imunidade" | "vulnerabilidade";
 export const ROTULO_DEFESA: Record<TipoDefesa, string> = { resistencia: "Resistência", imunidade: "Imunidade", vulnerabilidade: "Vulnerabilidade" };
 export type ModTemporario = { id: string; nome: string; alvo: AlvoMod; valor: number };

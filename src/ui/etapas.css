@@ -38,4 +38,4 @@
 .escolha-texto strong { font-size: 14px; }
 .escolha-texto small { font-size: 12px; color: var(--text-2); line-height: 1.35; }
 .escolha-texto .escolha-selo { color: var(--dnd-ouro-claro, var(--accent-text)); font-size: 11px; }
-.escolha-marcada { position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--dnd-ouro, var(--accent)); color: #17120a; display: inline-flex; align-items: center; justify-content: center; }
+.escolha-marcada { position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--dnd-ouro, var(--accent)); color: var(--on-accent); display: inline-flex; align-items: center; justify-content: center; }

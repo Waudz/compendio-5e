@@ -535,3 +535,27 @@ Reversão: `supabase/rollback/0014_vitais_inventario_atomicos_down.sql` junto co
 **Fidelidade ao Compêndio 1.0 (só referência, não alterado):** reaproveitados a geometria do enquadramento, o popup de edição de imagem, os dados e resumos das origens, os textos de condições e as regras de dano, cura, descanso e carga. Um único componente de enquadramento (retrato e capa); modal, menu de ações, etapas e moedas compartilhados. **Diferenças de organização:** ficha em três abas (1.0: Principal, Combate, Magias, Inventário, Personagem, Notas; decisão aprovada, DEC-027); criação em Identidade, Raça, Classe, Origem, Atributos, Equipamentos, Revisão (1.0: Classe e Nível, Raça, Origem, Atributos, Perícias, Magias, Equipamento, Revisão), com perícias e magias dentro de Classe (DEC-029). Confirmar com o responsável se a ordem do 1.0 for desejada.
 
 **Validação local do estado final:** tipos, 1712 unitários (139 arquivos), build oficial sem demonstração, Playwright Creator 140 (4 pulados), Base 116 (16 pulados) e Quality 88 (32 pulados), com Chrome instalado. **Não testado:** celular físico e sessão real no Supabase hospedado.
+
+## RETOMAR AQUI — Refinamento visual da ficha, aguardando aprovação (26/11/2026, PR #158)
+
+Referências: 12 telas aprovadas (cópia local em `Downloads\compendio-5e-referencias`; a do cabeçalho vigente é `01-cabecalho-v2-DEFINITIVO.png`). Decisões em [DEC-030](../DECISOES-E-ARQUITETURA.md). **Parar aqui até a aprovação visual.** Não mesclar, publicar nem aplicar migrações. A bateria completa roda depois da aprovação.
+
+**Ver a ficha de exemplo** (dados fictícios, só no navegador): `npm run dev` e abrir `/compendio-5e/?demo=jogador&fichas=1&nuvem=1&exemplo=1` → Personagens → Caleb Hawke. No preview compilado (`vite build --mode preview-demo`), o mesmo endereço sem o prefixo `/compendio-5e`. O exemplo só é criado se ainda não houver fichas de demonstração e não entra no build oficial.
+
+**Funciona:** cabeçalho (retrato abre o editor, indicadores, dano, cura, PV temporários, condições, defesas, descansos); aba Ficha; aba Habilidades (favoritos no topo, recursos, conjuração, círculos, filtros inclusive Especial, pesquisa, detalhes e Compêndio); inventário (moedas e passo ajustável, carga, filtros, grade e lista, equipar, usar poção em si, quantidade, transferir item com destinatário e "Todas", excluir, histórico recolhido); menu inferior em telas estreitas; criação, edição e subida de nível com o novo visual.
+
+**Só interface (desabilitado e explicado):**
+| Recurso | O que falta no banco |
+|---|---|
+| Curar outro personagem com poção | operação atômica que consome do dono e cura o destinatário (sem expor a ficha dele). `usar_consumivel` só cura o dono |
+| Transferir moedas | operação atômica, idempotente, com histórico nos dois lados |
+| Cargas (gastar e recuperar) | estado por exemplar (máximo, atual e regra vindos do catálogo, que ainda não os tem) e operação protegida. A janela abre para varinhas, cajados e cetros; o contador não é mostrado porque o dado não existe. Habilidades também não exibem cargas |
+| Sintonização | estado por exemplar, limite por personagem (padrão 3, ajustável pelo mestre) validado no servidor; benefícios condicionados (CA, testes, ataque, dano, resistências, magias e habilidades concedidas) |
+| Identificação | **os dados verdadeiros precisam sair da ficha que o jogador lê**: hoje o `itemId` real fica no `draft` do dono. Exige identificador seguro do exemplar e armazenamento só do mestre, com revelação por função. Por isso **não há botão nem estado de "não identificado"** na interface; nada foi simulado |
+| Histórico completo | recebimento de moedas/loot, cargas, identificação e sintonização entram junto das operações acima |
+
+**Efeitos de itens mágicos** continuam sem cálculo automático (exceto concessões do mestre ligadas ao item). Itens com cargas, sintonização ou propriedades individuais não são empilhados pelo aplicativo, mas o banco ainda não impede uma pilha vinda de fora.
+
+**0014:** não foi ampliada nesta etapa. A decidir antes de aplicá-la: quais das operações acima entram nela e quais ficam para uma migração seguinte. **Limitação separada:** o teto de PV de **30 × nível** só barra valores absurdos; não é o máximo real do personagem, e quem edita a própria ficha ainda pode informar um máximo maior até esse teto. A validação exata exigiria as regras no banco.
+
+**Verificado nesta rodada (somente o afetado):** tipos; 636 testes de ficha, criador, Compêndio, moedas e regras (e os 1.351 de `src` antes dos ajustes finais de CSS); E2E de ficha, fluxos do criador, sincronização e acessibilidade em 320, 390 e 1440 px (40 aprovados, 2 pulados); build oficial. **Não rodados:** testes de banco, Playwright Base, Quality e demais larguras.

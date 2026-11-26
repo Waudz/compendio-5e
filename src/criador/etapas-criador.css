@@ -49,7 +49,8 @@
 @container (max-width: 300px) { .etapa-atributos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .subir-nivel h1 { display: flex; align-items: center; gap: 8px; }
-.subida-niveis { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 22px; color: var(--dnd-ouro); }
+.subida-niveis { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 20px; color: var(--text-2); }
+.subida-niveis .selo-nivel { font-size: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 8px 16px; }
 .subida-tabela { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
 .subida-tabela th, .subida-tabela td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; overflow-wrap: anywhere; }
 .subida-tabela thead th { background: var(--panel); font-size: 12px; }

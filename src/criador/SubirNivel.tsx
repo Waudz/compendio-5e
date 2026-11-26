@@ -3,7 +3,7 @@
 // acompanha o ganho por operação, sem apagar dano recente do combate.
 import { ChevronsUp } from "lucide-react";
 import { useMemo, useState } from "react";
-import { D20Nivel } from "../dnd/elementos";
+import { SeloNivel } from "../dnd/elementos";
 import "../dnd/dnd.css";
 import "./etapas-criador.css";
 import type { CharacterDraft } from "../rules/character-domain";
@@ -64,7 +64,7 @@ export function SubirNivel({ atual, ocupado, onCancelar, onConfirmar }: { atual:
     <Etapas rotulo="Etapas da subida de nível" etapas={etapas} atual={etapas.some(e => e.id === passo) ? passo : "revisao"} onIr={setPasso}
       rodape={<button type="button" className="btn-primary" disabled={ocupado || pvPendente || faltam.length > 0} onClick={() => onConfirmar(proximo)}>{ocupado ? "Aplicando…" : `Confirmar nível ${nivel}`}</button>}>
       {passo === "nivel" && <>
-        <div className="subida-niveis"><D20Nivel nivel={atual.level} tamanho={56}/><span aria-hidden="true">→</span><D20Nivel nivel={nivel} tamanho={72}/></div>
+        <div className="subida-niveis"><SeloNivel nivel={atual.level}/><span aria-hidden="true">→</span><SeloNivel nivel={nivel}/></div>
         <p>{label2014(atual.classId)} avança do nível {atual.level} para o {nivel}. Inventário, moedas, recursos gastos, história e identidade continuam como estão.</p>
         <p className="muted">A multiclasse ainda não é suportada.</p>
       </>}

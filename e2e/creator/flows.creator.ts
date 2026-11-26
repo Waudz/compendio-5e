@@ -44,11 +44,14 @@ test('inventário da ficha: adicionar, alterar quantidade, consultar no Compênd
   await page.getByRole('dialog').getByRole('spinbutton', { name: 'Quantidade' }).fill('3');
   await page.getByRole('button', { name: 'Salvar quantidade' }).click();
   await expect(linha).toContainText('×3');
-  // grade: cartões quadrados e alinhados
+  // grade: imagens quadradas, cartões da mesma largura e rodapés alinhados na linha
   await page.getByRole('button', { name: 'Ver em grade', exact: true }).click();
-  const medidas = await page.locator('.ficha-itens.grade .item-cartao').evaluateAll(l => l.map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+  const medidas = await page.locator('.ficha-itens.grade .item-cartao').evaluateAll(l => l.map(e => { const r = e.getBoundingClientRect(), i = e.querySelector('.item-imagem')!.getBoundingClientRect(), p = e.querySelector('.item-rodape')!.getBoundingClientRect(); return { w: Math.round(r.width), topo: Math.round(r.top), iw: i.width, ih: i.height, rodape: Math.round(p.bottom) }; }));
   expect(medidas.length).toBeGreaterThan(3);
-  for (const [w, h] of medidas) { expect(Math.abs(w - h)).toBeLessThanOrEqual(1); expect(w).toBe(medidas[0][0]); }
+  for (const m of medidas) {
+    expect(Math.abs(m.iw - m.ih)).toBeLessThanOrEqual(1); expect(Math.abs(m.w - medidas[0].w)).toBeLessThanOrEqual(1);
+    for (const outro of medidas.filter(x => x.topo === m.topo)) expect(Math.abs(outro.rodape - m.rodape)).toBeLessThanOrEqual(1);
+  }
   await expectNoHorizontalOverflow(page); await evidence(page, info, 'inventario-grade');
   await page.getByRole('button', { name: 'Adicionar item', exact: true }).click();
   await page.getByRole('searchbox', { name: 'Adicionar item do catálogo' }).fill('poção de cura');
@@ -56,9 +59,10 @@ test('inventário da ficha: adicionar, alterar quantidade, consultar no Compênd
   await page.getByRole('button', { name: 'Fechar adição' }).click();
   const pocao = (await page.getByRole('listitem', { name: /^poção de cura$/i }).getAttribute('aria-label'))!;
   await acaoDoItem(page, pocao, 'Usar');
-  await expect(page.getByRole('button', { name: 'Usar e curar' })).toBeDisabled();
+  const curar = page.getByRole('dialog').getByRole('button', { name: /^Curar Guerreira E2E/ });
+  await expect(curar).toBeDisabled();
   await page.getByRole('dialog').getByRole('spinbutton').fill('6');
-  await page.getByRole('button', { name: 'Usar e curar' }).click();
+  await curar.click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('listitem', { name: pocao, exact: true })).toHaveCount(0);
   await acaoDoItem(page, 'Adaga', 'Excluir');
@@ -111,7 +115,7 @@ test('subir de nível: fluxo próprio com comparação, sem refazer a criação'
   const passos = page.getByRole('navigation', { name: 'Etapas da subida de nível' });
   await expect(passos).toBeVisible();
   await expect(etapasNav(page)).toHaveCount(0);
-  await expect(page.getByRole('img', { name: 'Nível 2' })).toBeVisible();
+  await expect(page.getByText('Nível 2', { exact: true })).toBeVisible();
   await evidence(page, info, 'subir-nivel-inicio');
   const ir = async (nome: string) => {
     const compacto = passos.getByRole('combobox');
@@ -123,7 +127,7 @@ test('subir de nível: fluxo próprio com comparação, sem refazer a criação'
   await expectNoHorizontalOverflow(page); await expectSingleScroll(page); await evidence(page, info, 'subir-nivel-revisao');
   await page.getByRole('button', { name: 'Confirmar nível 2', exact: true }).click();
   await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
-  await expect(page.getByRole('img', { name: 'Nível 2' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Resumo do personagem' }).getByText('Nível 2', { exact: true })).toBeVisible();
 });
 
 test('teclado: identidade em ordem e etapas ativadas sem mouse', async ({ page }, info) => {

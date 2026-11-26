@@ -5,7 +5,7 @@ import "./etapas-criador.css";
 import { Anchor, BookOpen, Compass, Crown, Feather, Hammer, HeartHandshake, Home, Mountain, Music, Scroll, Shield, Swords, Theater, VenetianMask, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode, type Ref } from "react";
 import { srdItem } from "../catalogue/srd-2014-items";
-import { MolduraAtributo, D20Nivel } from "../dnd/elementos";
+import { MolduraAtributo, SeloNivel } from "../dnd/elementos";
 import "../dnd/dnd.css";
 import { CAMPOS_HISTORIA } from "../ficha/campos";
 import { entregarNasAtivas, type ChaveMoeda } from "../moedas/moedas";
@@ -154,7 +154,7 @@ function EtapaClasse(p: PropsAssistente) {
         <p className="muted">PV máximo: <strong>{sheet.maxHp}</strong></p>
       </div>
       {draft.hpRolls && <RolagensDePV draft={draft} onChange={onChange}/>}
-      <p className="muted">Salvaguardas e proficiências: {statisticaDeClasse(draft)}</p>
+      <p className="muted">Testes de resistência e proficiências: {statisticaDeClasse(draft)}</p>
       <Escolhas draft={draft} onChange={onChange} etapa="classe"/>
       {sheet.features.some(id => featureDescription2014(id)) && <details><summary>Características da classe até o nível {draft.level}</summary>{sheet.features.filter(id => featureDescription2014(id)).map(id => <details key={id}><summary>{label2014(id)}</summary><p className="ficha-texto">{featureDescription2014(id)}</p></details>)}</details>}
       {automaticSpells2014(draft).length > 0 && <p className="muted">Magias concedidas pela raça ou subclasse (não contam no preparo): {automaticSpells2014(draft).map(m => m.name).join(", ")}.</p>}
@@ -279,7 +279,7 @@ function Resumo({ draft, sheet, pendencias, onIr, completo }: { draft: Character
   return <div className={"resumo-personagem" + (completo ? " completo" : "")} role="region" aria-label="Resumo do personagem em criação">
     <div className="resumo-topo"><RetratoQuadrado tipo="personagem" tamanho={44} src={retratoValido(draft.portrait) ? draft.portrait : null}/>
       <div><strong>{draft.name.trim() || "Sem nome"}</strong><small>{[label2014(draft.raceId), label2014(draft.classId), origem2014(draft.backgroundId)?.nome].filter(Boolean).join(" · ")}</small></div>
-      <D20Nivel nivel={draft.level} tamanho={36}/></div>
+      <SeloNivel nivel={draft.level}/></div>
     <p className="resumo-numeros"><span>PV {sheet.maxHp}</span><span>CA {stats.ac}</span><span>Prof. +{stats.prof}</span></p>
     <p className="resumo-atributos">{ABILITY_ORDER.map(a => <span key={a}><abbr title={rotuloAtributo(a)}>{rotuloAtributo(a).slice(0, 3)}</abbr> {sheet.abilities[a]}</span>)}</p>
     {completo && <p className="muted">Perícias: {sheet.skills.map(rotuloPericia).join(", ") || "nenhuma"}</p>}
