@@ -133,10 +133,32 @@ describe('criador guiado na navegação real (desktop)', () => {
     await montar(); await abrirPersonagens();
     expect(nomesDivergentes(await screen.findByRole('region', { name: 'Personagens da campanha' }))).toEqual([]);
     await novoGuiado(); await preencherFicha('Thorin');
-    for (const etapa of ['Identidade', 'Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão']) {
+    for (const etapa of ['Identidade', 'Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão', 'História']) {
       irEtapa(etapa);
       expect(nomesDivergentes(document.querySelector('.criador') as HTMLElement).filter(x => !/^"\+|^"−/.test(x)), etapa).toEqual([]);
     }
+  });
+
+  it('história é a última etapa; as marcas mostram a situação, sem números; a identidade pública automática conta como concluída', async () => {
+    await montar(); await abrirPersonagens(); await novoGuiado();
+    const botoes = () => etapas().getAllByRole('button');
+    const marcas = () => botoes().map(b => b.querySelector('.etapa-marca')!);
+    expect(botoes().map(b => b.querySelector('.etapa-nome')!.textContent)).toEqual(['Identidade', 'Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão e identidade pública', 'História e personalidade']);
+    expect(marcas().map(m => m.textContent).join('')).toBe('');
+    expect(marcas()[0].className).toContain('pendente');
+    expect(marcas()[6].className).toContain('concluida');                 // acompanha a ficha
+    expect(marcas()[7].className).toBe('etapa-marca');                    // opcional ainda vazia
+    expect(screen.queryByLabelText('História')).toBeNull();               // não fica mais dentro de Identidade
+    irEtapa('Revisão');
+    fireEvent.change(screen.getByLabelText('Visibilidade Nome'), { target: { value: 'hidden' } });
+    fireEvent.change(screen.getByLabelText('Visibilidade Alcunha'), { target: { value: 'hidden' } });
+    expect(marcas()[6].className).toContain('pendente');
+    fireEvent.change(screen.getByLabelText('Visibilidade Nome'), { target: { value: 'sheet' } });
+    expect(marcas()[6].className).toContain('concluida');
+    irEtapa('História e personalidade');
+    fireEvent.change(document.querySelector('.etapa-historia textarea')!, { target: { value: 'Nasceu nas montanhas.' } });
+    expect(marcas()[7].className).toContain('concluida');
+    expect(screen.getByRole('button', { name: 'Salvar personagem' })).toBeTruthy();
   });
 
   it('erro de salvamento não perde o que foi digitado', async () => {

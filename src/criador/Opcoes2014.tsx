@@ -1,5 +1,6 @@
 import './personagens-2014.css';
-import { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useId, useState } from 'react';
 import type { CharacterDraft } from '../rules/character-domain';
 import { srdItem, srdItemIds } from '../catalogue/srd-2014-items';
 import { applyStartingEquipmentSelection } from '../rules/starting-equipment-selection';
@@ -26,15 +27,61 @@ import {
   type Component,
 } from './regras-2014';
 
+/** Escolhas de uma etapa. Os grupos de magias viram seções que se expandem, uma aberta por vez (começa na primeira incompleta);
+ * as demais escolhas continuam como estão. */
+export function ListaDeEscolhas({
+  draft,
+  escolhas,
+  onChange,
+}: {
+  draft: CharacterDraft;
+  escolhas: Choice2014[];
+  onChange: (d: CharacterDraft) => void;
+}) {
+  const magias = escolhas.filter((c) => c.kind === 'spell');
+  const [aberta, setAberta] = useState(
+    () => magias.find((c) => selected2014(draft, c.id).length < c.count)?.id ?? '',
+  );
+  return (
+    <div className="character-2014">
+      {escolhas
+        .filter((c) => c.kind !== 'spell')
+        .map((c) => (
+          <Choice key={c.id} draft={draft} choice={c} onChange={onChange} />
+        ))}
+      {magias.length > 0 && (
+        <div className="grupos-de-magia">
+          {magias.map((c) => (
+            <Choice
+              key={c.id}
+              draft={draft}
+              choice={c}
+              onChange={onChange}
+              secao={{
+                aberta: aberta === c.id,
+                alternar: () => setAberta(aberta === c.id ? '' : c.id),
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Choice({
   draft,
   choice,
   onChange,
+  secao,
 }: {
   draft: CharacterDraft;
   choice: Choice2014;
   onChange: (d: CharacterDraft) => void;
+  /** Seção expansível; a pesquisa e os detalhes abertos continuam guardados quando ela é recolhida. */
+  secao?: { aberta: boolean; alternar: () => void };
 }) {
+  const id = useId();
   const [search, setSearch] = useState('');
   const [previewSpell, setPreviewSpell] = useState('');
   const selected = selected2014(draft, choice.id);
@@ -111,12 +158,8 @@ export function Choice({
         .includes(search.toLocaleLowerCase('pt-BR')),
   );
   const set = (ids: string[]) => onChange(decide2014(draft, choice.id, ids));
-  return (
-    <fieldset>
-      <legend>
-        {choice.name} — escolha {choice.count} ({selected.length}/{choice.count}
-        )
-      </legend>
+  const corpo = (
+    <>
       {choice.count === 1 && choice.kind !== 'spell' ? (
         <label>
           {choice.name}
@@ -209,6 +252,46 @@ export function Choice({
           </details>
         ) : null,
       )}
+    </>
+  );
+  if (secao)
+    return (
+      <div className="grupo-magia" role="group" aria-labelledby={id + '-titulo'}>
+        <h4>
+          <button
+            type="button"
+            className="grupo-magia-titulo"
+            aria-expanded={secao.aberta}
+            aria-controls={secao.aberta ? id + '-corpo' : undefined}
+            onClick={secao.alternar}
+          >
+            {secao.aberta ? (
+              <ChevronDown size={16} aria-hidden="true" />
+            ) : (
+              <ChevronRight size={16} aria-hidden="true" />
+            )}
+            <span id={id + '-titulo'} className="grupo-magia-rotulo">
+              <span>{choice.name}</span>{' '}
+              <span className="grupo-magia-contador">
+                {selected.length}/{choice.count}
+              </span>
+            </span>
+          </button>
+        </h4>
+        {secao.aberta && (
+          <div id={id + '-corpo'} className="grupo-magia-corpo">
+            {corpo}
+          </div>
+        )}
+      </div>
+    );
+  return (
+    <fieldset>
+      <legend>
+        {choice.name} — escolha {choice.count} ({selected.length}/{choice.count}
+        )
+      </legend>
+      {corpo}
     </fieldset>
   );
 }

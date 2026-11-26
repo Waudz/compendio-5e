@@ -13,8 +13,6 @@
 .etapa-campos { display: flex; flex-direction: column; gap: 10px; }
 .etapa-historia { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px; }
 .etapa-largo { grid-column: 1 / -1; }
-.etapa-recolhida > summary { cursor: pointer; padding: 6px 0; font-size: 13px; }
-.etapa-recolhida[open] > summary { margin-bottom: 8px; }
 .etapa-detalhes { border: 1px solid var(--dnd-moldura, var(--line)); background: var(--panel); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
 .etapa-detalhes h3 { margin: 0; font-family: var(--dnd-titulo, inherit); color: var(--dnd-ouro-claro, var(--text)); font-size: 16px; }
 .etapa-detalhes p { margin: 0; }

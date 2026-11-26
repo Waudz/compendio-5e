@@ -1,5 +1,5 @@
 // Criação e edição do personagem D&D 5e (2014) por etapas, sobre o motor `regras-2014` (nada de regras é recalculado aqui). Na criação,
-// as sete etapas seguem uma ordem sugerida, mas se pode saltar, avançar com pendências e salvar incompleto. Na edição, cada categoria é
+// as etapas seguem uma ordem sugerida (história, opcional, por último), mas se pode saltar, avançar com pendências e salvar incompleto. Na edição, cada categoria é
 // aberta direto. Nada do que pertence à mesa (PV atuais, moedas, inventário, recursos, condições) é editado aqui.
 import "./etapas-criador.css";
 import { Anchor, BookOpen, Compass, Crown, Feather, Hammer, HeartHandshake, Home, Mountain, Music, Scroll, Shield, Swords, Theater, VenetianMask, type LucideIcon } from "lucide-react";
@@ -11,7 +11,7 @@ import { CAMPOS_HISTORIA } from "../ficha/campos";
 import { entregarNasAtivas, type ChaveMoeda } from "../moedas/moedas";
 import { ABILITY_ORDER, POINT_BUY_BUDGET, pointBuySpent } from "../rules/ability-generation-2014";
 import type { CharacterDraft, CharacterSheet } from "../rules/character-domain";
-import type { PublicIdentity, SheetPublicSource } from "../rules/public-identity";
+import { publicIdentityCard, type PublicIdentity, type SheetPublicSource } from "../rules/public-identity";
 import { CartoesDeEscolha, Etapas, type EtapaInfo } from "../ui/Etapas";
 import { Modal } from "../ui/Modal";
 import { RetratoQuadrado } from "../RetratoCombate";
@@ -19,7 +19,7 @@ import { retratoValido } from "../fichas";
 import type { MetodoAtributos } from "./atributos-2014";
 import { CampoRetrato } from "./CampoRetrato";
 import PublicIdentityEditor from "./identidade-publica-editor";
-import { Choice, Equipamento2014 } from "./Opcoes2014";
+import { Equipamento2014, ListaDeEscolhas } from "./Opcoes2014";
 import { CLASSE_VISUAL, iconeDaClasse, iconeDaRaca, numerosDaRaca, RACA_VISUAL } from "./opcoesVisuais";
 import { ferramentasDaCategoria, origem2014, ORIGENS_2014, ROTULO_VEICULO } from "./origens-2014";
 import { equipamentoDaClasseAceito, etapaDaEscolha, pendencias2014, type EtapaId, type Pendencia } from "./pendencias";
@@ -30,8 +30,8 @@ import {
 import { rotuloAtributo, rotuloPericia } from "./rotulos";
 
 export type Etapa = EtapaId;
-const ETAPAS_DE_CRIACAO: [Etapa, string][] = [["identidade", "Identidade"], ["raca", "Raça"], ["classe", "Classe"], ["origem", "Origem"], ["atributos", "Atributos"], ["equipamento", "Equipamentos iniciais"], ["revisao", "Revisão e identidade pública"]];
-const CATEGORIAS_DE_EDICAO: [Etapa, string][] = [["identidade", "Identidade"], ["raca", "Raça"], ["classe", "Classe e nível"], ["origem", "Origem"], ["atributos", "Atributos"], ["equipamento", "Equipamento inicial"], ["historia", "História e personalidade"], ["publica", "Identidade pública"]];
+const ETAPAS_DE_CRIACAO: [Etapa, string][] = [["identidade", "Identidade"], ["raca", "Raça"], ["classe", "Classe"], ["origem", "Origem"], ["atributos", "Atributos"], ["equipamento", "Equipamentos iniciais"], ["revisao", "Revisão e identidade pública"], ["historia", "História e personalidade"]];
+const CATEGORIAS_DE_EDICAO: [Etapa, string][] = [["identidade", "Identidade"], ["raca", "Raça"], ["classe", "Classe e nível"], ["origem", "Origem"], ["atributos", "Atributos"], ["equipamento", "Equipamento inicial"], ["publica", "Identidade pública"], ["historia", "História e personalidade"]];
 
 const ICONE_ORIGEM: Record<string, LucideIcon> = { acolyte: HeartHandshake, entertainer: Music, "guild-artisan": Hammer, charlatan: Theater, criminal: VenetianMask, hermit: Mountain, outlander: Compass, "folk-hero": Shield, sailor: Anchor, noble: Crown, urchin: Home, sage: BookOpen, soldier: Swords, custom: Feather };
 
@@ -50,21 +50,26 @@ export function AssistentePersonagem(p: PropsAssistente) {
   const pendencias = pendencias2014(draft, sheet);
   const lista = modo === "criar" ? ETAPAS_DE_CRIACAO : CATEGORIAS_DE_EDICAO.filter(([id]) => id !== "equipamento" || !equipamentoDaClasseAceito(draft) || !origemEntregue2014(draft) || p.etapa === "equipamento");
   const atual = lista.some(([id]) => id === p.etapa) ? p.etapa : lista[0][0];
+  // a identidade pública que acompanha a ficha já está pronta; só fica pendente se a personalização não apresentar nome nem alcunha
+  const cartao = publicIdentityCard(p.identity, p.origemPublica);
+  const publicaSemNome = !p.somenteFicha && p.identity.name.mode !== "sheet" && !cartao.name && !cartao.alias;
+  const temHistoria = CAMPOS_HISTORIA.some(([chave]) => draft.story?.[chave]?.trim());
   const etapas: EtapaInfo<Etapa>[] = lista.map(([id, nome]) => {
-    const n = pendencias.filter(x => x.etapa === id).length;
-    return { id, nome, pendencias: n, concluida: !n && id !== "revisao" && id !== "publica" && id !== "historia" };
+    const publica = id === "publica" || id === "revisao";
+    const n = publica ? Number(publicaSemNome) : pendencias.filter(x => x.etapa === id).length;
+    return { id, nome, pendencias: n, concluida: !n && (id === "historia" ? temHistoria : !(publica && p.somenteFicha)) };
   });
   const irParaPendencia = (e: Etapa) => p.onEtapa(lista.some(([id]) => id === e) ? e : lista[0][0]);
 
-  return <Etapas rotulo="Etapas do personagem" etapas={etapas} atual={atual} onIr={p.onEtapa} sequencial={modo === "criar"} rodape={p.concluir}
+  return <Etapas rotulo="Etapas do personagem" semNumeros etapas={etapas} atual={atual} onIr={p.onEtapa} sequencial={modo === "criar"} rodape={p.concluir}
     resumo={modo === "criar" ? <Resumo draft={draft} sheet={sheet} pendencias={pendencias} onIr={irParaPendencia}/> : undefined}>
-    {atual === "identidade" && <EtapaIdentidade {...p} comHistoria={modo === "criar"}/>}
+    {atual === "identidade" && <EtapaIdentidade {...p}/>}
     {atual === "raca" && <EtapaRaca {...p}/>}
     {atual === "classe" && <EtapaClasse {...p}/>}
     {atual === "origem" && <EtapaOrigem {...p}/>}
     {atual === "atributos" && <EtapaAtributos {...p}/>}
     {atual === "equipamento" && <EtapaEquipamento {...p}/>}
-    {atual === "historia" && <Historia {...p} aberta/>}
+    {atual === "historia" && <Historia {...p}/>}
     {atual === "publica" && <Publica {...p}/>}
     {atual === "revisao" && <>
       <ListaDePendencias pendencias={pendencias} onIr={irParaPendencia} nomes={new Map(lista)}/>
@@ -80,10 +85,12 @@ function Titulo({ children, ajuda }: { children: ReactNode; ajuda?: ReactNode })
 /** Escolhas do motor que pertencem a uma etapa. */
 function Escolhas({ draft, onChange, etapa }: { draft: CharacterDraft; onChange: (d: CharacterDraft) => void; etapa: "raca" | "classe" | "origem" }) {
   const lista = choices2014(draft).filter(c => etapaDaEscolha(c.id) === etapa);
-  return lista.length ? <div className="character-2014">{lista.map(c => <Choice key={c.id} draft={draft} choice={c} onChange={onChange}/>)}</div> : null;
+  // trocar de raça, classe ou origem recomeça as seções de magia na primeira incompleta
+  const dono = etapa === "raca" ? draft.raceId : etapa === "origem" ? draft.backgroundId : draft.classId;
+  return lista.length ? <ListaDeEscolhas key={dono} draft={draft} escolhas={lista} onChange={onChange}/> : null;
 }
 
-function EtapaIdentidade(p: PropsAssistente & { comHistoria: boolean }) {
+function EtapaIdentidade(p: PropsAssistente) {
   const { draft, onChange } = p;
   return <>
     <Titulo ajuda="O nome é a única informação obrigatória para salvar.">Identidade</Titulo>
@@ -94,14 +101,12 @@ function EtapaIdentidade(p: PropsAssistente & { comHistoria: boolean }) {
       </div>
       <CampoRetrato valor={draft.portrait ?? ""} campaignId={p.campaignId} onChange={portrait => onChange({ ...draft, portrait })}/>
     </div>
-    {p.comHistoria && <Historia {...p}/>}
   </>;
 }
 
-function Historia({ draft, onChange, aberta }: PropsAssistente & { aberta?: boolean }) {
+function Historia({ draft, onChange }: PropsAssistente) {
   const campos = <div className="etapa-historia">{CAMPOS_HISTORIA.map(([chave, rotulo]) => <label key={chave} className={chave === "historia" ? "etapa-largo" : undefined}>{rotulo}<textarea aria-label={rotulo} rows={chave === "historia" ? 6 : 3} maxLength={chave === "historia" ? 8000 : 1500} value={draft.story?.[chave] ?? ""} onChange={e => onChange({ ...draft, story: { ...draft.story, [chave]: e.target.value } })}/></label>)}</div>;
-  return aberta ? <><Titulo ajuda="Só você e o mestre leem.">História e personalidade</Titulo>{campos}</>
-    : <details className="etapa-recolhida"><summary>História e personalidade (opcional, privado)</summary>{campos}</details>;
+  return <><Titulo ajuda="Opcional. Só você e o mestre leem.">História e personalidade</Titulo>{campos}</>;
 }
 
 function EtapaRaca({ draft, onChange }: PropsAssistente) {

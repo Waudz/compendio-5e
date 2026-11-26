@@ -8,7 +8,7 @@ import "../dnd/dnd.css";
 import "./etapas-criador.css";
 import type { CharacterDraft } from "../rules/character-domain";
 import { Etapas, type EtapaInfo } from "../ui/Etapas";
-import { Choice } from "./Opcoes2014";
+import { ListaDeEscolhas } from "./Opcoes2014";
 import { automaticSpells2014, class2014, featureDescription2014, label2014, resourceLabel2014, selected2014, spells2014 } from "./regras-2014";
 import { rotuloAtributo, rotuloOpcao } from "./rotulos";
 import { comEscolhas, comparar, escolhasNovas, incompletas, prepararSubida, valorFixoDoDado } from "./subidaDeNivel";
@@ -76,11 +76,11 @@ export function SubirNivel({ atual, ocupado, onCancelar, onConfirmar }: { atual:
       </section>}
       {passo === "escolhas" && <>
         <section className="etapa-detalhes" aria-label="Novas características"><h3>Características novas</h3>{caracteristicas}</section>
-        {outras.length > 0 ? <div className="character-2014">{outras.map(ch => <Choice key={ch.id} draft={proximo} choice={ch} onChange={mudar}/>)}</div> : <p className="muted">Nenhuma escolha nova neste nível.</p>}
+        {outras.length > 0 ? <ListaDeEscolhas draft={proximo} escolhas={outras} onChange={mudar}/> : <p className="muted">Nenhuma escolha nova neste nível.</p>}
       </>}
       {passo === "magias" && <>
         {comparacao}
-        {deMagia.length > 0 && <div className="character-2014">{deMagia.map(ch => <Choice key={ch.id} draft={proximo} choice={ch} onChange={mudar}/>)}</div>}
+        {deMagia.length > 0 && <ListaDeEscolhas draft={proximo} escolhas={deMagia} onChange={mudar}/>}
         {concedidas.length > 0 && <p>Magias recebidas automaticamente: {concedidas.join(", ")}.</p>}
       </>}
       {passo === "revisao" && <>

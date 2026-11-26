@@ -27,6 +27,15 @@ async function checks(group: Locator, n: number, used = new Set<string>()) {
   }
   expect(added).toBe(n);
 }
+/** Abre a seção de um grupo de magias (uma por vez) e a devolve. */
+async function secao(page: Parameters<typeof startCreator>[0], nome: RegExp) {
+  const grupo = page.getByRole('group', { name: nome });
+  const titulo = grupo.getByRole('button', { name: nome });
+  if (await titulo.getAttribute('aria-expanded') !== 'true') await titulo.click();
+  await expect(titulo).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('.grupo-magia-titulo[aria-expanded="true"]')).toHaveCount(1);
+  return grupo;
+}
 async function activate(page: Parameters<typeof startCreator>[0]) {
   await startCreator(page);
   await expect(page.getByRole('button', { name: 'Ativar opções SRD 2014', exact: true })).toHaveCount(0);
@@ -62,24 +71,28 @@ test('SRD 2014: Maga completa escolhas, origem, equipamento e reabre sem perder 
   const prof = page.getByRole('group', { name: /^Proficiências de Mago/ });
   await prof.getByRole('checkbox', { name: 'Arcanismo', exact: true }).check();
   await prof.getByRole('checkbox', { name: 'Investigação', exact: true }).check();
-  const book = page.getByRole('group', { name: /^Grimório — seis/ });
+  const book = await secao(page, /^Grimório — seis/);
+  await expect(book.getByRole('button', { name: /^Grimório — seis.* 0\/6$/ })).toBeVisible();
   await book.getByRole('button', { name: /^Ver detalhes de/ }).first().click();
   await expect(book.getByRole('region', { name: 'Detalhes de magia', exact: true })).toContainText('círculo');
   await book.getByRole('button', { name: 'Fechar detalhes de magia', exact: true }).click();
   const used = new Set<string>();
-  await checks(page.getByRole('group', { name: /^Grimório — seis/ }), 6, used);
+  await checks(book, 6, used);
+  await expect(book.getByRole('button', { name: /^Grimório — seis.* 6\/6$/ })).toBeVisible();
+  await expectInsidePanel(page);
+  await expectNoHorizontalOverflow(page);
   await checks(
-    page.getByRole('group', { name: /^Grimório — duas magias do nível 2/ }),
+    await secao(page, /^Grimório — duas magias do nível 2/),
     2,
     used,
   );
   await checks(
-    page.getByRole('group', { name: /^Grimório — duas magias do nível 3/ }),
+    await secao(page, /^Grimório — duas magias do nível 3/),
     2,
     used,
   );
-  await checks(page.getByRole('group', { name: /^Truques da classe/ }), 3);
-  await checks(page.getByRole('group', { name: /^Magias preparadas/ }), 6);
+  await checks(await secao(page, /^Truques da classe/), 3);
+  await checks(await secao(page, /^Magias preparadas/), 6);
   await irEtapa(page, 'Classe');
   await page.getByRole('combobox', { name: 'Ganho de PV por nível', exact: true }).selectOption('rolled');
   for (const [level, roll] of [[2, 4], [3, 5]]) {

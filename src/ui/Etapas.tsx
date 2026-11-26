@@ -7,10 +7,12 @@ import "./etapas.css";
 
 export type EtapaInfo<T extends string = string> = { id: T; nome: string; /** Quantas escolhas faltam nesta etapa. */ pendencias?: number; concluida?: boolean };
 
-export function Etapas<T extends string>({ etapas, atual, onIr, rotulo, sequencial = true, resumo, rodape, children }: {
+export function Etapas<T extends string>({ etapas, atual, onIr, rotulo, sequencial = true, semNumeros, resumo, rodape, children }: {
   etapas: EtapaInfo<T>[]; atual: T; onIr: (id: T) => void; rotulo: string;
   /** Mostra Anterior/Próxima e o progresso (criação e subida de nível); na edição as categorias são independentes. */
-  sequencial?: boolean; resumo?: ReactNode;
+  sequencial?: boolean;
+  /** A marca mostra só a situação (concluída, pendente ou neutra), sem a posição da etapa. */ semNumeros?: boolean;
+  resumo?: ReactNode;
   /** Ação final, na última etapa. */ rodape?: ReactNode; children: ReactNode;
 }) {
   const i = Math.max(0, etapas.findIndex(e => e.id === atual)), anterior = etapas[i - 1], proxima = etapas[i + 1];
@@ -21,7 +23,7 @@ export function Etapas<T extends string>({ etapas, atual, onIr, rotulo, sequenci
     conteudo.current?.scrollIntoView?.({ block: "start" });
     conteudo.current?.focus({ preventScroll: true });
   }, [atual]);
-  const marca = (e: EtapaInfo, n: number) => <span className={"etapa-marca" + (e.pendencias ? " pendente" : e.concluida ? " concluida" : "")} aria-hidden="true">{e.pendencias ? <AlertCircle size={13}/> : e.concluida ? <Check size={13}/> : n + 1}</span>;
+  const marca = (e: EtapaInfo, n: number) => <span className={"etapa-marca" + (e.pendencias ? " pendente" : e.concluida ? " concluida" : "")} aria-hidden="true">{e.pendencias ? <AlertCircle size={13}/> : e.concluida ? <Check size={13}/> : semNumeros ? null : n + 1}</span>;
   return <div className="etapas-raiz">
     <div className="etapas-grade" data-resumo={resumo ? "true" : undefined}>
       <nav className="etapas-nav" aria-label={rotulo}>

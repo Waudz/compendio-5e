@@ -16,7 +16,7 @@ test('WCAG: todas as etapas da criação, a ficha, as janelas do inventário, a 
   test.setTimeout(90_000);
   await startCreator(page); await completarGuerreira(page);
   const { scans, scan } = verificador(page, info);
-  for (const etapa of ['Identidade', 'Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão']) { await irEtapa(page, etapa); await scan(`etapa-${etapa}`); }
+  for (const etapa of ['Identidade', 'Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão', 'História']) { await irEtapa(page, etapa); await scan(`etapa-${etapa}`); }
   await salvarParaFicha(page);
   for (const aba of ['Ficha', 'Habilidades', 'Inventário']) { await abaDaFicha(page, aba).click(); await scan(`ficha-${aba}`); }
   await acaoDoItem(page, 'Arco longo', 'Ver detalhes'); await scan('item-detalhes');
@@ -36,7 +36,7 @@ test('WCAG: todas as etapas da criação, a ficha, as janelas do inventário, a 
 
 test('responsividade: controles cabem no painel e o Compêndio alterna lista/grade', async ({ page }, info) => {
   await startCreator(page); await completarGuerreira(page);
-  for (const etapa of ['Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão']) { await irEtapa(page, etapa); await expectInsidePanel(page); }
+  for (const etapa of ['Raça', 'Classe', 'Origem', 'Atributos', 'Equipamentos iniciais', 'Revisão', 'História']) { await irEtapa(page, etapa); await expectInsidePanel(page); }
   await salvarParaFicha(page);
   await abaDaFicha(page, 'Inventário').click();
   await expectInsidePanel(page, '.ficha-jogo'); await expectNoHorizontalOverflow(page); await evidence(page, info, 'inventario-limites');

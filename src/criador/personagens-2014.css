@@ -63,6 +63,22 @@
   padding: 5px 8px;
 }
 
+/* grupos de magias: seções expansíveis na largura toda; as magias se distribuem em colunas conforme o espaço */
+.character-2014 .grupos-de-magia { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.grupo-magia { border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.grupo-magia h4 { margin: 0; font-size: 13px; }
+.character-2014 .grupo-magia-titulo { display: flex; align-items: center; gap: 8px; width: 100%; margin: 0; padding: 10px; background: none; border: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; border-radius: 8px; }
+.character-2014 .grupo-magia-titulo:hover { background: var(--hover); }
+.grupo-magia-titulo svg { flex: none; }
+.grupo-magia-rotulo { display: flex; flex: 1; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+.grupo-magia-rotulo > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.grupo-magia-contador { flex: none; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+.grupo-magia-corpo { display: flex; flex-direction: column; gap: 8px; padding: 4px 10px 10px; border-top: 1px solid var(--line); min-width: 0; }
+.grupo-magia .lista-de-opcoes { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 4px 16px; }
+.character-2014 .grupo-magia .character-spell-option { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.character-2014 .grupo-magia .character-spell-option label { min-width: 0; }
+.character-2014 .grupo-magia .character-spell-option button { margin: 0; }
+
 /* Também limita o formulário legado: o painel mobile é um scroll container. */
 .criador { min-width: 0; overflow-wrap: anywhere; }
 .criador fieldset { min-inline-size: 0; }
