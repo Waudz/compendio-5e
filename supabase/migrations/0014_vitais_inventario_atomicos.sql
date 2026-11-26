@@ -299,7 +299,63 @@ end $$;
 revoke all on function public.alterar_vitais(uuid, jsonb, uuid), public.usar_consumivel(uuid, text, integer, integer, uuid), public.transferir_item(uuid, uuid, text, integer, uuid) from public, anon;
 grant execute on function public.alterar_vitais(uuid, jsonb, uuid), public.usar_consumivel(uuid, text, integer, integer, uuid), public.transferir_item(uuid, uuid, text, integer, uuid) to authenticated;
 
--- ------------------------------------------------------------------ C. tempo real (só quando a publicação existir, como no Supabase)
+-- ------------------------------------------------------------------ C. retrato com enquadramento não destrutivo
+-- O retrato enviado passa a aceitar, no fim da referência, o enquadramento (`#enq=zoom,x,y`); a imagem original não é alterada.
+create or replace function private_ficha.retrato(v text, campanha uuid) returns text language sql immutable set search_path = '' as $$
+  select case
+    when v ~ '^https://[^[:space:]]+$' and length(v) <= 2000 then v
+    when v ~ ('^storage:' || campanha::text || '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(#enq=[0-9]{1,3}([.][0-9]{1,4})?,[0-9]{1,3}([.][0-9]{1,4})?,[0-9]{1,3}([.][0-9]{1,4})?)?$') then v
+  end
+$$;
+-- A validação da linha pública é a da 0013, mudando apenas a expressão do retrato.
+create or replace function private.identidade_meta_valida(m jsonb) returns boolean
+language plpgsql immutable set search_path = '' as $$
+declare
+  k text; f text; v jsonb; x jsonb; ident jsonb; card jsonb; st jsonb;
+  campos constant text[] := array['imageUrl', 'title', 'name', 'surname', 'race', 'characterClass', 'description'];
+  partes constant text[] := array['name', 'surname', 'race', 'characterClass'];
+  retrato constant text := '^(https://[^[:space:]]+|storage:[0-9a-f-]{36}/[0-9a-f-]{36}(#enq=[0-9.,]{5,26})?)$';
+begin
+  if m is null or jsonb_typeof(m) <> 'object' then return false; end if;
+  if (m -> 'guiado') is distinct from 'true'::jsonb then return false; end if;
+  for k in select jsonb_object_keys(m) loop if k not in ('guiado', 'identidadePublica') then return false; end if; end loop;
+  ident := m -> 'identidadePublica';
+  if ident is null then return true; end if;
+  if jsonb_typeof(ident) <> 'object' then return false; end if;
+  for k in select jsonb_object_keys(ident) loop if k not in ('settings', 'card') then return false; end if; end loop;
+  card := ident -> 'card'; st := ident -> 'settings';
+  if jsonb_typeof(card) is distinct from 'object' or jsonb_typeof(st) is distinct from 'object' then return false; end if;
+  for k in select jsonb_object_keys(card) loop if k <> all (campos) and k <> 'level' then return false; end if; end loop;
+  for k in select jsonb_object_keys(st) loop if k <> all (campos) and k <> 'level' then return false; end if; end loop;
+  v := card -> 'level';
+  if v is not null and (jsonb_typeof(v) not in ('string', 'null') or (jsonb_typeof(v) = 'string' and length(v #>> '{}') > 120)) then return false; end if;
+  foreach f in array campos loop
+    v := card -> f;
+    if v is null or jsonb_typeof(v) not in ('string', 'null') then return false; end if;
+    if jsonb_typeof(v) = 'string' and length(v #>> '{}') > (case f when 'description' then 4000 when 'imageUrl' then 2000 else 120 end) then return false; end if;
+  end loop;
+  foreach f in array campos || array['level'] loop
+    v := st -> f;
+    if v is null then if f = 'level' then continue; end if; return false; end if;
+    if f = any (partes) or f = 'level' then
+      if jsonb_typeof(v) <> 'object' then return false; end if;
+      for k in select jsonb_object_keys(v) loop if k not in ('mode', 'customValue') then return false; end if; end loop;
+      if jsonb_typeof(v -> 'mode') is distinct from 'string' or (v ->> 'mode') not in ('real', 'custom', 'hidden') then return false; end if;
+      x := v -> 'customValue';
+      if x is not null and (jsonb_typeof(x) <> 'string' or length(x #>> '{}') > 120) then return false; end if;
+    elsif f = 'imageUrl' then
+      if jsonb_typeof(v) not in ('string', 'null') then return false; end if;
+    else
+      if jsonb_typeof(v) <> 'string' or length(v #>> '{}') > (case f when 'description' then 4000 else 120 end) then return false; end if;
+    end if;
+  end loop;
+  foreach x in array array[card -> 'imageUrl', st -> 'imageUrl'] loop
+    if jsonb_typeof(x) = 'string' and ((x #>> '{}') !~ retrato or length(x #>> '{}') > 2000) then return false; end if;
+  end loop;
+  return true;
+end $$;
+
+-- ------------------------------------------------------------------ D. tempo real (só quando a publicação existir, como no Supabase)
 do $$ begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
      and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'character_sheets') then

@@ -3,21 +3,14 @@
 // Exige a migração 0006 (coluna + bucket + políticas; ver docs/propostas/0006_registros_meta.sql): NÃO aplicada sem autorização.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { erroCampanha, type Res } from "./campaigns";
+import { ENQUADRAMENTO_PADRAO, estiloEnquadramento, normalizar, type Enquadramento } from "./imagem/enquadramento";
+const lerEnquadramento = normalizar;
 
 export const CAPA_TIPOS = ["image/jpeg", "image/png", "image/webp"] as const;
 export const CAPA_MAX_BYTES = 5 * 1024 * 1024;
 
-/** Enquadramento NÃO destrutivo: ponto de foco (x, y em %) e zoom. A imagem original nunca é alterada. */
-export type Enquadramento = { zoom: number; x: number; y: number };
-export const ENQUADRAMENTO_PADRAO: Enquadramento = { zoom: 1, x: 50, y: 50 };
-const faixa = (v: unknown, min: number, max: number, padrao: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : padrao);
-/** Leitura segura (o dado vem do servidor): qualquer coisa fora do formato cai no padrão, nunca quebra a tela. */
-export function lerEnquadramento(v: unknown): Enquadramento {
-  const o = (typeof v === "object" && v !== null ? v : {}) as Record<string, unknown>;
-  return { zoom: faixa(o.zoom, 1, 3, 1), x: faixa(o.x, 0, 100, 50), y: faixa(o.y, 0, 100, 50) };
-}
-/** Como exibir: o mesmo ponto fica em foco em qualquer largura de painel (computador, tela dividida, celular). */
-export const estiloEnquadramento = (e: Enquadramento) => ({ objectPosition: `${e.x}% ${e.y}%`, transform: `scale(${e.zoom})`, transformOrigin: `${e.x}% ${e.y}%` });
+/** Enquadramento NÃO destrutivo, o mesmo de toda imagem editável (ver imagem/enquadramento.ts). */
+export { ENQUADRAMENTO_PADRAO, estiloEnquadramento, normalizar as lerEnquadramento, type Enquadramento };
 /** A coluna `cover_framing` (migração 0012) ainda não existe no banco. */
 const semColuna = (e: unknown) => { const x = e as { code?: string; message?: string } | null; return !!x && (x.code === "42703" || x.code === "PGRST204" || /cover_framing/.test(x.message ?? "")); };
 

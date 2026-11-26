@@ -59,7 +59,7 @@ const doCampoBanco = (c: unknown): CampoPublico | null => {
 };
 
 /** Retrato aceito: endereço https sem espaços, ou arquivo enviado (`storage:<campanha>/<arquivo>`), como no banco. */
-export const retratoValido = (u: unknown): u is string => typeof u === "string" && u.length <= 2000 && /^(https:\/\/\S+|storage:[\w-]{1,64}\/[\w-]{1,64})$/.test(u);
+export const retratoValido = (u: unknown): u is string => typeof u === "string" && u.length <= 2000 && /^(https:\/\/\S+|storage:[\w-]{1,64}\/[\w-]{1,64}(#enq=\d+(\.\d+)?,\d+(\.\d+)?,\d+(\.\d+)?)?)$/.test(u);
 
 /** Mesmas regras do servidor: ele recusa o que passar daqui, mas o jogador recebe a mensagem certa antes de enviar. */
 export function validarIdentidade(identity: PublicIdentity, card: PublicIdentityCard) {

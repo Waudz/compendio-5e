@@ -199,3 +199,15 @@ describe("reversão", () => {
     expect((await base.query("select draft, revision from public.character_sheets")).rows).toEqual(antes);
   });
 });
+
+describe("retrato com enquadramento não destrutivo", () => {
+  it("a apresentação pública aceita a referência com enquadramento e recusa sufixo malformado", async () => {
+    const base = `storage:${C}/22222222-2222-4222-8222-222222222222`;
+    const id = await criar(U.bia, { portrait: `${base}#enq=1.5,20,80` });
+    const cartao = async () => (await as(db, U.caio, "select meta #>> '{identidadePublica,card,imageUrl}' as u from public.notes where id = $1", [id])).rows[0]?.u;
+    expect(await cartao()).toBe(`${base}#enq=1.5,20,80`);
+    const f = await ler(id);
+    expect((await salvar(U.bia, id, f.revision, { ...f.draft, portrait: `${base}#enq=<script>` })).error).toBeUndefined();
+    expect(await cartao()).toBeNull();
+  });
+});

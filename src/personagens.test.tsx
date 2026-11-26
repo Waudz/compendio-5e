@@ -72,12 +72,14 @@ describe("Personagens e Aventureiros", () => {
     await abrir("Personagens"); fireEvent.click(await screen.findByRole("button", { name: /^Meu(?! privado)/ }));
     const input = (await screen.findByText("Adicionar retrato")).querySelector("input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["x"], "r.png", { type: "image/png" })] } });
+    fireEvent.click(await screen.findByRole("button", { name: "Usar esta imagem" }));   // o enquadramento vem antes do envio
     await screen.findByText("Remover retrato"); fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
     await waitFor(() => expect(store.dados[0].meta).toMatchObject({ retrato: u1 }));
     expect(apagar).not.toHaveBeenCalled();
     capa.enviar = async () => ({ ok: true, data: u2 });
     fireEvent.change((await screen.findByText("Trocar retrato")).querySelector("input") as HTMLInputElement, { target: { files: [new File(["y"], "r2.png", { type: "image/png" })] } });
-    await screen.findByText("Trocar retrato");
+    fireEvent.click(await screen.findByRole("button", { name: "Usar esta imagem" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
     await waitFor(() => expect(apagar).toHaveBeenCalledWith(u1));
   });

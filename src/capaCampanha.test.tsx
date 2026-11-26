@@ -51,16 +51,19 @@ describe("enquadramento da capa", () => {
     const d = await abrir();
     const original = new File(["x"], "original.png", { type: "image/png" });
     fireEvent.change(document.querySelector("input[type=file]")!, { target: { files: [original] } });
-    fireEvent.change(await d.findByLabelText("Zoom"), { target: { value: "1.5" } });
-    fireEvent.change(d.getByLabelText("Posição horizontal"), { target: { value: "20" } });
-    fireEvent.change(d.getByLabelText("Posição vertical"), { target: { value: "80" } });
-    expect(faixa().style.objectPosition).toBe("20% 80%");   // a faixa mostra o ajuste ao vivo
-    expect(m.definir).not.toHaveBeenCalled();                // nada gravado antes de salvar
-    fireEvent.click(d.getByRole("button", { name: "Salvar enquadramento" }));
+    const popup = await screen.findByRole("dialog", { name: "Enquadrar capa da campanha" });   // abre sozinho ao escolher o arquivo
+    fireEvent.change(within(popup).getByLabelText("Zoom da imagem"), { target: { value: "1.5" } });
+    const quadro = within(popup).getByRole("application", { name: "Posicionar a imagem" });
+    for (let i = 0; i < 3; i++) { fireEvent.keyDown(quadro, { key: "ArrowLeft", shiftKey: true }); fireEvent.keyDown(quadro, { key: "ArrowDown", shiftKey: true }); }
+    expect(within(popup).getByAltText("Prévia do enquadramento").style.objectPosition).toBe("20% 80%");   // a prévia é a mesma conta da faixa
+    expect(m.definir).not.toHaveBeenCalled();                // nada gravado antes de confirmar
+    fireEvent.click(within(popup).getByRole("button", { name: "Salvar enquadramento" }));
     await waitFor(() => expect(m.salvar).toHaveBeenCalledWith("ca", { zoom: 1.5, x: 20, y: 80 }));
     expect(m.definir).toHaveBeenCalledTimes(1); expect(m.definir.mock.calls[0][1]).toBe(original);   // sem recorte: o mesmo arquivo
     // ajustar de novo não reenvia a imagem
-    fireEvent.change(d.getByLabelText("Zoom"), { target: { value: "2" } }); fireEvent.click(d.getByRole("button", { name: "Salvar enquadramento" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Enquadrar capa da campanha" })).toBeNull());
+    fireEvent.click(d.getByRole("button", { name: "Ajustar enquadramento" }));
+    fireEvent.change(screen.getByLabelText("Zoom da imagem"), { target: { value: "2" } }); fireEvent.click(screen.getByRole("button", { name: "Salvar enquadramento" }));
     await waitFor(() => expect(m.enq.get("ca")?.zoom).toBe(2)); expect(m.definir).toHaveBeenCalledTimes(1);
     cleanup(); montar(m.capa);   // "recarregar a página" / outro aparelho
     await waitFor(() => expect(faixa().style.transform).toBe("scale(2)")); expect(faixa().style.objectPosition).toBe("20% 80%");
@@ -72,13 +75,21 @@ describe("enquadramento da capa", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Mesa B" })).toBeTruthy();
     tela.trocar("ca"); await waitFor(() => expect(faixa().getAttribute("src")).toBe("blob:a.png"));
   });
-  it("fechar com ajuste não salvo pede confirmação; descartar devolve o enquadramento salvo", async () => {
+  it("cancelar o popup (botão ou Escape) descarta o ajuste sem gravar e mantém a edição da campanha aberta; Restaurar volta ao centro", async () => {
     const m = capaNaoDestrutiva(); m.imagens.set("ca", "blob:a.png"); montar(m.capa);
-    const d = await abrir(); fireEvent.change(await d.findByLabelText("Zoom"), { target: { value: "2.5" } });
-    const confirma = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
-    fireEvent.click(d.getByRole("button", { name: "Fechar edição" })); expect(screen.getByRole("dialog", { name: "Editar campanha" })).toBeTruthy();
+    const d = await abrir();
+    fireEvent.click(await d.findByRole("button", { name: "Ajustar enquadramento" }));
+    fireEvent.change(screen.getByLabelText("Zoom da imagem"), { target: { value: "2.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Restaurar" })); expect(screen.getByLabelText("Zoom atual").textContent).toBe("100%");
+    fireEvent.change(screen.getByLabelText("Zoom da imagem"), { target: { value: "2.5" } });
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Enquadrar capa da campanha" })).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog", { name: "Enquadrar capa da campanha" })).toBeNull();
+    fireEvent.click(d.getByRole("button", { name: "Ajustar enquadramento" }));
+    fireEvent.keyDown(screen.getByRole("application", { name: "Posicionar a imagem" }), { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Enquadrar capa da campanha" })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Editar campanha" })).toBeTruthy();
+    expect(faixa().style.transform).toBe("scale(1)"); expect(m.salvar).not.toHaveBeenCalled();
     fireEvent.click(d.getByRole("button", { name: "Fechar edição" })); await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(confirma).toHaveBeenCalledTimes(2); expect(faixa().style.transform).toBe("scale(1)"); expect(m.salvar).not.toHaveBeenCalled();
   });
   it("jogador vê a capa enquadrada e não tem como editar", async () => {
     const m = capaNaoDestrutiva(); m.imagens.set("ca", "blob:a.png"); m.enq.set("ca", { zoom: 1.25, x: 30, y: 40 });

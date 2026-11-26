@@ -2,6 +2,7 @@
 // A ficha completa (atributos, magias, inventário) ainda não existe na 2.0; este é o perfil do personagem, base do Início e das fichas futuras.
 import type { Res } from "./campaigns";
 import type { CapaApi } from "./capa";
+import { juntar, separar } from "./imagem/enquadramento";
 import type { Aventureiro, FonteAventureiros } from "./inicio";
 import { cartaoPublico, ehGuiado } from "./fichas";
 import { presentation } from "./rules/public-identity";
@@ -13,7 +14,7 @@ export type Perfil = { classe: string; nivel: number; retrato: string | null };
 export function lerPerfil(meta: Record<string, unknown> | undefined): Perfil {
   const m = (meta ?? {}) as { classe?: unknown; nivel?: unknown; retrato?: unknown };
   const nivel = Number.isInteger(m.nivel) ? Math.min(NIVEL_MAX, Math.max(NIVEL_MIN, m.nivel as number)) : NIVEL_MIN;
-  return { classe: typeof m.classe === "string" ? m.classe.slice(0, MAX_CLASSE) : "", nivel, retrato: typeof m.retrato === "string" && /^[0-9a-f-]{36}\/[0-9a-f-]{36}$/.test(m.retrato) ? m.retrato : null };
+  return { classe: typeof m.classe === "string" ? m.classe.slice(0, MAX_CLASSE) : "", nivel, retrato: typeof m.retrato === "string" && /^[0-9a-f-]{36}\/[0-9a-f-]{36}$/.test(separar(m.retrato).base) ? m.retrato : null };
 }
 
 export function validarPerfil(nome: string, classe: string, nivel: number): string | null {
@@ -37,7 +38,7 @@ export function fontePersonagens(api: RegistrosApi, capa: CapaApi | null): Fonte
           return { id: x.id, nome: visto.nome, ...(visto.alcunha ? { alcunha: visto.alcunha } : {}), classe: [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: c?.level && Number.isInteger(Number(c.level)) ? Number(c.level) : null, retratoUrl: c?.imageUrl ?? null };
         }
         const p = lerPerfil(x.meta); let retratoUrl: string | null = null;
-        if (p.retrato && capa) { const u = await capa.urlDe(p.retrato); if (u.ok) retratoUrl = u.data; }   // retrato indisponível: cai na inicial, sem erro
+        if (p.retrato && capa) { const { base, enquadramento } = separar(p.retrato), u = await capa.urlDe(base); if (u.ok) retratoUrl = juntar(u.data, enquadramento); }   // retrato indisponível: cai na inicial, sem erro
         return { id: x.id, nome: x.title, classe: p.classe || "Sem classe", nivel: p.nivel, retratoUrl };
       }));
       return { ok: true, data: out };

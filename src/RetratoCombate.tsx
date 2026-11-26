@@ -3,13 +3,16 @@ import { Skull, Swords, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
 import { useCapa, useFichas } from "./RegistrosContext";
+import { estiloEnquadramento, juntar, separar } from "./imagem/enquadramento";
 
 export type TipoRetrato = "personagem" | "monstro" | "avulso";
 
-/** Retrato enviado (`storage:<campanha>/<arquivo>`) vira um endereço temporário; os demais valores passam como estão. */
+/** Retrato enviado (`storage:<campanha>/<arquivo>`) vira um endereço temporário; os demais valores passam como estão. O enquadramento
+ *  que viaja no fim da referência é preservado. */
 export function useEnderecoDaImagem(src: string | null | undefined): string | null {
   const capa = useCapa();
-  const guardado = src?.startsWith("storage:") ? src.slice("storage:".length) : null;
+  const partes = src?.startsWith("storage:") ? separar(src) : null;
+  const guardado = partes ? partes.base.slice("storage:".length) : null;
   const [assinado, setAssinado] = useState<{ de: string; url: string } | null>(null);
   useEffect(() => {
     if (!guardado || !capa) return;
@@ -17,18 +20,19 @@ export function useEnderecoDaImagem(src: string | null | undefined): string | nu
     void capa.urlDe(guardado).then(r => { if (vivo && r.ok) setAssinado({ de: guardado, url: r.data }); }, () => { /* sem acesso: fica o ícone padrão */ });
     return () => { vivo = false; };
   }, [guardado, capa]);
-  if (guardado) return assinado?.de === guardado ? assinado.url : null;
+  if (guardado) return assinado?.de === guardado ? juntar(assinado.url, partes!.enquadramento) : null;
   return src ?? null;
 }
 
 /** Decorativo (o nome já aparece em texto ao lado): `alt` vazio. Se a imagem falhar ao carregar, cai no placeholder. */
 export function RetratoQuadrado({ src, tipo = "avulso", tamanho = 44 }: { src?: string | null; tipo?: TipoRetrato; tamanho?: number }) {
   const [falhou, setFalhou] = useState(false);
-  const endereco = useEnderecoDaImagem(src);
+  const referencia = useEnderecoDaImagem(src);
+  const { base: endereco, enquadramento } = referencia ? separar(referencia) : { base: null, enquadramento: null };
   useEffect(() => setFalhou(false), [endereco]);
   const Icone = tipo === "monstro" ? Skull : tipo === "personagem" ? UserRound : Swords;
   return <span className="retrato-q" data-tipo={tipo} style={{ width: tamanho, height: tamanho }}>
-    {endereco && !falhou ? <img src={endereco} alt="" loading="lazy" onError={() => setFalhou(true)}/> : <span className="retrato-q-vazio" aria-hidden="true" data-testid="retrato-placeholder"><Icone size={Math.round(tamanho * 0.5)}/></span>}
+    {endereco && !falhou ? <img src={endereco} alt="" loading="lazy" style={estiloEnquadramento(enquadramento!)} onError={() => setFalhou(true)}/> : <span className="retrato-q-vazio" aria-hidden="true" data-testid="retrato-placeholder"><Icone size={Math.round(tamanho * 0.5)}/></span>}
   </span>;
 }
 

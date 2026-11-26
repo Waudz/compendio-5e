@@ -74,6 +74,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
    `position:relative` mantém dentro da rolagem os elementos absolutos (rótulos só para leitor de tela); sem isso o contêiner da aba
    ganhava uma SEGUNDA barra de rolagem. Cada grupo tem uma única rolagem vertical: a do `.content`. */
 .content{--recuo:clamp(8px,2.8%,24px);position:relative;padding:var(--recuo);width:100%;height:100%;overflow:auto;color:var(--text)}
+.retrato-enquadrado{display:inline-block;overflow:hidden;padding:0}.retrato-enquadrado img{width:100%;height:100%;object-fit:cover;display:block}
+.retrato-q{overflow:hidden}
 .content h1{font-size:26px;font-weight:650;margin:12px 0}.content p{color:var(--text-2)}
 .placeholder{margin-top:30px;border:1px dashed var(--line);border-radius:12px;min-height:200px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:13px;color:var(--text-2);text-align:center;padding:15px}.placeholder strong{color:var(--text)}
 .demo-actions{display:flex;flex-wrap:wrap;gap:8px}
