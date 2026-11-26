@@ -612,7 +612,7 @@ Verificação só do afetado: tipos (aplicativo e E2E), unitários de `src/criad
 
 ### Compêndio Campanha/Regras — 26/11/2026 (branch em revisão)
 
-Branch `feat/compendio-campanha-regras`, continuada de `c3d74a6`. Trabalho isolado em worktree; alterações não commitadas do checkout original preservadas. Sem alterações no legado, produção, merge ou deploy.
+PR **#159**: https://github.com/Waudz/compendio-5e/pull/159. Branch `feat/compendio-campanha-regras`, continuada de `c3d74a6`. Trabalho isolado em worktree; alterações não commitadas do checkout original preservadas. Sem alterações no legado, produção, merge ou deploy.
 
 - Categorias ativas e navegáveis; consultas de origens/características/condições reutilizam as fontes atuais. Filtros, visualização e contexto preservados por sessão/campanha. Cartões em coluna única com arte provisória Lucide licenciada.
 - Registros narrativos usam notes + índice/referências `campaign_codex`. Conhecimento do jogador é uma projeção no servidor, não filtro de campos privados recebidos. Bestiário com quatro níveis; itens mágicos revelados aparecem em Descobertas/Regras sem liberar adição ao inventário; portadores retornam apenas identidade já pública.
