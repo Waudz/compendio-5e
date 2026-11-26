@@ -118,6 +118,7 @@
 .ficha-marca { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--text-2); margin-right: 4px; }
 .ficha-marca.ativa { background: var(--accent); border-color: var(--accent); }
 .ficha .ficha-morte { border: 1px solid var(--line); border-radius: 8px; margin: 0; padding: 6px 10px; }
+.ficha .ficha-morte legend { font-size: 12px; padding: 0 4px; }
 .ficha-morte > div { display: flex; gap: 10px; align-items: center; padding: 3px 0; }
 .ficha-morte > div > span { min-width: 70px; }
 .ficha-morte input { width: 18px; height: 18px; }

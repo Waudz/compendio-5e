@@ -1425,6 +1425,10 @@ export function grantBackground2014(
 }
 
 const traitPt: Record<string, [string, string]> = {
+  'high-elf-cantrip': ['Truque de Alto Elfo', 'Você conhece um truque à sua escolha da lista de magias de mago. Inteligência é o seu atributo de conjuração para ele.'],
+  'draconic-ancestry': ['Ancestralidade Dracônica', 'Você tem ancestralidade dracônica. Escolha um tipo de dragão da tabela de Ancestralidade Dracônica. Sua arma de sopro e sua resistência a dano são determinadas pelo tipo de dragão, conforme a tabela.'],
+  'breath-weapon': ['Arma de Sopro', 'Você pode usar sua ação para exalar energia destrutiva. Sua ancestralidade dracônica determina o tamanho, a forma e o tipo de dano da exalação. Cada criatura na área deve fazer uma salvaguarda, do tipo determinado pela ancestralidade. A CD é 8 + seu modificador de Constituição + seu bônus de proficiência. Uma criatura sofre 2d6 de dano se falhar, ou metade em caso de sucesso. O dano aumenta para 3d6 no 6º nível, 4d6 no 11º e 5d6 no 16º. Depois de usar a arma de sopro, você não pode usá-la novamente até terminar um descanso curto ou longo.'],
+  'damage-resistance': ['Resistência a Dano', 'Você tem resistência ao tipo de dano associado à sua ancestralidade dracônica.'],
   darkvision: [
     'Visão no Escuro',
     'Até 18 m, penumbra é tratada como luz plena e escuridão como penumbra. Na escuridão, você distingue tons de cinza, não cores.',
@@ -1535,6 +1539,10 @@ export function resourceLabel2014(id: string) {
     'breath-weapon': 'Arma de Sopro',
     'infernal-rebuke': 'Repreensão Infernal racial',
     'infernal-darkness': 'Escuridão racial',
+    'arcane-recovery': 'Recuperação Arcana',
+    'divine-intervention': 'Intervenção Divina',
+    'cleansing-touch': 'Toque Purificador',
+    'stroke-of-luck': 'Golpe de Sorte',
   };
   return (
     labels[id] ??

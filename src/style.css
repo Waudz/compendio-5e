@@ -1076,7 +1076,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .criador-saida{margin:8px 0}
 .criador .ficha-subnav.criador-abas{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;max-width:none;gap:4px}
 .criador .ficha-subnav.criador-abas button{white-space:nowrap}
-@container (max-width:520px){.criador .ficha-subnav.criador-abas{grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch}.criador .ficha-subnav.criador-abas button{white-space:normal}}
+@container (max-width:600px){.criador .ficha-subnav.criador-abas{gap:0}.criador .ficha-subnav.criador-abas button{padding:10px 8px;font-size:13px}}
+@container (max-width:430px){.criador .ficha-subnav.criador-abas{grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch}.criador .ficha-subnav.criador-abas button{white-space:normal}}
 .criador-principal{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;border:1px solid var(--line);border-radius:8px;padding:12px}
 .criador-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px;align-content:start}
 @container (min-width:720px){.criador-principal{grid-template-columns:minmax(0,1fr) minmax(260px,340px)}}

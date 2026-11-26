@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sheet2014, spells2014 } from "../criador/regras-2014";
+import { classes2014, races2014, raceTraits2014, resourceLabel2014, sheet2014, shortId, spells2014 } from "../criador/regras-2014";
 import type { CharacterDraft } from "../rules/character-domain";
 import { concedidosAtivos, lerEstadoJogo, type Concedido } from "./estadoJogo";
 import { caracteristicasDaFicha, dadosDaArma, dadosDaMagia, formulaDano, magiasDaFicha } from "./regrasFicha";
@@ -66,5 +66,17 @@ describe("características", () => {
     const s = sheet2014(d);
     expect(sopro.valores).toContain("3d6 de dano de veneno");
     expect(sopro.valores).toContain(`Salvaguarda de Constituição · CD ${8 + 3 + Math.floor((s.abilities.con - 10) / 2)}`);
+  });
+});
+
+describe("traduções e cartões", () => {
+  it("nenhum recurso ou traço racial aparece em inglês, e a escolha de subclasse não vira cartão vazio", () => {
+    for (const classe of classes2014) for (const raca of races2014) {
+      const d = base({ classId: shortId(classe.id), raceId: raca.id, level: 20 });
+      for (const id of Object.keys(sheet2014(d).resources)) expect(resourceLabel2014(id), id).not.toBe(id.replaceAll("-", " "));
+      for (const t of raceTraits2014(d)) expect(t.desc.join(" "), t.index).not.toMatch(/\b(you|your)\b/i);
+    }
+    const d = escolher(base({ level: 3 }), "subclass", ["evocation"]);
+    expect(caracteristicasDaFicha(d, sheet2014(d)).filter(c => !c.descricao && !c.valores.length && !c.recursos.length && c.nome === "Evocação")).toEqual([]);
   });
 });

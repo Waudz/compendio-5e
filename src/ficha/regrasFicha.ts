@@ -119,7 +119,7 @@ export function resumoDe(descricao: string): string {
 const RECURSO_DE: [recurso: string, caracteristica: RegExp][] = [
   ["rageCount", /^rage$/], ["kiPoints", /^ki$/], ["actionSurges", /^action-surge/], ["indomitableUses", /^indomitable-\d/], ["sorceryPoints", /^font-of-magic$/],
   ["second-wind", /^second-wind$/], ["lay-on-hands", /^lay-on-hands$/], ["divine-sense", /^divine-sense$/], ["channel-divinity", /^channel-divinity/], ["channelDivinityCharges", /^channel-divinity/],
-  ["bardic-inspiration", /^bardic-inspiration/], ["wild-shape", /^wild-shape/], ["breath-weapon", /^breath-weapon$/], ["infernal-rebuke", /^infernal-legacy$/], ["infernal-darkness", /^infernal-legacy$/],
+  ["bardic-inspiration", /^bardic-inspiration/], ["wild-shape", /^wild-shape/], ["arcane-recovery", /^arcane-recovery$/], ["divine-intervention", /^divine-intervention$/], ["cleansing-touch", /^cleansing-touch$/], ["stroke-of-luck", /^stroke-of-luck$/], ["breath-weapon", /^breath-weapon$/], ["infernal-rebuke", /^infernal-legacy$/], ["infernal-darkness", /^infernal-legacy$/],
 ];
 const SOPRO: Record<string, [tipo: string, salvaguarda: Ability, area: string]> = {
   black: ["ácido", "dex", "linha de 1,5 m por 9 m"], blue: ["elétrico", "dex", "linha de 1,5 m por 9 m"], brass: ["fogo", "dex", "linha de 1,5 m por 9 m"], bronze: ["elétrico", "dex", "linha de 1,5 m por 9 m"], copper: ["ácido", "dex", "linha de 1,5 m por 9 m"],
@@ -151,10 +151,13 @@ export function caracteristicasDaFicha(draft: CharacterDraft, sheet: CharacterSh
   const daSubclasse = new Set(subclassFeatureIds2014(draft));
   const recursosDe = (id: string) => RECURSO_DE.filter(([r, re]) => r in sheet.resources && re.test(id)).map(([r]) => r);
   const usados = new Set<string>(), nomes = new Set<string>(), out: Caracteristica[] = [];
+  // a própria escolha de subclasse (já no cabeçalho) não vira um cartão vazio
+  const subclasse = selected2014(draft, "subclass")[0];
   const add = (c: Omit<Caracteristica, "resumo" | "recursos" | "acao"> & { id: string }) => {
     const { id, ...resto } = c, chaveNome = resto.nome.toLocaleLowerCase("pt-BR") + "|" + resto.descricao;
     if (nomes.has(chaveNome)) return;
     nomes.add(chaveNome);
+    if (subclasse && !resto.descricao && !resto.valores.length && !recursosDe(id).length && resto.nome === label2014(subclasse)) return;
     const recursos = recursosDe(id).filter(r => !usados.has(r)); recursos.forEach(r => usados.add(r));
     out.push({ ...resto, recursos, resumo: resumoDe(resto.descricao), acao: acaoDaCaracteristica(id) });
   };
