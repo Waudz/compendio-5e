@@ -121,7 +121,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     for (const nome of ['Cota de malha', 'Besta leve', 'Mochila']) expect(itens.getByRole('button', { name: `Detalhes de ${nome}` })).toBeTruthy();
     // detalhes com a MESMA definição do Compêndio, em nova aba
     fireEvent.click(itens.getByRole('button', { name: 'Detalhes de Cota de malha' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Consultar Cota de malha no Compêndio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir no Compêndio: Cota de malha' }));
     expect(await screen.findByRole('heading', { name: 'Cota de malha' })).toBeTruthy();
     expect(abas()).toContain('Cota de malha');
     const fatos = within(document.querySelector('.item-fatos') as HTMLElement);
@@ -225,4 +225,14 @@ it('ficha de versão anterior abre sem regravar e pede a atualização das regra
  fireEvent.click(await screen.findByRole('button',{name:'Editar personagem'}));
  expect(await screen.findByRole('button',{name:'Ativar opções SRD 2014'})).toBeTruthy();
  expect(store.carregar('antiga')).toEqual(before);
+});
+
+describe('atributos rolados', () => {
+  it('valores acima de 15 no método manual não quebram a etapa de atributos', async () => {
+    await montar(); await abrirPersonagens(); await novoGuiado(); irEtapa('Atributos');
+    fireEvent.change(await screen.findByLabelText('Método de atributos'), { target: { value: 'manual' } });
+    fireEvent.change(screen.getByLabelText('Atributo str'), { target: { value: '18' } });
+    expect((screen.getByLabelText('Atributo str') as HTMLInputElement).value).toBe('18');
+    expect(screen.queryByText(/Pontos gastos/)).toBeNull();
+  });
 });

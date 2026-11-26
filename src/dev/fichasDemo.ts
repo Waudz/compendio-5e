@@ -18,12 +18,16 @@ export function fichasDemo(uid: string, campaignId: string, registros: { ler: ()
     b.ouvintes = ouvintes;
     return b;
   };
-  /** Cada chamada relê o que está guardado (outra aba pode ter gravado) e grava o resultado. */
+  /** Cada chamada relê o que está guardado (outra aba pode ter gravado) e grava o resultado, com trava entre abas (o papel do
+   *  bloqueio de linha do banco): duas abas nunca leem e gravam ao mesmo tempo. */
   const chamar = async <T,>(fn: (api: FichasApi) => Promise<T>): Promise<T> => {
-    const b = banco(), antes = JSON.stringify([b.fichas, b.registros.dados]);
-    const r = await fn(fichasEmMemoria(uid, b));
-    if (JSON.stringify([b.fichas, b.registros.dados]) !== antes) { localStorage.setItem(CHAVE, JSON.stringify({ fichas: b.fichas })); notas.dados = b.registros.dados; }
-    return r;
+    const executar = async () => {
+      const b = banco(), antes = JSON.stringify([b.fichas, b.registros.dados]);
+      const r = await fn(fichasEmMemoria(uid, b));
+      if (JSON.stringify([b.fichas, b.registros.dados]) !== antes) { localStorage.setItem(CHAVE, JSON.stringify({ fichas: b.fichas })); notas.dados = b.registros.dados; }
+      return r;
+    };
+    return navigator.locks ? (await navigator.locks.request(CHAVE, executar)) as T : executar();
   };
   return {
     listar: c => chamar(a => a.listar(c)),

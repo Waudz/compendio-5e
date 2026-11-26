@@ -96,14 +96,17 @@ export function AbaInventario({ draft, sheet, stats, estado, onChange, onOpenCon
         <ul className={"ficha-itens " + vista}>{itens.map(i => {
           const def = srdItem(i.itemId), info = infoDoItem(i.itemId);
           return <li key={i.id} className={"item-cartao" + (i.equipped ? " equipado" : "")} aria-label={nome(i)}>
-            <button type="button" className="item-abrir" aria-label={`Detalhes de ${nome(i)}`} onClick={() => setJanela({ tipo: "detalhes", item: i })}>
-              <ImagemItem itemId={i.itemId}/>
-              <span className="item-texto">
-                <span className="item-nome">{nome(i)}</span>
-                {vista === "lista" && info.length > 0 && <small className="item-info">{info.join(" · ")}</small>}
-                {vista === "lista" && def?.peso != null && <small className="muted">{kg(def.peso * i.quantity)}</small>}
-              </span>
-            </button>
+            <span className="item-principal">
+              {/* o botão tem só o nome como texto visível; as informações da lista ficam fora dele */}
+              <button type="button" className="item-abrir" aria-label={`Detalhes de ${nome(i)}`} onClick={() => setJanela({ tipo: "detalhes", item: i })}>
+                <ImagemItem itemId={i.itemId}/>
+                <span className="item-texto"><span className="item-nome">{nome(i)}</span></span>
+              </button>
+              {vista === "lista" && (info.length > 0 || def?.peso != null) && <span className="item-extra">
+                {info.length > 0 && <small className="item-info">{info.join(" · ")}</small>}
+                {def?.peso != null && <small className="muted">{kg(def.peso * i.quantity)}</small>}
+              </span>}
+            </span>
             <span className="item-quantidade" aria-label={`Quantidade: ${i.quantity}`}>×{i.quantity}</span>
             {i.equipped && <span className="item-equipado" title="Equipado"><Check size={12} aria-hidden="true"/><span className="sr-only">Equipado</span></span>}
             <span className="item-menu"><MenuDeAcoes rotulo={`Ações de ${nome(i)}`} acoes={acoes(i)}/></span>

@@ -34,7 +34,7 @@ export function DetalhesItem({ item, draft, onFechar, onOpenContent }: Comum & {
   const d = srdItem(item.itemId), nome = nomeDaInstancia(item);
   const concessoes = lerEstadoJogo(draft).concedidos.filter(c => c.itemInstancia === item.id);
   return <Modal titulo={nome} onFechar={onFechar} sistema="sistema-dnd"
-    acoes={d && <button type="button" className="btn-secondary" aria-label={`Consultar ${nome} no Compêndio`} onClick={() => { onOpenContent(itemSpec(item.itemId, nome)); onFechar(); }}>Abrir no Compêndio</button>}>
+    acoes={d && <button type="button" className="btn-secondary" aria-label={`Abrir no Compêndio: ${nome}`} onClick={() => { onOpenContent(itemSpec(item.itemId, nome)); onFechar(); }}>Abrir no Compêndio</button>}>
     {d && <p>{[categoriaDoItemRotulo(d.categoria), d.raridade !== "mundano" ? raridadeRotulo(d.raridade) : null, d.sintonia ? "requer sintonização" : null].filter(Boolean).join(" · ")}</p>}
     <dl className="ficha-dados">
       <dt>Quantidade</dt><dd>{item.quantity}</dd>

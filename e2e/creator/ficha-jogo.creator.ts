@@ -1,19 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
-import { test, expect, startCreator, chooseFighter, equip, showSection, navigate, evidence, expectNoHorizontalOverflow, isMobile } from './helpers';
+import { test, expect, startCreator, completarGuerreira, salvarParaFicha, acaoDoItem, expectSingleScroll, navigate, evidence, expectNoHorizontalOverflow, isMobile } from './helpers';
 import type { Page } from '@playwright/test';
 
-/** Guerreiro anão completo → salvar → ficha de jogo. */
+/** Guerreira anã completa → salvar → ficha de jogo. */
 async function abrirFichaDeJogo(page: Page) {
-  await startCreator(page); await chooseFighter(page);
-  await page.getByRole('textbox', { name: 'Alcunha', exact: true }).fill('Escudo de Pedra');
-  const idiomas = page.getByRole('group', { name: /^Idiomas da origem/ });
-  for (const indice of [0, 1]) await idiomas.getByRole('checkbox').nth(indice).check();
-  await page.getByRole('combobox', { name: 'Ferramenta dos anões', exact: true }).selectOption({ index: 1 });
-  await page.getByRole('button', { name: 'Adicionar itens da origem e 15 PO ao inventário', exact: true }).click();
-  await equip(page); await showSection(page, 'Ficha');
-  await expect(page.getByRole('region', { name: 'Ficha calculada' })).toContainText('Estado: escolhas concluídas');
-  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
-  await expect(page.getByTestId('ficha-guiada-leitura')).toBeVisible();
+  await startCreator(page); await completarGuerreira(page); await salvarParaFicha(page);
 }
 const abas = (page: Page) => page.getByRole('navigation', { name: 'Seções da ficha' });
 const aba = (page: Page, nome: string) => abas(page).getByRole('button', { name: nome, exact: true });
@@ -37,7 +28,7 @@ test('ficha de jogo: três abas, inventário na CA, sem estouro horizontal e com
   for (const nome of ['Ficha', 'Habilidades', 'Inventário']) {
     await aba(page, nome).click();
     await expect(aba(page, nome)).toHaveAttribute('aria-current', 'true');
-    await expectNoHorizontalOverflow(page);
+    await expectNoHorizontalOverflow(page); await expectSingleScroll(page);
     // nada cortado pelo painel (estouro horizontal dentro da própria ficha)
     expect(await page.getByTestId('ficha-guiada-leitura').evaluate(el => { const lim = el.getBoundingClientRect().right + 1; return [...el.querySelectorAll('*')].filter(n => n.getBoundingClientRect().right > lim).slice(0, 8).map(n => n.tagName + '.' + n.className + ' ' + Math.round(n.getBoundingClientRect().width)); })).toEqual([]);
     violacoes.push(...(await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations.map(v => ({ nome, v })));
@@ -45,12 +36,14 @@ test('ficha de jogo: três abas, inventário na CA, sem estouro horizontal e com
     await evidence(page, info, `ficha-${nome}`);
   }
   expect(violacoes).toEqual([]);
-  const armaduras = page.getByRole('checkbox', { name: /^Equipar (Cota de malha|Armadura de couro)$/ }).first();
+  await aba(page, 'Inventário').click();
+  const armadura = (await page.getByRole('listitem', { name: /^(Cota de malha|Armadura de couro)$/ }).first().getAttribute('aria-label'))!;
   const ca = topo.locator('.ficha-numero').filter({ has: page.getByText('CA', { exact: true }) }).locator('strong');
-  const antes = await ca.textContent(), marcada = await armaduras.isChecked();
-  await armaduras.setChecked(!marcada);
+  const equipada = (await page.getByRole('listitem', { name: armadura, exact: true }).getAttribute('class'))!.includes('equipado');
+  const antes = await ca.textContent();
+  await acaoDoItem(page, armadura, equipada ? 'Desequipar' : 'Equipar');
   await expect(ca).not.toHaveText(antes!);
-  await armaduras.setChecked(marcada);
+  await acaoDoItem(page, armadura, equipada ? 'Equipar' : 'Desequipar');
   await expect(ca).toHaveText(antes!);
   await expect(page.getByTestId('estado-salvamento')).toHaveText('Tudo salvo.');
 });

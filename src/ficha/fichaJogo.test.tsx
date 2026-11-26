@@ -154,7 +154,7 @@ describe("ficha de jogo", () => {
     const itens = within(screen.getByRole("region", { name: "Inventário do personagem" }));
     expect(itens.queryByText("Mochila")).toBeNull();
     fireEvent.click(itens.getByRole("button", { name: "Detalhes de Adaga" }));
-    expect(within(screen.getByRole("dialog", { name: "Adaga" })).getByRole("button", { name: "Consultar Adaga no Compêndio" })).toBeTruthy();
+    expect(within(screen.getByRole("dialog", { name: "Adaga" })).getByRole("button", { name: "Abrir no Compêndio: Adaga" })).toBeTruthy();
     fireEvent.click(within(screen.getByRole("dialog", { name: "Adaga" })).getByRole("button", { name: "Fechar" }));
     fireEvent.click(screen.getByRole("button", { name: "Ver em grade" }));
     expect(document.querySelector(".ficha-itens.grade")).toBeTruthy();

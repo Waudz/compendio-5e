@@ -206,7 +206,8 @@ function EtapaOrigem({ draft, onChange }: PropsAssistente) {
 }
 
 function EtapaAtributos({ draft, sheet, metodo, onMetodo, onAtributo, erroAtributo }: PropsAssistente) {
-  const gastos = pointBuySpent(draft.baseAbilities);
+  // a conta de pontos só existe na compra de pontos (valores rolados passam de 15 e não entram nela)
+  const gastos = metodo === "point-buy" ? pointBuySpent(draft.baseAbilities) : 0;
   return <>
     <Titulo ajuda="Valores antes dos bônus raciais; a moldura mostra o total com os bônus.">Atributos</Titulo>
     <div className="etapa-nivel">
