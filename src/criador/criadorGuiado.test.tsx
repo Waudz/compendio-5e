@@ -75,7 +75,7 @@ describe('criador guiado na navegação real (desktop)', () => {
     await montar(); await abrirPersonagens();
     expect(await screen.findByTestId('personagens-vazio')).toBeTruthy();
     await novoGuiado();
-    expect(abas()).toEqual(['Mesa dos Dragões', 'Personagens', 'Novo personagem']);
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Novo personagem']);
     expect(screen.getByTestId('aviso-armazenamento').textContent).toMatch(/experimental.*só neste navegador.*não é privado/s);
     expect(screen.getByRole('heading', { name: 'Novo personagem' })).toBeTruthy();
     expect(await screen.findByRole('navigation', { name: 'Etapas do personagem' })).toBeTruthy();

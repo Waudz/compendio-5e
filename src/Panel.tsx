@@ -1,12 +1,6 @@
-import { useContext, useState, useRef, useLayoutEffect, useEffect } from "react";
-import { VoltarPaginaContext } from "./voltarPagina";
-import { useCampaigns } from "./CampaignsContext";
-import { useUnsaved } from "./unsaved";
-import { estaVisivel } from "./voltarInterno";
-import { OrigemAbaContext, ehAreaDeEdicao } from "./abrirEmAba";
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
 import { MonstroPagina } from "./Compendio";
-import { ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
 import { CampaignsPanel } from "./CampaignPanels";
@@ -19,6 +13,8 @@ import { CompendioPanel, ItemPagina } from "./Compendio";
 import { MagiaPagina } from "./compendio/MagiaPagina";
 import { CriadorGuiado } from "./criador/CriadorGuiado";
 import { EncontrosPanel, IniciativaPanel } from "./Iniciativa";
+import { desktopSections } from "./workspace";
+import { useCampaigns } from "./CampaignsContext";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
@@ -27,6 +23,7 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   onOpen: (s: TabSpec, mode?: NavMode) => void;   // abertura administrativa/de menu (modo explícito; padrão: reutilizar a aba)
   onOpenContent: (s: TabSpec) => void;            // link interno de conteúdo: sempre aba permanente, sem substituir a origem
 }) {
+  if (kind === "nova") return <NovaAba onOpen={onOpenContent}/>;
   if (kind === "registro") return <RegistroCompendioPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "identidade") return <IdentidadePagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "monstro") return <MonstroPagina id={id} onOpenContent={onOpenContent}/>;
@@ -54,31 +51,11 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   </div>;
 }
 
-type PanelProps = Parameters<typeof ConteudoPanel>[0];
-export function Panel(props: PanelProps) {
-  const {active}=useCampaigns();
-  const mobileBack=useContext(VoltarPaginaContext);
-  if (mobileBack) return <ConteudoPanel {...props}/>;
-  return <CompendioLocal key={`${active?.campaign.id}:${props.kind}:${props.entity}`} {...props}/>;
+export function Panel(props: Parameters<typeof ConteudoPanel>[0]) {
+  return <ConteudoPanel {...props}/>;
 }
-function CompendioLocal(props:PanelProps) {
-  const [pages,setPages]=useState<TabSpec[]>([{kind:props.kind,ref:props.entity}]);
-  const [index,setIndex]=useState(0);
-  const root=useRef<HTMLDivElement>(null);
-  const positions=useRef<number[]>([]);
-  const origin=useContext(OrigemAbaContext);
-  const unsaved=useUnsaved();
-  const page=pages[index];
-  const scroller=()=>{let el=root.current?.parentElement;while(el){if(/auto|scroll/.test(getComputedStyle(el).overflowY))return el;el=el.parentElement;}return null;};
-  useLayoutEffect(()=>{const el=scroller();if(el)el.scrollTop=positions.current[index]??0;},[pages,index]);
-  const guard=(fn:()=>void)=>unsaved.guard([origin??"secao:compendio"],fn);
-  const move=(next:number)=>guard(()=>{positions.current[index]=scroller()?.scrollTop??0;setIndex(next);});
-  const back=()=>{if(index>0)move(index-1);else if(page.kind!=="secao")props.onOpenContent({kind:"secao",ref:"compendio"});};
-  const open=(s:TabSpec)=>{
-    if(s.kind===page.kind&&s.ref===page.ref)return;
-    guard(()=>{positions.current[index]=scroller()?.scrollTop??0;positions.current.length=index+1;setPages(p=>[...p.slice(0,index+1),s]);setIndex(index+1);});
-  };
-  useEffect(()=>{const listener=(e:Event)=>{const d=(e as CustomEvent<{origem?:string;s:TabSpec}>).detail;if(d?.origem===origin)open(d.s);};window.addEventListener("compendio:abrir-local",listener);return()=>window.removeEventListener("compendio:abrir-local",listener);},[origin,pages,index,props.onOpenContent]);
-  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(!root.current?.contains(document.activeElement)||!estaVisivel(root.current)||ehAreaDeEdicao(e.target)||!e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==="ArrowLeft"&&index>0){e.preventDefault();back();}else if(e.key==="ArrowRight"&&index<pages.length-1){e.preventDefault();move(index+1);}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);},[index,pages,origin]);
-  return <div ref={root} tabIndex={-1}><div className="workspace-history" role="group" aria-label="Histórico da aba"><button type="button" aria-label="Voltar na aba" disabled={index===0} onClick={back}><ArrowLeft size={16}/></button><button type="button" aria-label="Avançar na aba" disabled={index===pages.length-1} onClick={()=>move(index+1)}><ArrowRight size={16}/></button></div><VoltarPaginaContext.Provider value={back}>{pages.map((p,i)=><div key={i+":"+p.kind+":"+p.ref} hidden={i!==index}><ConteudoPanel {...props} kind={p.kind} entity={p.ref} onOpenContent={open}/></div>)}</VoltarPaginaContext.Provider></div>;
+
+function NovaAba({onOpen}:{onOpen:(s:TabSpec)=>void}) {
+ const {active}=useCampaigns();
+ return <section className="content new-tab"><h1>Nova aba</h1><p>Escolha uma ferramenta para começar.</p><div className="new-tab-tools">{desktopSections(active?.role??null).map(s=><button className="btn-secondary" key={s.page} onClick={()=>onOpen({kind:"secao",ref:s.page})}><s.icon size={20}/>{s.title}</button>)}</div></section>;
 }

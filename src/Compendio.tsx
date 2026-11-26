@@ -6,7 +6,6 @@ import { RevelarReferencia } from "./compendio/RegistrosCampanha";
 import { PesquisaGlobal } from "./compendio/PesquisaGlobal";
 import { ListaCampanha } from "./compendio/ListaCampanha";
 import { useNotificacoes } from "./compendio/Notificacoes";
-import { VOLTAR_COMPENDIO } from "./compendio/navegacao";
 import { useUnsaved } from "./unsaved";
 import { OrigemAbaContext } from "./abrirEmAba";
 import {
@@ -194,7 +193,8 @@ function CompendioInicio({
     }
     return n;
   }, [client]);
-  const scope = `${user?.id}:${active?.campaign.id}`;
+  const tabOrigin=useContext(OrigemAbaContext);
+  const scope = `${user?.id}:${active?.campaign.id}:${tabOrigin}`;
   const inicial = navegacao.get(scope);
   const [grupo, setGrupo] = useState<keyof typeof grupos>(
     inicial?.grupo ?? "Campanha",
@@ -214,7 +214,6 @@ function CompendioInicio({
   const [wide,setWide]=useState(false),[query,setQuery]=useState(inicial&&'query' in inicial?String(inicial.query??''):'');
   const notices=useNotificacoes();
   useEffect(()=>{const el=root.current;if(!el||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(entries=>setWide((entries[0]?.contentRect.width??0)>=760));observer.observe(el);return()=>observer.disconnect();},[categoria]);
-  useEffect(()=>{const handler=(event:Event)=>{const cat=(event as CustomEvent<string>).detail;if(cat){setCategoria(cat);setGrupo(['personagens','monstros','locais','organizacoes','descobertas'].includes(cat)?'Campanha':'Regras');}};window.addEventListener(VOLTAR_COMPENDIO,handler);return()=>window.removeEventListener(VOLTAR_COMPENDIO,handler);},[]);
   useEffect(()=>{navegacao.set(scope,{grupo,categoria,query});},[scope,grupo,categoria,query]);
   if(categoria)return ['personagens','locais','organizacoes','descobertas'].includes(categoria)||(categoria==='monstros'&&active?.role!=='mestre')?<ListaCampanha key={`${scope}:${categoria}`} category={categoria} onBack={voltar} onOpenContent={onOpenContent}/>:<CompendioCatalogo key={`${scope}:${categoria}`} categoriaInicial={categoria} onVoltar={voltar} onOpenContent={onOpenContent}/>;
   return <div className="content compendio-inicio cd-home" ref={root} data-wide={wide} onTouchStart={e=>{if((e.target as HTMLElement).closest('input,textarea,select'))return;const t=e.touches[0];toque.current={x:t.clientX,y:t.clientY};}} onTouchCancel={()=>{toque.current=null;}} onTouchEnd={e=>{const start=toque.current;toque.current=null;if(!start||wide)return;const t=e.changedTouches[0],dx=t.clientX-start.x,dy=t.clientY-start.y;if(Math.abs(dx)>65&&Math.abs(dx)>1.4*Math.abs(dy))setGrupo(dx<0?'Regras':'Campanha');}}>

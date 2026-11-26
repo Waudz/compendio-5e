@@ -413,3 +413,14 @@ Detalhe de registro, identidade, criatura, item, magia e regra é uma **página 
 Vínculos usam identificadores estáveis em `codex_links` (um por par, sem direção) e só são entregues por função do servidor quando **as duas pontas** são visíveis a quem consulta: título, relação, termos de pesquisa e contadores seguem a mesma regra. Remover o vínculo não apaga registros. Campos narrativos são opcionais e ficam no registro canônico (`notes.meta`), com lista fechada validada no banco.
 
 O sino fica no cabeçalho geral do aplicativo (substitui o sino dentro do Compêndio). Conteúdo canônico continua em `notes`; descobertas de itens referenciam a definição do catálogo, sem cópia. Substitui da DEC-031 os cartões em coluna única: painel largo mostra Campanha e Regras lado a lado.
+
+### DEC-033 — Navegação global por abas (26/11/2026)
+
+Substitui a abertura automática no grupo direito da DEC-032 e a exceção de detalhes
+que não encobriam a ficha na DEC-028. Clique interno substitui a página da aba atual,
+com histórico independente e proteção da edição. Menu lateral abre/foca seção;
+contexto: nova aba no mesmo grupo, novo grupo/oposto, abrir na atual. Máximo dois
+grupos, nenhum split implícito; mobile permanece sem grupos. Abas compactas em uma
+faixa, trilho lateral recolhido de 48 px e logotipo oficial. Requisitos completos em
+`docs/ESPECIFICACAO-NAVEGACAO-GLOBAL.md`; implementação e validação são registradas
+separadamente, sem tratar a decisão como funcionalidade publicada.

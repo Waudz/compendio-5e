@@ -122,12 +122,12 @@ describe("isolamento dos dados locais entre contas", () => {
   it("troca direta (A -> B sem SIGNED_OUT): remonta o app e apaga os dados locais de A", async () => {
     const { auth } = await renderApp();
     fireEvent.click(nav("Encontros"));
-    fireEvent.click(screen.getByRole("button", { name: "Recolher menu" }));                // estado de interface da conta A
+    fireEvent.click(screen.getByRole("button", { name: "Expandir menu" }));                // estado de interface da conta A
     expect(localStorage.getItem(layoutKey(me.id))).not.toBeNull();
     await auth.emit("SIGNED_IN", { user: other });
     await waitFor(() => expect(localStorage.getItem(layoutKey(me.id))).toBeNull());
     expect(tabNames()).toEqual(["Personagens"]);
-    expect(document.querySelector(".sidebar.collapsed")).toBeNull();                       // o estado de A não sobrevive: o app foi remontado
+    expect(document.querySelector(".sidebar.collapsed")).toBeTruthy();                       // o estado de A não sobrevive: o app foi remontado
   });
 
   it("restos do modo visitante e do layout v1 são removidos ao iniciar, sem tocar em dados de contas", async () => {

@@ -197,3 +197,8 @@ O **Compêndio** (menu → Compêndio) reúne 578 itens, 319 magias e 323 monstr
 As fichas preservam suas regras antigas. Dentro do criador, a atualização explícita oferece opções SRD 2014 de classe, raça, origem, magias e equipamento, reutilizando a persistência existente por campanha. Não equivale ao PHB completo. [Cobertura, fontes, auditoria, testes e limites](docs/CRIADOR-2014-EXPANSAO.md).
 
 Estabilização do PR #97: [evidências dos testes de persistência e fluxo SRD 2014](docs/ALPHA-VALIDACAO-CRIADOR-97.md). Correção de sincronização dos testes com a ficha de leitura e de seletores E2E; nenhuma alteração de dados reais.
+
+A revisão da navegação global está em validação na branch
+`fix/compendio-navegacao-granular`: histórico por aba, abertura local sem divisão
+automática e controles compactos. Estado, evidências e limites em
+[Continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md#revisão-da-navegação-global--26112026-em-validação).

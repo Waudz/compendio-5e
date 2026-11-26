@@ -1,5 +1,6 @@
+import {OrigemAbaContext} from '../abrirEmAba';
 import { registroSpec } from "./navegacao";
-import {useEffect,useMemo,useState} from 'react';
+import {useContext,useEffect,useMemo,useState} from 'react';
 import {Plus} from 'lucide-react';
 import {useAuth} from '../AuthContext';
 import {useCampaigns} from '../CampaignsContext';
@@ -14,7 +15,8 @@ const labels:Record<string,string>={personagens:'Personagens',monstros:'Bestiár
 type Preferences={query:string;view:'lista'|'grade';order:string;filter:string;limit?:number};const sessions=new WeakMap<object,Map<string,Preferences>>();
 export function ListaCampanha({category,onBack,onOpenContent}:{category:string;onBack:()=>void;onOpenContent:(s:TabSpec)=>void}){
  const {active}=useCampaigns(),{client,user}=useAuth(),data=useLinhasCampanha();
- const cache=useMemo(()=>{if(!client)return new Map<string,Preferences>();let c=sessions.get(client);if(!c){c=new Map();sessions.set(client,c);}return c;},[client]);const key=`${user?.id}:${active?.campaign.id}:${category}`,pref=cache.get(key);
+ const origin=useContext(OrigemAbaContext);
+ const cache=useMemo(()=>{if(!client)return new Map<string,Preferences>();let c=sessions.get(client);if(!c){c=new Map();sessions.set(client,c);}return c;},[client]);const key=`${user?.id}:${active?.campaign.id}:${origin}:${category}`,pref=cache.get(key);
  const [limit,setLimit]=useState(pref?.limit??60);
  const [query,setQuery]=useState(pref?.query??''),[view,setView]=useState<'lista'|'grade'>(pref?.view??'grade'),[order,setOrder]=useState(pref?.order??'nome'),[filter,setFilter]=useState(pref?.filter??'Todos'),[create,setCreate]=useState(false);
  useEffect(()=>{cache.set(key,{query,view,order,filter,limit});},[key,query,view,order,filter,limit]);

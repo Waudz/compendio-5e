@@ -172,18 +172,18 @@ describe("sequências aleatórias de navegação", () => {
 
 describe("link interno de conteúdo (openContentLink)", () => {
   const doc = (ref: string) => ({ kind: "documento" as const, ref, title: `Doc ${ref}` });
-  it("cria aba permanente (pinned) logo após a origem, sem substituir nem fechar nada", () => {
+  it("abertura explícita em novo grupo preserva a origem e não fixa automaticamente", () => {
     const m = createModel(); openTab(m, sec("iniciativa"));
     const r = openContentLink(m, doc("a"), "secao:personagens");
     expect(r).toEqual({ action: "created", tabId: "documento:a" });
     expect(ids(m)).toEqual([["secao:personagens", "secao:iniciativa"], ["documento:a"]]);
-    expect(isPinned(findTab(m, "documento:a")!)).toBe(true); expect(isPinned(findTab(m, "secao:personagens")!)).toBe(false);
+    expect(isPinned(findTab(m, "documento:a")!)).toBe(false); expect(isPinned(findTab(m, "secao:personagens")!)).toBe(false);
     expect(groups(m).at(-1)?.getSelectedNode()?.getId()).toBe("documento:a");
   });
   it("não depende do modo 'reuse': a origem normal e a aba selecionada nunca são trocadas", () => {
     const m = createModel();
     openContentLink(m, doc("a"), "secao:personagens"); openContentLink(m, doc("b"), "documento:a");
-    expect(flat(m)).toEqual(["secao:personagens", "documento:a", "documento:b"]);
+    expect(ids(m)).toEqual([["secao:personagens", "documento:b"], ["documento:a"]]);
   });
   it("registro já aberto: seleciona onde está, sem duplicar e sem alterar a fixação", () => {
     const m = createModel(); navigate(m, doc("a"), "new");                      // aberta pelo menu, normal
@@ -195,7 +195,7 @@ describe("link interno de conteúdo (openContentLink)", () => {
   it("com vários painéis: abre no painel da origem; já aberto em outro painel, seleciona lá", () => {
     const m = createModel(); openTab(m, sec("iniciativa")); moveToNewColumn(m, "secao:iniciativa", "right");
     m.doAction(Actions.setActiveTabset(groups(m)[0].getId()));                  // painel ativo é o da esquerda, mas a origem está à direita
-    openContentLink(m, doc("a"), "secao:iniciativa");
+    openContentLink(m, doc("a"), "secao:iniciativa", false, true);
     expect(ids(m)).toEqual([["secao:personagens"], ["secao:iniciativa", "documento:a"]]);
     openContentLink(m, doc("a"), "secao:personagens");
     expect(ids(m)).toEqual([["secao:personagens"], ["secao:iniciativa", "documento:a"]]);
@@ -208,6 +208,7 @@ describe("link interno de conteúdo (openContentLink)", () => {
   });
   it("a aba permanente sobrevive ao clique normal do menu e a mudança de título não a desfixa", () => {
     const m = createModel(); openContentLink(m, doc("a"), "secao:personagens");
+    setPinned(m,"documento:a",true);
     navigate(m, sec("encontros"), "reuse");
     expect(flat(m)).toEqual(["secao:personagens", "documento:a", "secao:encontros"]);
     openContentLink(m, { ...doc("a"), title: "Novo título" }, "secao:encontros");
@@ -222,6 +223,7 @@ describe("link interno de conteúdo (openContentLink)", () => {
   });
   it("persistência: ids + pinned (sem títulos); tipo desconhecido (versão futura) é descartado sem quebrar o resto", () => {
     const st = memory(), s = scope("u1"), m = createModel(); openContentLink(m, doc("a"), "secao:personagens");
+    setPinned(m,"documento:a",true);
     saveLayout(m.toJson(), s, st);
     const env = JSON.parse(st.d.get(storageKey(s))!);
     expect(env.layout.children.map((g: { children: { id: string; pinned?: boolean; name?: string }[] }) => g.children.map(t => [t.id, t.pinned === true, t.name]))).toEqual([[["secao:personagens", false, undefined]], [["documento:a", true, undefined]]]);

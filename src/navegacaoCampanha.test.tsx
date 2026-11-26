@@ -49,7 +49,7 @@ const nomesMenu = () => within(menu()).getAllByRole("button").map(b => b.textCon
 const strip = ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content";
 const tabs = () => [...document.querySelectorAll(strip)].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ""));
 const rawTabs = () => [...document.querySelectorAll(strip)].map(e => e.textContent);
-const tabEl = (n: string) => screen.getByText(n, { selector: strip });
+const tabEl = (n: string) => screen.getByText(n, { selector: strip+" .workspace-tab-title" });
 const campanhaAtiva = () => screen.getByRole("button", { name: /campanha ativa|nenhuma campanha ativa/i });
 const abrirSeletor = () => fireEvent.click(screen.getByRole("button", { name: "Trocar ou gerenciar campanhas" }));
 const itens = () => within(screen.getByRole("menu")).getAllByRole("menuitem").map(i => i.textContent);

@@ -8,7 +8,7 @@ import { type NavMode } from "./navigation";
 import { consumirVoltar, EVENTO_FECHAR_TELA, pedirFicha } from "./voltarInterno";
 import { Panel } from "./Panel";
 import { PersonagensPanel } from "./Personagens";
-import { OrigemAbaContext } from "./abrirEmAba";
+import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { tabId, visibleSections, defaultTitle, type TabSpec } from "./workspace";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -177,7 +177,7 @@ export function Mobile(_props: Props) {
   }, [registros, escopoFicha]);
   const fichaPropria = !isMaster && screen.kind === "ficha" && !!user && !!active && propriedade === escopoFicha;
   const meus = !isMaster && isPage("personagens") && screen.title === "Meus personagens";
-  return <div className="mobile mobile-simple">
+  return <AbrirEmAbaContext.Provider value={{navegar:s=>navigate(s),abrir:s=>navigate(s),mostrar:(_x,_y,s)=>navigate(s)}}><div className="mobile mobile-simple">
     {!fichaPropria && !meus && <header className="mobile-topbar">
       <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
       <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{defaultTitle(screen)}</span></div>
@@ -202,5 +202,5 @@ export function Mobile(_props: Props) {
         <button onClick={() => navigate({ kind: "conta", ref: "perfil" })}><UserRound size={20}/> Conta</button>
       </div>
     </div>}
-  </div>;
+  </div></AbrirEmAbaContext.Provider>;
 }

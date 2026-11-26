@@ -260,7 +260,7 @@ describe("restauração (F5) e abas do Início", () => {
     localStorage.setItem(activeKey(me.id), "ca");
     const a = await renderApp({ api: apiCom([mestre()]) });
     await waitFor(() => expect(abas()).toEqual(["Mesa dos Dragões"]));
-    fireEvent.contextMenu(screen.getByText("Mesa dos Dragões", { selector: strip })); fireEvent.click(within(screen.getByRole("menu")).getByRole("menuitem", { name: "Fechar aba" }));
+    fireEvent.contextMenu(screen.getByText("Mesa dos Dragões", { selector: strip+" .workspace-tab-title" })); fireEvent.click(within(screen.getByRole("menu")).getByRole("menuitem", { name: "Fechar aba" }));
     await waitFor(() => expect(abas()).toEqual([]));
     a.unmount(); cleanup();
     await renderApp({ api: apiCom([mestre()]) });                 // "F5"
@@ -285,7 +285,7 @@ it("aba restaurada usa o nome visível como nome acessível sem persistir títul
   await renderApp({ api: apiCom([mestre()]) });
   const tab = await screen.findByRole("tab", { name: "Mesa dos Dragões" });
   expect(tab.textContent).toContain("Mesa dos Dragões");
-  expect(screen.getByRole("button", { name: "CAMPANHA ATIVA Mesa dos Dragões" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Campanha ativa: Mesa dos Dragões" })).toBeTruthy();
   fireEvent.click(menu().getByRole("button", { name: "Diário" }));
   expect(localStorage.getItem(key)).not.toContain("Mesa dos Dragões");
   expect(JSON.parse(localStorage.getItem(key)!).layout.children[0].children.map((t: { id: string }) => t.id)).toContain("secao:diario");

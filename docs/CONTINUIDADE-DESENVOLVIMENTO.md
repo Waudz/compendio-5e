@@ -652,3 +652,77 @@ Branch `codex/compendio-paginas-vinculos`, a partir de `dc04e83` (PR #159, já n
 **Limites e pendências:** "Mapa", "Habitantes" e documentos são texto ou vínculos (não há anexo de mapa/documento); membros e habitantes se registram por vínculo; o editor é uma janela, não uma página; a base de vínculos ainda não é usada nas anotações do mestre; registro de monstro personalizado não tem construtor de ficha. Fora do escopo e não iniciados: PWA, Loot, Encontros, quadro infinito, dados 3D e Assimilação. As pendências funcionais da ficha continuam as registradas acima.
 
 **Ordem obrigatória na publicação:** aplicar a 0016 **antes** de publicar este aplicativo. Sem ela, o mestre não consegue salvar registros do Compêndio (o aplicativo recusa e informa a migração necessária, sem gravar) e vínculos e notificações mostram erro.
+
+
+## RETOMAR AQUI — Consolidação pós-PR #160 (26/11/2026)
+
+Esta seção prevalece sobre estados históricos acima. Prazo Alpha: 12/12/2026. Não exigir retrocompatibilidade interna da Alpha; preservar 1.0 e segurança. Agrupar mudanças relacionadas, testes focados durante desenvolvimento e CI completo antes de integrar.
+
+### Estado publicado e trabalho em curso
+- #157–160 integrados e publicados; migrações 0013–0016 aplicadas com autorização. #160 main 2574a6c, páginas/vínculos/pesquisa/notificações; responsável confirmou funcionamento em produção. #158 inclui operações atômicas de consumo e transferência de itens e sincronização de vitais; teste real simultâneo em dois dispositivos ainda pendente.
+- Branch fix/compendio-navegacao-granular, último commit 2c6ea5c: navegação local, histórico bidirecional, menu contextual, tentativa de atalhos Alt+setas, escolha de grupo oposto, CSS de abas 34px sem quebra, trilho 48px recolhido por padrão e sino centralizado. **Não validado, sem PR ou publicação.** Não tratar como concluído.
+- Revisar chamadas de abertura explícita (assinatura mobile/noGrupoDaOrigem), mobile, duplicação de registros, títulos e persistência do histórico, páginas ocultas montadas (efeitos, modais e guardas de edição), foco e rolagem. Testar antes de integrar. Controles de histórico ainda em barra separada: mover para a barra de abas. Sincronizar documentação mais recente da main.
+
+### Navegação e identidade visual (aprovado)
+- Clique interno substitui conteúdo da aba atual; menu lateral abre ou foca aba da seção. Contexto nesta ordem: Abrir em nova aba (mesmo grupo), Abrir em novo grupo (oposto ou cria segundo), Abrir (atual). Máximo dois grupos, nenhum split automático. Voltar/avançar por aba, preservar filtros, pesquisa, lista/grade, rolagem, edição e estado. Ctrl+clique/botão do meio, recuperar aba fechada, arrastar/fixar, divisor ajustável, tela cheia opcional/F11. Mobile mantém navegação inferior, histórico e gestos, sem split.
+- Uma única barra horizontal por grupo, títulos em uma linha, reticências e tooltip, altura ~34px, rolagem horizontal quando necessário. Redesenhar nova aba com atalhos úteis. Painel lateral expansível, compacto por padrão (~48px), ícones alinhados, tooltips, seção ativa, sino com contador sobreposto. Manter azul do sistema, sem ornamentos. Novo logo aprovado (compendio-logo.svg/png na raiz), ainda não ativo. Não adicionar segunda barra para histórico.
+- Referência: ESPECIFICACAO-NAVEGACAO-GLOBAL.md.
+
+### Compêndio — próxima etapa funcional (essencial Alpha)
+- Corrigir pesquisa de vínculos: resultados diretos pesquisáveis por nome/categoria, sem acentos, miniaturas, sem depender de select. Vínculos tipados e inversos (Líder/Liderada por, Proprietário/Propriedade de, Sede/Sede de, Localizado em/Contém, Membro/Possui membro, Representa/Descoberto como). Não revelar conhecimento nem entregar item ao vincular. Permitir referências seguras a itens do catálogo, não apenas notes.
+- Campos opcionais estruturados: NPC raça, idade, ocupação, naturalidade, residência, alcunha, história, personalidade; local tipo, habitantes em seção própria, mapa; organização tipo, número de membros, objetivos, sede/membros; descoberta tipo/origem/contexto/descrição/imagem/documento/item. Só nome obrigatório na criação. Melhorar miniaturas dos vínculos, checkbox de remoção de imagem, textarea e organização das páginas. Mapas/documentos anexados ainda pendentes.
+- Conhecimento granular coletivo por campanha, cada campo/foto/vínculo independente; olhos, revelar/ocultar seção/tudo, prévia jogador; segredo por padrão. Nome oculto pode usar alcunha conhecida, imagem desconhecida usa interrogação. Campos ocultos ausentes da resposta, pesquisa e notificações; relações secretas invisíveis nos dois sentidos. Quatro níveis de bestiário como presets, com ajustes individuais inclusive resistências/vulnerabilidades. Projeção e Storage protegidos no servidor; conhecimento individual por personagem futuro. Ver ESPECIFICACAO-CONHECIMENTO-POR-CAMPO.md.
+- Descobertas: criar/selecionar item no catálogo e marcar Registrar como descoberta, gerar página ligada à definição, herdar dados automaticamente sem duplicar, acrescentar nome conhecido/descrição narrativa/história/origem/finalidade/vínculos e visibilidade por campo. Armas, armaduras, cargas, sintonização e propriedades conforme tipo. Criar descoberta não concede item nem revela existência; portadores derivados de inventário autorizado, conhecimento persiste após perda/consumo. Chave comum pode existir só no inventário; chave estranha pode ter descoberta própria. Descobertas avulsas (mapas, documentos, informações, rumores), filtros por tipo. Ver ESPECIFICACAO-DESCOBERTAS-ALPHA.md.
+- Monstros/itens padrão editáveis por campanha, restaurar original, duplicar/criar customizado sem alterar catálogo global; ficha de monstro reutilizável. Exportação/importação entre campanhas do mesmo sistema e galeria global de imagens de monstros padrão são futuras; política de exclusão de imagens ainda não decidida. Recuperar obrigatoriamente imagens do 1.0 (129 referências remotas já verificadas anteriormente; exportar acervo local do navegador, auditar mapeamento e cópia independente antes da Beta).
+
+### Anotações
+- Jogador: documento inicial Minhas anotações, documentos ilimitados privados, lista por última edição, sem pastas/tags/grade, editor de texto em tela inteira, autosave, preservar documento e rolagem ao alternar menus.
+- Mestre: referência AFFiNE/BlockSuite (https://github.com/toeverything/blocksuite); testar integração antes de assumir viabilidade. Hierarquia de pastas/subpastas/documentos/canvas por campanha, sidebar recolhível, busca, arrastar/reordenar; mobile navegação por pastas. Canvas desktop espacial, mobile todos os blocos em lista vertical reordenável independente das coordenadas; conteúdo compartilhado, exclusão em ambos, sem editor espacial mobile completo.
+- Links inline com alias arbitrário para registros e blocos funcionais embutidos, ambos aprovados. Inserção e abertura conforme navegação global, permissões e dados vivos. Bloco de encontro permite consultar/editar criaturas, CA/PV, loot e iniciar combate; turnos só na Iniciativa. Não duplicar dados. Blocos de monstro, personagem, item, magia, mapa, documento, NPC. Notas mestre privadas por padrão. Escopo completo e cronograma do canvas ainda precisam de validação técnica; não assumir adiamento da Beta sem aprovação.
+
+### Encontros, iniciativa e loot
+- Ver ESPECIFICACAO-ENCONTROS-INICIATIVA-LOOT.md. Criaturas individuais mesmo quando adicionadas em quantidade; edição e estado sincronizados encontro/iniciativa, bestiário original intacto; PV de jogador na ficha, ordem/rodadas só combate. Duplicar configuração inicial ou estado atual, restauração seletiva com alerta sobre recriar loot.
+- Modal loot aprovado: mochila cinza em combate, dourada pendente, verde completo; progresso, seleção por item/quantidade, destinatário, entrega atômica, histórico, itens recolhidos riscados com destinatário, sem duplicação, modal permanece após entrega parcial. Desktop modal, mobile bottom sheet. Mestre exclusivo.
+
+### Ficha, inventário, PWA e futuro
+- Preservar layout aprovado da ficha em três abas. Pendentes: cura de outro personagem por poção, moedas transferíveis, cargas por exemplar e recuperação, sintonização separada de equipar, identificação com ID verdadeiro protegido, efeitos automáticos mágicos, histórico dessas operações, validação exata do PV máximo, privacidade de nomes no histórico de transferências a revisar. PC/PP/PO por campanha, PE/PL desabilitáveis sem perda. Não simular operação insegura.
+- PWA obrigatório Beta: ESPECIFICACAO-PWA-BETA.md; manifest/SW, instalação pelo menu, ícones/splash novos, sessão persistente, cache estático sem dados privados, atualização segura, standalone e navegação interna.
+- Assimilação é próximo sistema após D&D; customizações de assimilações/efeitos por campanha. Dados 3D futuros via @3d-dice/dice-box, motor universal, temas e símbolos Assimilação; galeria global, compartilhamento entre mestres e push futuros.
+- Não alterar produção nesta etapa de documentação. Próximo passo: concluir e testar navegação; depois conhecimento granular/descobertas/vínculos, antes de encontros/loot. Reavaliar cronograma pelo progresso real.
+
+## Revisão da navegação global — 26/11/2026 (em validação)
+
+Branch `fix/compendio-navegacao-granular`, revisão a partir de `34edb22`, com documentação
+`f84a512` incorporada. A implementação parcial não foi publicada como concluída.
+
+- Histórico agora pertence ao modelo da aba (até 40 destinos), com uma única página
+  montada por histórico. Removidos os eventos globais `compendio:abrir-local` e a pilha
+  de páginas escondidas que mantinha editores e efeitos ativos.
+- Clique interno navega na aba; menu abre/foca seção, criando outra instância quando
+  a aba original está mostrando um registro. Registro já aberto é selecionado, sem
+  outro editor. O histórico pode voltar/avançar, inclusive Alt+setas. Layout persistido
+  contém IDs/índice, nunca títulos, filtros privados ou conteúdo dos registros.
+- Controles na barra de abas; recuperação de até 20 abas fechadas na sessão,
+  Ctrl/Cmd+Shift+T, nova aba com ferramentas, tela cheia opcional e logo oficial.
+  Fixar, arrastar e redimensionar continuam pelo FlexLayout, com limite de 2 grupos.
+- Pesquisa/filtros do Compêndio têm escopo de aba, usuário e campanha. Posições de
+  rolagem do histórico são recuperadas na sessão, com espera limitada pelo conteúdo.
+  Alternância de conta/campanha limpa posições e abas fechadas em memória.
+- Mobile usa seu próprio destino para links contextuais e notificações, sem abrir
+  abas desktop invisíveis. A navegação inferior não foi redesenhada.
+
+**Verificação até este registro:** tipos e build passaram. Primeira bateria em estado
+intermediário: 1693 aprovados/49 falhas; depois das correções, 1734 aprovados/5 falhas
+apenas em expectativas antigas de abertura/fixação automática. Essas expectativas
+foram atualizadas para as decisões vigentes; consultar o CI do SHA final para a
+confirmação completa. Nenhum teste foi removido para esconder falha.
+Playwright local foi tentado: seis casos bloqueados antes da execução por falta do
+binário exigido; a alternativa `/usr/bin/chromium` também não tem o executável real.
+Fluxos de navegador, responsividade, fullscreen, F11 e aparelhos físicos dependem de
+CI/validação visual. Não declarar a etapa concluída antes dessa evidência.
+
+**Pendências desta etapa:** conferir todos os pontos de abertura com modificadores,
+histórico Avançar do navegador/mobile, foco por teclado e restauração de edição após
+retorno; atualizar testes E2E que exigem a divisão automática anterior. Conhecimento
+granular, vínculos tipados e Descobertas continuam como próxima etapa, sem nova
+migração nesta revisão. Nenhum acesso de escrita em produção, merge ou deploy.

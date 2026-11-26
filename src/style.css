@@ -1122,3 +1122,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .workspace-history button:disabled{opacity:.35;cursor:default}
 
 .workspace-tab-title{display:block;min-width:0;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Histórico na própria faixa de abas, sem uma segunda barra. */
+.flexlayout__tab_toolbar .workspace-history{padding:0 2px;border:0;gap:1px}
+.new-tab-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;max-width:800px}
+.new-tab-tools button{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.app:fullscreen{width:100vw;height:100vh;background:var(--bg)}

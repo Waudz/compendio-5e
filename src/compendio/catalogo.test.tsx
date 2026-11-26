@@ -142,6 +142,7 @@ describe('monstros', () => {
     const det = within(await screen.findByRole('article', { name: 'Detalhes de Dragão Vermelho Adulto' }));
     expect(det.getByRole('region', { name: 'Ações lendárias' })).toBeTruthy(); expect(det.getByText('Nível de desafio').nextSibling?.textContent).toBe('17 (18.000 XP)');
     expect(det.getByText('Deslocamento').nextSibling?.textContent).toBe('12 m, voo 24 m, escalada 12 m');
+    fireEvent.click(screen.getByRole('button', {name:'Voltar na aba'}));
     pesquisar(''); filtro('tipo', 'dragon'); expect(contagem()).toBe('43'); marcar('Tem ações lendárias'); filtro('nível de desafio', 'nd17+'); expect(Number(contagem())).toBeGreaterThan(5);
     fireEvent.click(screen.getByRole('button', { name: 'Limpar filtros' })); expect(contagem()).toBe('323');
   });
@@ -172,6 +173,7 @@ describe('lista, grade e detalhe', () => {
     await montar(); await abrirCompendio(); categoria('Magias'); await waitFor(() => expect(contagem()).toBe('319'));
     pesquisar('bola de fogo'); filtro('escola', 'evocation');
     categoria('Monstros'); await waitFor(() => expect(contagem()).toBe('323'));
+    fireEvent.click(screen.getByRole('button', {name:'Voltar na aba'}));
     expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('');
     expect(screen.queryByLabelText('Filtrar por escola')).toBeNull(); expect(screen.getByLabelText('Filtrar por tipo')).toBeTruthy();
     categoria('Itens'); expect(contagem()).toBe('578');
@@ -183,7 +185,8 @@ describe('lista, grade e detalhe', () => {
     await montar(); await abrirCompendio(); categoria('Magias'); await waitFor(() => expect(contagem()).toBe('319'));
     pesquisar('egide'); fireEvent.click(cartao('Égide'));
     const det = await screen.findByRole('article', { name: 'Detalhes de Égide' });
-    expect(det.closest('.compendio.cat')).toBeNull(); expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio', 'Égide']);
+    expect(det.closest('.compendio.cat')).toBeNull(); expect(abas()).toEqual(['Mesa dos Dragões', 'Égide']);
+    fireEvent.click(screen.getByRole('button', {name:'Voltar na aba'}));
     expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('egide');
     fireEvent.click(cartao('Égide')); expect(abas().filter(a => a === 'Égide')).toHaveLength(1);
   });
@@ -205,7 +208,10 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
     await montar(); await abrirCompendio();
     for (const c of ['Itens', 'Magias', 'Monstros']) { categoria(c); await waitFor(() => expect(resultados().length).toBeGreaterThan(0)); expect(resultados()[0].querySelector('button')?.hasAttribute('aria-label')).toBe(false); }
     fireEvent.click(resultados()[0].querySelector('button')!); await screen.findByRole('article');
+    expect(divergentes(document.querySelector('article')!.closest('.content') as HTMLElement)).toEqual([]);
+    fireEvent.click(screen.getByRole('button', {name:'Voltar na aba'}));
     expect(divergentes(document.body.querySelector('.compendio.cat') as HTMLElement)).toEqual([]);
+    fireEvent.click(resultados()[0].querySelector('button')!); await screen.findByRole('article');
     expect(divergentes(document.querySelector('article')!.closest('.content') as HTMLElement)).toEqual([]);
   });
   it('controles têm nome acessível: pesquisa, ordenação, filtros, visualização e categorias', async () => {
@@ -232,7 +238,9 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
     const ficha = await screen.findByRole('article', { name: 'Detalhes de Arquimago' });
     fireEvent.click(within(ficha).getByRole('button', { name: 'Abrir a magia parar o tempo' }));
     expect(await screen.findByRole('article', { name: 'Detalhes de Parar o Tempo' })).toBeTruthy();
-    await waitFor(() => expect(abas()).toEqual(expect.arrayContaining(['Arquimago', 'Parar o Tempo'])));
+    await waitFor(() => expect(abas()).toContain('Parar o Tempo'));
+    fireEvent.click(screen.getByRole('button', {name:'Voltar na aba'}));
+    expect(await screen.findByRole('article', {name:'Detalhes de Arquimago'})).toBeTruthy();
   });
 
   it('ficha composta mostra as formas com CA, PV, deslocamento e ações; o Burro é marcado como legado (não SRD); toda ficha avisa que a tradução é de IA sem revisão humana', () => {

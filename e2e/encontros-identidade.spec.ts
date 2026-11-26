@@ -80,9 +80,12 @@ test('iniciativa permanece utilizável com o painel dividido e abre ficha comple
   await navigate(page, 'Iniciativa');
   await page.getByLabel('Buscar combatentes', { exact: true }).fill('goblin');
   await page.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
-  await page.getByRole('button', { name: 'Recolher menu', exact: true }).click();
-  // a ficha abre no segundo grupo (o limite), sem encobrir a iniciativa
-  await page.getByRole('button', { name: 'Abrir ficha completa de Goblin', exact: true }).click();
+  // Divisão pedida explicitamente; nenhum clique normal deve criar um grupo.
+  await page.getByRole('tab',{name:/^Iniciativa/}).click({button:'right'});
+  await page.getByRole('menuitem',{name:'Abrir em nova coluna à direita',exact:true}).click();
+  // A consulta usa nova aba no mesmo grupo por ação contextual explícita.
+  await page.getByRole('button', { name: 'Abrir ficha completa de Goblin', exact: true }).click({button:'right'});
+  await page.getByRole('menuitem',{name:'Abrir em novo grupo',exact:true}).click();
   await expect(page.getByRole('heading', { name: 'Goblin', exact: true })).toBeVisible();
   await expect(page.getByRole('tabpanel')).toHaveCount(2);
   await expectFaixaGeometry(page); await expectTurnControls(page);

@@ -39,7 +39,7 @@ const nav = (name: string) => within(screen.getByRole("navigation", { name: "Men
 const strip = ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content";
 const tabs = () => [...document.querySelectorAll(strip)].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ""));
 const rawTabs = () => [...document.querySelectorAll(strip)].map(e => e.textContent);
-const tabEl = (name: string) => screen.getByText(name, { selector: strip });
+const tabEl = (name: string) => screen.getByText(name, { selector: ".flexlayout__tabset_tabbar_inner .workspace-tab-title" });
 const mTabs = () => within(screen.getByRole("tablist")).getAllByRole("tab").map(t => t.textContent?.replace(/\s*\(fixada\)$/, ""));
 const key = (u = me.id) => storageKey({ user: u, campaign: "nenhuma", device: "navegador" });
 const saved = () => JSON.parse(localStorage.getItem(key())!);
