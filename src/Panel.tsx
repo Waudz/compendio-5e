@@ -5,7 +5,7 @@ import { useUnsaved } from "./unsaved";
 import { OrigemAbaContext } from "./abrirEmAba";
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
 import { MonstroPagina } from "./Compendio";
-import { BookOpen } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
 import { CampaignsPanel } from "./CampaignPanels";
@@ -62,19 +62,21 @@ export function Panel(props: PanelProps) {
 }
 function CompendioLocal(props:PanelProps) {
   const [pages,setPages]=useState<TabSpec[]>([{kind:props.kind,ref:props.entity}]);
+  const [index,setIndex]=useState(0);
   const root=useRef<HTMLDivElement>(null);
   const positions=useRef<number[]>([]);
   const origin=useContext(OrigemAbaContext);
   const unsaved=useUnsaved();
-  const page=pages[pages.length-1];
+  const page=pages[index];
   const scroller=()=>{let el=root.current?.parentElement;while(el){if(/auto|scroll/.test(getComputedStyle(el).overflowY))return el;el=el.parentElement;}return null;};
-  useLayoutEffect(()=>{const el=scroller();if(el)el.scrollTop=positions.current[pages.length-1]??0;},[pages]);
+  useLayoutEffect(()=>{const el=scroller();if(el)el.scrollTop=positions.current[index]??0;},[pages,index]);
   const guard=(fn:()=>void)=>unsaved.guard([origin??"secao:compendio"],fn);
-  const back=()=>guard(()=>{if(pages.length>1){positions.current.length=pages.length-1;setPages(p=>p.slice(0,-1));}else if(page.kind!=="secao"){props.onOpenContent({kind:"secao",ref:"compendio"});}});
+  const move=(next:number)=>guard(()=>{positions.current[index]=scroller()?.scrollTop??0;setIndex(next);});
+  const back=()=>{if(index>0)move(index-1);else if(page.kind!=="secao")props.onOpenContent({kind:"secao",ref:"compendio"});};
   const open=(s:TabSpec)=>{
     if(s.kind===page.kind&&s.ref===page.ref)return;
-    guard(()=>{positions.current[pages.length-1]=scroller()?.scrollTop??0;setPages(p=>[...p,s]);});
+    guard(()=>{positions.current[index]=scroller()?.scrollTop??0;positions.current.length=index+1;setPages(p=>[...p.slice(0,index+1),s]);setIndex(index+1);});
   };
-  useEffect(()=>{const listener=(e:Event)=>{const d=(e as CustomEvent<{origem?:string;s:TabSpec}>).detail;if(d?.origem===origin)open(d.s);};window.addEventListener("compendio:abrir-local",listener);return()=>window.removeEventListener("compendio:abrir-local",listener);},[origin,pages,props.onOpenContent]);
-  return <div ref={root}><VoltarPaginaContext.Provider value={back}>{pages.map((p,i)=><div key={i+":"+p.kind+":"+p.ref} hidden={i!==pages.length-1}><ConteudoPanel {...props} kind={p.kind} entity={p.ref} onOpenContent={open}/></div>)}</VoltarPaginaContext.Provider></div>;
+  useEffect(()=>{const listener=(e:Event)=>{const d=(e as CustomEvent<{origem?:string;s:TabSpec}>).detail;if(d?.origem===origin)open(d.s);};window.addEventListener("compendio:abrir-local",listener);return()=>window.removeEventListener("compendio:abrir-local",listener);},[origin,pages,index,props.onOpenContent]);
+  return <div ref={root}><div className="workspace-history" role="group" aria-label="Histórico da aba"><button type="button" aria-label="Voltar na aba" disabled={index===0} onClick={back}><ArrowLeft size={16}/></button><button type="button" aria-label="Avançar na aba" disabled={index===pages.length-1} onClick={()=>move(index+1)}><ArrowRight size={16}/></button></div><VoltarPaginaContext.Provider value={back}>{pages.map((p,i)=><div key={i+":"+p.kind+":"+p.ref} hidden={i!==index}><ConteudoPanel {...props} kind={p.kind} entity={p.ref} onOpenContent={open}/></div>)}</VoltarPaginaContext.Provider></div>;
 }
