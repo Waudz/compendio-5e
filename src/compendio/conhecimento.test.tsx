@@ -28,6 +28,7 @@ const row = (patch: Partial<Conhecimento> = {}): Conhecimento => ({
   ...patch,
 });
 const api = (items: Conhecimento[] = []): CodexApi => ({
+  links:vi.fn(async()=>[]),link:vi.fn(async()=>"link"),unlink:vi.fn(async()=>{}),feed:vi.fn(async()=>({items:[],unread:0,discoveries:0})),
   list: vi.fn(async () => items),
   save: vi.fn(async () => "novo"),
   remove: vi.fn(async () => {}),

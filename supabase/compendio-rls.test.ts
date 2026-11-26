@@ -412,4 +412,53 @@ describe("Compêndio: fronteira de conhecimento e isolamento", () => {
     expect((await call(master,'codex_save',cid,id,1,JSON.stringify({...data,stats:'inválido'}))).error).toMatch(/estatisticas_invalidas/);
   });
 
+ it('campos opcionais e enquadramento obedecem ao mesmo limite de divulgação',async()=>{
+  const data={...payload(1),fields:{nickname:'Alcunha visível',history:'História autorizada'},framing:{zoom:1.5,x:20,y:70}};
+  const id=await save(master,null,0,data);
+  const get=async()=>((await call(player,'codex_list',cid)).rows[0].r as Record<string,unknown>[]).find(x=>x.id===id)!;
+  expect(await get()).not.toHaveProperty('fields');expect(await get()).not.toHaveProperty('framing');
+  await save(master,id,1,{...data,knowledge:2});expect((await get()).fields).toEqual(data.fields);expect(await get()).not.toHaveProperty('framing');
+  await save(master,id,2,{...data,knowledge:3});expect((await get()).framing).toEqual(data.framing);
+  expect((await call(master,'codex_save',cid,id,3,JSON.stringify({...data,fields:{secret:'não permitido'}}))).error).toMatch(/campos_invalidos/);
+  expect((await call(master,'codex_save',cid,id,3,JSON.stringify({...data,framing:{zoom:4,x:0,y:0}}))).error).toMatch(/enquadramento_invalido/);
+  // Um cliente anterior não deve apagar os novos campos ao editar apenas descrição/conhecimento.
+  const {fields,framing,...older}=data;void fields;void framing;
+  await save(master,id,3,{...older,knowledge:3});expect((await get()).fields).toEqual(data.fields);expect((await get()).framing).toEqual(data.framing);
+  expect((await as(master,"update public.notes set title='Editado na fonte canônica' where id=$1",[id])).error).toBeUndefined();
+  expect((await call(master,'codex_save',cid,id,4,JSON.stringify(data))).error).toMatch(/conflito_de_versao/);
+ });
+ it('vínculos bidirecionais não expõem títulos, IDs nem contadores de destinos secretos',async()=>{
+  const source=await save(master,null,0,payload(4,'Fonte pública')),targetData=payload(0,'ALVO SECRETO'),target=await save(master,null,0,targetData);
+  const linked=await call(master,'codex_link',cid,source,target,'Membro');expect(linked.error).toBeUndefined();const lid=linked.rows[0].r;
+  expect((await call(player,'codex_links_for',cid,source)).rows[0].r).toEqual([]);
+  expect(JSON.stringify((await call(player,'codex_list',cid)).rows[0].r)).not.toContain('ALVO SECRETO');
+  expect((await call(player,'codex_links_for',cid,target)).error).toMatch(/sem_permissao/);
+  expect((await as(player,'select * from public.codex_links')).rows).toEqual([]);
+  expect((await call(master,'codex_links_for',cid,source)).rows[0].r).toEqual([{id:lid,targetId:target,title:'ALVO SECRETO',category:'monster',relation:'Membro'}]);
+  for(const user of[player,other]){
+   expect((await call(user,'codex_link',cid,source,target,'Intrusão')).error).toMatch(/sem_permissao/);
+   expect((await call(user,'codex_unlink',cid,lid)).error).toMatch(/sem_permissao/);
+  }
+  await save(master,target,1,{...targetData,knowledge:2});
+  expect((await call(player,'codex_links_for',cid,source)).rows[0].r).toEqual([{id:lid,targetId:target,title:'ALVO SECRETO',category:'monster',relation:'Membro'}]);
+  expect((await call(player,'codex_links_for',cid,target)).rows[0].r).toEqual([{id:lid,targetId:source,title:'Fonte pública',category:'monster',relation:'Membro'}]);
+  expect(((await call(player,'codex_list',cid)).rows[0].r as {id:string;relatedTerms?:string[]}[]).find(x=>x.id===source)?.relatedTerms).toContain('ALVO SECRETO');
+  expect((await call(master,'codex_link',cid,target,source,'Duplicado')).error).toMatch(/unique/);
+  expect((await call(master,'codex_link',otherCampaign,source,target,'Cruzado')).error).toMatch(/sem_permissao/);
+  expect((await call(master,'codex_unlink',cid,lid)).error).toBeUndefined();
+  expect((await call(master,'codex_links_for',cid,source)).rows[0].r).toEqual([]);
+  expect(((await call(player,'codex_list',cid)).rows[0].r as {id:string}[]).some(x=>x.id===target)).toBe(true);
+ });
+ it('contadores usam todos os avisos autorizados, não só a página recente de 50',async()=>{
+  const before=(await call(player,'codex_notification_feed',cid)).rows[0].r as {unread:number;discoveries:number};
+  const ids=[];for(let i=0;i<51;i++)ids.push(await save(master,null,0,{category:'discovery',title:'Descoberta '+i,knowledge:4}));
+  const feed=(await call(player,'codex_notification_feed',cid)).rows[0].r as {unread:number;discoveries:number;items:unknown[]};
+  expect(feed.items).toHaveLength(50);expect(feed.unread).toBe(before.unread+51);expect(feed.discoveries).toBe(before.discoveries+51);
+  expect((await call(other,'codex_notification_feed',cid)).error).toMatch(/sem_permissao/);
+  expect((await as(player,'update public.codex_notifications set read_at=now() where entry_id=$1',[ids[0]])).error).toBeUndefined();
+  expect(((await call(player,'codex_notification_feed',cid)).rows[0].r as {unread:number}).unread).toBe(feed.unread-1);
+  await save(master,ids[1],1,{category:'discovery',title:'Descoberta 1',knowledge:0});
+  const revoked=(await call(player,'codex_notification_feed',cid)).rows[0].r as {unread:number;discoveries:number};expect(revoked.unread).toBe(feed.unread-2);expect(revoked.discoveries).toBe(feed.discoveries-2);
+ });
+
 });

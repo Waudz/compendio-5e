@@ -39,7 +39,7 @@ function Habilidade({ h, onAbrirMagia }: { h: Texto; onAbrirMagia?: (id: string)
   </div>;
 }
 
-export function DetalheMonstro({ monstro: m, onAbrirMagia }: { monstro: Monstro; onAbrirMagia?: (id: string) => void }) {
+export function DetalheMonstro({ monstro: m, onAbrirMagia, mostrarImagem=true }: { monstro: Monstro; onAbrirMagia?: (id: string) => void; mostrarImagem?:boolean }) {
   const linhas: [string, string][] = [];
   if (m.salvaguardas && Object.keys(m.salvaguardas).length) linhas.push(["Testes de resistência", Object.entries(m.salvaguardas).map(([a, v]) => `${siglaAtributo(a)} ${formatarModificador(v)}`).join(", ")]);
   if (m.pericias && Object.keys(m.pericias).length) linhas.push(["Perícias", Object.entries(m.pericias).map(([a, v]) => `${rotuloPericia(a)} ${formatarModificador(v)}`).join(", ")]);
@@ -51,7 +51,7 @@ export function DetalheMonstro({ monstro: m, onAbrirMagia }: { monstro: Monstro;
   if (m.idiomas) linhas.push(["Idiomas", m.idiomas]);
   const imagem = imagemDoMonstro(m.id);
   return <>
-    {<div className="catalogo-imagem"><RetratoQuadrado src={imagem} tipo="monstro" tamanho={220}/></div>}
+    {mostrarImagem&&<div className="catalogo-imagem"><RetratoQuadrado src={imagem} tipo="monstro" tamanho={220}/></div>}
     <p className="muted cat-linha-tipo">{rotuloTipoCriatura(m.tipo)} {rotuloTamanho(m.tamanho).toLocaleLowerCase("pt-BR")}{m.tendencia ? `, ${m.tendencia.toLocaleLowerCase("pt-BR")}` : ""} · {m.en}</p>
     <dl className="item-fatos">
       <div><dt>Classe de Armadura</dt><dd>{m.ca}{m.caDetalhe ? ` (${m.caDetalhe})` : ""}</dd></div>

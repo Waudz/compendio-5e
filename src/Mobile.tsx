@@ -1,3 +1,5 @@
+import { VoltarPaginaContext } from "./voltarPagina";
+import { SinoNotificacoes } from "./compendio/Notificacoes";
 import { EVENTO_TELA } from "./chromeHide";
 import { useEffect, useRef, useState } from "react";
 import { type Model, TabNode } from "flexlayout-react";
@@ -179,13 +181,13 @@ export function Mobile(_props: Props) {
     {!fichaPropria && !meus && <header className="mobile-topbar">
       <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
       <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{defaultTitle(screen)}</span></div>
-      <button className="mobile-icon-btn" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/></button>
+      <SinoNotificacoes onOpenContent={navigate}/><button className="mobile-icon-btn" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/></button>
     </header>}
     <div className="mobile-screen" ref={scroll}>
-      <OrigemAbaContext.Provider value={current}>
-        {fichaPropria && <button type="button" className="btn-link mobile-meus-personagens" onClick={() => navigate({ kind: "secao", ref: "personagens", title: "Meus personagens" })}><ArrowLeft size={16}/> Meus personagens</button>}
+      <VoltarPaginaContext.Provider value={goBack}><OrigemAbaContext.Provider value={current}>
+        {(fichaPropria||meus)&&<div className="cd-own-header">{fichaPropria && <button type="button" className="btn-link mobile-meus-personagens" onClick={() => navigate({ kind: "secao", ref: "personagens", title: "Meus personagens" })}><ArrowLeft size={16}/> Meus personagens</button>}<SinoNotificacoes onOpenContent={navigate}/></div>}
         {meus ? <PersonagensPanel key={current} somenteMeus onOpenContent={navigate}/> : <Panel key={current} kind={screen.kind} entity={screen.ref} onOpen={navigate} onOpenContent={navigate}/>}
-      </OrigemAbaContext.Provider>
+      </OrigemAbaContext.Provider></VoltarPaginaContext.Provider>
     </div>
     <nav className="mobile-bottom-nav" aria-label="Navegação mobile">
       {navItems.map(item => <button key={item.label} className={item.selected ? "active" : ""} aria-current={item.selected ? "page" : undefined} onClick={() => (item as { onClick?: () => void }).onClick ? (item as { onClick: () => void }).onClick() : navigate(item.spec)}><item.icon size={22}/><span>{item.label}</span></button>)}

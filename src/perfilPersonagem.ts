@@ -35,7 +35,7 @@ export function fontePersonagens(api: RegistrosApi, capa: CapaApi | null): Fonte
       const out = await Promise.all(lista.map(async x => {
         if (ehGuiado(x.meta)) {   // guiado: só a identidade pública (retrato e, se o dono não ocultar, o nível)
           const c = cartaoPublico(x.meta), visto = c ? presentation(c) : { nome: x.title, alcunha: null };
-          return { id: x.id, nome: visto.nome, ...(visto.alcunha ? { alcunha: visto.alcunha } : {}), classe: [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: c?.level && Number.isInteger(Number(c.level)) ? Number(c.level) : null, retratoUrl: c?.imageUrl ?? null };
+          return { id: x.id, nome: visto.nome, ...(c?.description?{descricao:c.description}:{}), ...(visto.alcunha ? { alcunha: visto.alcunha } : {}), classe: [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: c?.level && Number.isInteger(Number(c.level)) ? Number(c.level) : null, retratoUrl: c?.imageUrl ?? null };
         }
         const p = lerPerfil(x.meta); let retratoUrl: string | null = null;
         if (p.retrato && capa) { const { base, enquadramento } = separar(p.retrato), u = await capa.urlDe(base); if (u.ok) retratoUrl = juntar(u.data, enquadramento); }   // retrato indisponível: cai na inicial, sem erro

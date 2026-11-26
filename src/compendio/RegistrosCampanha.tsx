@@ -1,5 +1,9 @@
+import { Modal } from "../ui/Modal";
+import { EditorEnquadramento } from "../imagem/EditorEnquadramento";
+import { ENQUADRAMENTO_PADRAO, juntar, type Enquadramento } from "../imagem/enquadramento";
+import { CAMPOS } from "./campos";
 import { useAuth } from "../AuthContext";
-import { useUnsavedGuard } from "../unsaved";
+import { useUnsaved, useUnsavedGuard } from "../unsaved";
 import { useContext } from "react";
 import { OrigemAbaContext } from "../abrirEmAba";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -37,7 +41,7 @@ const nomes: Record<CodexCategoria, string> = {
   monster: "Bestiário",
   item: "Itens descobertos",
 };
-export function ImagemConhecida({ path }: { path: string }) {
+export function ImagemConhecida({ path, framing, tamanho=160 }: { path: string; framing?:Enquadramento; tamanho?:number }) {
   const api = useCodexApi();
   const [image, setImage] = useState<{ path: string; url: string }>();
   useEffect(() => {
@@ -59,8 +63,8 @@ export function ImagemConhecida({ path }: { path: string }) {
   }, [api, path]);
   return (
     <RetratoQuadrado
-      src={image?.path === path ? image.url : null}
-      tamanho={160}
+      src={image?.path === path ? juntar(image.url,framing??ENQUADRAMENTO_PADRAO) : null}
+      tamanho={tamanho}
     />
   );
 }
@@ -135,7 +139,7 @@ export function DetalheConhecido({
     <>
       <h3>{entry.title}</h3>
       {entry.imagePath ? (
-        <ImagemConhecida path={entry.imagePath} />
+        <ImagemConhecida path={entry.imagePath} framing={entry.framing}/>
       ) : publicImage ? (
         <RetratoQuadrado
           src={publicImage}
@@ -282,7 +286,7 @@ export function EditorConhecimento({
   entry: Conhecimento | null;
   category: CodexCategoria;
   reference?: { id: string; nome: string };
-  onDone: () => void;
+  onDone: (id?:string) => void;
 }) {
   const { active } = useCampaigns(),
     api = useCodexApi();
@@ -298,7 +302,12 @@ export function EditorConhecimento({
   const created = useRef<{ id: string; version: number }>();
   const [file, setFile] = useState<File>(),
     [removeImage, setRemoveImage] = useState(false);
+  const [fields,setFields]=useState<Record<string,string>>(entry?.fields??{});
+  const [framing,setFraming]=useState<Enquadramento>(entry?.framing??ENQUADRAMENTO_PADRAO);
+  const [crop,setCrop]=useState(false),[preview,setPreview]=useState<string>();
+  useEffect(()=>{let alive=true,url:string|undefined;if(file){url=URL.createObjectURL(file);setPreview(url);}else if(entry?.imagePath&&api)void api.image(entry.imagePath).then(blob=>{url=URL.createObjectURL(blob);if(alive)setPreview(url);else URL.revokeObjectURL(url);},()=>{});return()=>{alive=false;if(url)URL.revokeObjectURL(url);};},[file,entry?.imagePath,api]);
   const origin = useContext(OrigemAbaContext);
+  const unsaved = useUnsaved();
   useUnsavedGuard(
     origin ?? "secao:compendio",
     title !== (entry?.title ?? reference?.nome ?? "") ||
@@ -306,7 +315,7 @@ export function EditorConhecimento({
       secret !== (entry?.secret ?? "") ||
       level !== (entry?.knowledge ?? 0) ||
       !!file ||
-      removeImage,
+      removeImage || JSON.stringify(fields)!==JSON.stringify(entry?.fields??{}) || JSON.stringify(framing)!==JSON.stringify(entry?.framing??ENQUADRAMENTO_PADRAO),
   );
   const save = async () => {
     if (!api || !active || busy) return;
@@ -324,7 +333,7 @@ export function EditorConhecimento({
         title,
         description: paraBlocos(text),
         secret,
-        stats: entry?.stats,
+        stats: entry?.stats, fields, framing,
         knowledge: file ? 0 : level,
         imagePath: removeImage ? undefined : entry?.imagePath,
       };
@@ -344,9 +353,10 @@ export function EditorConhecimento({
           imagePath: path,
           knowledge: level,
         });
-      } else await api.save(active.campaign.id, id, version, data);
+      } else id=await api.save(active.campaign.id, id, version, data);
+      unsaved.register(origin ?? "secao:compendio", null);
       avisarConhecimento();
-      onDone();
+      onDone(id??undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível salvar.");
     } finally {
@@ -354,8 +364,8 @@ export function EditorConhecimento({
     }
   };
   return (
-    <section className="codex-editor" aria-label="Editar conhecimento">
-      <h3>{entry ? "Editar registro" : "Novo registro"}</h3>
+    <Modal titulo={entry?"Editar registro":"Novo registro"} onFechar={()=>onDone()} ocupado={busy} largura={640}><section className="codex-editor cd-form" aria-label="Editar conhecimento">
+
       <label>
         Nome
         <input
@@ -382,6 +392,8 @@ export function EditorConhecimento({
           onChange={(e) => setText(e.target.value)}
         />
       </label>
+      {(CAMPOS[category]??[]).filter(f=>!f.long).map(f=><label key={f.id}>{f.label}<input value={fields[f.id]??''} maxLength={4000} onChange={e=>setFields(x=>({...x,[f.id]:e.target.value}))}/></label>)}
+      {(CAMPOS[category]??[]).some(f=>f.long)&&<details><summary>História e detalhes opcionais</summary>{(CAMPOS[category]??[]).filter(f=>f.long).map(f=><label key={f.id}>{f.label}<textarea value={fields[f.id]??''} maxLength={4000} onChange={e=>setFields(x=>({...x,[f.id]:e.target.value}))}/></label>)}</details>}
       <label>
         Notas privadas do mestre
         <textarea
@@ -420,10 +432,12 @@ export function EditorConhecimento({
           accept="image/jpeg,image/png,image/webp"
           onChange={(e) => {
             setFile(e.target.files?.[0]);
-            setRemoveImage(false);
+            setRemoveImage(false);setFraming(ENQUADRAMENTO_PADRAO);
           }}
         />
       </label>
+      {preview&&!removeImage&&<div className="cd-editor-portrait"><RetratoQuadrado src={juntar(preview,framing)} tamanho={100}/><button className="btn-secondary" onClick={()=>setCrop(true)}>Ajustar enquadramento</button></div>}
+      {crop&&preview&&<EditorEnquadramento titulo="Enquadrar imagem" src={preview} inicial={framing} proporcao={1} onCancelar={()=>setCrop(false)} onConfirmar={value=>{setFraming(value);setCrop(false);}}/>}
       {entry?.imagePath && (
         <label>
           <input
@@ -450,7 +464,7 @@ export function EditorConhecimento({
         >
           {busy ? "Salvando…" : "Salvar"}
         </button>
-        <button className="btn-secondary" disabled={busy} onClick={onDone}>
+        <button className="btn-secondary" disabled={busy} onClick={()=>onDone()}>
           Cancelar
         </button>
         {entry && (
@@ -466,7 +480,7 @@ export function EditorConhecimento({
                 setBusy(true);
                 void api
                   .remove(active.campaign.id, entry.id, entry.version)
-                  .then(onDone, () => {
+                  .then(()=>onDone(), () => {
                     setBusy(false);
                     setError(
                       "Não foi possível remover. Recarregue para conferir a versão.",
@@ -479,7 +493,7 @@ export function EditorConhecimento({
           </button>
         )}
       </div>
-    </section>
+    </section></Modal>
   );
 }
 export function RevelarReferencia({

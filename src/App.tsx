@@ -1,3 +1,4 @@
+import { NotificacoesProvider, SinoNotificacoes } from "./compendio/Notificacoes";
 import { useConhecimento, itemConhecido } from "./compendio/conhecimento";
 import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -229,6 +230,9 @@ function Workspace({ userId }: { userId: string }) {
     const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
     if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? n.getName();
     if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
+    if (c?.kind === "registro" && c.ref) return conhecidosCatalogo.find(x=>x.id===c.ref)?.title??"Registro";
+    if (c?.kind === "monstro" && c.ref) return active?.role === "mestre" ? tituloDe(c.ref)??"Criatura" : conhecidosCatalogo.find(x=>x.category==="monster"&&x.definitionId===c.ref&&x.knowledge===4)?.title??"Criatura";
+    if (c?.kind === "regra" && c.ref) return tituloDe(c.ref)??"Regra";
     if (c?.kind === "item" && c.ref) return active?.role === "mestre" || jogadorPodeAdicionar(c.ref) || itemConhecido(conhecidosCatalogo,c.ref) ? srdItem(c.ref)?.nome ?? n.getName() : "Item";
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
   }, [memberships, registrosV, active?.role, conhecidosCatalogo]);
@@ -263,9 +267,9 @@ function Workspace({ userId }: { userId: string }) {
     mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem) }] }),
   }), [openContentLink]);
 
-  return <AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
+  return <NotificacoesProvider><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
-      <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}</div>
+      <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}<SinoNotificacoes onOpenContent={openContentLink}/></div>
       <div className="campaign">
         <NavItem spec={homeSpec}
           className={activeId === (active ? `campanha:${active.campaign.id}` : `secao:${campaignsHub.page}`) ? "campaign-main selected" : "campaign-main"}
@@ -302,5 +306,5 @@ function Workspace({ userId }: { userId: string }) {
     </main>
     {menu && <ContextMenu menu={menu} onClose={closeMenu}/>}
     {unsaved.dialog}
-  </div></UnsavedContext.Provider></AbrirEmAbaContext.Provider>;
+  </div></UnsavedContext.Provider></AbrirEmAbaContext.Provider></NotificacoesProvider>;
 }

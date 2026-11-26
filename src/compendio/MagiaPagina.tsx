@@ -4,6 +4,7 @@ import { magiaPorId } from "../catalogue/contratos";
 import type { Magia } from "../catalogue/sistemas/dnd5e-2014/esquemas";
 import { Aviso } from "../Diario";
 import { registrarTitulo } from "../registrosStore";
+import {VoltarCompendio} from "./Paginas";
 import { DetalheMagia } from "./DetalheMagia";
 
 export function MagiaPagina({ id }: { id: string }) {
@@ -14,6 +15,6 @@ export function MagiaPagina({ id }: { id: string }) {
     return () => { vivo = false; };
   }, [id, tentativa]);
   if (!dados || dados.id !== id) return <div className="content"><p className="muted" role="status">Carregando magia…</p></div>;
-  return <div className="content">{dados.magia ? <><h1>{dados.magia.nome}</h1><DetalheMagia magia={dados.magia}/></>
+  return <div className="content cd-page"><VoltarCompendio/>{dados.magia ? <article aria-label={`Detalhes de ${dados.magia.nome}`}><h1>{dados.magia.nome}</h1><DetalheMagia magia={dados.magia}/></article>
     : <Aviso erro t={dados.erro ? "Não foi possível carregar a magia." : "Magia não encontrada."} onRetry={dados.erro ? () => setTentativa(n => n + 1) : undefined}/>}</div>;
 }

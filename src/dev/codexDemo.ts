@@ -18,7 +18,16 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
   const check = () => {
     if (!master) throw Error("Somente o mestre.");
   };
+  const linksKey=key+':links',noticesKey=key+':notices';
+  const parse=<T,>(k:string):T[]=>{try{return JSON.parse(localStorage.getItem(k)??'[]');}catch{return [];}};
+  type Link={id:string;source:string;target:string;relation:string};
+  type Notice={id:number;entry_id:string;knowledge:number;created_at:string;read_at:string|null};
+  const visible=(id:string)=>read().find(x=>x.id===id&&(master||x.knowledge>0));
   return {
+    links:async(cid,id)=>{if(cid!==campaign||!visible(id))throw Error('Sem acesso.');return parse<Link>(linksKey).filter(l=>l.source===id||l.target===id).flatMap(l=>{const target=visible(l.source===id?l.target:l.source);return target?[{id:l.id,targetId:target.id,title:target.title,category:target.category,relation:l.relation}]:[];});},
+    link:async(cid,source,target,relation)=>{check();if(cid!==campaign||!visible(source)||!visible(target)||source===target)throw Error('Vínculo inválido.');const ls=parse<Link>(linksKey);if(ls.some(l=>(l.source===source&&l.target===target)||(l.source===target&&l.target===source)))throw Error('Vínculo já existe.');const id=crypto.randomUUID();localStorage.setItem(linksKey,JSON.stringify([...ls,{id,source,target,relation}]));return id;},
+    unlink:async(cid,id)=>{check();if(cid!==campaign)throw Error('Outra campanha.');localStorage.setItem(linksKey,JSON.stringify(parse<Link>(linksKey).filter(l=>l.id!==id)));},
+    feed:async cid=>{if(cid!==campaign)throw Error('Outra campanha.');const all=master?[]:parse<Notice>(noticesKey).flatMap(n=>{const e=visible(n.entry_id);return e&&e.knowledge>=n.knowledge?[{...n,title:e.title,category:e.category}]:[];});return {items:all.slice(-50).reverse(),unread:all.filter(x=>!x.read_at).length,discoveries:all.filter(x=>!x.read_at&&['item','discovery'].includes(x.category)).length};},
     list: async (cid) => {
       if (cid !== campaign) throw Error("Outra campanha.");
       return read()
@@ -33,10 +42,10 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
                 systemId: x.systemId,
                 version: x.version,
                 knowledge: x.knowledge,
-                ...(x.knowledge >= 2 ? { description: x.description } : {}),
+                ...(x.knowledge >= 2 ? { description: x.description, fields:x.fields } : {}),
                 ...(x.knowledge >= 3
                   ? {
-                      imagePath: x.imagePath,
+                      imagePath: x.imagePath, framing:x.framing,
                       imageDefinitionId: x.definitionId,
                     }
                   : {}),
@@ -68,6 +77,9 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
         ...xs.filter((x) => x.id !== eid),
         { ...data, id: eid, version: version + 1 },
       ]);
+      if(data.knowledge>(old?.knowledge??0)){
+       const ns=parse<Notice>(noticesKey);if(!ns.some(n=>n.entry_id===eid&&n.knowledge===data.knowledge))localStorage.setItem(noticesKey,JSON.stringify([...ns,{id:Math.max(0,...ns.map(n=>n.id))+1,entry_id:eid,knowledge:data.knowledge,created_at:new Date().toISOString(),read_at:null}]));
+      }
       return eid;
     },
     remove: async (cid, id, version) => {
@@ -87,6 +99,6 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
     },
     holders: async () => [],
     notices: async () => [] as CodexAviso[],
-    seen: async () => {},
+    seen: async id => {if(!master)localStorage.setItem(noticesKey,JSON.stringify(parse<Notice>(noticesKey).map(n=>n.id===id?{...n,read_at:new Date().toISOString()}:n)));},
   };
 }
