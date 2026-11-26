@@ -8,7 +8,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useRef, lazy, Suspense } from "react";
 import { useAuth } from "../AuthContext";
 import { useCampaigns } from "../CampaignsContext";
-import { useFichas } from "../RegistrosContext";
+import { useFichas, useMoedasDaCampanha } from "../RegistrosContext";
+import { entregarNasAtivas } from "../moedas/moedas";
 import { itemSpec } from "../Compendio";
 import { Aviso } from "../Diario";
 import { srdItem, srdItemIds } from "../catalogue/srd-2014-items";
@@ -144,6 +145,9 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const sujo = carga === "pronto" && retrato !== (salvo ?? vazio) && (salvo !== null || draft.name.trim() !== "" || draft.inventory.length > 0 || draft.decisions.length > 0);
   const { sheet, erro } = useMemo(() => { try { return { sheet: calcularFicha({ ...draft, name: draft.name.trim() || "Sem nome" }), erro: "" }; }  catch (e) { return { sheet: null, erro: e instanceof Error ? e.message : String(e) }; } }, [draft]);
   const mudar = (proximo: CharacterDraft) => { setDraft(proximo); setMsg(null); };
+  const moedas = useMoedasDaCampanha(campaignId).ativas;
+  /** Fluxos que ENTREGAM dinheiro (equipamento inicial, origem): o valor chega nas moedas que a campanha usa. */
+  const mudarComEntrega = (proximo: CharacterDraft) => mudar(proximo.currency === draft.currency ? proximo : { ...proximo, currency: { cp: 0, sp: 0, gp: 0, ...entregarNasAtivas(draft.currency, proximo.currency, moedas) } });
 
   const alterarNivel = (level: number) => {
     try { mudar(modern2014(draft) ? regras2014!.progressLevel2014(draft, level) : { ...draft, level }); setErroAtrib(''); }
@@ -342,7 +346,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     const naoSalvo = sujo && !salvando && falhou.current === retrato;
     return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
       <FichaJogo draft={draft} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudar} onOpenContent={onOpenContent}
-        onEditar={editar} onProgredir={editar} podeConceder={mestre}
+        onEditar={editar} onProgredir={editar} podeConceder={mestre} moedas={moedas}
         salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
           {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
         avisos={<>{avisoConflito}
@@ -375,12 +379,12 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     {sujo && <p className="muted" role="status">Alterações não salvas.</p>}
 
     {secao === "ficha" && <div className="criador-sec">
-      {!modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>}
+      {!modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudarComEntrega}/></Suspense>}
       <label>Nome do personagem<input ref={nameRef} aria-label="Nome do personagem" value={draft.name} maxLength={120} onChange={e => mudar({ ...draft, name: e.target.value })}/></label>
       <label>Alcunha (opcional)<input aria-label="Alcunha" value={draft.nickname ?? ""} maxLength={120} onChange={e => mudar({ ...draft, nickname: e.target.value })}/></label>
       <label>Retrato (endereço https da imagem, opcional)<input aria-label="Retrato do personagem" type="url" inputMode="url" placeholder="https://" value={draft.portrait ?? ""} maxLength={2000} onChange={e => mudar({ ...draft, portrait: e.target.value.trim() })}/></label>
       {draft.portrait && !retratoValido(draft.portrait) && <p role="alert" className="notice err">O retrato deve ser um endereço https:// sem espaços.</p>}
-      {modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudar}/></Suspense>}{!modern2014(draft) && <p className="muted">Raça: Anão · Antecedente: Acólito · Classe: Guerreiro</p>}
+      {modern2014(draft) && <Suspense fallback={<p role="status">Carregando opções de personagem…</p>}><Opcoes2014 draft={draft} onChange={mudarComEntrega}/></Suspense>}{!modern2014(draft) && <p className="muted">Raça: Anão · Antecedente: Acólito · Classe: Guerreiro</p>}
       <fieldset><legend>Atributos-base (antes dos bônus raciais)</legend>
         <label>Método<select aria-label="Método de atributos" value={metodo} onChange={e => trocarMetodo(e.target.value as Metodo)}><option value="point-buy">Compra de pontos (27)</option><option value="standard-array">Matriz padrão</option><option value="manual">Rolagens manuais (3–18)</option>{metodo === "preserved" && <option value="preserved">Valores preservados da ficha</option>}</select></label>
         {metodo === "point-buy" && <p className="muted">Pontos gastos: {pointBuySpent(draft.baseAbilities)} / {POINT_BUY_BUDGET}</p>}
@@ -415,8 +419,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       </section>}
     </div>}
 
-    {secao === "ficha" && modern2014(draft) && !erro && <Suspense fallback={<p role="status">Carregando resumo…</p>}><Resumo2014 draft={draft} onChange={mudar}/></Suspense>}
-    {secao === "equipamento" && modern2014(draft) && <Suspense fallback={<p role="status">Carregando equipamento…</p>}><Equipamento2014 draft={draft} onChange={mudar}/></Suspense>}{secao === "equipamento" && !modern2014(draft) && <div className="criador-sec">
+    {secao === "ficha" && modern2014(draft) && !erro && <Suspense fallback={<p role="status">Carregando resumo…</p>}><Resumo2014 draft={draft} onChange={mudarComEntrega}/></Suspense>}
+    {secao === "equipamento" && modern2014(draft) && <Suspense fallback={<p role="status">Carregando equipamento…</p>}><Equipamento2014 draft={draft} onChange={mudarComEntrega}/></Suspense>}{secao === "equipamento" && !modern2014(draft) && <div className="criador-sec">
       <h2>Equipamento inicial do Guerreiro</h2>
       <p className="muted">Escolha um conjunto de cada grupo e confirme: os itens entram no inventário como instâncias independentes, com os dados do catálogo oficial. As opções de armas marciais são uma amostra (espada longa) até o catálogo de escolhas livres estar pronto.</p>
       {Object.entries(fighterEquipmentOptions2014).map(([g, opcoes]) => <fieldset key={g}><legend>{GRUPOS[g]}</legend>

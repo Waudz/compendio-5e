@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { CampaignApi, Membership, Role } from "../campaigns";
 import { activeKey } from "../CampaignsContext";
+import { configCampanhaEmMemoria } from "../configCampanha";
 import { fichasEmMemoria, novoBancoFichas, type BancoFichas } from "../fichasMemoria";
 import { registrosEmMemoria } from "../registrosMemoria";
 import { me, memoryStorage, other, renderApp } from "../testUtils";
@@ -136,8 +137,9 @@ describe("ficha de jogo", () => {
     await semear();
     await abrirFicha();
     irPara("Inventário");
-    const pl = screen.getByLabelText("Moedas PL");
+    const pl = screen.getByLabelText("Moedas de platina (PL)");
     fireEvent.change(pl, { target: { value: "4" } }); fireEvent.blur(pl);
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar item" }));
     fireEvent.change(screen.getByLabelText("Adicionar item do catálogo"), { target: { value: "adaga" } });
     fireEvent.click(await screen.findByRole("button", { name: "Adicionar Adaga" }));
     fireEvent.click(screen.getByRole("button", { name: "Aumentar Adaga" }));
@@ -316,5 +318,55 @@ describe("navegação da edição", () => {
     await semear(); await abrirFicha(); await entrarNaEdicao();
     cleanup(); await montar(); await abrirLista(); await reabrirPelaLista();
     await naFicha();
+  });
+});
+
+describe("inventário: moedas da campanha, poções e informações dos itens", () => {
+  const buscarNoCatalogo = async (texto: string) => {
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar item" }));
+    fireEvent.change(screen.getByLabelText("Adicionar item do catálogo"), { target: { value: texto } });
+  };
+  const oferecidos = () => within(screen.getByRole("list", { name: "Resultados da pesquisa de itens" })).queryAllByRole("button").map(b => b.getAttribute("aria-label"));
+
+  it("o jogador encontra as poções comuns, mas não poções raras nem itens mágicos", async () => {
+    await semear(); await abrirFicha(); irPara("Inventário");
+    await buscarNoCatalogo("poção");
+    await waitFor(() => expect(oferecidos()).toContain("Adicionar Poção de cura"));
+    expect(oferecidos().sort()).toEqual(["Adicionar Poção de cura", "Adicionar Poção de escalada"]);
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar Poção de cura" }));
+    expect(within(screen.getByRole("listitem", { name: "Poção de cura" })).getByText(/recupera 2d4\+2 PV/)).toBeTruthy();
+  });
+
+  it("o mestre pode entregar qualquer item", async () => {
+    await semear(); await montar(mestreUser); await abrirLista();
+    fireEvent.click(await within(await screen.findByRole("region", { name: "Personagens da campanha" })).findByRole("button", { name: /^Thorin/ }));
+    await screen.findByTestId("ficha-guiada-leitura"); irPara("Inventário");
+    await buscarNoCatalogo("poção de cura");
+    await waitFor(() => expect(oferecidos()).toContain("Adicionar Poção de cura maior"));
+  });
+
+  it("arma mostra o dano básico mesmo sem equipar; armadura mostra a CA", async () => {
+    await semear(); await abrirFicha(); irPara("Inventário");
+    expect(within(screen.getByRole("listitem", { name: "Espada longa" })).getByText(/Dano básico 1d8 cortante \(1d10 com duas mãos\)/)).toBeTruthy();
+    expect(within(screen.getByRole("listitem", { name: "Cota de malha" })).getByText(/CA 16/)).toBeTruthy();
+  });
+
+  it("só aparecem as moedas da campanha; o valor guardado numa moeda desativada não se perde nem entra no total", async () => {
+    await semear();
+    banco.fichas[0].draft.currency = { cp: 5, sp: 20, ep: 7, gp: 10, pp: 3 };
+    const config = configCampanhaEmMemoria(new Map([["ca", ["cp", "sp", "gp"]]]));
+    localStorage.setItem(activeKey(me.id), "ca");
+    await renderApp({ user: me, api: apiC("jogador"), registros: registrosEmMemoria("jogador", me.id, [], registros as never), fichas: fichasEmMemoria(me.id, banco), config });
+    await abrirLista();
+    fireEvent.click(await within(await screen.findByRole("region", { name: "Personagens da campanha" })).findByRole("button", { name: /^Thorin/ }));
+    await screen.findByTestId("ficha-guiada-leitura"); irPara("Inventário");
+    const moedas = within(screen.getByRole("region", { name: "Moedas" }));
+    await waitFor(() => expect(moedas.queryByLabelText("Moedas de platina (PL)")).toBeNull());
+    expect(moedas.queryByLabelText("Moedas de electro (PE)")).toBeNull();
+    expect(moedas.getAllByRole("listitem")).toHaveLength(3);
+    expect(moedas.getByTestId("patrimonio").textContent).toBe("12,05 PO");
+    expect(moedas.getByText(/continuam guardados/)).toBeTruthy();
+    fireEvent.click(moedas.getByRole("button", { name: "Adicionar 1 moeda de ouro (PO)" }));
+    await salvou(() => expect(draftSalvo().currency).toEqual({ cp: 5, sp: 20, ep: 7, gp: 11, pp: 3 }));
   });
 });

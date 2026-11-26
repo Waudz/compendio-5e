@@ -122,8 +122,26 @@
 .ficha .ficha-form > input[type='number'] { flex: 0 1 80px; }
 .ficha-remover { background: transparent; border: 1px solid var(--line); border-radius: 6px; color: var(--text); min-width: 30px; min-height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 
-.ficha-moedas { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-.ficha .ficha-moedas input { width: 100%; min-width: 0; }
+.moedas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.moeda { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.moeda-nome { overflow-wrap: anywhere; }
+.moeda-controle { display: inline-flex; align-items: center; gap: 4px; }
+.ficha .moeda-controle input { width: 78px; min-width: 0; text-align: right; padding: 5px 6px; font-variant-numeric: tabular-nums; }
+.ficha .moeda-controle button.ficha-remover { width: 30px; margin: 0; padding: 0; }
+.icone-moeda { flex: none; }
+.moedas-total { display: flex; align-items: center; gap: 6px; margin: 0; }
+.ficha-bloco .moedas-nota { font-size: 12px; }
+.ficha-resumo-inv { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.ficha-barra-itens { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.ficha-vistas { display: inline-flex; gap: 4px; }
+.ficha.ficha-jogo button.ficha-compacto { width: auto; margin: 0; padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; }
+.ficha-filtros { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.ficha .ficha-filtros input, .ficha .ficha-filtros select { min-width: 0; width: 100%; }
+.ficha-item-imagem { width: 44px; height: 44px; object-fit: contain; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); flex: none; }
+.ficha-itens.grade .ficha-item-imagem { width: 100%; height: 96px; }
+.ficha-item-info { color: var(--text); }
+.ficha-itens.lista { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+@container (max-width: 400px) { .ficha-filtros { grid-template-columns: minmax(0, 1fr); } .ficha .moeda-controle input { width: 62px; } }
 .ficha-itens { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .ficha-itens.grade { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .ficha-itens > li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; gap: 10px; align-items: center; min-width: 0; }
@@ -135,7 +153,7 @@
 .ficha-itens.grade .ficha-item-nome { flex: 0 0 auto; }
 .ficha-item-acoes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .ficha-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--text); text-align: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line); }
-.ficha-adicionar { display: flex; flex-direction: column; gap: 4px; }
+.ficha-adicionar { display: flex; flex-direction: column; gap: 6px; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; }
 .ficha-salvamento { margin: 8px 0 0; font-size: 12px; }
 .ficha-dado { font-size: 11px; }
 .ficha-jogo .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -148,7 +166,6 @@
   .ficha-vida { grid-template-columns: auto minmax(0, 1fr); }
   .ficha-vida-ajuste { grid-column: 1 / -1; }
   .ficha-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .ficha-moedas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .ficha-jogo .ficha-subnav button { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .ficha .ficha-morte { min-width: 0; }
@@ -164,7 +181,6 @@
   .ficha.ficha-jogo form.ficha-vida-ajuste { flex-wrap: wrap; }
   .ficha-atributos { gap: 4px; }
   .ficha-atributo span { font-size: 9px; }
-  .ficha-moedas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ficha-morte > div > span { min-width: 100%; }
   .ficha-dados { grid-template-columns: minmax(0, 1fr); }
 }

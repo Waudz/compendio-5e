@@ -16,6 +16,7 @@ import { AbaHabilidades } from "./AbaHabilidades";
 import { AbaInventario, type FiltroInv, type VistaInv } from "./AbaInventario";
 import { causarDano, comEstado, curar, defesasDerivadas, definirTemporarios, descansoCurto, descansoLongo, lerEstadoJogo, ROTULO_DEFESA, somaTemporaria, type AlvoMod } from "./estadoJogo";
 import { metros, sinal } from "./tipos";
+import type { ChaveMoeda } from "../moedas/moedas";
 
 export type AbaId = "ficha" | "habilidades" | "inventario";
 const ABAS: [AbaId, string][] = [["ficha", "Ficha"], ["habilidades", "Habilidades"], ["inventario", "Inventário"]];
@@ -52,13 +53,15 @@ export type FichaJogoProps = {
   memoria: string;
   onChange: (d: CharacterDraft) => void; onOpenContent: (s: TabSpec) => void;
   onEditar: () => void; onProgredir: () => void;
+  /** Moedas em uso na campanha. */
+  moedas?: readonly ChaveMoeda[];
   /** O mestre pode entregar talentos, magias e habilidades. */
   podeConceder?: boolean;
   /** Estado do salvamento, avisos (conflito, recuperação) e estado em combate informado pelo mestre. */
   salvamento?: ReactNode; avisos?: ReactNode; combate?: ReactNode;
 };
 
-export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, combate, podeConceder }: FichaJogoProps) {
+export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, combate, podeConceder, moedas }: FichaJogoProps) {
   const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft]);
   const base = useMemo(() => statistics2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft]);
   const estado = lerEstadoJogo(draft);
@@ -145,7 +148,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
     <div className="ficha-conteudo" data-aba={mem.aba}>
       {mem.aba === "ficha" && <AbaFicha {...propsAba}/>}
       {mem.aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder}/>}
-      {mem.aba === "inventario" && <AbaInventario {...propsAba} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
+      {mem.aba === "inventario" && <AbaInventario {...propsAba} moedas={moedas} mestre={podeConceder} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
     </div>
     <p className="muted ficha-dado">Dado de vida d{class2014(draft).data.hitDie} · cálculos das regras SRD 5.1 (2014).</p>
   </div>;

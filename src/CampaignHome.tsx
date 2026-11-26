@@ -5,6 +5,7 @@ import { Pencil, ScrollText, Users, X } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "./AuthContext";
 import { EditorCapa, FaixaCapa, useCapaCampanha, type EstadoCapa } from "./CapaCampanha";
+import { ConfigMoedas } from "./moedas/ConfigMoedas";
 import { RetratoQuadrado } from "./RetratoCombate";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { AventureirosContext } from "./AventureirosContext";
@@ -69,6 +70,7 @@ function EditarCampanha({ id, capa, onOpen, fechar, sujo, aoSujar }: { id: strin
     <header><h2>Editar campanha</h2><button type="button" className="btn-secondary ini-icone" aria-label="Fechar edição" title="Fechar" onClick={pedirSaida}><X size={16} aria-hidden="true"/></button></header>
     <section aria-label="Informações da campanha"><h3>Informações</h3><InformacoesForm id={id} onOpen={onOpen} fechar={sair} aoSujar={aoSujar}/></section>
     <section aria-label="Imagem e enquadramento"><h3>Imagem da capa</h3><EditorCapa capa={capa}/></section>
+    <section aria-label="Moedas da campanha"><h3>Moedas da campanha</h3><ConfigMoedas campaignId={id}/></section>
     <section aria-label="Participantes e convites"><CampaignPanel id={id} onOpen={onOpen} embedded/></section>
   </dialog>;
 }

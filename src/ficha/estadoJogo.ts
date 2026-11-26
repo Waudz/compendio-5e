@@ -3,6 +3,7 @@
 // seguem o Compêndio 1.0 (`js/jogo.js`, `js/recursos.js`, `js/personagem.js`); os cálculos de atributos continuam no motor `regras-2014`.
 import { srdItem } from "../catalogue/srd-2014-items";
 import type { CharacterDraft, CharacterSheet } from "../rules/character-domain";
+import type { ChaveMoeda } from "../moedas/moedas";
 
 
 export type AlvoMod = "ac" | "initiative" | "speed" | "passivePerception" | "saves" | "attacks";
@@ -132,18 +133,17 @@ export function pesoCarregado(draft: CharacterDraft): number {
 }
 /** Como no Compêndio 1.0: Força × 7 kg. */
 export const capacidadeDeCarga = (forca: number) => forca * 7;
-export type CategoriaInv = "armas" | "protecao" | "outros";
+export type CategoriaInv = "armas" | "protecao" | "consumiveis" | "outros";
 export function categoriaDoItem(itemId: string): CategoriaInv {
   const d = srdItem(itemId);
-  return d?.arma ? "armas" : d?.armadura ? "protecao" : "outros";
+  return d?.arma ? "armas" : d?.armadura ? "protecao" : d?.categoria === "pocao" || d?.categoria === "municao" || d?.categoria === "pergaminho" ? "consumiveis" : "outros";
 }
 /** Só armas, armaduras, escudos e acessórios vestíveis podem ser equipados. */
 export function podeEquipar(itemId: string): boolean {
   const d = srdItem(itemId);
   return !!(d && (d.arma || d.armadura || d.espaco));
 }
-export const MOEDAS_FICHA = [["cp", "PC"], ["sp", "PP"], ["ep", "PE"], ["gp", "PO"], ["pp", "PL"]] as const;
-export type ChaveMoeda = (typeof MOEDAS_FICHA)[number][0];
+
 export function definirMoeda(draft: CharacterDraft, chave: ChaveMoeda, n: number): CharacterDraft {
   if (!Number.isSafeInteger(n) || n < 0 || n > 10_000_000) return draft;
   return { ...draft, currency: { cp: 0, sp: 0, gp: 0, ...draft.currency, [chave]: n } };
