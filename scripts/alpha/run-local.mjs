@@ -52,6 +52,60 @@ try {
     const promote = await api('/rest/v1/rpc/set_member_role', {token: p, method: 'POST', body: {p_campaign_id: a, p_user_id: player.user.id, p_role: 'mestre'}});
     assert.equal(promote.ok, false);
   });
+  await check('codex: REST/JWT projection, mutation denial, private notes and notifications', async () => {
+    const data = {category:'monster',systemId:'dnd5e-2014',definitionId:'goblin',title:'Goblin de teste',knowledge:1,
+      description:[{type:'paragraph',content:[{type:'text',text:'Texto autorizado'}]}],secret:'DO NOT PROJECT',stats:{ca:15,pv:7}};
+    const id = await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:data});
+    const list=()=>rpc('codex_list',p,{p_campaign:a});
+    let projection=(await list()).find(x=>x.id===id);
+    assert.equal(projection.title,data.title);assert.equal('secret' in projection,false);assert.equal('stats' in projection,false);assert.equal('description' in projection,false);
+    assert.deepEqual(await ok(`/rest/v1/notes?id=eq.${id}`,{token:p}),[]);
+    assert.deepEqual(await ok(`/rest/v1/campaign_codex?id=eq.${id}`,{token:p}),[]);
+    for(const token of [p,o]) {
+      assert.equal((await api('/rest/v1/rpc/codex_save',{token,method:'POST',body:{p_campaign:a,p_entry:id,p_version:1,p_data:{...data,knowledge:4}}})).ok,false);
+      assert.equal((await api('/rest/v1/rpc/codex_remove',{token,method:'POST',body:{p_campaign:a,p_entry:id,p_version:1}})).ok,false);
+    }
+    assert.equal((await api('/rest/v1/rpc/codex_list',{token:o,method:'POST',body:{p_campaign:a}})).ok,false);
+    assert.equal((await api('/rest/v1/rpc/codex_list',{method:'POST',body:{p_campaign:a}})).ok,false);
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:1,p_data:{...data,title:'Texto corrigido'}});
+    const notices=await ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:p});assert.equal(notices.length,1);
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:2,p_data:{...data,knowledge:4}});
+    projection=(await list()).find(x=>x.id===id);assert.equal(projection.stats.ca,15);assert.equal('secret' in projection,false);
+    const secondSession=await ok('/auth/v1/token?grant_type=password',{method:'POST',body:{email:player.email,password}});
+    assert.deepEqual(await rpc('codex_list',secondSession.access_token,{p_campaign:a}),await list());
+    assert.equal((await api('/rest/v1/rpc/codex_save',{token:m,method:'POST',body:{p_campaign:a,p_entry:id,p_version:2,p_data:data}})).ok,false);
+    assert.equal((await api(`/rest/v1/notes?id=eq.${id}`,{token:m,method:'PATCH',body:{visibility:'campaign'}})).ok,false);
+    await rpc('codex_remove',m,{p_campaign:a,p_entry:id,p_version:3});
+    assert.equal((await list()).some(x=>x.id===id),false);
+    assert.deepEqual(await ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:p}),[]);
+  });
+  await check('codex Storage: real upload, replacement, read boundary and denied writes',async()=>{
+    const data={category:'monster',systemId:'dnd5e-2014',definitionId:'storage-test',title:'Storage isolado',knowledge:2};
+    const id=await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:data});
+    const path=`${a}/${id}/${randomUUID()}`,next=`${a}/${id}/${randomUUID()}`;
+    const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==','base64');
+    async function object(name,token,method='GET',mime='image/png'){
+      const path='/storage/v1/object/'+(method==='GET'?'authenticated/':'')+'codex-assets'+(method==='DELETE'?'':'/'+name);
+      route(path);return fetch(origin+path,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{apikey:config.ANON_KEY,Authorization:`Bearer ${token}`,'Content-Type':method==='DELETE'?'application/json':mime},body:method==='POST'?pixel:method==='DELETE'?JSON.stringify({prefixes:[name]}):undefined});
+    }
+    assert.equal((await object(path,m,'POST')).ok,true);
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:1,p_data:{...data,imagePath:path}});
+    assert.equal((await object(path,p)).ok,false);assert.equal((await object(path,config.ANON_KEY)).ok,false);
+    for(const token of[p,o])assert.equal((await object(next,token,'POST')).ok,false);
+    assert.equal((await object(next,m,'POST','text/html')).ok,false);
+    assert.equal((await rpc('codex_list',m,{p_campaign:a})).find(x=>x.id===id).imagePath,path);
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:2,p_data:{...data,knowledge:3,imagePath:path}});
+    assert.equal((await object(path,p)).ok,true);assert.equal((await object(path,o)).ok,false);
+    assert.equal((await object(next,m,'POST')).ok,true);
+    const failedPointer=await api('/rest/v1/rpc/codex_save',{token:m,method:'POST',body:{p_campaign:a,p_entry:id,p_version:2,p_data:{...data,knowledge:3,imagePath:next}}});
+    assert.equal(failedPointer.ok,false);assert.equal((await object(path,p)).ok,true);assert.equal((await object(next,p)).ok,false);
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:3,p_data:{...data,knowledge:3,imagePath:next}});
+    assert.equal((await object(path,p)).ok,false);assert.equal((await object(path,config.ANON_KEY)).ok,false);assert.equal((await object(next,p)).ok,true);
+    await object(next,p,'DELETE');assert.equal((await object(next,m)).ok,true);
+    await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:4,p_data:{...data,knowledge:3}});
+    assert.equal((await object(next,p)).ok,false);assert.equal((await object(next,m,'DELETE')).ok,true);
+    await rpc('codex_remove',m,{p_campaign:a,p_entry:id,p_version:5});
+  });
   await check('cover framing (0012): master saves, members read, player cannot write, invalid rejected', async () => {
     const framing = {zoom: 1.5, x: 20, y: 80};
     await ok(`/rest/v1/campaigns?id=eq.${a}`, {token: m, method: 'PATCH', body: {cover_framing: framing}});

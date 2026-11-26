@@ -109,8 +109,8 @@ describe("isolamento dos dados locais entre contas", () => {
 
   it("troca de conta sem recarregar: a segunda conta nunca vê abas, estado ou menus da primeira", async () => {
     const { auth } = await renderApp();
-    fireEvent.click(nav("Compêndio"), { ctrlKey: true }); fireEvent.click(nav("Documentos"), { ctrlKey: true });
-    expect(tabNames()).toEqual(["Personagens", "Compêndio", "Documentos"]);
+    fireEvent.click(nav("Compêndio"), { ctrlKey: true }); fireEvent.click(nav("Diário"), { ctrlKey: true });
+    expect(tabNames()).toEqual(["Personagens", "Compêndio", "Diário"]);
     await auth.emit("SIGNED_OUT", null);
     await screen.findByRole("heading", { name: "Entrar" });
     await auth.emit("SIGNED_IN", { user: other });
@@ -143,7 +143,7 @@ describe("isolamento dos dados locais entre contas", () => {
   });
 
   it("o layout de uma conta não é lido por outra, nem com o mesmo navegador e o mesmo dispositivo", async () => {
-    localStorage.setItem(layoutKey(me.id), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", weight: 100, children: [{ type: "tab", id: "secao:documentos" }] }] } }));
+    localStorage.setItem(layoutKey(me.id), JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", weight: 100, children: [{ type: "tab", id: "secao:diario" }] }] } }));
     await renderApp({ user: other });
     expect(tabNames()).toEqual(["Personagens"]);
   });
@@ -158,7 +158,7 @@ describe("layout guarda só ids (nunca títulos)", () => {
     medir();
     await renderApp({ api: campApi([m]) });
     await waitFor(() => expect(tabNames()).toContain("Segredo da Mesa Sombria"));
-    fireEvent.click(nav("Documentos"));
+    fireEvent.click(nav("Diário"));
     fireEvent.click(nav("Início"));
     await waitFor(() => expect(tabNames()).toContain("Segredo da Mesa Sombria"));
     const dump = store.key(0) === null ? "" : [...Array(store.length).keys()].map(i => `${store.key(i)}=${store.getItem(store.key(i)!)}`).join("\n");

@@ -1,3 +1,4 @@
+import { CodexProvider, type CodexApi } from "./compendio/conhecimento";
 // Apoio aos testes (não é importado pelo app).
 import { render, screen } from "@testing-library/react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
@@ -43,10 +44,11 @@ export function fakeAuth(user: User | null) {
 export const emptyCampaignApi = () => ({ list: async () => ({ ok: true, data: [] }) }) as unknown as CampaignApi;
 
 /** Monta o aplicativo completo (porta de entrada + espaço de trabalho). Com usuário, espera o menu aparecer. */
-export async function renderApp(opts: { user?: User | null; api?: CampaignApi; auth?: ReturnType<typeof fakeAuth>; registros?: RegistrosApi; capa?: CapaApi; fichas?: FichasApi; config?: ConfigCampanhaApi; waitForMenu?: boolean } = {}) {
+export async function renderApp(opts: { codex?: CodexApi; user?: User | null; api?: CampaignApi; auth?: ReturnType<typeof fakeAuth>; registros?: RegistrosApi; capa?: CapaApi; fichas?: FichasApi; config?: ConfigCampanhaApi; waitForMenu?: boolean } = {}) {
   const auth = opts.auth ?? fakeAuth(opts.user === undefined ? me : opts.user);
   const api = opts.api ?? emptyCampaignApi();
-  const view = render(<AuthProvider client={auth.client}><CampaignsProvider apiFactory={() => api}><AuthGate>{opts.registros || opts.capa || opts.fichas || opts.config ? <RegistrosProvider api={opts.registros ?? null} capa={opts.capa ?? null} fichas={opts.fichas} config={opts.config ?? null}><App/></RegistrosProvider> : <App/>}</AuthGate></CampaignsProvider></AuthProvider>);
+  const app = <AuthProvider client={auth.client}><CampaignsProvider apiFactory={() => api}><AuthGate>{opts.registros || opts.capa || opts.fichas || opts.config ? <RegistrosProvider api={opts.registros ?? null} capa={opts.capa ?? null} fichas={opts.fichas} config={opts.config ?? null}><App/></RegistrosProvider> : <App/>}</AuthGate></CampaignsProvider></AuthProvider>;
+  const view = render(opts.codex ? <CodexProvider api={opts.codex}>{app}</CodexProvider> : app);
   if (opts.user !== null && opts.waitForMenu !== false) await screen.findByRole("navigation", { name: "Menu principal" });
   return { ...view, auth, api };
 }

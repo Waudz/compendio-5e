@@ -399,3 +399,9 @@ Substitui a **identidade visual** da DEC-029 (a lógica dela permanece). As refe
 - Tipo de ação **Especial**: só habilidades que o SRD resolve fora de ação, ação bônus e reação, e magias de conjuração longa. Sem classificação conhecida, a habilidade aparece só em "Todas".
 - Operação sem suporte no banco aparece **desabilitada e explicada**; nunca simula sucesso.
 - Decisões de produto já aprovadas e ainda sem implementação: mestre **e** jogador identificam itens (jogador no descanso curto ou com a magia Identificação; os dados verdadeiros nunca vão ao jogador pela API); dono e mestre recuperam cargas manualmente até o máximo; sintonização com limite 3, configurável por personagem pelo mestre e validado no servidor; transferência de moedas. **Pendente de decisão:** compartilhamento individual ou coletivo do conhecimento de itens mágicos.
+
+### DEC-031 — Compêndio e projeção de conhecimento (26/11/2026)
+
+Duas áreas Campanha/Regras, sem Enciclopédia e Documentos no menu independente. `notes` é a fonte narrativa; `campaign_codex` referencia registros e definições, sem duplicar fichas ou itens. Conhecimento de criaturas é coletivo (quatro níveis), sem revelação automática por combate. Itens revelados coletivamente nesta etapa são uma decisão explícita do mestre, separada da futura identificação individual/sintonização da DEC-030; posse não concede conhecimento nem adição livre.
+
+A API projeta apenas campos autorizados; RLS preserva os registros privados até para ex-mestres. Imagens secretas ficam em `codex-assets`, separado de `campaign-assets`. Substituição usa arquivo imutável e atualização do ponteiro; sem coleta automática de arquivos antigos. Notificações internas são idempotentes por patamar e destinatário, revalidadas pela autorização atual. SRD e arquivos públicos legados não são segredos da campanha. Detalhes e aplicação da **0015 proposta, não aplicada** em `docs/COMPENDIO-CONHECIMENTO.md`.

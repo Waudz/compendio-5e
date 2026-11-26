@@ -19,3 +19,9 @@ test('startup diagnostics remove JWTs, key lines and connection passwords', () =
   assert.match(text, /failed migration/);
   for (const secret of ['private-value', 'eyJabc.def.ghi', 'postgres:password', 'abc123', 'hidden']) assert.ok(!text.includes(secret));
 });
+
+test('Storage scope is restricted to the codex bucket and UUID paths',()=>{
+ const id='00000000-0000-4000-8000-000000000001';
+ for(const p of [`/storage/v1/object/codex-assets/${id}/${id}/${id}`,`/storage/v1/object/authenticated/codex-assets/${id}/${id}/${id}`,'/storage/v1/object/codex-assets'])assert.equal(route(p),p);
+ for(const p of ['/storage/v1/object/other-bucket','/storage/v1/object/codex-assets/../other','/storage/v1/object/codex-assets?next=evil'])assert.throws(()=>route(p));
+});

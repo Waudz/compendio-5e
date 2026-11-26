@@ -20,7 +20,7 @@ vi.mock("./Panel", async () => {
   }
   type P = Parameters<typeof real.Panel>[0];
   return { Panel: (p: P) => p.kind === "documento" ? <Doc id={p.entity}/>
-    : p.kind === "secao" && p.entity === "documentos" ? <button onClick={() => p.onOpenContent({ kind: "documento", ref: "d1", title: "Rascunho" })}>abrir rascunho</button>
+    : p.kind === "secao" && p.entity === "compendio" ? <button onClick={() => p.onOpenContent({ kind: "documento", ref: "d1", title: "Rascunho" })}>abrir rascunho</button>
     : <real.Panel {...p}/> };
 });
 
@@ -60,7 +60,7 @@ describe("menu principal", () => {
     await montar([mA]);
     const n = nomesMenu();
     expect(n).not.toContain("Campanhas");
-    for (const s of ["Personagens", "Iniciativa", "Encontros", "Enciclopédia", "Compêndio", "Documentos", "Conta"]) expect(n).toContain(s);
+    for (const s of ["Personagens", "Iniciativa", "Encontros", "Compêndio", "Conta"]) expect(n).toContain(s);
     expect(sections.map(s => s.page)).not.toContain("campanhas");
   });
   it("celular: o funcionamento atual é preservado (Campanhas continua acessível na barra do celular)", async () => {
@@ -114,7 +114,7 @@ describe("seletor de campanha", () => {
   });
   it("alterações não salvas protegem a troca: Cancelar mantém a campanha e o texto; Descartar troca", async () => {
     await montar([mA, mB], "ca");
-    fireEvent.click(within(menu()).getByRole("button", { name: "Documentos" })); fireEvent.click(screen.getByRole("button", { name: "abrir rascunho" }));
+    fireEvent.click(within(menu()).getByRole("button", { name: "Compêndio" })); fireEvent.click(screen.getByRole("button", { name: "abrir rascunho" }));
     fireEvent.change(await screen.findByLabelText("Texto d1"), { target: { value: "importante" } });
     abrirSeletor(); escolher("Mesa da Lua");
     const dlg = await screen.findByRole("alertdialog");

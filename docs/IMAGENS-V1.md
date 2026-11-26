@@ -22,3 +22,9 @@
 1. **Cópia própria dos arquivos.** Hoje o 2.0 depende do armazenamento do 1.0: desligar o projeto do 1.0 faria as imagens sumirem. Antes disso, copiar os arquivos para o armazenamento do 2.0 (exige autorização: baixa arquivos e grava em produção) e trocar `base` no mapa.
 2. **Acervo do aparelho e criações personalizadas:** exportar pelo backup do 1.0 no aparelho em que foram cadastradas e importar quando o 2.0 tiver imagens por campanha.
 3. Galeria colaborativa global (decisões das seções 13 a 18 da especificação): não implementada nesta etapa.
+
+## Revalidação de 26/11/2026
+
+`node scripts/catalogo/auditar-imagens-v1.mjs --http`: 77 itens e 52 monstros, 129 IDs canônicos encontrados, nenhuma URL inválida, **129 respostas HTTP 200**. Nenhuma associação substituída ou removida; nenhuma nova imagem genérica foi introduzida. Lista/grade e detalhes agora usam o mesmo retrato e fallback do inventário/combate.
+
+Consulta somente leitura ao checkout legado: 12 arquivos de imagem no repositório, incluindo os quatro retratos SRD já auditados em `fotos/`; os outros oito são ícones das escolas de magia, não retratos pendentes de criaturas/itens. O dragão de ouro removido do catálogo continua excluído do mapa; a existência do arquivo não autoriza desfazer a remoção. Nenhum arquivo do 1.0 foi alterado. IndexedDB e bibliotecas pessoais do navegador não são arquivos desse checkout e **não foram recuperados**; exigem exportação pelo aparelho que os guarda. Não foi acessado banco privado legado. Permanecem as dependências de hospedagem e de exportação descritas acima.

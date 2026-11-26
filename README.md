@@ -38,11 +38,17 @@ Esta seção prevalece sobre os registros datados mais acima.
 ## Personagem D&D 5e 2014 (26/11/2026)
 
 - **Criação por etapas** (identidade, raça, classe, origem, atributos, equipamentos iniciais, revisão e identidade pública), **edição por categorias** e **subida de nível** com comparação.
-- **Ficha** em três abas, com CA no escudo, nível no D20, PV sem barra, atributos em molduras; Habilidades por categoria com favoritos no topo; inventário em grade quadrada ou lista, com usar, transferir e excluir.
+- **Ficha** em três abas, com indicadores e atributos responsivos, PV sem barra e controles sem molduras ornamentadas; Habilidades por categoria com favoritos no topo; inventário em grade quadrada ou lista, com usar, transferir e excluir.
 - **PV, temporários e condições com uma única fonte**: ficha e Iniciativa em tempo real.
 - **Editor único de imagens** (arraste e zoom, não destrutivo) e **tema claro** opcional em Conta.
 
 Decisões em [DEC-029](DECISOES-E-ARQUITETURA.md). **Publicação depende da migração 0014** (proposta, não aplicada): ver "RETOMAR AQUI" em [docs/CONTINUIDADE-DESENVOLVIMENTO.md](docs/CONTINUIDADE-DESENVOLVIMENTO.md). Demonstração local com fichas e duas abas: `npm run dev` e `?demo=jogador&fichas=1&nuvem=1` (mestre em outra aba). Prazo de entrega: 12/12/2026.
+
+## Compêndio unificado (26/11/2026, em revisão)
+
+Campanha reúne aventureiros/NPCs, Bestiário conhecido, Locais, Organizações e Descobertas. Regras reúne sete categorias, reutilizando os dados do criador e do combate. Listas, grades e detalhes preservam as imagens selecionadas no 1.0. O mestre revela conhecimentos coletivos; jogadores recebem uma projeção autorizada no servidor, sem notas secretas. Revelar um item não libera sua adição manual ao inventário.
+
+**Requer migração 0015, proposta e não aplicada**, além das anteriores. A publicação permanece bloqueada para revisão. Fontes, limitações, notificações, Storage privado e procedimento exato em [Compêndio e conhecimento](docs/COMPENDIO-CONHECIMENTO.md). A interface não é uma barreira para o SRD público empacotado; a segurança protege os dados privados da campanha. Sem identificação/sintonização nova, galeria global, PWA ou publicação nesta etapa.
 
 ## Validação no GitHub Actions e previews
 

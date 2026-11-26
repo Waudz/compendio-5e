@@ -21,6 +21,9 @@ const rolarAte = (page: Page, destino: 'fim' | 'inicio', passos: number) => page
 test('rolagem rápida até o fim: as barras mudam uma única vez, a área não muda de tamanho e o fim do conteúdo fica acessível', async ({ page }, info) => {
   test.skip((page.viewportSize()?.width ?? 1440) > 700, 'Navegação do celular.');
   await openDemo(page); await navigate(page, 'Compêndio');
+  await page.getByRole('button', {name:'Regras',exact:true}).click();
+  await page.getByRole('button', {name:/^Itens /}).click();
+  await expect(page.getByRole('searchbox',{name:'Pesquisar no Compêndio',exact:true})).toBeVisible();
   await expect.poll(async () => (await medida(page)).max).toBeGreaterThan(300);
   const inicio = await medida(page);
   expect(inicio.ocultas).toBe(false); expect(inicio.topo.bottom).toBeGreaterThan(0);
@@ -52,6 +55,9 @@ test('rolagem rápida até o fim: as barras mudam uma única vez, a área não m
 test('no topo as barras aparecem e o começo do conteúdo não fica atrás do cabeçalho', async ({ page }, info) => {
   test.skip((page.viewportSize()?.width ?? 1440) > 700, 'Navegação do celular.');
   await openDemo(page); await navigate(page, 'Compêndio');
+  await page.getByRole('button', {name:'Regras',exact:true}).click();
+  await page.getByRole('button', {name:/^Itens /}).click();
+  await expect(page.getByRole('searchbox',{name:'Pesquisar no Compêndio',exact:true})).toBeVisible();
   await expect.poll(async () => (await medida(page)).max).toBeGreaterThan(300);
   await rolarAte(page, 'fim', 4); await rolarAte(page, 'inicio', 4);
   await expect.poll(async () => (await medida(page)).ocultas).toBe(false);

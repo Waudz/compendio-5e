@@ -43,7 +43,7 @@ function RetratoDaLista({ p }: { p: PersonagemCampanha }) {
 }
 
 /** Uma lista só: cada personagem aparece uma vez, com a ficha e a identidade pública vinculadas pelo mesmo registro. */
-export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec) => void }) {
+export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpenContent: (s: TabSpec) => void; somenteMeus?: boolean }) {
   const api = useRegistros(), fichas = useFichas(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros(), { aoClicarDireito } = useAbrirEmAba();
   const [dados, setDados] = useState<ListaPersonagens | null>(null), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [aviso, setAviso] = useState<{ ok: boolean; t: string } | null>(null), [descartando, setDescartando] = useState<string | null>(null), [enviando, setEnviando] = useState<string | null>(null);
@@ -79,12 +79,12 @@ export function PersonagensPanel({ onOpenContent }: { onOpenContent: (s: TabSpec
   const cartao = (chave: string, spec: TabSpec, dica: string, retrato: React.ReactNode, nome: string, alcunha: string | null, detalhe: string, notas: (string | null)[]) => <li key={chave}>
     <button className="home-char" onClick={() => onOpenContent(spec)} onContextMenu={e => aoClicarDireito(e, spec)} title={dica}>{retrato}
       <span><strong>{nome}</strong>{alcunha && <>{" "}<em className="home-char-alcunha">{alcunha}</em></>}{" "}<small>{detalhe}</small>{notas.filter(Boolean).map(n => <small key={n} className="home-char-nota">{n}</small>)}</span></button></li>;
-  const personagens = dados?.personagens ?? [];
+  const personagens = (dados?.personagens ?? []).filter(p => !somenteMeus || p.meu);
   const soLocais = fichas ? [] : locais;   // sem API de fichas, os guiados deste navegador fazem parte da própria lista
   const vazio = !!dados && personagens.length === 0 && soLocais.length === 0;
   return <div className="content personagens">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
-    <div className="row-between"><h1>Personagens</h1><button className="btn-primary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
+    <div className="row-between"><h1>{somenteMeus ? "Meus personagens" : "Personagens"}</h1><button className="btn-primary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
     <p className="muted">Cada participante cria o próprio personagem. A ficha é privada (dono e mestre); os outros jogadores veem só a apresentação, sem o que o dono ocultar.{fichas ? "" : " Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
     {aviso && <Aviso erro={!aviso.ok} t={aviso.t}/>}
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}

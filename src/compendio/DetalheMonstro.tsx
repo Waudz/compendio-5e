@@ -1,3 +1,4 @@
+import { RetratoQuadrado } from "../RetratoCombate";
 // Detalhe (ficha) de um monstro SRD 2014. Textos em português traduzidos pelo tradutor do Compêndio 1.0; o original em inglês fica disponível
 // em cada característica/ação traduzida, e o que não pôde ser traduzido com segurança aparece no original, com aviso.
 import type { ReactNode } from "react";
@@ -50,7 +51,7 @@ export function DetalheMonstro({ monstro: m, onAbrirMagia }: { monstro: Monstro;
   if (m.idiomas) linhas.push(["Idiomas", m.idiomas]);
   const imagem = imagemDoMonstro(m.id);
   return <>
-    {imagem && <img className="catalogo-imagem" src={imagem} alt={`Imagem de ${m.nome}`} loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/>}
+    {<div className="catalogo-imagem"><RetratoQuadrado src={imagem} tipo="monstro" tamanho={220}/></div>}
     <p className="muted cat-linha-tipo">{rotuloTipoCriatura(m.tipo)} {rotuloTamanho(m.tamanho).toLocaleLowerCase("pt-BR")}{m.tendencia ? `, ${m.tendencia.toLocaleLowerCase("pt-BR")}` : ""} · {m.en}</p>
     <dl className="item-fatos">
       <div><dt>Classe de Armadura</dt><dd>{m.ca}{m.caDetalhe ? ` (${m.caDetalhe})` : ""}</dd></div>
