@@ -74,9 +74,9 @@ export function CompendioCatalogo({ onOpenContent, categoriaInicial, onVoltar, o
     <div className="eyebrow">COMPÊNDIO 5e · {sistemaDnd5e2014.fonte.titulo.toLocaleUpperCase("pt-BR")}</div>
     <h1>Compêndio</h1>
     {onVoltar && <button type="button" className="btn-secondary" onClick={onVoltar}><ArrowLeft size={16}/> Voltar às categorias</button>}
-    <div className="cat-categorias" role="group" aria-label="Categorias do Compêndio">
-      {categorias.filter(c => !ocultarMonstros || c.id !== "monstros").map(c => <button key={c.id} type="button" aria-pressed={c.id === cat.id} className={c.id === cat.id ? "active" : ""} onClick={() => trocarCategoria(c.id)}>{c.rotulo}</button>)}
-    </div>
+    {(!onVoltar || categoriaInicial === "classes") && <div className="cat-categorias" role="group" aria-label="Categorias do Compêndio">
+      {categorias.filter(c => (!ocultarMonstros || c.id !== "monstros") && (!onVoltar || ["classes", "subclasses"].includes(c.id))).map(c => <button key={c.id} type="button" aria-pressed={c.id === cat.id} className={c.id === cat.id ? "active" : ""} onClick={() => trocarCategoria(c.id)}>{c.rotulo}</button>)}
+    </div>}
     <div className={`cat-corpo${itemAberto ? " com-detalhe" : ""}`}>
       <div className="cat-lista-area">
         <div className="compendio-filtros">
