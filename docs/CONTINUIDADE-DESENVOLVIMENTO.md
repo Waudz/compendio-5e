@@ -816,3 +816,13 @@ Validação local consolidada dessa fatia de vínculos: build e tipos de aplicat
 aprovados; **1747 testes/145 arquivos aprovados**, incluindo os quatro casos novos.
 O PR é dependente do #161, sem merge/publicação; a execução Playwright ocorre no CI,
 pois o ambiente local não dispõe do binário executável exigido.
+
+Revisão de limite após o CI verde: a expressão de instâncias de aba rejeitava sufixos
+10–19 e 100–199. Corrigida para aceitar inteiros seguros a partir de 2; três testes
+novos provam a restauração de 10, 19 e 100. Isso preserva abas ao recarregar, sem
+alterar registros. A nova cabeça deve ter seu CI confirmado antes de publicar.
+
+As duas entregas tiveram CI completo verde antes do ajuste final de instâncias:
+#161 em `ba73257` e #162 em `d8607a6`. A cópia conjunta com a restauração de instâncias
+10/19/100 passou em build/tipos e **1750 testes/145 arquivos**. Cabeças finais devem
+confirmar novamente o CI; nenhum merge, deploy ou SQL de produção foi executado.
