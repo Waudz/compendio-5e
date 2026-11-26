@@ -1,3 +1,4 @@
+import {tituloDe,useVersaoRegistros} from "./registrosStore";
 import { VoltarPaginaContext } from "./voltarPagina";
 import { SinoNotificacoes } from "./compendio/Notificacoes";
 import { EVENTO_TELA } from "./chromeHide";
@@ -8,7 +9,7 @@ import { type NavMode } from "./navigation";
 import { consumirVoltar, EVENTO_FECHAR_TELA, pedirFicha } from "./voltarInterno";
 import { Panel } from "./Panel";
 import { PersonagensPanel } from "./Personagens";
-import { OrigemAbaContext } from "./abrirEmAba";
+import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { tabId, visibleSections, defaultTitle, type TabSpec } from "./workspace";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -53,9 +54,8 @@ export function Mobile(_props: Props) {
   const [history, setHistory] = useState<TabSpec[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuDialog = useRef<HTMLDivElement>(null);
-  const voltarPeloNavegador = useRef<() => void>(() => {});
-  const navegacaoBrowser = useRef(false);
-  const iniciadoBrowser = useRef(false);
+  const snapshots = useRef(new Map<string,{screen:TabSpec;history:TabSpec[]}>());
+  const entry = useRef<string>('');
   useEffect(() => {
     if (!menuOpen || !menuDialog.current) return;
     const root = menuDialog.current;
@@ -75,7 +75,11 @@ export function Mobile(_props: Props) {
   }, [menuOpen]);
   const scroll = useRef<HTMLDivElement>(null);
   const positions = useRef(new Map<string, number>());
+  useVersaoRegistros();
+  const pageTitle=["documento","ficha","criador"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
   const current = tabId(screen);
+  const currentRef=useRef(current);currentRef.current=current;
+  const menuRef=useRef(menuOpen);menuRef.current=menuOpen;
   const scope = active?.campaign.id ?? "sem-campanha";
   useEffect(() => {
     setScreen(active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: "campanhas" });
@@ -91,7 +95,9 @@ export function Mobile(_props: Props) {
       if (spec.kind === "ficha" || spec.kind === "criador") pedirFicha(spec.ref);
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
       setHistory(h => [...h.slice(-39), screen]);
-      if (!navegacaoBrowser.current) window.history.pushState({ compendioMobile: true }, "", window.location.href);
+      const id=crypto.randomUUID();entry.current=id;
+      snapshots.current.set(id,{screen:spec,history:[...history.slice(-39),screen]});
+      window.history.pushState({ compendioMobile: true, compendioMobileEntry:id, compendioMobileScope:scope }, "", window.location.href);
       setScreen(spec);
       if (spec.kind === "ficha" && user && active) gravarFicha(chaveFicha(user.id, active.campaign.id), spec.ref);
     });
@@ -105,34 +111,33 @@ export function Mobile(_props: Props) {
       const previous = history[history.length - 1];
       setHistory(h => h.slice(0, -1));
       setScreen(previous);
+      window.history.back();
     });
   };
   // O gesto Voltar do Android aciona popstate. Consumir o histórico interno
   // evita que um atalho da campanha feche o navegador/PWA.
-  voltarPeloNavegador.current = () => {
-    if (menuOpen) { setMenuOpen(false); window.history.pushState({ compendioMobile: true }, "", window.location.href); return; }
-    if (!history.length) return;
-    unsaved.guard("all", () => {
-      positions.current.set(current, scroll.current?.scrollTop ?? 0);
-      const previous = history[history.length - 1];
-      setHistory(h => h.slice(0, -1));
-      setScreen(previous);
-    });
-  };
   useEffect(() => {
-    if (!iniciadoBrowser.current) {
-      iniciadoBrowser.current = true;
-      window.history.replaceState({ ...window.history.state, compendioMobile: true }, "", window.location.href);
-    }
-    const aoVoltar = (e: Event) => {
-      if (consumirVoltar(e)) return;
-      navegacaoBrowser.current = true;
-      voltarPeloNavegador.current();
-      navegacaoBrowser.current = false;
+    let live=true;
+    const id=crypto.randomUUID();entry.current=id;
+    snapshots.current.clear();snapshots.current.set(id,{screen:home,history:[]});
+    window.history.replaceState({...window.history.state,compendioMobile:true,compendioMobileEntry:id,compendioMobileScope:scope},"",window.location.href);
+    const aoVoltar = (event: PopStateEvent) => {
+      if(consumirVoltar(event))return;
+      const state=event.state as {compendioMobileEntry?:string;compendioMobileScope?:string}|null;
+      if(state?.compendioMobileScope!==scope||!state.compendioMobileEntry)return;
+      const target=snapshots.current.get(state.compendioMobileEntry);if(!target)return;
+      if(menuRef.current){setMenuOpen(false);window.history.pushState({compendioMobile:true,compendioMobileEntry:entry.current,compendioMobileScope:scope},"",window.location.href);return;}
+      const nextId=state.compendioMobileEntry;
+      positions.current.set(currentRef.current,scroll.current?.scrollTop??0);
+      void unsaved.confirmAll().then(allowed=>{
+        if(!live)return;
+        if(!allowed){window.history.pushState({compendioMobile:true,compendioMobileEntry:entry.current,compendioMobileScope:scope},"",window.location.href);return;}
+        entry.current=nextId;
+        setScreen(target.screen);setHistory(target.history);
+      });
     };
-    window.addEventListener("popstate", aoVoltar);
-    return () => window.removeEventListener("popstate", aoVoltar);
-  }, []);
+    window.addEventListener("popstate",aoVoltar);return()=>{live=false;window.removeEventListener("popstate",aoVoltar);};
+  },[scope]);
   const fecharTela = useRef<(id: string) => void>(() => {});
   fecharTela.current = id => { if (id.endsWith(`:${screen.ref}`)) goBack(); };
   useEffect(() => {
@@ -177,10 +182,10 @@ export function Mobile(_props: Props) {
   }, [registros, escopoFicha]);
   const fichaPropria = !isMaster && screen.kind === "ficha" && !!user && !!active && propriedade === escopoFicha;
   const meus = !isMaster && isPage("personagens") && screen.title === "Meus personagens";
-  return <div className="mobile mobile-simple">
+  return <AbrirEmAbaContext.Provider value={{navegar:s=>navigate(s),abrir:s=>navigate(s),mostrar:(_x,_y,s)=>navigate(s)}}><div className="mobile mobile-simple">
     {!fichaPropria && !meus && <header className="mobile-topbar">
       <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
-      <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{defaultTitle(screen)}</span></div>
+      <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{pageTitle}</span></div>
       <SinoNotificacoes onOpenContent={navigate}/><button className="mobile-icon-btn" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/></button>
     </header>}
     <div className="mobile-screen" ref={scroll}>
@@ -202,5 +207,5 @@ export function Mobile(_props: Props) {
         <button onClick={() => navigate({ kind: "conta", ref: "perfil" })}><UserRound size={20}/> Conta</button>
       </div>
     </div>}
-  </div>;
+  </div></AbrirEmAbaContext.Provider>;
 }

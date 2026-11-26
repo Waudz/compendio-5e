@@ -44,7 +44,7 @@ function RetratoDaLista({ p }: { p: PersonagemCampanha }) {
 
 /** Uma lista só: cada personagem aparece uma vez, com a ficha e a identidade pública vinculadas pelo mesmo registro. */
 export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpenContent: (s: TabSpec) => void; somenteMeus?: boolean }) {
-  const api = useRegistros(), fichas = useFichas(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros(), { aoClicarDireito } = useAbrirEmAba();
+  const api = useRegistros(), fichas = useFichas(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros(), { aoClicarDireito, aoClicar, aoBotaoDoMeio } = useAbrirEmAba();
   const [dados, setDados] = useState<ListaPersonagens | null>(null), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [aviso, setAviso] = useState<{ ok: boolean; t: string } | null>(null), [descartando, setDescartando] = useState<string | null>(null), [enviando, setEnviando] = useState<string | null>(null);
   const cid = active?.campaign.id, userId = user?.id ?? null;
@@ -77,7 +77,7 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
   };
   const descartar = (g: ResumoPersonagemGuiado) => { if (!userId) return; try { armazenamentoLocalExperimental(userId, campanhaId).excluir(g.id); } catch { /* ignora */ } setDescartando(null); avisarRegistros(); setTentativa(n => n + 1); setAviso({ ok: true, t: `Rascunho “${g.nome}” removido deste navegador.` }); };
   const cartao = (chave: string, spec: TabSpec, dica: string, retrato: React.ReactNode, nome: string, alcunha: string | null, detalhe: string, notas: (string | null)[]) => <li key={chave}>
-    <button className="home-char" onClick={() => onOpenContent(spec)} onContextMenu={e => aoClicarDireito(e, spec)} title={dica}>{retrato}
+    <button className="home-char" onClick={e => {if(!aoClicar(e,spec))onOpenContent(spec);}} onAuxClick={e=>aoBotaoDoMeio(e,spec)} onMouseDown={e=>{if(e.button===1)e.preventDefault();}} onContextMenu={e => aoClicarDireito(e, spec)} title={dica}>{retrato}
       <span><strong>{nome}</strong>{alcunha && <>{" "}<em className="home-char-alcunha">{alcunha}</em></>}{" "}<small>{detalhe}</small>{notas.filter(Boolean).map(n => <small key={n} className="home-char-nota">{n}</small>)}</span></button></li>;
   const personagens = (dados?.personagens ?? []).filter(p => !somenteMeus || p.meu);
   const soLocais = fichas ? [] : locais;   // sem API de fichas, os guiados deste navegador fazem parte da própria lista

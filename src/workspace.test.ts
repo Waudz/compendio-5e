@@ -194,3 +194,9 @@ describe("múltiplas instâncias de Anotações pelo menu lateral", () => {
     expect(restoredIds).toContain("secao:planejamento~3");
   });
 });
+
+ it.each([10,19,100])("restaura instância %s sem perder a aba ao recarregar",instance=>{
+  const id=`secao:planejamento~${instance}`;
+  const layout=sanitizeLayout({layout:{type:"row",children:[{type:"tabset",children:[{id}]}]}})!;
+  expect(ids(createModel(layout)).flat()).toEqual([id]);
+ });

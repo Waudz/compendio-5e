@@ -10,7 +10,8 @@ export async function insideFocus(locator: Locator) {
     { message: 'O foco deve permanecer dentro do diálogo aberto' }).toBe(true);
 }
 export async function splitWorkspace(page: Page) {
-  await page.getByRole('button', { name: 'Recolher menu', exact: true }).click();
+  const collapse=page.getByRole('button', { name: 'Recolher menu', exact: true });
+  if(await collapse.count())await collapse.click();
   const nav = page.getByRole('navigation', { name: 'Menu principal' });
   await nav.getByRole('button', { name: 'Anotações', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Anotações', exact: true })).toBeVisible();

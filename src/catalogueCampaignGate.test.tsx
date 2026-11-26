@@ -6,7 +6,7 @@ let context: { active: { campaign: { id: string } } | null; loading: boolean; er
 vi.mock("./CampaignsContext", () => ({ useCampaigns: () => context }));
 vi.mock("./compendio/CompendioCatalogo", () => ({ CompendioCatalogo: () => <div>Catálogo disponível</div> }));
 vi.mock("./catalogue/srd-2014-items", async importOriginal => ({...await importOriginal<typeof import("./catalogue/srd-2014-items")>(), srdItem: vi.fn(() => undefined) }));
-import { CompendioPanel, ItemPagina } from "./Compendio";
+import { CategoriaCompendio, CompendioPanel, ItemPagina } from "./Compendio";
 import { srdItem } from "./catalogue/srd-2014-items";
 
 beforeEach(() => { context = { active: null, loading: false, error: null, refresh: vi.fn(async () => {}) }; vi.clearAllMocks(); });
@@ -41,12 +41,15 @@ describe("catálogo exige campanha validada", () => {
   });
   it("campanha validada permite consultar e sua remoção fecha o conteúdo imediatamente", () => {
     context.active = { campaign: { id: "a" } };
-    const { rerender } = render(<CompendioPanel onOpenContent={vi.fn()}/>);
+    const abrir=vi.fn();
+    const { rerender } = render(<CompendioPanel onOpenContent={abrir}/>);
     fireEvent.click(screen.getByRole("button", {name:"Regras"}));
     fireEvent.click(screen.getByRole("button", {name:/^Itens /}));
+    expect(abrir).toHaveBeenCalledWith({kind:"categoria",ref:"itens",title:"Itens"});
+    rerender(<CategoriaCompendio id="itens" onOpenContent={abrir}/>);
     expect(screen.getByText("Catálogo disponível")).toBeTruthy();
     context.active = null;
-    rerender(<CompendioPanel onOpenContent={vi.fn()}/>);
+    rerender(<CategoriaCompendio id="itens" onOpenContent={abrir}/>);
     expect(screen.queryByText("Catálogo disponível")).toBeNull();
   });
 });

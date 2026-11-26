@@ -460,11 +460,13 @@ describe("habilidades: filtros por ação, favoritos e detalhes sem perder a fic
     fireEvent.click(within(magia).getByRole("button", { name: /^Raio de Fogo/ }));
     fireEvent.click(within(magia).getByRole("button", { name: "Abrir no Compêndio: Raio de Fogo" }));
     expect(await screen.findByRole("heading", { name: "Raio de Fogo", level: 1 })).toBeTruthy();
-    expect(document.querySelectorAll(".flexlayout__tabset")).toHaveLength(2);
-    expect(screen.getByTestId("ficha-guiada-leitura")).toBeTruthy();
+    expect(document.querySelectorAll(".flexlayout__tabset")).toHaveLength(1);
+    expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
+    fireEvent.click(screen.getByRole("button",{name:"Voltar na aba"}));
+    expect(await screen.findByTestId("ficha-guiada-leitura")).toBeTruthy();
     // cada grupo mantém a sua aba selecionada: a ficha de um lado, a magia do outro (a visibilidade real é conferida no Playwright)
     const selecionadas = [...document.querySelectorAll(".flexlayout__tab_button--selected .flexlayout__tab_button_content")].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ""));
-    expect(selecionadas.sort()).toEqual(["Raio de Fogo", "Thorin"]);
+    expect(selecionadas.sort()).toEqual(["Thorin"]);
   });
 });
 

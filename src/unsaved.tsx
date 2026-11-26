@@ -1,7 +1,8 @@
+import {OrigemAbaContext} from "./abrirEmAba";
 // Proteção contra perda de trabalho: editores registram "alterações não salvas" por aba; fechar, fechar coluna, sair da conta,
 // trocar de campanha ou recarregar pedem confirmação. Fixar uma aba NÃO substitui esta proteção. O registro vive em memória
 // (por usuário: o espaço de trabalho é remontado a cada troca de conta) e nada dele é persistido.
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
 export type UnsavedEntry = { dirty: boolean; save?: () => Promise<boolean> | boolean };
 export type UnsavedApi = {
@@ -19,8 +20,10 @@ export const useUnsaved = () => useContext(UnsavedContext);
 
 /** Para editores: informa se há alterações não salvas (e, opcionalmente, como salvar). */
 export function useUnsavedGuard(tabId: string, dirty: boolean, save?: UnsavedEntry["save"]) {
-  const api = useUnsaved();
-  useEffect(() => { api.register(tabId, { dirty, save }); return () => api.register(tabId, null); }, [api, tabId, dirty, save]);
+  const api = useUnsaved(), origin=useContext(OrigemAbaContext), source=useId();
+  const key=`${origin??tabId}::guard:${source}`;
+  useEffect(() => { api.register(key, { dirty, save }); return () => api.register(key, null); }, [api, key, dirty, save]);
+  return () => api.register(key,null);
 }
 
 type Pending = { ids: string[]; proceed: () => void; cancel?: () => void; error?: string };
@@ -28,11 +31,12 @@ type Pending = { ids: string[]; proceed: () => void; cancel?: () => void; error?
 export function useUnsavedRegistry(labelOf: (id: string) => string) {
   const entries = useRef(new Map<string, UnsavedEntry>());
   const [pending, setPending] = useState<Pending | null>(null);
-  const dirtyIds = (ids: string[] | "all") => (ids === "all" ? [...entries.current.keys()] : ids).filter(i => entries.current.get(i)?.dirty);
+  const base=(id:string)=>id.split("::guard:")[0];
+  const dirtyIds = (ids: string[] | "all") => [...entries.current.keys()].filter(i => entries.current.get(i)?.dirty&&(ids==="all"||ids.includes(i)||ids.includes(base(i))));
 
   const api = useMemo<UnsavedApi>(() => ({
     register(id, entry) { if (entry) entries.current.set(id, entry); else entries.current.delete(id); },
-    isDirty: id => entries.current.get(id)?.dirty === true,
+    isDirty: id => dirtyIds([id]).length>0,
     guard(ids, proceed) { const d = dirtyIds(ids); if (!d.length) proceed(); else setPending({ ids: d, proceed }); },
     confirmAll: () => new Promise<boolean>(resolve => {
       const d = dirtyIds("all");
@@ -60,7 +64,7 @@ export function useUnsavedRegistry(labelOf: (id: string) => string) {
   const dialog: ReactNode = pending && <div className="dlg-backdrop"><div className="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlg-t" aria-describedby="dlg-d">
     <h2 id="dlg-t">Alterações não salvas</h2>
     <p id="dlg-d">{pending.ids.length === 1 ? "Esta aba tem alterações que serão perdidas:" : "Estas abas têm alterações que serão perdidas:"}</p>
-    <ul>{pending.ids.map(i => <li key={i}>{labelOf(i)}</li>)}</ul>
+    <ul>{[...new Set(pending.ids.map(base))].map(i => <li key={i}>{labelOf(i)}</li>)}</ul>
     {pending.error && <div className="notice err" role="alert">{pending.error}</div>}
     <div className="row">
       <button className="btn-primary" autoFocus onClick={cancel}>Cancelar</button>

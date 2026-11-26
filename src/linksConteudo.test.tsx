@@ -40,7 +40,7 @@ const nav = (name: string) => within(screen.getByRole("navigation", { name: "Men
 const strip = ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content";
 const rawTabs = () => [...document.querySelectorAll(strip)].map(e => e.textContent);
 const tabs = () => rawTabs().map(t => t?.replace(/\s*\(fixada\)$/, ""));
-const tabEl = (name: string) => screen.getByText(name, { selector: strip });
+const tabEl = (name: string) => screen.getByText(name, { selector: ".flexlayout__tabset_tabbar_inner .workspace-tab-title" });
 const key = storageKey({ user: me.id, campaign: "nenhuma", device: "navegador" });
 const saved = () => JSON.parse(localStorage.getItem(key)!);
 const menuItems = () => within(screen.getByRole("menu")).getAllByRole("menuitem").map(i => i.textContent);
@@ -48,86 +48,41 @@ const pick = (name: string) => fireEvent.click(within(screen.getByRole("menu")).
 const link = (name = "link d1", index = 0) => fireEvent.click(screen.getAllByRole("button", { name })[index]);
 
 describe("link de conteúdo (desktop)", () => {
-  it("abre uma aba permanente (fixada) ao lado da origem, que permanece intacta e normal", async () => {
-    await renderApp();
-    link();
-    expect(tabs()).toEqual(["Personagens", "Resumo da Sessão 3"]);
-    expect(rawTabs()).toEqual(["Personagens", "Resumo da Sessão 3 (fixada)"]);
-  });
-
-  it("o clique normal do menu depois do link reutiliza a aba normal e preserva a permanente", async () => {
-    await renderApp();
-    link();                                                                  // seleciona a nova aba (fixada)
-    fireEvent.click(nav("Iniciativa"));                                      // a fixada não é substituída: troca a aba normal
-    expect(tabs()).toEqual(["Personagens", "Resumo da Sessão 3", "Iniciativa"]);
-    expect(rawTabs()).toContain("Resumo da Sessão 3 (fixada)");
-  });
-
-  it("o registro já aberto é selecionado: sem duplicar e sem mudar a fixação da aba existente", async () => {
-    await renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "abrir d1 pelo menu" }));   // aberta antes, como aba normal
-    expect(rawTabs()).toEqual(["Personagens", "Resumo da Sessão 3"]);
-    fireEvent.click(tabEl("Personagens"));
-    link();
-    expect(tabs()).toEqual(["Personagens", "Resumo da Sessão 3"]);
-    expect(rawTabs()[1]).toBe("Resumo da Sessão 3");                          // continua não fixada
-    expect(document.querySelector(".flexlayout__tab_button--selected")?.textContent).toContain("Resumo da Sessão 3");
-  });
-
-  it("não substitui nem fecha aba com alterações não salvas e não pede confirmação", async () => {
-    await renderApp();
-    link("link d1");
-    fireEvent.change(await screen.findByLabelText("Texto d1"), { target: { value: "rascunho" } });
-    fireEvent.click(tabEl("Personagens"));
-    link("link d2");
-    expect(screen.queryByRole("alertdialog")).toBeNull();
-    expect(tabs()).toEqual(["Personagens", "Resumo da Sessão 3", "Outro doc"]);   // ao lado da origem
-    fireEvent.click(tabEl("Resumo da Sessão 3"));
-    expect((screen.getByLabelText("Texto d1") as HTMLTextAreaElement).value).toBe("rascunho");
-  });
-
-  it("com dois painéis, abre no painel da aba de origem e não mexe no outro", async () => {
-    await renderApp();
-    fireEvent.click(nav("Iniciativa"), { ctrlKey: true });
-    fireEvent.contextMenu(tabEl("Iniciativa")); pick("Abrir em nova coluna à direita");
-    expect(saved().layout.children.map((g: { children: { id: string }[] }) => g.children.map(t => t.id))).toEqual([["secao:personagens"], ["secao:iniciativa"]]);
-    link("link d1", 1);                                                     // botão do painel da direita (origem: Iniciativa)
-    const groups = saved().layout.children as { children: { id: string; pinned?: boolean }[] }[];
-    expect(groups[0].children.map(t => t.id)).toEqual(["secao:personagens"]);
-    expect(groups[1].children.map(t => t.id)).toEqual(["secao:iniciativa", "documento:d1"]);
-    expect(groups[1].children[1].pinned).toBe(true);
-    link("link d1", 0);                                                     // do outro painel: seleciona a existente, não cria cópia
-    expect(JSON.stringify(saved().layout)).toMatch(/documento:d1/); expect((JSON.stringify(saved().layout).match(/documento:d1/g) ?? []).length).toBe(1);
-  });
-
-  it("não abre um terceiro painel: o registro continua único e vai para o painel de quem clicou", async () => {
-    await renderApp();
-    fireEvent.click(nav("Iniciativa"), { ctrlKey: true }); fireEvent.click(nav("Encontros"), { ctrlKey: true });
-    fireEvent.contextMenu(tabEl("Iniciativa")); pick("Abrir em nova coluna à direita");
-    fireEvent.contextMenu(tabEl("Encontros")); pick("Abrir em nova coluna à direita");
-    expect(saved().layout.children).toHaveLength(2);
-    link("link d2", 1);
-    const groups = saved().layout.children as { children: { id: string }[] }[];
-    expect((JSON.stringify(groups).match(/documento:d2/g) ?? [])).toHaveLength(1);
-    expect(groups[1].children.map(t => t.id)).toContain("documento:d2");
-  });
-
-  it("a marca de permanente é salva sem títulos e restaurada ao recarregar", async () => {
-    const first = await renderApp();
-    link();
-    expect(saved().layout.children[1].children.find((t: { id: string }) => t.id === "documento:d1").pinned).toBe(true);
-    expect(localStorage.getItem(key)).not.toMatch(/"name"|Resumo/);
-    first.unmount();
-    await renderApp();
-    expect(rawTabs()).toEqual(["Personagens", "Documento d1 (fixada)"]);       // título vem do rótulo padrão (nada de nome gravado)
-  });
-
-  it("a aba permanente pode ser desafixada e fechada manualmente pelo menu da aba", async () => {
-    await renderApp(); link();
-    fireEvent.contextMenu(tabEl("Resumo da Sessão 3")); expect(menuItems()[0]).toBe("Desafixar aba"); pick("Desafixar aba");
-    expect(rawTabs()).toEqual(["Personagens", "Resumo da Sessão 3"]);
-    fireEvent.contextMenu(tabEl("Resumo da Sessão 3")); pick("Fechar aba");
+  it("substitui somente a página da aba, sem split, e permite voltar e avançar",async()=>{
+    await renderApp();link();expect(tabs()).toEqual(["Resumo da Sessão 3"]);
+    expect(saved().layout.children).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button",{name:"Voltar na aba"}));
     expect(tabs()).toEqual(["Personagens"]);
+    fireEvent.click(screen.getByRole("button",{name:"Avançar na aba"}));
+    expect(await screen.findByLabelText("Texto d1")).toBeTruthy();
+  });
+  it("menu lateral abre outra aba e preserva documento e histórico",async()=>{
+    await renderApp();link();fireEvent.click(nav("Iniciativa"));
+    expect(tabs()).toEqual(["Resumo da Sessão 3","Iniciativa"]);
+    expect(rawTabs()).not.toContain("Resumo da Sessão 3 (fixada)");
+  });
+  it("registro já aberto é selecionado, sem duplicação",async()=>{
+    await renderApp();fireEvent.click(screen.getByRole("button",{name:"abrir d1 pelo menu"}));
+    fireEvent.click(tabEl("Personagens"));link();
+    expect(tabs()).toEqual(["Personagens","Resumo da Sessão 3"]);
+  });
+  it("voltar protege edição; cancelar mantém texto e descartar volta",async()=>{
+    await renderApp();link();fireEvent.change(await screen.findByLabelText("Texto d1"),{target:{value:"rascunho"}});
+    fireEvent.click(screen.getByRole("button",{name:"Voltar na aba"}));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button",{name:"Cancelar"}));
+    expect((screen.getByLabelText("Texto d1") as HTMLTextAreaElement).value).toBe("rascunho");
+    fireEvent.click(screen.getByRole("button",{name:"Voltar na aba"}));
+    fireEvent.click(screen.getByRole("button",{name:"Descartar alterações"}));
+    expect(tabs()).toEqual(["Personagens"]);
+  });
+  it("restaura histórico sem nomes privados e permite recuperar aba fechada",async()=>{
+    const first=await renderApp();link();expect(localStorage.getItem(key)).not.toMatch(/Resumo/);
+    first.unmount();await renderApp();expect(tabs()).toEqual(["Documento d1"]);
+    fireEvent.contextMenu(tabEl("Documento d1"));expect(menuItems()[0]).toBe("Fixar aba");pick("Fechar aba");
+    fireEvent.click(screen.getByRole("button",{name:"Reabrir aba fechada"}));
+    expect(tabs()).toEqual(["Documento d1"]);
+    fireEvent.keyDown(window,{altKey:true,key:"ArrowLeft"});expect(tabs()).toEqual(["Personagens"]);
   });
 });
 

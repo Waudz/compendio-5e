@@ -1,6 +1,7 @@
+import {OrigemAbaContext} from '../abrirEmAba';
 import { deBlocos } from '../registros';
 /** Catálogo de regras: lista/grade compartilhada; detalhes são páginas do workspace. */
-import {useEffect,useMemo,useState} from 'react';
+import {useContext,useEffect,useMemo,useState} from 'react';
 import {useAuth} from '../AuthContext';
 import {useCampaigns} from '../CampaignsContext';
 import {Aviso} from '../Diario';
@@ -26,7 +27,8 @@ type Preference={cat:string;query:string;filters:Record<string,string|boolean>;o
 const sessions=new WeakMap<object,Map<string,Preference>>();
 export function CompendioCatalogo({onOpenContent,categoriaInicial='itens',onVoltar}:{onOpenContent:(s:TabSpec)=>void;categoriaInicial?:string;onVoltar?:()=>void}){
  const {user,client}=useAuth(),{active}=useCampaigns(),knowledge=useConhecimento();
- const cache=useMemo(()=>{if(!client)return new Map<string,Preference>();let c=sessions.get(client);if(!c){c=new Map();sessions.set(client,c);}return c;},[client]);const key=`${user?.id}:${active?.campaign.id}:${categoriaInicial}`,pref=cache.get(key);
+ const origin=useContext(OrigemAbaContext);
+ const cache=useMemo(()=>{if(!client)return new Map<string,Preference>();let c=sessions.get(client);if(!c){c=new Map();sessions.set(client,c);}return c;},[client]);const key=`${user?.id}:${active?.campaign.id}:${origin}:${categoriaInicial}`,pref=cache.get(key);
  const [catId,setCatId]=useState(pref?.cat??categoriaInicial),[query,setQuery]=useState(pref?.query??''),[filters,setFilters]=useState<Record<string,string|boolean>>(pref?.filters??{}),[order,setOrder]=useState(pref?.order??''),[view,setView]=useState<'lista'|'grade'>(pref?.view??'lista'),[limit,setLimit]=useState(pref?.limit??PAGINA),[retry,setRetry]=useState(0);
  const cat=categorias.find(c=>c.id===catId)??categorias[0];
  const [loaded,setLoaded]=useState<{cat:Qualquer;index?:Indice<unknown>;error?:string}>(()=>({cat,index:indiceDisponivel(cat)}));

@@ -689,3 +689,119 @@ Esta seção prevalece sobre estados históricos acima. Prazo Alpha: 12/12/2026.
 - PWA obrigatório Beta: ESPECIFICACAO-PWA-BETA.md; manifest/SW, instalação pelo menu, ícones/splash novos, sessão persistente, cache estático sem dados privados, atualização segura, standalone e navegação interna.
 - Assimilação é próximo sistema após D&D; customizações de assimilações/efeitos por campanha. Dados 3D futuros via @3d-dice/dice-box, motor universal, temas e símbolos Assimilação; galeria global, compartilhamento entre mestres e push futuros.
 - Não alterar produção nesta etapa de documentação. Próximo passo: concluir e testar navegação; depois conhecimento granular/descobertas/vínculos, antes de encontros/loot. Reavaliar cronograma pelo progresso real.
+
+## Revisão da navegação global — 26/11/2026 (em validação)
+
+Branch `fix/compendio-navegacao-granular`, revisão a partir de `34edb22`, com documentação
+`f84a512` incorporada. A implementação parcial não foi publicada como concluída.
+
+- Histórico agora pertence ao modelo da aba (até 40 destinos), com uma única página
+  montada por histórico. Removidos os eventos globais `compendio:abrir-local` e a pilha
+  de páginas escondidas que mantinha editores e efeitos ativos.
+- Clique interno navega na aba; menu abre/foca seção, criando outra instância quando
+  a aba original está mostrando um registro. Registro já aberto é selecionado, sem
+  outro editor. O histórico pode voltar/avançar, inclusive Alt+setas. Layout persistido
+  contém IDs/índice, nunca títulos, filtros privados ou conteúdo dos registros.
+- Controles na barra de abas; recuperação de até 20 abas fechadas na sessão,
+  Ctrl/Cmd+Shift+T, nova aba com ferramentas, tela cheia opcional e logo oficial.
+  Fixar, arrastar e redimensionar continuam pelo FlexLayout, com limite de 2 grupos.
+- Pesquisa/filtros do Compêndio têm escopo de aba, usuário e campanha. Posições de
+  rolagem do histórico são recuperadas na sessão, com espera limitada pelo conteúdo.
+  Alternância de conta/campanha limpa posições e abas fechadas em memória.
+- Mobile usa seu próprio destino para links contextuais e notificações, sem abrir
+  abas desktop invisíveis. A navegação inferior não foi redesenhada.
+
+**Verificação até este registro:** tipos e build passaram. Primeira bateria em estado
+intermediário: 1693 aprovados/49 falhas; depois das correções, 1734 aprovados/5 falhas
+apenas em expectativas antigas de abertura/fixação automática. Essas expectativas
+foram atualizadas para as decisões vigentes; consultar o CI do SHA final para a
+confirmação completa. Nenhum teste foi removido para esconder falha.
+Playwright local foi tentado: seis casos bloqueados antes da execução por falta do
+binário exigido; a alternativa `/usr/bin/chromium` também não tem o executável real.
+Fluxos de navegador, responsividade, fullscreen, F11 e aparelhos físicos dependem de
+CI/validação visual. Não declarar a etapa concluída antes dessa evidência.
+
+**Pendências desta etapa:** conferir todos os pontos de abertura com modificadores,
+histórico Avançar do navegador/mobile, foco por teclado e restauração de edição após
+retorno; atualizar testes E2E que exigem a divisão automática anterior. Conhecimento
+granular, vínculos tipados e Descobertas continuam como próxima etapa, sem nova
+migração nesta revisão. Nenhum acesso de escrita em produção, merge ou deploy.
+
+### Continuação da revisão (#161)
+
+PR https://github.com/Waudz/compendio-5e/pull/161, rascunho. Commit inicial `266c09c`.
+Depois do registro acima, a suíte local completa passou: **1741 testes/143 arquivos**;
+os quatro testes dos scripts e os tipos de aplicativo/E2E também passaram.
+No CI desse commit, Validar projeto, Preview e Alpha Supabase isolado passaram;
+Quality falhou em quatro seletores do nome antigo da campanha, Base em duas
+verificações da faixa fixa (regressão real de altura/rolagem do contêiner).
+
+Correções seguintes, aguardando novo CI: contêiner preserva `.content` como rolagem
+única; guardas seguem o ID real da aba e cada editor tem registro próprio (61 testes
+focados aprovados); Voltar **e Avançar** no mobile usam snapshots da navegação, com
+cancelamento de resposta antiga após mudança de campanha (16 testes aprovados).
+Consulta de criatura usa página local `monstro`, sem a referência obsoleta `item:monstro`.
+Cenários E2E novos cobrem consulta sem split, contexto ordenado, recuperação e gestos;
+os antigos agora retornam pelo histórico antes de verificar os filtros preservados.
+Não se declara E2E aprovado antes da nova execução. Nenhum teste foi pulado por falha.
+
+A primeira rodada E2E terminou com Quality 4 falhas, Base 2 falhas e Creator segunda
+metade 26 falhas (a primeira metade passou). As causas localizadas: seletor antigo
+da campanha; contêiner sem altura limitando rolagem/sticky; guardas registradas pelo
+personagem em vez da aba que agora o hospeda; retorno tentando selecionar uma aba
+que passou a ser uma página do histórico; área Regras tratada sempre como botão,
+mesmo quando o painel largo mostra as duas áreas. Corrigidos código e pontos de
+entrada dos testes, mantendo limites, verificações de dados e acessibilidade.
+Após o isolamento das guardas, a bateria local teve 1739 aprovações e 3 expectativas
+antigas de chave de guarda; as três foram ajustadas para exigir o prefixo da aba e
+identidade única do editor, e os 83 testes afetados passaram. Confirmar o conjunto
+no novo SHA. Não foram alterados prazos nem anunciado lançamento da Alpha.
+
+O Diário também passou a abrir registros pelo histórico da aba, mantendo o retorno
+protegido ao Diário. O menu contextual lateral agora usa as mesmas três ações e a
+mesma ordem do conteúdo; a fixação permanece no menu da própria aba. Os 38 testes
+focados de Diário/navegação passaram. O segundo commit (`0d06931`) teve falha de
+TypeScript por atributo `title` duplicado em um tooltip; corrigido antes da próxima
+rodada. Não confundir o Preview aprovado com aprovação do build oficial.
+
+**Verificação local consolidada após essas correções:** build oficial, tipos do
+aplicativo e E2E aprovados; **1742 testes em 144 arquivos aprovados**. O workflow de
+CI do próximo commit é a evidência exigida para Playwright e stack real. Aguardar
+seus resultados antes de integrar/publicar; validação física/F11 continua pendente.
+
+As categorias agora são destinos `categoria:<id>` do histórico global, preservando
+as verificações de campanha e a projeção de jogador. Voltar/Avançar alcançam tanto
+índice → categoria quanto categoria → registro; menus e gestos continuam explícitos.
+Os títulos restaurados vêm das definições atuais, e a seção ativa segue a página
+exibida, não o ID original da aba. Os 39 testes de Compêndio/catálogo/bloqueio passaram;
+novo build e bateria completa: **1742/1742, 144 arquivos**, sem falhas.
+Na rodada CI de `aa85842`, as duas metades do Creator passaram; Quality ainda procurava
+a ordem antiga do contexto lateral. Corrigido mantendo as verificações de foco e
+setas para as três ações atuais. Conferir o próximo SHA para o conjunto final.
+
+A rodada Base de `aa85842` identificou uma corrida após salvar registros: o editor
+limpava a antiga chave de guarda, mas a guarda agora tem identidade própria. A
+liberação passa a ser explícita e exclusiva do editor confirmado pelo servidor,
+antes da navegação; teste de regressão incluído. Voltar/navegar localmente consultam
+as guardas da aba afetada, sem bloquear por edições preservadas em outra aba.
+A cobertura lateral da faixa sticky também exigiu eliminar a diferença de referência
+entre percentuais de padding e margem negativa: recuo calculado em comprimento e
+compartilhado, mantendo as verificações geométricas existentes.
+
+**Último check local consolidado:** build e tipos de aplicativo/E2E aprovados;
+**1743 testes aprovados em 144 arquivos**, incluindo a regressão da guarda liberada
+após salvar. A próxima execução do CI precisa confirmar as correções de navegador e
+geometria; não há autorização de merge/deploy ou migração de produção nesta sessão.
+
+No SHA `c4677f2`, Validar projeto, Preview, Supabase isolado, Quality e as duas
+metades do Creator passaram. Base deixou quatro falhas em dois cenários: a consulta
+global reutilizava um registro ainda aberto em outra aba desde a criação; o teste de
+botão do meio usava o menu lateral para voltar à lista, embora o menu abra/focalize
+seção. Preparação ajustada para voltar da criação antes da consulta e retorno pela
+aba Itens já aberta. Permanecem as verificações de consulta preservada, foco e
+registro sem duplicação. Sem mudança no aplicativo nesta correção dos testes.
+
+Revisão de limite após o CI verde: a expressão de instâncias de aba rejeitava sufixos
+10–19 e 100–199. Corrigida para aceitar inteiros seguros a partir de 2; três testes
+novos provam a restauração de 10, 19 e 100. Isso preserva abas ao recarregar, sem
+alterar registros. A nova cabeça deve ter seu CI confirmado antes de publicar.

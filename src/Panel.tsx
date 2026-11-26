@@ -1,5 +1,5 @@
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
-import { MonstroPagina } from "./Compendio";
+import { CategoriaCompendio, MonstroPagina } from "./Compendio";
 import { BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
@@ -13,14 +13,18 @@ import { CompendioPanel, ItemPagina } from "./Compendio";
 import { MagiaPagina } from "./compendio/MagiaPagina";
 import { CriadorGuiado } from "./criador/CriadorGuiado";
 import { EncontrosPanel, IniciativaPanel } from "./Iniciativa";
+import { desktopSections } from "./workspace";
+import { useCampaigns } from "./CampaignsContext";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
-export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
+function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   kind: Kind; entity: string;
   onOpen: (s: TabSpec, mode?: NavMode) => void;   // abertura administrativa/de menu (modo explícito; padrão: reutilizar a aba)
-  onOpenContent: (s: TabSpec) => void;            // link interno de conteúdo: sempre aba permanente, sem substituir a origem
+  onOpenContent: (s: TabSpec) => void;            // link interno: navega na página atual; nova aba/grupo é uma ação explícita
 }) {
+  if (kind === "categoria") return <CategoriaCompendio id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "nova") return <NovaAba onOpen={onOpenContent}/>;
   if (kind === "registro") return <RegistroCompendioPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "identidade") return <IdentidadePagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "monstro") return <MonstroPagina id={id} onOpenContent={onOpenContent}/>;
@@ -46,4 +50,13 @@ export function Panel({ kind, entity: id, onOpen, onOpenContent }: {
     <p>Este módulo ainda não foi desenvolvido e <strong>não faz parte da Alpha</strong>.</p>
     <div className="placeholder"><BookOpen size={30}/><strong>{title}</strong><span>Em desenvolvimento: nenhuma funcionalidade disponível aqui ainda.{id === "enciclopedia" ? " Para registros da campanha use o Diário; para suas próprias notas, Anotações." : id === "documentos" ? " Suas notas e planejamentos ficam em Anotações; os registros da campanha, no Diário." : ""}</span></div>
   </div>;
+}
+
+export function Panel(props: Parameters<typeof ConteudoPanel>[0]) {
+  return <ConteudoPanel {...props}/>;
+}
+
+function NovaAba({onOpen}:{onOpen:(s:TabSpec)=>void}) {
+ const {active}=useCampaigns();
+ return <section className="content new-tab"><h1>Nova aba</h1><p>Escolha uma ferramenta para começar.</p><div className="new-tab-tools">{desktopSections(active?.role??null).map(s=><button className="btn-secondary" key={s.page} onClick={()=>onOpen({kind:"secao",ref:s.page})}><s.icon size={20}/>{s.title}</button>)}</div></section>;
 }

@@ -41,7 +41,8 @@ test('responsividade: controles cabem no painel e o Compêndio alterna lista/gra
   await abaDaFicha(page, 'Inventário').click();
   await expectInsidePanel(page, '.ficha-jogo'); await expectNoHorizontalOverflow(page); await evidence(page, info, 'inventario-limites');
   await navigate(page, 'Compêndio');
-  await page.getByRole('button',{name:'Regras',exact:true}).click();
+  const regras=page.getByRole('button',{name:'Regras',exact:true});
+  if(await regras.count())await regras.click();
   await page.getByRole('button',{name:/^Itens /}).click();
   const search = page.getByRole('searchbox', { name: 'Pesquisar no Compêndio', exact: true });
   await expect(search).toBeVisible(); await search.fill('dagger');

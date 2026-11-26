@@ -1,10 +1,14 @@
-import { ehPaginaDoCompendio } from "./compendio/navegacao";
+import {tituloCategoria} from "./Compendio";
+import { PageViewport } from "./PageViewport";
+import logo from "../compendio-logo.svg";
+import { VoltarPaginaContext } from "./voltarPagina";
+import { currentPage, historyOf, visitPage, stepHistory } from "./tabHistory";
 import { NotificacoesProvider, SinoNotificacoes } from "./compendio/Notificacoes";
 import { useConhecimento, itemConhecido } from "./compendio/conhecimento";
 import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Action, Actions, Layout, type Model, TabNode, TabSetNode } from "flexlayout-react";
-import { BookOpen, Castle, House as HomeIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
+import { Action, Actions, Layout, DockLocation, type Model, TabNode, TabSetNode } from "flexlayout-react";
+import { Plus, RotateCcw, Maximize, ArrowLeft, ArrowRight, Castle, House as HomeIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -22,7 +26,7 @@ import { Panel } from "./Panel";
 import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
 import { srdItem } from "./catalogue/srd-2014-items";
-import { closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type Kind, type TabSpec } from "./workspace";
+import { defaultTitle, closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type TabSpec } from "./workspace";
 
 // Só estas ações do FlexLayout são aceitas: sem popout, janela flutuante, maximizar, bordas ou subgrupos.
 const allowedActions = new Set([Actions.GROUP, Actions.ADD_TAB, Actions.DELETE_TAB, Actions.SELECT_TAB, Actions.MOVE_NODE, Actions.DELETE_TABSET, Actions.SET_ACTIVE_TABSET, Actions.ADJUST_WEIGHTS]);
@@ -76,12 +80,14 @@ function Workspace({ userId }: { userId: string }) {
   const modelRef = useRef(model); modelRef.current = model;
   const [modelKey, setModelKey] = useState(scopeKey);
   const [, redraw] = useState(0);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const registrosV = useVersaoRegistros();   // títulos de registros abertos mudam o rótulo das abas
   const mobile = useMobile();
   const chromeHidden = useChromeHidden(mobile);
   const good = useRef(model.toJson());
+  const positions = useRef(new Map<string,number>());
+  const closed = useRef<ReturnType<TabNode["toJson"]>[]>([]);
   const handled = useRef<Event | null>(null);
   const historySelection = useRef<string | null>(null);
   const restoringHistory = useRef(false);
@@ -91,7 +97,7 @@ function Workspace({ userId }: { userId: string }) {
   if (modelKey !== scopeKey) {
     // Primeira vez nesta campanha: abre o Início (ex.: logo após entrar por convite).
     const m = !hasSavedLayout(scope) && scope.campaign !== "nenhuma" ? firstVisitModel(scope.campaign, memberships.find(x => x.campaign.id === scope.campaign)?.campaign.name) : createModel(loadLayout(scope));
-    modelRef.current = m; good.current = m.toJson(); setMenu(null); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
+    modelRef.current = m; good.current = m.toJson(); closed.current=[]; positions.current.clear(); setMenu(null); setModelKey(scopeKey); setModel(m); } // troca de escopo: outro espaço de trabalho
 
   // Toda mudança passa por aqui: valida a restrição de colunas (reverte se violada) e persiste.
   const onModelChange = useCallback((m: Model) => {
@@ -100,12 +106,15 @@ function Workspace({ userId }: { userId: string }) {
     if (normalizeEmptyPanels(m)) return;   // painel que recebeu aba deixa de ser "vazio intencional"; a ação de correção volta aqui
     const json = m.toJson();
     if (!isColumnsOnly(json)) { const restored = createModel(good.current); modelRef.current = restored; setModel(restored); return; }
+    const existing = new Set((json.layout.children??[]).flatMap(g=>(g.children??[]).map(t=>t.id)));
+    const removed=(good.current.layout.children??[]).flatMap(g=>g.children??[]).filter(t=>t.type==="tab"&&!existing.has(t.id));
+    closed.current=[...closed.current,...removed as ReturnType<TabNode["toJson"]>[]].slice(-20);
     good.current = json; saveLayout(json, scopeRef.current);
     const selected = m.getActiveTabset()?.getSelectedNode();
-    const selectedId = selected instanceof TabNode ? selected.getId() : null;
+    const selectedId = selected instanceof TabNode ? `${selected.getId()}@${historyOf(selected).index}` : null;
     if (selectedId && selectedId !== historySelection.current) {
       historySelection.current = selectedId;
-      if (!restoringHistory.current) window.history.pushState({ ...window.history.state, compendioTab: selectedId, compendioScope: scopeKey }, "");
+      if (!restoringHistory.current) window.history.pushState({ ...window.history.state, compendioTab: selected instanceof TabNode ? selected.getId() : null, compendioIndex: selected instanceof TabNode ? historyOf(selected).index : 0, compendioScope: scopeKey }, "");
     }
     refresh();
   }, [refresh, scopeKey]);
@@ -120,15 +129,16 @@ function Workspace({ userId }: { userId: string }) {
     return prepareMove(model, a);   // recusa/ajusta movimentos (divisão com aba única)
   }, [model, unsaved.api]);
   // Navegação: o menu seleciona uma aba existente ou cria outra, sem substituir conteúdo aberto.
-  // Duas portas: openMenu preserva as abas; openContentLink abre consulta no grupo mais à direita (até dois grupos automáticos).
+  // O menu preserva abas; visit navega localmente; openContentLink só abre consultas explicitamente.
   // Depois de recarregar, a aba de um personagem criado nela (`criador:novo-…`) continua sendo a aba dele.
   const lembrarCriados = useCallback(() => model.visitNodes(n => {
-    const c = n instanceof TabNode ? n.getConfig() as { kind?: Kind; ref?: string } : null;
+    const c = n instanceof TabNode ? currentPage(n) : null;
     if (c?.kind !== "criador" || !c.ref || !campaignId) return;
     const real = lerMapaAba(userId, campaignId, c.ref); if (real) registrarAliasPersonagem(real, c.ref);
   }), [model, userId, campaignId]);
   const abrindo = useCallback((s: TabSpec) => { if (s.kind === "ficha" || s.kind === "criador") { lembrarCriados(); pedirFicha(s.ref); } }, [lembrarCriados]);
-  const openMenu = useCallback((s: TabSpec, mode: NavMode = "new") => { abrindo(s); navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model); }, [model, onModelChange, unsaved.api, abrindo]);
+  const openMenu = useCallback((s: TabSpec, mode: NavMode = "reuse") => { const go=()=>{abrindo(s); navigate(model, s, mode, unsaved.api.isDirty); onModelChange(model);};
+    go(); }, [model, onModelChange, unsaved.api, abrindo]);
   const openContentLink = useCallback((s: TabSpec, originTabId?: string, noGrupoDaOrigem?: boolean) => { abrindo(s); openContent(model, s, originTabId, mobile, noGrupoDaOrigem); onModelChange(model); }, [model, onModelChange, mobile, abrindo]);
   useEffect(() => {
     const fechar = (e: Event) => { const id = (e as CustomEvent<string>).detail; if (!findTab(modelRef.current, id)) return; closeTab(modelRef.current, id); onModelChange(modelRef.current); };
@@ -140,23 +150,27 @@ function Workspace({ userId }: { userId: string }) {
     const initial = selected instanceof TabNode ? selected.getId() : null;
     historySelection.current = initial;
     if (initial) window.history.replaceState({ ...window.history.state, compendioTab: initial, compendioScope: scopeKey }, "");
+    if(mobile)return;
     const onPop = (event: PopStateEvent) => {
       if (consumirVoltar(event)) return;   // ex.: sair da edição da ficha antes de trocar de aba
-      const state = event.state as { compendioTab?: string; compendioScope?: string } | null;
+      const state = event.state as { compendioTab?: string; compendioScope?: string; compendioIndex?: number } | null;
       if (state?.compendioScope !== scopeKey || !state.compendioTab) return;
       const target = findTab(modelRef.current, state.compendioTab);
       if (!target) return;
+      unsaved.api.guard("all",()=>{
       restoringHistory.current = true;
       modelRef.current.doAction(Actions.selectTab(target.getId()));
       const group = target.getParent();
       if (group instanceof TabSetNode) modelRef.current.doAction(Actions.setActiveTabset(group.getId()));
-      historySelection.current = target.getId();
-      restoringHistory.current = false;
+      if(state.compendioIndex!==undefined)stepHistory(modelRef.current,target.getId(),state.compendioIndex);
+      historySelection.current = `${target.getId()}@${historyOf(target).index}`;
       onModelChange(modelRef.current);
+      restoringHistory.current = false;
+      });
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [scopeKey, modelKey]);
+  }, [scopeKey, modelKey, mobile]);
   const inviteOpenedScope = useRef<string | null>(null);
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has("convite") || status === "loading") return;
@@ -168,11 +182,11 @@ function Workspace({ userId }: { userId: string }) {
   const closeMenu = useCallback(() => setMenu(null), []);
   const guarded = (ids: string[], fn: () => void) => () => unsaved.api.guard(ids, () => { fn(); onModelChange(model); });
   /** Menu dos itens de navegação (botão direito, tecla de menu ou toque prolongado). */
-  const showNavMenu = useCallback((s: TabSpec, x: number, y: number) => setMenu({ x, y, items: [
-    { label: "Abrir nesta aba", onSelect: () => openMenu(s, "reuse") },
-    { label: "Abrir em nova aba", onSelect: () => openMenu(s, "new") },
-    { label: "Abrir em nova aba fixada", onSelect: () => openMenu(s, "newPinned") },
-  ] }), [openMenu]);
+  const showNavMenu = (s:TabSpec,x:number,y:number) => setMenu({x,y,items:[
+    {label:"Abrir em nova aba",onSelect:()=>openContentLink(s,undefined,true)},
+    ...(!mobile?[{label:"Abrir em novo grupo",onSelect:()=>openContentLink(s,undefined,false)}]:[]),
+    {label:"Abrir",onSelect:()=>visit(s)},
+  ]});
 
   const homeSpec: TabSpec = active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: campaignsHub.page };
   /** Seletor discreto junto à campanha ativa: trocar (protegendo alterações não salvas) e acesso à gestão de campanhas. Cada campanha tem o seu layout. */
@@ -221,21 +235,50 @@ function Workspace({ userId }: { userId: string }) {
     ] });
   };
 
+  const visit = useCallback((s: TabSpec, origin?: string) => {
+    const id=origin??model.getActiveTabset()?.getSelectedNode()?.getId();
+    if(!id)return;
+    unsaved.api.guard([id],()=>{
+      let existing:TabNode|undefined;
+      model.visitNodes(n=>{if(n instanceof TabNode&&n.getId()!==id&&tabId(currentPage(n))===tabId(s))existing=n;});
+      abrindo(s);
+      if(existing){model.doAction(Actions.selectTab(existing.getId()));const g=existing.getParent();if(g)model.doAction(Actions.setActiveTabset(g.getId()));}
+      else visitPage(model,id,s);
+      onModelChange(model);
+    });
+  },[model,unsaved.api,abrindo,onModelChange]);
+  const reopen = useCallback(()=>{const tab=closed.current.pop();if(!tab)return;
+    const g=model.getActiveTabset()??groups(model)[0];if(!g)return;
+    if(tab.id&&findTab(model,tab.id)){model.doAction(Actions.selectTab(tab.id));}else model.doAction(Actions.addTab(tab,g.getId(),DockLocation.CENTER,-1,true));
+    onModelChange(model);
+  },[model,onModelChange]);
+  const step = useCallback((id:string,index:number)=>unsaved.api.guard([id],()=>{stepHistory(model,id,index);onModelChange(model);}),[model,unsaved.api,onModelChange]);
+  useEffect(()=>{
+    if(mobile)return;
+    const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==="t"){e.preventDefault();reopen();return;}if(!e.altKey||e.ctrlKey||e.metaKey||!["ArrowLeft","ArrowRight"].includes(e.key))return;
+      const node=model.getActiveTabset()?.getSelectedNode();if(!(node instanceof TabNode))return;
+      const h=historyOf(node),next=h.index+(e.key==="ArrowLeft"?-1:1);
+      if(next>=0&&next<h.pages.length){e.preventDefault();step(node.getId(),next);}
+    };
+    window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key);
+  },[model,mobile,step,reopen]);
   const factory = useCallback((node: TabNode) => {
-    const c = node.getConfig() as { kind: Kind; ref: string };
-    return <OrigemAbaContext.Provider value={node.getId()}><Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => openContentLink(s, node.getId())}/></OrigemAbaContext.Provider>;
-  }, [openMenu, openContentLink]);
+    const c = currentPage(node), h=historyOf(node);
+    return <OrigemAbaContext.Provider value={node.getId()}><VoltarPaginaContext.Provider value={h.index>0?()=>step(node.getId(),h.index-1):undefined}><PageViewport key={tabId(c)} pageKey={`${scopeKey}:${node.getId()}:${tabId(c)}`} positions={positions.current}><Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => visit(s, node.getId())}/></PageViewport></VoltarPaginaContext.Provider></OrigemAbaContext.Provider>;
+  }, [openMenu, visit, step, scopeKey]);
 
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
-    const c = n.getConfig() as { kind?: Kind; ref?: string } | undefined;
-    if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? n.getName();
+    const c = currentPage(n);
+    const fallback = (n.getConfig() as {history?:unknown}).history ? defaultTitle(c) : n.getName();
+    if(c.kind==="categoria")return tituloCategoria(c.ref);
+    if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? fallback;
     if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
     if (c?.kind === "registro" && c.ref) return conhecidosCatalogo.find(x=>x.id===c.ref)?.title??"Registro";
     if (c?.kind === "monstro" && c.ref) return active?.role === "mestre" ? tituloDe(c.ref)??"Criatura" : conhecidosCatalogo.find(x=>x.category==="monster"&&x.definitionId===c.ref&&x.knowledge===4)?.title??"Criatura";
     if (c?.kind === "regra" && c.ref) return tituloDe(c.ref)??"Regra";
-    if (c?.kind === "item" && c.ref) return active?.role === "mestre" || jogadorPodeAdicionar(c.ref) || itemConhecido(conhecidosCatalogo,c.ref) ? srdItem(c.ref)?.nome ?? n.getName() : "Item";
-    return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? n.getName() : n.getName();
+    if (c?.kind === "item" && c.ref) return active?.role === "mestre" || jogadorPodeAdicionar(c.ref) || itemConhecido(conhecidosCatalogo,c.ref) ? srdItem(c.ref)?.nome ?? fallback : "Item";
+    return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? fallback : fallback;
   }, [memberships, registrosV, active?.role, conhecidosCatalogo]);
   // FlexLayout usa o nome do modelo para ARIA e o conteúdo renderizado para a tela.
   // Manter ambos iguais em memória; minimalLayout continua removendo nomes ao persistir.
@@ -250,48 +293,60 @@ function Workspace({ userId }: { userId: string }) {
   });
   labelRef.current = id => { const t = findTab(model, id); return t ? titleOf(t) : id; };
   const renderTab = useCallback((n: TabNode, v: { content: ReactNode; leading?: ReactNode }) => {
-    v.content = <>{titleOf(n)}{isPinned(n) && <span className="sr-only"> (fixada)</span>}</>;   // marca visual + texto acessível
+    v.content = <><span className="workspace-tab-title" title={titleOf(n)}>{titleOf(n)}</span>{isPinned(n) && <span className="sr-only"> (fixada)</span>}</>;   // marca visual + texto acessível
     if (isPinned(n)) v.leading = <Pin size={12} className="pin-icon" aria-hidden="true"/>;
   }, [titleOf]);
   const activeTab = model.getActiveTabset()?.getSelectedNode();
-  const activeId = activeTab instanceof TabNode ? activeTab.getId() : "";
+  const activePage=activeTab instanceof TabNode?currentPage(activeTab):null;
+  const activeId=activePage?tabId(activePage):"";
+  const sectionId=activePage&&["categoria","registro","identidade","monstro","regra","item","magia"].includes(activePage.kind)?"secao:compendio"
+    :activePage&&["ficha","criador"].includes(activePage.kind)?"secao:personagens":activeId;
   // Painel vazio (criado por divisão): clicar nele o torna o painel ativo, para onde vai a próxima seção aberta pelo menu.
   const placeholder = useCallback((g: TabSetNode) => <div className="empty" onPointerDown={() => { model.doAction(Actions.setActiveTabset(g.getId())); refresh(); }}>
     <h1>Painel vazio</h1><p>Escolha uma seção no menu lateral ou arraste uma aba para cá.</p></div>, [model, refresh]);
   const renderSet = useCallback((node: TabSetNode | { getType(): string }, v: { buttons: ReactNode[] }) => {
+    if(node instanceof TabSetNode){
+      v.buttons.push(<button key="new" className="grp-close" title="Nova aba" aria-label="Nova aba" onClick={()=>{model.doAction(Actions.setActiveTabset(node.getId()));openMenu({kind:"nova",ref:crypto.randomUUID(),title:"Nova aba"});}}><Plus size={14}/></button>);
+      v.buttons.push(<button key="reopen" className="grp-close" title="Reabrir aba fechada" aria-label="Reabrir aba fechada" disabled={!closed.current.length} onClick={reopen}><RotateCcw size={14}/></button>);
+      v.buttons.push(<button key="full" className="grp-close" title="Alternar tela cheia" aria-label="Alternar tela cheia" onClick={()=>{const app=document.querySelector<HTMLElement>(".app");void (document.fullscreenElement?document.exitFullscreen?.():app?.requestFullscreen?.())?.catch(()=>{});}}><Maximize size={14}/></button>);
+    }
+    if(node instanceof TabSetNode){const tab=node.getSelectedNode();if(tab instanceof TabNode){const h=historyOf(tab);
+      v.buttons.unshift(<span className="workspace-history" key="history"><button title="Voltar na aba" aria-label="Voltar na aba" disabled={h.index===0} onClick={()=>step(tab.getId(),h.index-1)}><ArrowLeft size={14}/></button><button title="Avançar na aba" aria-label="Avançar na aba" disabled={h.index===h.pages.length-1} onClick={()=>step(tab.getId(),h.index+1)}><ArrowRight size={14}/></button></span>);
+    }}
     if (node instanceof TabSetNode && groupCount(model) > 1)
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={guarded(node.getChildren().map(c => c.getId()), () => closeGroup(model, node.getId()))}><X size={14}/></button>);
-  }, [model, onModelChange, unsaved.api]);
+  }, [model, onModelChange, unsaved.api, step, reopen, openMenu]);
 
   const abrirEmAba = useMemo(() => ({
-    abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem),
-    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem) },
-      ...(!mobile && ehPaginaDoCompendio(s) ? [{ label: "Abrir como aba deste grupo", onSelect: () => openContentLink(s, origem, true) }] : [])] }),
-  }), [openContentLink, mobile]);
+    navegar: (s:TabSpec,origem?:string)=>visit(s,origem),
+    abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem, true),
+    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
+      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } }] }),
+  }), [openContentLink, mobile, model, visit]);
 
   return <NotificacoesProvider><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
-      <div className="brand"><BookOpen size={22}/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}<SinoNotificacoes onOpenContent={openContentLink}/></div>
+      <div className="brand"><img src={logo} width={24} height={24} alt=""/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}<SinoNotificacoes onOpenContent={s => { const origem = model.getActiveTabset()?.getSelectedNode()?.getId(); if (!mobile && origem) visit(s,origem); else openContentLink(s, origem, true); }}/></div>
       <div className="campaign">
         <NavItem spec={homeSpec}
           className={activeId === (active ? `campanha:${active.campaign.id}` : `secao:${campaignsHub.page}`) ? "campaign-main selected" : "campaign-main"}
           title={active ? `Campanha ativa: ${active.campaign.name} (abrir o Início)` : "Nenhuma campanha ativa: escolher ou criar"}
           ariaLabel={collapsed ? (active ? `Campanha ativa: ${active.campaign.name}` : "Nenhuma campanha ativa: escolher ou criar") : undefined} onNavigate={openMenu} onMenu={showNavMenu}>
-          {collapsed ? <Castle size={19} aria-hidden="true"/> : <><small>CAMPANHA ATIVA</small>{" "}<strong>{active ? active.campaign.name : "Nenhuma"}</strong></>}
+          {collapsed && <Castle size={19} aria-hidden="true"/>}<span className={collapsed?"sr-only":undefined}><small>CAMPANHA ATIVA</small>{" "}<strong>{active ? active.campaign.name : "Nenhuma"}</strong></span>
         </NavItem>
-        {!collapsed && <button className="campaign-switch" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
+        {<button className="campaign-switch" aria-label="Trocar ou gerenciar campanhas" aria-haspopup="menu" title="Trocar ou gerenciar campanhas"
           onClick={e => { const r = e.currentTarget.getBoundingClientRect(); showCampaignMenu(r.left, r.bottom); }}><ChevronsUpDown size={16} aria-hidden="true"/></button>}
       </div>
       <nav aria-label="Menu principal">
         {(active || !mobile) && <NavItem spec={homeSpec} className={activeId === tabId(homeSpec) ? "nav-item selected" : "nav-item"} title="Início" onNavigate={openMenu} onMenu={showNavMenu}>
-          <HomeIcon size={19}/>{!collapsed && <span>Início</span>}
+          <HomeIcon size={19}/>{<span className={collapsed?"sr-only":undefined}>Início</span>}
         </NavItem>}
         {(mobile ? [campaignsHub, ...visibleSections(active?.role === "mestre")] : desktopSections(active?.role ?? null)).map(({ page, title, icon: Icon }) =>
-        <NavItem key={page} spec={{ kind: "secao", ref: page }} className={activeId === `secao:${page}` ? "nav-item selected" : "nav-item"} title={title} onNavigate={openMenu} onMenu={showNavMenu}>
-          <Icon size={19}/>{!collapsed && <span>{title}</span>}
+        <NavItem key={page} spec={{ kind: "secao", ref: page }} className={sectionId === `secao:${page}` ? "nav-item selected" : "nav-item"} title={title} onNavigate={openMenu} onMenu={showNavMenu}>
+          <Icon size={19}/>{<span className={collapsed?"sr-only":undefined}>{title}</span>}
         </NavItem>)}
         <NavItem spec={{ kind: "conta", ref: "perfil" }} className={activeId === "conta:perfil" ? "nav-item account selected" : "nav-item account"} title="Conta" onNavigate={openMenu} onMenu={showNavMenu}>
-          <UserRound size={19}/>{!collapsed && <span>Conta</span>}
+          <UserRound size={19}/>{<span className={collapsed?"sr-only":undefined}>Conta</span>}
         </NavItem></nav>
       <button className="collapse" onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
         {collapsed ? <ChevronRight size={18}/> : <><ChevronLeft size={18}/> Recolher menu</>}

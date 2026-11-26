@@ -34,13 +34,13 @@ describe("workspace (interface)", () => {
     vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(() => ({ x: 0, y: 0, left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600, toJSON() {} }) as DOMRect);   // o jsdom não mede; sem isso o FlexLayout não desenha o conteúdo
     await renderApp();
     fireEvent.click(await screen.findByRole("button", { name: "Abrir Ficha: Lydia" }));          // link de conteúdo: nova aba permanente, origem preservada
-    expect(tabNames()).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
+    expect(tabNames()).toEqual(["Ficha: Lydia"]);
     more("Personagens");
     fireEvent.click((await screen.findAllByRole("button", { name: "Abrir Ficha: Lydia" }))[0]);          // já aberta: seleciona, não duplica
-    expect(tabNames()).toEqual(["Personagens", "Ficha: Lydia (fixada)"]);
+    expect(tabNames()).toEqual(["Ficha: Lydia", "Personagens"]);
     const tabsSaved = saved().layout.children.flatMap((g: { children: { id: string; pinned?: boolean }[] }) => g.children);
-    expect(tabsSaved.map((t: { id: string }) => t.id)).toEqual(["secao:personagens", "ficha:lydia"]);
-    expect(tabsSaved.map((t: { pinned?: boolean }) => t.pinned === true)).toEqual([false, true]);
+    expect(tabsSaved.map((t: { id: string }) => t.id)).toEqual(["secao:personagens", "secao:personagens~2"]);
+    expect(tabsSaved.map((t: { pinned?: boolean }) => t.pinned === true)).toEqual([false, false]);
   });
 
   it("restaura as abas salvas ao montar de novo", async () => {
@@ -60,7 +60,7 @@ describe("workspace (interface)", () => {
   it("menu de contexto: mover para nova coluna e fechar aba", async () => {
     await renderApp();
     more("Iniciativa");
-    const tab = screen.getByText("Iniciativa", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" });
+    const tab = screen.getByText("Iniciativa", { selector: ".flexlayout__tabset_tabbar_inner .workspace-tab-title" });
     fireEvent.contextMenu(tab);
     const menu = screen.getByRole("menu");
     expect(within(menu).getAllByRole("menuitem").map(i => i.textContent)).toEqual([
@@ -68,7 +68,7 @@ describe("workspace (interface)", () => {
     fireEvent.click(within(menu).getByRole("menuitem", { name: "Abrir em nova coluna à direita" }));
     expect(screen.queryByRole("menu")).toBeNull();
     expect(saved().layout.children).toHaveLength(2);
-    fireEvent.contextMenu(screen.getByText("Iniciativa", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" }));
+    fireEvent.contextMenu(screen.getByText("Iniciativa", { selector: ".flexlayout__tabset_tabbar_inner .workspace-tab-title" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Fechar coluna" }));
     expect(saved().layout.children).toHaveLength(1);
     expect(tabNames()).toEqual(["Personagens"]);
@@ -76,7 +76,7 @@ describe("workspace (interface)", () => {
 
   it("aba única: \"nova coluna\" divide a tela, o painel vazio é salvo e a próxima seção o preenche", async () => {
     await renderApp();
-    fireEvent.contextMenu(screen.getByText("Personagens", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" }));
+    fireEvent.contextMenu(screen.getByText("Personagens", { selector: ".flexlayout__tabset_tabbar_inner .workspace-tab-title" }));
     const item = screen.getByRole("menuitem", { name: "Abrir em nova coluna à direita" });
     expect((item as HTMLButtonElement).disabled).toBe(false);                    // antes estava desabilitado com aba única
     fireEvent.click(item);
@@ -88,7 +88,7 @@ describe("workspace (interface)", () => {
 
   it("menu de contexto fecha com Escape", async () => {
     await renderApp();
-    fireEvent.contextMenu(screen.getByText("Personagens", { selector: ".flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content" }));
+    fireEvent.contextMenu(screen.getByText("Personagens", { selector: ".flexlayout__tabset_tabbar_inner .workspace-tab-title" }));
     expect(screen.getByRole("menu")).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("menu")).toBeNull();
@@ -96,10 +96,11 @@ describe("workspace (interface)", () => {
 
   it("recolhe e expande o menu lateral", async () => {
     await renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "Recolher menu" }));
     expect(document.querySelector(".sidebar.collapsed")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Expandir menu" }));
     expect(document.querySelector(".sidebar.collapsed")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Recolher menu" }));
+    expect(document.querySelector(".sidebar.collapsed")).toBeTruthy();
   });
 
   it("celular: usa a visão simples (sem FlexLayout e sem abas), abre pelo menu e volta pelo histórico", async () => {

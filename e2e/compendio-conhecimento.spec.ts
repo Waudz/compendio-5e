@@ -20,6 +20,7 @@ async function area(page: Page, nome: "Campanha" | "Regras") {
 async function inicio(page: Page) {
   // no celular a página aberta ocupa a tela: primeiro volta para a lista
   if (celular(page)) await page.getByRole("button", { name: "Voltar", exact: true }).click();
+  else await page.getByRole("button", {name:"Voltar na aba",exact:true}).click();
   await page.locator(".compendio.cat .cd-back").filter({ visible: true }).click();
 }
 

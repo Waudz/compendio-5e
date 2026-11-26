@@ -47,6 +47,7 @@ describe("Personagens e Aventureiros", () => {
     await abrir("Personagens");
     fireEvent.click(await screen.findByRole("button", { name: /^Lydia/ }));
     expect(await screen.findByLabelText("Nome")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Voltar na aba" }));
     expect(await screen.findByLabelText("Etapas do personagem")).toBeTruthy();   // a aba do criador continua aberta
   });
   it("personagem privado não aparece para os outros nem na vitrine do Início; valida nível antes de gravar", async () => {

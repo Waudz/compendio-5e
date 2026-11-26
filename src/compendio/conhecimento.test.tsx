@@ -132,6 +132,7 @@ describe("Compêndio unificado", () => {
     expect(screen.queryByText("SEGREDO")).toBeNull();
     expect(screen.queryByText("Classe de Armadura")).toBeNull();
     expect(screen.queryByRole("button", { name: /Novo registro/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button",{name:"Voltar na aba"}));
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "goblin" },
     });

@@ -1,8 +1,9 @@
+import {VoltarPaginaContext} from "./voltarPagina";
 // Diário: lista de registros de sessão (mestre: rascunhos e publicados; jogador: só publicados) e página de cada registro.
 // A mesma página (`RegistroPagina`) edita as cenas do Planejamento. O Diário é redigido manualmente pelo mestre; nada é resumido nem publicado sozinho.
 import { ArrowLeft, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import { OrigemAbaContext, useAbrirEmAba } from "./abrirEmAba";
+import { useAbrirEmAba } from "./abrirEmAba";
 import { ConflitoAviso } from "./ConflitoAviso";
 import { useCampaigns } from "./CampaignsContext";
 import { EditorLazy } from "./EditorLazy";
@@ -10,18 +11,16 @@ import { HARPTOS_MESES, formatarDataHarptos, previaTexto, resumirTexto, type Blo
 import { dataSessao, ordenarDiario, publicado, validarTitulo, type Registro } from "./registros";
 import { useRegistros } from "./RegistrosContext";
 import { avisarRegistros, novaOrigem, publicarExclusao, publicarRegistro, registrarTitulo, useSincronia, useVersaoRegistros } from "./registrosStore";
-import { useUnsaved, useUnsavedGuard } from "./unsaved";
+import { useUnsavedGuard } from "./unsaved";
 import type { TabSpec } from "./workspace";
 
 export const Aviso = ({ t, erro, onRetry }: { t: string; erro?: boolean; onRetry?: () => void }) =>
   <div className={erro ? "notice err" : "notice"} role={erro ? "alert" : "status"}>{t}{onRetry && <> <button className="btn-link" onClick={onRetry}>Tentar de novo</button></>}</div>;
 
-export function DiarioPanel(_props: { onOpenContent: (s: TabSpec) => void }) {
-  const [aberto, setAberto] = useState<{id:string; campanha:string} | null>(null);
-  const aba = useContext(OrigemAbaContext), unsaved = useUnsaved();
+export function DiarioPanel({onOpenContent}: { onOpenContent: (s: TabSpec) => void }) {
   const api = useRegistros(), { active } = useCampaigns(), v = useVersaoRegistros();
   const [lista, setLista] = useState<Registro[] | null>(null), [erro, setErro] = useState<string | null>(null), [busy, setBusy] = useState(false), [tentativa, setTentativa] = useState(0);
-  const cid = active?.campaign.id, mestre = active?.role === "mestre", { aoClicarDireito } = useAbrirEmAba();
+  const cid = active?.campaign.id, mestre = active?.role === "mestre", { aoClicarDireito, aoClicar, aoBotaoDoMeio } = useAbrirEmAba();
   useEffect(() => {
     if (!api || !cid) return; let vivo = true; setLista(null);
     api.list(cid, "diary").then(r => { if (!vivo) return; if (r.ok) { setLista(ordenarDiario(r.data)); setErro(null); } else setErro(r.error); });
@@ -34,9 +33,8 @@ export function DiarioPanel(_props: { onOpenContent: (s: TabSpec) => void }) {
     const r = await api.create({ kind: "diary", campaignId: cid, title: "Nova sessão", visibility: "private", meta: {} });
     setBusy(false);
     if (!r.ok) { setErro(r.error); return; }
-    avisarRegistros(); setAberto({id:r.data.id,campanha:cid});
+    avisarRegistros(); onOpenContent({kind:"documento",ref:r.data.id,title:r.data.title});
   };
-  if (aberto && aberto.campanha === cid) return <div className="diario-editor-inline"><button className="btn-link diario-voltar" onClick={()=>unsaved.guard([aba ?? `documento:${aberto.id}`],()=>setAberto(null))}><ArrowLeft size={16}/> Voltar ao Diário</button><RegistroPagina key={aberto.id} id={aberto.id} tabId={aba ?? undefined}/></div>;
   return <div className="content diario">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>Diário</h1>{mestre && <button className="btn-primary" onClick={novo} disabled={busy}><Plus size={15} aria-hidden="true"/> Novo registro</button>}</div>
@@ -45,7 +43,7 @@ export function DiarioPanel(_props: { onOpenContent: (s: TabSpec) => void }) {
     {lista && lista.length === 0 && <p className="muted" data-testid="diario-lista-vazia">{mestre ? "Nenhum registro ainda. Crie o primeiro registro de sessão." : "O mestre ainda não publicou registros."}</p>}
     <ul className="registro-lista">{lista?.map(r => {
       const d = formatarDataHarptos(dataSessao(r)), t = previaTexto(r.content, 500, "\n");
-      return <li key={r.id}><button className="registro-item" onClick={() => setAberto({id:r.id,campanha:cid!})} onContextMenu={e => aoClicarDireito(e, { kind: "documento", ref: r.id, title: r.title })}>
+      return <li key={r.id}><button className="registro-item" onClick={e => {const spec={kind:"documento" as const,ref:r.id,title:r.title};if(!aoClicar(e,spec))onOpenContent(spec);}} onAuxClick={e=>aoBotaoDoMeio(e,{kind:"documento",ref:r.id,title:r.title})} onContextMenu={e => aoClicarDireito(e, { kind: "documento", ref: r.id, title: r.title })}>
         <strong>{r.title}</strong>
         <span className="muted">{d ?? "Sem data de sessão"}{mestre && <span className={publicado(r) ? "badge on" : "badge"}>{publicado(r) ? "Publicado" : "Rascunho"}</span>}</span>
         {t && <span className="registro-previa">{resumirTexto(t, 200)}</span>}</button></li>;
@@ -58,6 +56,7 @@ const dataTxt = (r: Registro) => { const d = dataSessao(r); return d ? `${d.dia}
 
 /** Página de um registro (aba `documento:<id>`): diário ou cena. Mestre edita; jogador só lê o diário publicado. */
 export function RegistroPagina({ id, tabId }: { id: string; tabId?: string }) {
+  const voltar=useContext(VoltarPaginaContext);
   const api = useRegistros(), { active } = useCampaigns();
   const origem = useRef(novaOrigem()).current;
   const [reg, setReg] = useState<Registro | null | undefined>(undefined), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
@@ -112,10 +111,11 @@ export function RegistroPagina({ id, tabId }: { id: string; tabId?: string }) {
   if (!mestre) {
     if (!diario) return <div className="content"><Aviso t="Registro não encontrado, excluído ou sem permissão para vê-lo."/></div>;
     const d = formatarDataHarptos(dataSessao(reg));
-    return <div className="content registro"><div className="eyebrow">DIÁRIO</div><h1>{reg.title}</h1>{d && <time className="muted">{d}</time>}
+    return <div className="content registro">{voltar&&<button className="btn-link diario-voltar" onClick={voltar}><ArrowLeft size={16}/> Voltar ao Diário</button>}<div className="eyebrow">DIÁRIO</div><h1>{reg.title}</h1>{d && <time className="muted">{d}</time>}
       <div className="registro-corpo"><EditorLazy key={reg.version} inicial={reg.content} editavel={false} rotulo="Texto do registro"/></div></div>;
   }
   return <div className="content registro auth wide">
+    {diario&&voltar&&<button className="btn-link diario-voltar" onClick={voltar}><ArrowLeft size={16}/> Voltar ao Diário</button>}
     <div className="eyebrow">{diario ? `DIÁRIO · ${publicado(reg) ? "PUBLICADO PARA OS JOGADORES" : "RASCUNHO (SÓ VOCÊ VÊ)"}` : "PLANEJAMENTO · CENA (PRIVADA)"}</div>
     <form noValidate onSubmit={e => { e.preventDefault(); void salvar(); }}>
       <label>Título<input value={titulo} maxLength={120} onChange={e => setTitulo(e.target.value)}/></label>

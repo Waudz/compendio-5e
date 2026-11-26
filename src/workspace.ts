@@ -8,7 +8,7 @@ export const MAX_GROUPS = 2;
 export const MIN_GROUP_WIDTH = 220;
 
 // Um único lugar define os tipos de aba: para criar um novo (ex.: cena, encontro) basta acrescentar uma linha aqui e o painel correspondente.
-const kindLabel = { registro:"Registro", identidade:"Personagem", monstro:"Criatura", regra:"Regra", secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento", item: "Item", magia: "Magia", criador: "Personagem" } as const;
+const kindLabel = { categoria: "Categoria", nova: "Nova aba", registro:"Registro", identidade:"Personagem", monstro:"Criatura", regra:"Regra", secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento", item: "Item", magia: "Magia", criador: "Personagem" } as const;
 export type Kind = keyof typeof kindLabel;
 export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean; instance?: number };
 export type Page = "campanhas" | "planejamento" | "diario" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
@@ -39,14 +39,15 @@ export const desktopSections = (role: "mestre" | "jogador" | null): Section[] =>
 export const kinds = Object.keys(kindLabel) as Kind[];
 
 /** Id próprio da aba: `kind:ref` (ex.: secao:personagens, ficha:lydia). Uma entidade = uma aba. */
-export const tabId = (s: Pick<TabSpec, "kind" | "ref" | "instance">) => `${s.kind}:${s.ref}${s.kind === "secao" && s.ref === "planejamento" && s.instance && s.instance > 1 ? `~${s.instance}` : ""}`;
+export const tabId = (s: Pick<TabSpec, "kind" | "ref" | "instance">) => `${s.kind}:${s.ref}${s.instance && s.instance > 1 ? `~${s.instance}` : ""}`;
 export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   if (typeof id !== "string") return null;
   const i = id.indexOf(":");
   const kind = id.slice(0, i) as Kind, rawRef = id.slice(i + 1);
-  const match = kind === "secao" ? /^planejamento~([2-9][0-9]*)$/.exec(rawRef) : null;
-  const instance = match ? Number(match[1]) : undefined;
-  const ref = match ? "planejamento" : rawRef;
+  const match = /^(.+)~([1-9][0-9]*)$/.exec(rawRef);
+  const instance = match ? Number(match[2]) : undefined;
+  if(instance!==undefined&&(!Number.isSafeInteger(instance)||instance<2))return null;
+  const ref = match ? match[1] : rawRef;
   if (i < 1 || !kinds.includes(kind) || !(kind === "regra" ? /^[\w-]{1,320}$/ : /^[\w-]{1,64}$/).test(ref)) return null;
   if (kind === "secao" && !knownSections.some(s => s.page === ref)) return null;
   return { kind, ref, ...(instance && Number.isSafeInteger(instance) ? { instance } : {}) };
@@ -104,11 +105,18 @@ export function sanitizeLayout(data: unknown): IJsonModel | null {
   for (const s of sets) {
     const tabs: IJsonTabNode[] = [];
     const flat = (Array.isArray(s.children) ? s.children : []).flatMap(c => (c as { type?: string; children?: unknown[] })?.type === "tab-group" ? ((c as { children?: unknown[] }).children ?? []) : [c]);
-    for (const t of flat as { id?: unknown; name?: unknown; pinned?: unknown }[]) {
+    for (const t of flat as { id?: unknown; name?: unknown; pinned?: unknown; history?: {pages?: unknown;index?: unknown} }[]) {
       const p = parseTabId(t?.id);
       if (!p || seen.has(tabId(p))) continue;
       seen.add(tabId(p));
-      tabs.push(tabJson({ ...p, pinned: t.pinned === true }));   // nomes guardados são ignorados: o layout persiste só ids
+      const tab=tabJson({ ...p, pinned: t.pinned === true });
+      const raw=t.history;
+      if(raw&&Array.isArray(raw.pages)&&raw.pages.length>0&&raw.pages.length<=40){
+        const pages=raw.pages.map(v=>{const x=v as {kind?:unknown;ref?:unknown};return x&&parseTabId(`${x.kind}:${x.ref}`);});
+        if(pages.every(Boolean)&&Number.isInteger(raw.index)&&Number(raw.index)>=0&&Number(raw.index)<pages.length)
+          tab.config={...tab.config,history:{pages,index:raw.index}};
+      }
+      tabs.push(tab);   // nomes guardados são ignorados: o layout persiste só ids
     }
     // Painel vazio só é mantido se já veio vazio (criado de propósito por divisão); grupo cujas abas eram todas inválidas é descartado.
     if (!tabs.length && flat.length > 0) continue;

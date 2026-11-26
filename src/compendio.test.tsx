@@ -84,7 +84,7 @@ describe('Compêndio na navegação real', () => {
     expect(fatos.getByText('Peso').nextSibling?.textContent).toBe('1,5 kg');
     expect(within(detalhe).getByText(/Atribuição/)).toBeTruthy();
     expect(await screen.findByRole('heading', { name: 'Espada longa', level: 1 })).toBeTruthy();
-    expect(abas()).toEqual(['Mesa dos Dragões', 'Compêndio', 'Espada longa']);
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Espada longa']);
   });
 
   it('pacote lista os componentes como links para os itens; clicar abre o item', async () => {
