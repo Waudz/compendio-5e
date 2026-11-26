@@ -17,6 +17,8 @@ export type CharacterDraft = {
   nickname?: string;
   /** Retrato único do personagem (https): ficha, Início, Compêndio, Iniciativa e Encontros usam a mesma imagem. */
   portrait?: string;
+  /** História e personalidade, escritas pelo jogador (ficha privada). */
+  story?: { personalidade?: string; ideais?: string; vinculos?: string; defeitos?: string; historia?: string };
   /** Estado de jogo (condições, inspiração, morte, modificadores temporários...), lido por `ficha/estadoJogo.ts`. */
   play?: unknown;
   abilityMethod?: 'point-buy' | 'standard-array' | 'manual';

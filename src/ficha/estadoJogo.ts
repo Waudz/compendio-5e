@@ -13,9 +13,19 @@ export type ModTemporario = { id: string; nome: string; alvo: AlvoMod; valor: nu
 export type Defesa = { id: string; tipo: TipoDefesa; texto: string };
 export type AtaquePersonalizado = { id: string; nome: string; bonus: string; dano: string; notas?: string };
 export type Movimento = { em: string; texto: string };
+export type TipoConcedido = "talento" | "magia" | "habilidade";
+export const ATRIBUTOS_CONJ = ["str", "dex", "con", "int", "wis", "cha"] as const;
+/** Talento, magia ou habilidade entregue pelo mestre ou ligada a um item do inventário (`itemInstancia`). */
+export type Concedido = {
+  id: string; tipo: TipoConcedido; nome: string; origem: string; descricao?: string;
+  /** Magia do catálogo (quando `tipo` é magia). */ ref?: string;
+  atributo?: (typeof ATRIBUTOS_CONJ)[number]; cd?: number; ataque?: number; salvaguarda?: string; efeito?: string;
+  /** Só vale enquanto esta instância de item estiver no inventário (e equipada, se puder ser). */ itemInstancia?: string;
+};
+export const MAX_CONCEDIDOS = 40;
 export type EstadoJogo = {
   condicoes: string[]; inspiracao: boolean; morte: { sucessos: number; falhas: number };
-  modificadores: ModTemporario[]; defesas: Defesa[]; ataques: AtaquePersonalizado[]; historico: Movimento[];
+  modificadores: ModTemporario[]; defesas: Defesa[]; ataques: AtaquePersonalizado[]; historico: Movimento[]; concedidos: Concedido[];
 };
 export const MAX_HISTORICO = 40;
 
@@ -36,7 +46,20 @@ export function lerEstadoJogo(draft: { play?: unknown }): EstadoJogo {
     defesas: lista(p.defesas, 30, x => (texto(x.id, 60) && typeof x.tipo === "string" && x.tipo in ROTULO_DEFESA && texto(x.texto, 80).trim() ? { id: texto(x.id, 60), tipo: x.tipo as TipoDefesa, texto: texto(x.texto, 80) } : null)),
     ataques: lista(p.ataques, 20, x => (texto(x.id, 60) && texto(x.nome, 60).trim() ? { id: texto(x.id, 60), nome: texto(x.nome, 60), bonus: texto(x.bonus, 20), dano: texto(x.dano, 60), ...(texto(x.notas, 200) ? { notas: texto(x.notas, 200) } : {}) } : null)),
     historico: lista(p.historico, MAX_HISTORICO, x => (texto(x.texto, 160) ? { em: texto(x.em, 30), texto: texto(x.texto, 160) } : null)),
+    concedidos: lista(p.concedidos, MAX_CONCEDIDOS, lerConcedido),
   };
+}
+function lerConcedido(x: Record<string, unknown>): Concedido | null {
+  const tipo = x.tipo === "talento" || x.tipo === "magia" || x.tipo === "habilidade" ? x.tipo : null;
+  if (!tipo || !texto(x.id, 60) || !texto(x.nome, 80).trim()) return null;
+  const opcional = (chave: "descricao" | "ref" | "salvaguarda" | "efeito" | "itemInstancia", max: number) => (texto(x[chave], max) ? { [chave]: texto(x[chave], max) } : {});
+  const numeroOpcional = (chave: "cd" | "ataque", min: number, max: number) => (typeof x[chave] === "number" ? { [chave]: inteiro(x[chave], min, max) } : {});
+  return { id: texto(x.id, 60), tipo, nome: texto(x.nome, 80), origem: texto(x.origem, 80) || "Mestre", ...opcional("descricao", 2000), ...opcional("ref", 80), ...opcional("salvaguarda", 40), ...opcional("efeito", 200), ...opcional("itemInstancia", 80),
+    ...(ATRIBUTOS_CONJ.includes(x.atributo as never) ? { atributo: x.atributo as Concedido["atributo"] } : {}), ...numeroOpcional("cd", 1, 40), ...numeroOpcional("ataque", -10, 30) };
+}
+/** Os concedidos que valem agora: os de item só com o item no inventário e, se for equipável, equipado. */
+export function concedidosAtivos(draft: { inventory: { id: string; itemId: string; equipped: boolean }[] }, estado: EstadoJogo): Concedido[] {
+  return estado.concedidos.filter(c => !c.itemInstancia || draft.inventory.some(i => i.id === c.itemInstancia && (i.equipped || !podeEquipar(i.itemId))));
 }
 export const comEstado = (draft: CharacterDraft, patch: Partial<EstadoJogo>): CharacterDraft => ({ ...draft, play: { ...lerEstadoJogo(draft), ...patch } });
 export const somaTemporaria = (estado: EstadoJogo, alvo: AlvoMod) => estado.modificadores.filter(m => m.alvo === alvo).reduce((s, m) => s + m.valor, 0);

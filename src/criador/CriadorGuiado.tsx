@@ -79,10 +79,10 @@ export function CriadorGuiado({ id, onOpenContent, initialView = false }: { id: 
   if (!user) return aviso("Conta necessária para usar o criador de personagens.");
   if (!active) return aviso("Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral.");
   if (!store || !repo) return aviso("Não foi possível preparar o armazenamento deste usuário e campanha.");
-  return <Editor key={`${active.campaign.id}:${id}`} id={id} repo={repo} store={store} userId={user.id} campaignId={active.campaign.id} campanha={active.campaign.name} onOpenContent={onOpenContent} initialView={initialView}/>;
+  return <Editor key={`${active.campaign.id}:${id}`} id={id} repo={repo} store={store} userId={user.id} campaignId={active.campaign.id} campanha={active.campaign.name} onOpenContent={onOpenContent} initialView={initialView} mestre={active.role === "mestre"}/>;
 }
 
-function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, initialView }: { id: string; repo: RepositorioPersonagem; store: ArmazenamentoCriador; userId: string; campaignId: string; campanha: string; onOpenContent: (s: TabSpec) => void; initialView: boolean }) {
+function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, initialView, mestre }: { mestre: boolean; id: string; repo: RepositorioPersonagem; store: ArmazenamentoCriador; userId: string; campaignId: string; campanha: string; onOpenContent: (s: TabSpec) => void; initialView: boolean }) {
   const servidor = repo.tipo === "servidor";
   const [carga, setCarga] = useState<"carregando" | "pronto" | { erro: string }>("carregando"), [tentativa, setTentativa] = useState(0);
   const [draft, setDraft] = useState<CharacterDraft>(() => novoRascunho(id));
@@ -342,7 +342,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     const naoSalvo = sujo && !salvando && falhou.current === retrato;
     return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
       <FichaJogo draft={draft} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudar} onOpenContent={onOpenContent}
-        onEditar={editar} onProgredir={editar}
+        onEditar={editar} onProgredir={editar} podeConceder={mestre}
         salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
           {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
         avisos={<>{avisoConflito}

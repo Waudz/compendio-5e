@@ -2,12 +2,12 @@
 // celular. Os cálculos vêm do motor `regras-2014`; o que muda durante o jogo é guardado no próprio rascunho (`estadoJogo`). A aba, a
 // rolagem de cada aba e a exibição do inventário são lembradas nesta sessão do navegador, por personagem.
 import './ficha.css';
-import { MoreHorizontal, Pencil, X } from "lucide-react";
+import { Minus, MoreHorizontal, Pencil, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { class2014, label2014, raceTraits2014, selected2014, sheet2014, statistics2014 } from "../criador/regras-2014";
 import { retratoValido } from "../fichas";
 import { RetratoQuadrado } from "../RetratoCombate";
-import { CONDICOES_5E } from "../rules/condicoes-5e";
+import { CONDICOES_5E, CONDICOES_TEXTO } from "../rules/condicoes-5e";
 import type { CharacterDraft } from "../rules/character-domain";
 import { useFecharMenu } from "../useFecharMenu";
 import type { TabSpec } from "../workspace";
@@ -52,11 +52,13 @@ export type FichaJogoProps = {
   memoria: string;
   onChange: (d: CharacterDraft) => void; onOpenContent: (s: TabSpec) => void;
   onEditar: () => void; onProgredir: () => void;
+  /** O mestre pode entregar talentos, magias e habilidades. */
+  podeConceder?: boolean;
   /** Estado do salvamento, avisos (conflito, recuperação) e estado em combate informado pelo mestre. */
   salvamento?: ReactNode; avisos?: ReactNode; combate?: ReactNode;
 };
 
-export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, combate }: FichaJogoProps) {
+export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, combate, podeConceder }: FichaJogoProps) {
   const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft]);
   const base = useMemo(() => statistics2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft]);
   const estado = lerEstadoJogo(draft);
@@ -121,7 +123,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
         <div className="ficha-nomes"><h1>{draft.name.trim() || "Personagem sem nome"}</h1>
           {draft.nickname?.trim() && <p className="identidade-alcunha"><em>{draft.nickname.trim()}</em></p>}
           <p className="muted">{[raca, label2014(draft.classId) + (subclasse ? ` (${label2014(subclasse)})` : ""), `Nível ${draft.level}`, label2014(draft.backgroundId)].join(" · ")}</p></div>
-        <div className="ficha-acoes"><button type="button" className="btn-primary" onClick={onEditar}><Pencil size={14} aria-hidden="true"/> Editar personagem</button>
+        <div className="ficha-acoes"><button type="button" className="btn-secondary ficha-botao" aria-label="Editar personagem" onClick={onEditar}><Pencil size={14} aria-hidden="true"/> Editar<span className="ficha-so-largo"> personagem</span></button>
           <MenuAcoes draft={draft} maximo={sheet.maxHp} onChange={onChange} onProgredir={onProgredir}/></div>
       </div>
       <Vida draft={draft} maximo={sheet.maxHp} onChange={onChange}/>
@@ -132,13 +134,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
         {numero("Percepção passiva", String(stats.passivePerception + temp("passivePerception")), "passivePerception")}
         {numero("Proficiência", sinal(stats.prof))}
       </div>
-      <div className="ficha-etiquetas" aria-label="Condições">
-        {estado.condicoes.map(c => <span key={c} className="ini-chip">{c} <button type="button" aria-label={`Remover condição ${c}`} onClick={() => onChange(comEstado(draft, { condicoes: estado.condicoes.filter(x => x !== c) }))}><X size={12} aria-hidden="true"/></button></span>)}
-        <select aria-label="Adicionar condição" value="" onChange={e => { if (e.target.value) onChange(comEstado(draft, { condicoes: [...estado.condicoes, e.target.value] })); }}>
-          <option value="">{estado.condicoes.length ? "Adicionar condição" : "Sem condições · adicionar"}</option>
-          {CONDICOES_5E.filter(c => !estado.condicoes.includes(c)).map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
+      <Condicoes draft={draft} onChange={onChange}/>
       {defesas.length > 0 && <p className="ficha-defesas">{(Object.keys(ROTULO_DEFESA) as (keyof typeof ROTULO_DEFESA)[]).flatMap(tipo => { const l = defesas.filter(d => d.tipo === tipo).map(d => d.texto); return l.length ? [<span key={tipo}><strong>{ROTULO_DEFESA[tipo]}:</strong> {[...new Set(l)].join(", ")}</span>] : []; })}</p>}
     </section>
     {salvamento}
@@ -148,7 +144,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
     <nav className="ficha-subnav" aria-label="Seções da ficha">{ABAS.map(([id, rotulo]) => <button key={id} type="button" className={mem.aba === id ? "active" : ""} aria-current={mem.aba === id ? "true" : undefined} onClick={() => trocarAba(id)}>{rotulo}</button>)}</nav>
     <div className="ficha-conteudo" data-aba={mem.aba}>
       {mem.aba === "ficha" && <AbaFicha {...propsAba}/>}
-      {mem.aba === "habilidades" && <AbaHabilidades {...propsAba}/>}
+      {mem.aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder}/>}
       {mem.aba === "inventario" && <AbaInventario {...propsAba} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
     </div>
     <p className="muted ficha-dado">Dado de vida d{class2014(draft).data.hitDie} · cálculos das regras SRD 5.1 (2014).</p>
@@ -156,18 +152,40 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
 }
 
 function Vida({ draft, maximo, onChange }: { draft: CharacterDraft; maximo: number; onChange: (d: CharacterDraft) => void }) {
-  const [valor, setValor] = useState("");
-  const n = Number(valor), valido = valor.trim() !== "" && Number.isSafeInteger(n) && n >= 0 && n <= 999;
-  const aplicar = (f: () => CharacterDraft) => { onChange(f()); setValor(""); };
+  const [valor, setValor] = useState("1");
+  const n = Number(valor), inteiro = valor.trim() !== "" && Number.isSafeInteger(n) && n >= 0 && n <= 999, valido = inteiro && n > 0;
+  const aplicar = (f: () => CharacterDraft) => { onChange(f()); setValor("1"); };
   return <div className="ficha-vida">
-    <div className="ficha-vida-total"><span>PV</span><strong data-testid="ficha-pv">{draft.currentHp} / {maximo}</strong>{draft.temporaryHp > 0 && <small data-testid="ficha-pv-temp">+{draft.temporaryHp} temporários</small>}{draft.currentHp === 0 && <small className="ficha-caido">caído</small>}</div>
+    <div className="ficha-vida-total"><span>PV</span><strong data-testid="ficha-pv">{draft.currentHp} / {maximo}</strong>{draft.temporaryHp > 0 && <small className="ficha-pv-temp" data-testid="ficha-pv-temp">+{draft.temporaryHp} temporários</small>}{draft.currentHp === 0 && <small className="ficha-caido">caído</small>}</div>
     <div className="ficha-barra" role="meter" aria-label="Pontos de vida" aria-valuemin={0} aria-valuemax={maximo} aria-valuenow={Math.min(draft.currentHp, maximo)}><span style={{ width: `${Math.min(100, maximo ? (draft.currentHp / maximo) * 100 : 0)}%` }} className={draft.currentHp <= maximo / 4 ? "excesso" : ""}/></div>
     <form className="ficha-vida-ajuste" onSubmit={e => e.preventDefault()}>
-      <input type="number" inputMode="numeric" min={0} max={999} aria-label="Quantidade de pontos de vida" placeholder="Valor" value={valor} onChange={e => setValor(e.target.value)}/>
-      <button type="button" className="btn-secondary" disabled={!valido || n === 0} onClick={() => aplicar(() => causarDano(draft, n))}>Dano</button>
-      <button type="button" className="btn-secondary" disabled={!valido || n === 0} onClick={() => aplicar(() => curar(draft, maximo, n))}>Curar</button>
-      <button type="button" className="btn-secondary" disabled={!valido} title="PV temporários não se acumulam: o valor substitui o atual" onClick={() => aplicar(() => definirTemporarios(draft, n))}>PV temporários</button>
+      <button type="button" className="ficha-passo dano" disabled={!valido} aria-label="Aplicar dano" title="Aplicar dano" onClick={() => aplicar(() => causarDano(draft, n))}><Minus size={16} aria-hidden="true"/></button>
+      <input type="number" inputMode="numeric" min={0} max={999} aria-label="Quantidade de pontos de vida" value={valor} onFocus={e => e.target.select()} onChange={e => setValor(e.target.value)} onBlur={() => { if (!inteiro) setValor("1"); }}/>
+      <button type="button" className="ficha-passo cura" disabled={!valido} aria-label="Curar" title="Curar (até o máximo)" onClick={() => aplicar(() => curar(draft, maximo, n))}><Plus size={16} aria-hidden="true"/></button>
+      <button type="button" className="ficha-temp-botao" disabled={!inteiro} aria-label="Definir PV temporários" title="Define os PV temporários com a quantidade digitada (não se acumulam; 0 remove)" onClick={() => aplicar(() => definirTemporarios(draft, n))}>Temp.</button>
     </form>
+  </div>;
+}
+
+/** Condições ativas como indicadores compactos: o nome mostra o efeito; o "+" abre a lista para adicionar. */
+function Condicoes({ draft, onChange }: { draft: CharacterDraft; onChange: (d: CharacterDraft) => void }) {
+  const ativas = lerEstadoJogo(draft).condicoes;
+  const [aberto, setAberto] = useState(false), [vendo, setVendo] = useState<string | null>(null);
+  const menu = useRef<HTMLDivElement>(null), gatilho = useRef<HTMLButtonElement>(null);
+  useFecharMenu(aberto, menu, gatilho, () => setAberto(false));
+  const disponiveis = CONDICOES_5E.filter(c => !ativas.includes(c));
+  return <div className="ficha-condicoes" role="group" aria-label="Condições">
+    <span className="ficha-condicoes-rotulo">Condições</span>
+    {ativas.map(c => <span key={c} className="ficha-chip ativa"><button type="button" className="ficha-chip-nome" aria-expanded={vendo === c} onClick={() => setVendo(v => (v === c ? null : c))}>{c}</button>
+      <button type="button" aria-label={`Remover condição ${c}`} onClick={() => { onChange(comEstado(draft, { condicoes: ativas.filter(x => x !== c) })); setVendo(null); }}><X size={12} aria-hidden="true"/></button></span>)}
+    {ativas.length === 0 && <span className="muted">nenhuma</span>}
+    <span className="ficha-menu">
+      <button ref={gatilho} type="button" className="ficha-mais" aria-label="Adicionar condição" aria-haspopup="true" aria-expanded={aberto} disabled={disponiveis.length === 0} onClick={() => setAberto(a => !a)}><Plus size={14} aria-hidden="true"/></button>
+      {aberto && <div ref={menu} className="barra-menu ficha-menu-lista ficha-lista-condicoes" role="group" aria-label="Escolher condição">
+        {disponiveis.map(c => <button key={c} type="button" className="barra-item" title={CONDICOES_TEXTO[c]} onClick={() => { onChange(comEstado(draft, { condicoes: [...ativas, c] })); setAberto(false); }}>{c}</button>)}
+      </div>}
+    </span>
+    {vendo && ativas.includes(vendo) && <p className="ficha-efeito" role="note"><strong>{vendo}:</strong> {CONDICOES_TEXTO[vendo] ?? "Sem descrição cadastrada."}</p>}
   </div>;
 }
 
@@ -182,7 +200,7 @@ function MenuAcoes({ draft, maximo, onChange, onProgredir }: { draft: CharacterD
     fechar();
   };
   return <div className="ficha-menu">
-    <button ref={gatilho} type="button" className="btn-secondary" aria-haspopup="true" aria-expanded={aberto} onClick={() => { if (aberto) fechar(); else { setAberto(true); setAviso(""); } }}><MoreHorizontal size={15} aria-hidden="true"/> Ações</button>
+    <button ref={gatilho} type="button" className="btn-secondary ficha-botao" aria-haspopup="true" aria-expanded={aberto} aria-label="Ações" title="Descansos, progressão e outras ações" onClick={() => { if (aberto) fechar(); else { setAberto(true); setAviso(""); } }}><MoreHorizontal size={16} aria-hidden="true"/></button>
     {aberto && <div ref={menu} className="barra-menu ficha-menu-lista" role="group" aria-label="Ações do personagem">
       {confirmar ? <>
         <p>{confirmar === "curto" ? "Registrar descanso curto?" : "Registrar descanso longo? Os PV e os recursos serão recuperados."}</p>

@@ -291,6 +291,14 @@ export function features2014(d: CharacterDraft): Feature[] {
   }
   return out;
 }
+/** Identificadores das características que vêm da subclasse escolhida (as demais são da classe). */
+export function subclassFeatureIds2014(d: CharacterDraft): string[] {
+  const c = class2014(d),
+    sub = data.subclasses.find(
+      (s) => shortId(s.id) === selected2014(d, 'subclass')[0] && s.parent === c.id,
+    );
+  return sub?.data.levels.filter((l) => l.level <= d.level).flatMap((l) => l.features) ?? [];
+}
 const allSkills = [
   'acrobatics',
   'animal-handling',
@@ -1545,6 +1553,9 @@ export function proficiencyLabel2014(value: string) {
     'medium-armor': 'Armaduras médias',
     'heavy-armor': 'Armaduras pesadas',
     shields: 'Escudos',
+    'all-armor': 'Todas as armaduras',
+    'crossbows-light': 'Bestas leves',
+    'light-hammers': 'Martelos leves',
     'simple-weapons': 'Armas simples',
     'martial-weapons': 'Armas marciais',
   };

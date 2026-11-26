@@ -1,6 +1,6 @@
 /* Ficha de jogo: adapta-se à largura do PAINEL (não só da janela), para funcionar em dois grupos lado a lado e no celular. */
 .ficha.ficha-jogo { container-type: inline-size; }
-.ficha-jogo > * { max-width: 1040px; }
+.ficha-jogo > * { max-width: 1280px; }
 .ficha-cabecalho { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .ficha-identidade { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
 .ficha-nomes { min-width: 0; overflow-wrap: anywhere; }
@@ -16,28 +16,82 @@
 
 .ficha-vida { display: grid; grid-template-columns: auto minmax(80px, 1fr) auto; gap: 8px 12px; align-items: center; }
 .ficha-vida-total { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.ficha-vida-total strong { font-size: 20px; }
+.ficha-vida-total strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+.ficha-pv-temp { color: var(--accent); font-weight: 600; }
 .ficha-caido { color: var(--danger, #f87171); font-weight: 650; }
 .ficha-barra { height: 9px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
 .ficha-barra > span { display: block; height: 100%; background: #22a06b; }
 .ficha-barra > span.excesso { background: #dc5656; }
-.ficha-vida-ajuste { display: flex; gap: 6px; flex-wrap: wrap; }
-.ficha .ficha-vida-ajuste input { width: 76px; }
+.ficha.ficha-jogo form.ficha-vida-ajuste { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 4px; margin: 0; max-width: none; }
+.ficha .ficha-vida-ajuste input { width: 64px; min-width: 0; text-align: center; padding: 6px 4px; font-variant-numeric: tabular-nums; }
+.ficha .ficha-passo, .ficha .ficha-temp-botao { display: inline-flex; align-items: center; justify-content: center; width: auto; margin: 0; min-width: 38px; min-height: 36px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; font: inherit; }
+.ficha .ficha-passo.dano:not(:disabled) { border-color: #dc5656; }
+.ficha .ficha-passo.cura:not(:disabled) { border-color: #22a06b; }
+.ficha .ficha-temp-botao { font-size: 11px; padding: 0 8px; margin-left: 4px; color: var(--text-2); }
+.ficha .ficha-passo:disabled, .ficha .ficha-temp-botao:disabled { opacity: .45; cursor: default; }
 
 .ficha-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
 .ficha-numero { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; align-items: center; text-align: center; }
 .ficha-numero span, .ficha-atributo span { font-size: 11px; color: var(--text-2); }
 .ficha-numero strong { font-size: 17px; }
 .ficha-temp { color: var(--accent); font-weight: 600; font-size: 11px; }
-.ficha-etiquetas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.ficha-etiquetas .ini-chip { display: inline-flex; align-items: center; gap: 4px; }
-.ficha-etiquetas .ini-chip button { background: none; border: 0; color: inherit; padding: 2px; display: flex; cursor: pointer; }
-.ficha .ficha-etiquetas select { width: auto; min-width: 0; max-width: 100%; font-size: 12px; }
+.ficha-condicoes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
+.ficha-condicoes-rotulo { color: var(--text-2); }
+.ficha-efeito { flex: 1 1 100%; margin: 0; }
+.ficha-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
+.ficha-chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 14px; padding: 2px 4px 2px 10px; font-size: 12px; max-width: 100%; overflow-wrap: anywhere; }
+.ficha-chip.ativa { border-color: var(--accent); }
+.ficha .ficha-chip button { background: none; border: 0; color: inherit; font: inherit; padding: 3px; display: inline-flex; align-items: center; cursor: pointer; width: auto; margin: 0; }
+.ficha .ficha-chip .ficha-chip-nome { font-weight: 600; padding-left: 0; }
+.ficha .ficha-mais { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; margin: 0; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+.ficha .barra-menu.ficha-lista-condicoes { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; min-width: 180px; }
 .ficha-defesas { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; }
 
 .ficha-conteudo { min-height: 60vh; }
-.ficha-colunas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
-@container (min-width: 700px) { .ficha-colunas { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ficha-colunas > .ficha-larga { grid-column: 1 / -1; } }
+.ficha-pilha { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* aba Ficha: duas pilhas independentes, para um cartão alto não abrir espaço vazio ao lado */
+.ficha-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+.ficha-dupla { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; align-items: start; }
+@container (min-width: 600px) {
+  .ficha-grade { grid-template-columns: minmax(200px, 250px) minmax(0, 1fr); }
+  .ficha-area-atributos { grid-column: 1 / -1; }
+}
+.ficha-bloco-pericias { container-type: inline-size; }
+.ficha-compactas > li { padding: 2px 0; font-size: 13px; }
+@container (min-width: 380px) {
+  .ficha-linhas.ficha-pericias { columns: 2; column-gap: 24px; }
+  .ficha-pericias > li { break-inside: avoid; }
+}
+.ficha-titulo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ficha.ficha-jogo form.ficha-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 8px; margin: 0; align-items: end; max-width: none; }
+.ficha .ficha-campos input, .ficha .ficha-campos select, .ficha .ficha-campos textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+.ficha-campo-largo { grid-column: 1 / -1; }
+.ficha .ficha-campos .row button { width: auto; margin: 0; }
+.ficha.ficha-jogo button.ficha-discreto { align-self: flex-start; width: auto; margin: 0; }
+
+.ficha-cartoes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); gap: 8px; align-items: start; }
+.ficha-cartao { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.ficha-cartao-topo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ficha-cartao-topo > svg { flex: none; color: var(--accent); }
+.ficha-jogo .ficha-cartao-topo h3 { margin: 0; font-size: 14px; flex: 1 1 auto; min-width: 0; }
+.ficha-selo { font-size: 11px; color: var(--text-2); border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; }
+.ficha-valores { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.ficha-valores > li { font-size: 12px; font-weight: 600; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; }
+.ficha-cartao .muted { font-size: 12px; }
+.ficha-cartao summary { cursor: pointer; font-size: 12px; color: var(--text-2); padding: 2px 0; }
+.ficha-etiqueta-linha { font-size: 12px; margin: 0; }
+.ficha-fontes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ficha-fontes > li { display: flex; flex-wrap: wrap; gap: 2px 14px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+.ficha-circulo h3 { font-size: 13px; margin: 4px 0 6px; }
+
+.marcadores { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.marcadores-pontos { display: inline-flex; flex-wrap: wrap; gap: 2px; }
+.ficha .marcadores button.marcador { width: 26px; height: 26px; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.marcador > span { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--text-2); box-sizing: border-box; }
+.marcador.cheio > span { background: var(--accent); border-color: var(--accent); }
+.marcadores-texto { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.marcadores-texto small { font-size: 11px; }
+
 .ficha-bloco { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 10px 14px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .ficha-jogo .ficha-bloco h2 { font-size: 15px; margin: 0; }
 .ficha-bloco h3 { font-size: 13px; margin: 6px 0 2px; }
@@ -87,10 +141,10 @@
 .ficha-jogo .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @container (max-width: 600px) {
-  .ficha-identidade { grid-template-columns: auto minmax(0, 1fr); }
+  .ficha-identidade { grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; }
   .ficha-identidade .retrato-q { width: 56px !important; height: 56px !important; }
-  .ficha-acoes { grid-column: 1 / -1; justify-content: flex-start; }
-  .ficha-menu .ficha-menu-lista, .ficha .barra-menu.ficha-menu-lista, .ficha-menu-aviso { right: auto; left: 0; }
+  .ficha-so-largo { display: none; }
+  .ficha-acoes { flex-direction: column; align-items: flex-end; }
   .ficha-vida { grid-template-columns: auto minmax(0, 1fr); }
   .ficha-vida-ajuste { grid-column: 1 / -1; }
   .ficha-numeros { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -105,6 +159,9 @@
   .ficha-jogo .ficha-subnav button { padding: 10px 4px; font-size: 12px; }
   .ficha-cabecalho, .ficha-bloco { padding-left: 8px; padding-right: 8px; }
   .ficha-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ficha-identidade { grid-template-columns: auto minmax(0, 1fr); }
+  .ficha-acoes { grid-column: 1 / -1; flex-direction: row; justify-content: flex-start; }
+  .ficha.ficha-jogo form.ficha-vida-ajuste { flex-wrap: wrap; }
   .ficha-atributos { gap: 4px; }
   .ficha-atributo span { font-size: 9px; }
   .ficha-moedas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -114,7 +171,7 @@
 .ficha-numero, .ficha-atributo { min-width: 0; overflow-wrap: anywhere; }
 .ficha-jogo button { max-width: 100%; }
 /* o formulário genérico (.auth) estica botões; na ficha eles ficam compactos, lado a lado */
-.ficha.ficha-jogo .ficha-vida-ajuste > button, .ficha.ficha-jogo .ficha-form > button, .ficha.ficha-jogo .ficha-recurso button,
-.ficha.ficha-jogo .ficha-linhas button, .ficha.ficha-jogo .ficha-bloco > button, .ficha.ficha-jogo .ficha-acoes button, .ficha.ficha-jogo .row-between button { width: auto; margin: 0; align-self: flex-start; }
-.ficha.ficha-jogo .ficha-vida-ajuste > button, .ficha.ficha-jogo .ficha-acoes button { align-self: center; padding: 7px 12px; }
-.ficha.ficha-jogo form.ficha-vida-ajuste, .ficha.ficha-jogo form.ficha-form { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; max-width: none; margin: 0; }
+.ficha.ficha-jogo .ficha-form > button, .ficha.ficha-jogo .ficha-recurso > button, .ficha.ficha-jogo .ficha-linhas button.btn-secondary, .ficha.ficha-jogo .ficha-bloco > button, .ficha.ficha-jogo .ficha-acoes button, .ficha.ficha-jogo .row-between button { width: auto; margin: 0; align-self: flex-start; }
+.ficha.ficha-jogo .ficha-acoes button.ficha-botao { align-self: center; padding: 7px 12px; display: inline-flex; align-items: center; gap: 6px; }
+.ficha.ficha-jogo form.ficha-form { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; max-width: none; margin: 0; }
+.ficha.ficha-jogo .ficha-menu .barra-item { width: 100%; justify-content: flex-start; }

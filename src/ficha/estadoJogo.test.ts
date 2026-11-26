@@ -8,7 +8,7 @@ const draft: CharacterDraft = { id: "p1", name: "Thorin", ruleset: "5e-2014", ca
 
 describe("estado de jogo da ficha", () => {
   it("lê com segurança dados ausentes ou inválidos e não deixa passar formatos desconhecidos", () => {
-    expect(lerEstadoJogo({})).toEqual({ condicoes: [], inspiracao: false, morte: { sucessos: 0, falhas: 0 }, modificadores: [], defesas: [], ataques: [], historico: [] });
+    expect(lerEstadoJogo({})).toEqual({ condicoes: [], inspiracao: false, morte: { sucessos: 0, falhas: 0 }, modificadores: [], defesas: [], ataques: [], historico: [], concedidos: [] });
     const e = lerEstadoJogo({ play: { condicoes: ["Caído", "Caído", 3], morte: { sucessos: 9, falhas: -1 }, modificadores: [{ id: "a", alvo: "ca", valor: 2 }, { id: "b", alvo: "ac", valor: 99 }], inspiracao: "sim" } });
     expect(e.condicoes).toEqual(["Caído"]);
     expect(e.morte).toEqual({ sucessos: 3, falhas: 0 });

@@ -82,10 +82,13 @@ describe("ficha de jogo", () => {
     const publicoAntes = JSON.stringify(registros.dados[0]);
     await abrirFicha();
     fireEvent.change(screen.getByLabelText("Quantidade de pontos de vida"), { target: { value: "7" } });
-    fireEvent.click(screen.getByRole("button", { name: "PV temporários" }));
+    fireEvent.click(screen.getByRole("button", { name: "Definir PV temporários" }));
     fireEvent.change(screen.getByLabelText("Quantidade de pontos de vida"), { target: { value: "9" } });
-    fireEvent.click(screen.getByRole("button", { name: "Dano" }));
-    fireEvent.change(screen.getByLabelText("Adicionar condição"), { target: { value: "Envenenado" } });
+    expect((screen.getByLabelText("Quantidade de pontos de vida") as HTMLInputElement).value).toBe("9");
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar dano" }));
+    expect((screen.getByLabelText("Quantidade de pontos de vida") as HTMLInputElement).value).toBe("1");   // o valor volta a 1
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar condição" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Escolher condição" })).getByRole("button", { name: "Envenenado" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Inspiração" }));
     await salvou(() => expect(draftSalvo()).toMatchObject({ currentHp: 18, temporaryHp: 0, play: { condicoes: ["Envenenado"], inspiracao: true } }));
     await salvou(() => expect(screen.getByTestId("estado-salvamento").textContent).toBe("Tudo salvo."));
@@ -115,9 +118,11 @@ describe("ficha de jogo", () => {
     fireEvent.change(ataques.getByLabelText("Dano do ataque"), { target: { value: "1d4+2" } });
     fireEvent.click(ataques.getByRole("button", { name: "Adicionar" }));
     expect(ataques.getByText("Cabeçada")).toBeTruthy();
-    fireEvent.click(within(screen.getByRole("region", { name: "Recursos de classe e raça" })).getByRole("button", { name: "Usar Retomar o Fôlego" }));
+    fireEvent.click(within(screen.getByRole("region", { name: "Características" })).getByRole("button", { name: /^Usar Retomar o Fôlego/ }));
+    expect(within(screen.getByRole("region", { name: "Características" })).getByRole("button", { name: /^Recuperar Retomar o Fôlego/ })).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Magias" })).toBeNull();   // guerreiro sem magia: sem seção vazia
     irPara("Ficha");
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar efeito temporário" }));
     fireEvent.change(screen.getByLabelText("Valor do modificador"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
     expect(numero("CA")).toBe("18");
