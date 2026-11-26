@@ -578,3 +578,26 @@ Pendências funcionais confirmadas (referência visual futura: captura da lista 
 - **equipado e sintonizado são estados separados:** um item pode estar equipado sem sintonização, mas não concede os benefícios que dependem dela. Hoje a concessão do mestre presa a um item vale quando ele está no inventário (e equipado, se equipável), **sem** considerar sintonização.
 
 Continuam válidas as decisões da DEC-030 e os requisitos de segurança (identificação sem enviar os dados verdadeiros ao jogador; operações atômicas e protegidas no banco). Sem merge, publicação ou aplicação da 0014; revisão técnica final, segurança, banco e integração ficam com o ChatGPT.
+
+## RETOMAR AQUI — Pronto para a revisão técnica final (26/11/2026, PR #158)
+
+**Refinamento visual concluído e aprovado** pelo responsável: ficha, Habilidades e inventário (lista e grade). Sem novas alterações visuais nessas telas sem aprovação. Próxima etapa, com o **ChatGPT**: revisão técnica final, validação de segurança, decisão e aplicação da 0014 e integração na `main`. **Não mesclado, não publicado, 0014 não aplicada.**
+
+**Bateria completa local, executada uma vez no commit `6766e70` (Chrome instalado):**
+
+| Etapa | Resultado |
+|---|---|
+| Tipos (aplicativo e E2E) | ok |
+| Unitários, incluindo os de banco em PGlite | 1714 aprovados, 139 arquivos |
+| Scripts (`scripts/alpha/*.test.mjs`) | 3 aprovados |
+| Build oficial (sem demonstração) | ok |
+| Build de demonstração e `check-preview-demo` | ok |
+| Playwright Base | 116 aprovados, 16 pulados |
+| Playwright Quality | 88 aprovados, 32 pulados |
+| Playwright Creator | 132 aprovados, 4 pulados e **8 falhas** (um mesmo teste nas 8 larguras) |
+
+**Falha e correção (só no teste; o aplicativo não mudou):** `expansao-2014` "Maga completa" procurava o texto antigo da conjuração ("CD de magia 13" na lista "Conjuração"); passou a conferir a seção Conjuração (INT, CD 13, Ataque). Com isso o teste chegou ao fim e, em paralelo, estourou o limite de 30 s em 320, 360 e 390 px; sozinho leva cerca de 25 s, sem travamento nem diálogo. Recebeu `test.setTimeout(60_000)`, sem retirar verificações. Reexecutado o arquivo inteiro: 24 de 24 nas 8 larguras. A bateria não foi repetida.
+
+**Não verificado:** celular físico, sessão real no Supabase hospedado e aplicação da 0014 fora de ambiente isolado. A etapa com Auth/REST/JWT/RLS em Supabase isolado é a do CI do PR.
+
+**Pendências funcionais (nenhuma implementada nesta rodada):** curar outro personagem; transferir moedas; marcadores e contador de cargas nos cartões e linhas; consumo e recuperação de cargas por exemplar; sintonização funcional, separada do estado equipado (equipado sem sintonização não concede os benefícios que dependem dela); identificação, que exige tirar os dados verdadeiros da ficha lida pelo jogador; histórico dessas operações; efeitos automáticos de itens mágicos; validação do PV máximo real (hoje só o teto de 30 × nível); distribuição de loot; compartilhamento do conhecimento de itens mágicos (a decidir). Telas de criação e evolução, sem correção: identificador `martial-weapons` em Equipamentos iniciais, lista "Antes de confirmar" em blocos cinza e o texto "moldura" em Atributos. Detalhes e decisões aprovadas nas seções anteriores e na DEC-030.
