@@ -27,7 +27,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 
 .app{display:flex;min-height:100vh;height:100vh}
 .sidebar{width:242px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;transition:width .18s}
-.sidebar.collapsed{width:66px}
+.sidebar.collapsed{width:48px}
 .brand{height:64px;display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--line);white-space:nowrap}
 .brand svg{color:var(--accent);flex-shrink:0}.brand strong{font-size:17px}.brand span{color:var(--accent-text)}
 .campaign{height:72px;padding:16px 20px;display:flex;flex-direction:column;justify-content:center;gap:5px;border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap}
@@ -47,8 +47,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 /* Menu recolhido: sem bloco de campanha vazio; marca, ícones e botão centralizados na mesma coluna. */
 .sidebar.collapsed .campaign{height:auto;padding:10px 0;justify-content:center}.sidebar.collapsed .campaign-main{flex:none;align-items:center;margin:0;padding:6px}
 .sidebar.collapsed .brand{justify-content:center;padding:0}
-.sidebar.collapsed nav{padding:12px 9px;align-items:center}
-.sidebar.collapsed .nav-item{justify-content:center;width:44px;height:44px;padding:0;gap:0}
+.sidebar.collapsed nav{padding:12px 3px;align-items:center}
+.sidebar.collapsed .nav-item{justify-content:center;width:40px;height:44px;padding:0;gap:0}
 .sidebar.collapsed .collapse{justify-content:center;width:44px;height:44px;padding:0;margin:auto auto 12px}
 .workspace{position:relative;min-width:0;flex:1;overflow:hidden}
 
@@ -1110,3 +1110,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .identidade-campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .identidade-descricao{grid-column:1/-1}
 @container (min-width:760px){.identidade-grade{grid-template-columns:minmax(0,1fr) minmax(220px,300px)}}
+
+/* Desktop: trilho compacto e títulos de abas sempre em uma linha. */
+.flexlayout__tab_button{height:34px;min-height:34px;max-width:220px;white-space:nowrap;flex-shrink:0}
+.flexlayout__tab_button_content{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flexlayout__tab_button_trailing,.flexlayout__tab_button_leading{flex-shrink:0}
+.flexlayout__tabset_tabbar_outer{min-height:34px}
+.workspace-history{display:flex;align-items:center;gap:4px;padding:4px 8px;border-bottom:1px solid var(--line)}
+.workspace-history button{display:grid;place-items:center;width:28px;height:26px;border:0;border-radius:4px;background:transparent;color:var(--text-2);cursor:pointer}
+.workspace-history button:hover:not(:disabled){background:var(--hover)}
+.workspace-history button:disabled{opacity:.35;cursor:default}
