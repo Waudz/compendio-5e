@@ -74,29 +74,22 @@ export function closeTabs(m: Model, ids: string[]): void {
   ids.forEach(i => { if (findTab(m, i)) m.doAction(Actions.deleteTab(i)); });
 }
 
-/** Links de conteúdo: focam o registro existente ou abrem na última coluna à direita.
+/** Abertura explícita: foca registro existente ou abre no grupo escolhido.
  * Há no máximo dois grupos. No celular, usam o grupo atual; "neste grupo" abre como aba ao lado da origem.
  */
 export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, mobile = false, noGrupoDaOrigem = false): NavResult {
   const id = tabId(spec);
   const existing = abaDoRegistro(m, spec);
   if (existing) { focusExisting(m, existing, spec); return { action: "selected", tabId: existing.getId() }; }
-  // No desktop, consultas abrem sempre na coluna mais à direita, sem substituir a origem.
-  // Só o segundo grupo é criado automaticamente (é também o limite).
-  // No celular não há colunas lado a lado: preserva as abas no grupo atual.
   const colunas = groups(m);
-  let target = mobile ? activeGroup(m) : colunas.at(-1);
-  // Consulta feita DE UMA FICHA (magia, item) não pode encobri-la: se a ficha está na última coluna, vai para a coluna ao lado.
-  const origem = originTabId ? findTab(m, originTabId) : undefined;
-  const daFicha = !!origem && /^(ficha|criador):/.test(origem.getId()) && (spec.kind === "item" || spec.kind === "magia");
-  if (!mobile && daFicha && colunas.length > 1 && origem!.getParent() === target) target = colunas[colunas.length - 2];
-  const daOrigem = noGrupoDaOrigem ? (origem?.getParent() ?? activeGroup(m)) : undefined;
-  if (daOrigem instanceof TabSetNode) target = daOrigem;
+  const origem = originTabId ? findTab(m, originTabId)?.getParent() : activeGroup(m);
+  const source = origem instanceof TabSetNode ? origem : activeGroup(m);
+  const same = mobile || noGrupoDaOrigem;
+  const target = same ? source : colunas.find(g => g !== source) ?? source;
   if (!target) return { action: "selected", tabId: id };
-  const createRight = !mobile && !daOrigem && groupCount(m) < 2;
-  m.doAction(Actions.addTab(tabJson({ ...spec, pinned: true }), target.getId(), createRight ? DockLocation.RIGHT : DockLocation.CENTER, -1, true));
-  const created = findTab(m, id);
-  const parent = created?.getParent();
+  const split = !same && groupCount(m) < 2;
+  m.doAction(Actions.addTab(tabJson(spec), target.getId(), split ? DockLocation.RIGHT : DockLocation.CENTER, -1, true));
+  const parent = findTab(m, id)?.getParent();
   if (parent instanceof TabSetNode) m.doAction(Actions.setActiveTabset(parent.getId()));
   return { action: "created", tabId: id };
 }
