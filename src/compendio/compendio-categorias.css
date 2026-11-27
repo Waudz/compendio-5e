@@ -155,7 +155,6 @@
 }
 /* cartões enxutos */
 .cd-cards.enxuto.grade { grid-template-columns:repeat(auto-fill,minmax(min(140px,100%),1fr)); }
-.cd-page:not(:has(.cd-cards.enxuto > li:not(.cd-sem-imagem))) .cd-cards.enxuto.grade .retrato-q { aspect-ratio:auto; height:76px !important; }
 .cd-cards.enxuto.grade > li.cd-sem-imagem .retrato-q-vazio svg { width:34px; height:34px; }
 .cd-card-estado { padding:0 12px 8px; min-width:0; }
 .cd-cards.enxuto.lista { gap:6px; }

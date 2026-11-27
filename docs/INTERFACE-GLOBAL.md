@@ -54,3 +54,9 @@ Dados inteiramente fictícios. Inspeção visual de cartões mobile/desktop, for
 | Cartões | [Captura](evidencias/interface-global/cartoes-390.png) | [Captura](evidencias/interface-global/cartoes-1440.png) |
 | Formulário | [Captura](evidencias/interface-global/formulario-390.png) | [Captura](evidencias/interface-global/formulario-1440.png) |
 | Prévia pública | [Captura](evidencias/interface-global/previa-390.png) | [Captura](evidencias/interface-global/previa-1440.png) |
+
+### Verificação adicional
+
+A inspeção do cartão operacional encontrou uma regra antiga que limitava placeholders a 76 px. Ela foi removida; no navegador mobile, cartão e miniatura mediram **179,09 × 179,09 px**, com PV e responsável preservados. [Captura operacional](evidencias/interface-global/operacional-390.png).
+
+Primeira rodada Linux: validação (1.885 testes), Supabase isolado, preview, quality e as duas partes de creator aprovados. E2E geral: 168 aprovados, quatro expectativas antigas de menu não incluíam a nova ação "Ver como jogador"; a lista explícita de ações do mestre foi atualizada, preservando a lista do jogador. As 20 omissões condicionais dessa suíte já pertencem à infraestrutura; nenhuma foi adicionada para encobrir falhas. Verificar o resultado do HEAD no PR antes de integrar.

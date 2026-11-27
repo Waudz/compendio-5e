@@ -11,7 +11,7 @@ for (const role of ['mestre','jogador'] as const) {
     const menu = page.getByRole('dialog',{name:'Menu de navegação'});
     await expect(menu).toBeVisible();
     const expected = role === 'mestre'
-      ? ['Fechar menu','Gerenciar campanhas','Personagens','Diário','Encontros','Minha conta','Configurações','Sobre o Compêndio','Sair']
+      ? ['Fechar menu','Ver como jogador','Gerenciar campanhas','Personagens','Diário','Encontros','Minha conta','Configurações','Sobre o Compêndio','Sair']
       : ['Fechar menu','Minhas campanhas','Meus personagens','Diário','Minha conta','Configurações','Sobre o Compêndio','Sair'];
     await expect(menu.getByRole('button')).toHaveText(expected.map(x => x === 'Fechar menu' ? '' : x));
     await expect(menu.locator('footer')).toContainText(/Compêndio \d+\.\d+\.\d+ · Alpha/);
