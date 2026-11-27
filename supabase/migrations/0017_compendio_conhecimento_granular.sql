@@ -15,9 +15,9 @@ update public.campaign_codex set
         when knowledge=2 then array['name','description','sheet','nickname','occupation','residence','type','region','map','inhabitants','history','context','personality','relationships','objectives','origin']
         else array['name','sheet'] end
   when knowledge=1 then array['name']
-  when knowledge=2 then array['name','description','nickname']
-  when knowledge=3 then array['name','description','nickname','image']
-  when knowledge=4 then array['name','description','nickname','image','sheet']
+  when knowledge=2 then array['name','description','nickname','history']
+  when knowledge=3 then array['name','description','nickname','history','image']
+  when knowledge=4 then array['name','description','nickname','history','image','sheet']
   else '{}'::text[] end;
 -- O que já era visível não gera aviso novo.
 update public.campaign_codex set announced=array_append(revealed,'exists') where visible;
