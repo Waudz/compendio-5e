@@ -23,7 +23,7 @@ export function AbaIdentidade({ identity, source, retrato, editavel, onChange }:
       <Suspense fallback={<p role="status">Carregando…</p>}><Editor source={source} initialIdentity={identity} onChange={onChange}/></Suspense>
       <button type="button" className="ficha-botao" onClick={() => setEditando(false)}>Concluir</button>
     </> : <NaCartaContext.Provider value={null}><Carta trilha="Como os outros jogadores veem" nome={visto.nome} alcunha={visto.alcunha} rotulo="Prévia da identidade pública"
-      imagem={<RetratoQuadrado tipo="personagem" tamanho={200} src={retratoValido(card.imageUrl) ? card.imageUrl : null}/>}
+      retratoGrande imagem={<RetratoQuadrado tipo="personagem" tamanho={300} src={retratoValido(card.imageUrl) ? card.imageUrl : null} ampliar={visto.nome}/>}
       linha={[card.race, card.characterClass, card.level && `Nível ${card.level}`].filter(Boolean).join(" · ") || null}
       acoes={<button type="button" className="ficha-botao" onClick={() => setEditando(true)}><Pencil size={13} aria-hidden="true"/> Editar identidade pública</button>}>
       <FatosCarta fatos={[]}/>{card.description && <p className="cd-texto">{card.description}</p>}

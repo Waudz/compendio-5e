@@ -10,13 +10,15 @@ export function FatosCarta({ fatos }: { fatos: Fato[] }) {
   return fatos.length ? <dl className="carta-fatos">{fatos.map(f => <Fragment key={f.k}><div><dt>{f.rotulo}</dt><dd>{f.valor}</dd></div></Fragment>)}</dl> : null;
 }
 
-export function Carta({ trilha, topo, imagem, formato = 'retrato', nome, alcunha, linha, acoes, rotulo, children }: {
+export function Carta({ trilha, topo, imagem, formato = 'retrato', retratoGrande, nome, alcunha, linha, acoes, rotulo, children }: {
   trilha: string;
   /** Controles extras do cabeçalho (ex.: seletor Mestre/Jogador). */
   topo?: ReactNode;
   imagem?: ReactNode;
   /** `panorama` para locais; `simbolo` para organizações. */
   formato?: 'retrato' | 'panorama' | 'simbolo';
+  /** Personagens e criaturas: retrato em destaque. */
+  retratoGrande?: boolean;
   nome: string; alcunha?: string | null; linha?: ReactNode; acoes?: ReactNode; rotulo?: string; children?: ReactNode;
 }) {
   const janela = useNaCarta();
@@ -30,7 +32,7 @@ export function Carta({ trilha, topo, imagem, formato = 'retrato', nome, alcunha
         <button type="button" className="carta-icone" aria-label="Fechar consulta" title="Fechar" onClick={janela.fechar}><X size={16} aria-hidden="true"/></button>
       </>}
     </header>
-    {imagem && <div className="carta-imagem" data-formato={formato}>{imagem}</div>}
+    {imagem && <div className="carta-imagem" data-formato={formato} data-grande={retratoGrande || undefined}>{imagem}</div>}
     <h1 className="carta-nome">{nome}</h1>
     {alcunha && <p className="carta-alcunha">{alcunha}</p>}
     {linha && <p className="carta-linha">{linha}</p>}

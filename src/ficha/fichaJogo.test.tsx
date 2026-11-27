@@ -176,6 +176,19 @@ describe("ficha de jogo", () => {
     expect(screen.getByRole("button", { name: "Ver em grade" }).getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("tocar no retrato só amplia a imagem; trocar o retrato é uma ação separada", async () => {
+    await semear();
+    await abrirFicha();
+    const topo = () => within(screen.getByRole("region", { name: "Resumo do personagem" }));
+    fireEvent.click(topo().getByRole("button", { name: "Ampliar imagem de Thorin" }));
+    const imagem = screen.getByRole("dialog", { name: "Imagem ampliada: Thorin" });
+    expect(screen.queryByRole("dialog", { name: "Retrato de Thorin" })).toBeNull();
+    fireEvent.keyDown(imagem, { key: "Escape" });
+    fireEvent.click(topo().getByRole("button", { name: "Alterar retrato" }));
+    expect(screen.getByRole("dialog", { name: "Retrato de Thorin" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: /^Imagem ampliada/ })).toBeNull();
+  });
+
   it("aba Identidade mostra a projeção pública do mesmo personagem e a edição é salva na ficha", async () => {
     await semear();
     await abrirFicha();

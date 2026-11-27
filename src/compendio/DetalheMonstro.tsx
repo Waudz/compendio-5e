@@ -2,7 +2,7 @@
 // em cada característica/ação traduzida, e o que não pôde ser traduzido com segurança aparece no original, com aviso.
 import type { ReactNode } from "react";
 import type { Monstro } from "../catalogue/sistemas/dnd5e-2014/esquemas";
-import { formatarDeslocamento, formatarModificador, formatarND, formatarPontosDeVida, formatarSentidos, formatarXP, modificadorDe } from "../catalogue/sistemas/dnd5e-2014/formatar";
+import { formatarDeslocamento, formatarModificador, formatarSentidos, modificadorDe } from "../catalogue/sistemas/dnd5e-2014/formatar";
 import { rotuloGrupoAcao, rotuloPericia, rotuloTamanho, rotuloTipoCriatura, siglaAtributo } from "../catalogue/sistemas/dnd5e-2014/rotulos";
 import { MolduraAtributo } from "../dnd/elementos";
 import { rotuloAtributo } from "../criador/rotulos";
@@ -41,7 +41,7 @@ function Habilidade({ h, onAbrirMagia }: { h: Texto; onAbrirMagia?: (id: string)
 
 export const linhaDeTipo = (m: Monstro) => `${rotuloTipoCriatura(m.tipo)} ${rotuloTamanho(m.tamanho).toLocaleLowerCase("pt-BR")}${m.tendencia ? `, ${m.tendencia.toLocaleLowerCase("pt-BR")}` : ""} · ${m.en}`;
 
-/** Aba "Ficha": atributos, salvaguardas, perícias, defesas, sentidos e demais estatísticas. */
+/** Aba "Ficha": o que complementa o cabeçalho (atributos, salvaguardas, perícias, defesas, sentidos, idiomas). */
 export function FichaDoMonstro({ monstro: m }: { monstro: Monstro }) {
   const bonus = (r: Record<string, number> | undefined, nome: (id: string) => string) => Object.entries(r ?? {}).map(([a, v]) => [nome(a), formatarModificador(v)] as const);
   const salvaguardas = bonus(m.salvaguardas as Record<string, number> | undefined, siglaAtributo), pericias = bonus(m.pericias, rotuloPericia);
@@ -50,7 +50,9 @@ export function FichaDoMonstro({ monstro: m }: { monstro: Monstro }) {
   if (m.defesas.resistenciasTexto) linhas.push(["Resistências", m.defesas.resistenciasTexto]);
   if (m.defesas.imunidadesTexto) linhas.push(["Imunidades a dano", m.defesas.imunidadesTexto]);
   if (m.defesas.condicoesTexto) linhas.push(["Imunidades a condições", m.defesas.condicoesTexto]);
-  linhas.push(["Sentidos", formatarSentidos(m)]);
+  // a percepção passiva já está no cabeçalho
+  const sentidos = formatarSentidos(m).replace(/(, )?Percepção passiva \d+$/, "");
+  if (sentidos) linhas.push(["Sentidos", sentidos]);
   if (m.idiomas) linhas.push(["Idiomas", m.idiomas]);
   if (m.ambientes.length) linhas.push(["Ambientes", m.ambientes.join(", ")]);
   const pares = (lista: readonly (readonly [string, string])[]) => <ul className="ficha-duas-colunas">{lista.map(([r, v]) => <li key={r}><span className="ficha-marca ativa" aria-hidden="true"/><span>{r}</span><strong>{v}</strong></li>)}</ul>;
@@ -58,15 +60,6 @@ export function FichaDoMonstro({ monstro: m }: { monstro: Monstro }) {
     <section className="ficha-bloco ficha-bloco-aberto" aria-label="Atributos">
       <h2>Atributos</h2>
       <div className="ficha-atributos">{ORDEM.map(a => <MolduraAtributo key={a} nome={rotuloAtributo(a)} valor={m.atributos[a]} modificador={modificadorDe(m.atributos[a])}/>)}</div>
-    </section>
-    <section className="ficha-bloco" aria-label="Estatísticas">
-      <h2>Estatísticas</h2>
-      <dl className="ficha-dados">
-        <div className="ficha-par"><dt>Classe de Armadura</dt><dd>{m.ca}{m.caDetalhe ? ` (${m.caDetalhe})` : ""}</dd></div>
-        <div className="ficha-par"><dt>Pontos de vida</dt><dd>{formatarPontosDeVida(m)}</dd></div>
-        <div className="ficha-par"><dt>Deslocamento</dt><dd>{formatarDeslocamento(m.deslocamento, m.planar)}</dd></div>
-        <div className="ficha-par"><dt>Nível de desafio</dt><dd>{formatarND(m.nd)} ({formatarXP(m.xp)} XP)</dd></div>
-      </dl>
     </section>
     {salvaguardas.length > 0 && <section className="ficha-bloco" aria-label="Testes de resistência"><h2>Testes de resistência</h2>{pares(salvaguardas)}</section>}
     {pericias.length > 0 && <section className="ficha-bloco" aria-label="Perícias"><h2>Perícias</h2>{pares(pericias)}</section>}
@@ -101,7 +94,7 @@ export function FonteDoMonstro({ monstro: m, personalizado = false }: { monstro:
   </>;
 }
 
-/** Todas as partes em sequência (sem abas). */
+/** Todas as partes em sequência (sem abas nem o cabeçalho da ficha). */
 export function DetalheMonstro({ monstro, onAbrirMagia, personalizado = false }: { monstro: Monstro; onAbrirMagia?: (id: string) => void; personalizado?: boolean }) {
   return <><p className="muted cat-linha-tipo">{linhaDeTipo(monstro)}</p><FichaDoMonstro monstro={monstro}/><HabilidadesDoMonstro monstro={monstro} onAbrirMagia={onAbrirMagia}/><FonteDoMonstro monstro={monstro} personalizado={personalizado}/></>;
 }

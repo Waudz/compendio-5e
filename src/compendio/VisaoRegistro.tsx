@@ -10,7 +10,7 @@ import { imagemDoItem, imagemDoMonstro } from '../ficha/imagensCatalogo';
 import { CAMPOS, type Campo } from './campos';
 import { useCodexApi, type CodexLink, type Conhecimento } from './conhecimento';
 import { ImagemConhecida } from './RegistrosCampanha';
-import { ListaVinculos, type ControlesVinculo } from './Vinculos';
+import { ListaVinculos } from './Vinculos';
 import { DetalheItem } from './DetalheItem';
 import { secoesDaDefinicao, useDefinicao } from './definicoes';
 import { mesmasSecoes } from './ficha';
@@ -38,25 +38,25 @@ function Posse({ id, versao, children }: { id: string; versao: unknown; children
   return data.length ? <>{children(data.map(x => x.title).join(', '))}</> : null;
 }
 
-export function ImagemRegistro({ entry, tamanho }: { entry: Conhecimento; tamanho: number }) {
-  if (entry.imagePath) return <ImagemConhecida path={entry.imagePath} framing={entry.framing} tamanho={tamanho}/>;
+export function ImagemRegistro({ entry, tamanho, ampliar }: { entry: Conhecimento; tamanho: number; ampliar?: boolean }) {
+  // o título vem da mesma projeção da imagem: na prévia e para o jogador é o nome público
+  const titulo = ampliar ? entry.title : undefined;
+  if (entry.imagePath) return <ImagemConhecida path={entry.imagePath} framing={entry.framing} tamanho={tamanho} ampliar={titulo}/>;
   const catalogo = !entry.imageDefinitionId || entry.systemId !== 'dnd5e-2014' ? null
     : entry.category === 'monster' ? imagemDoMonstro(entry.imageDefinitionId) : entry.category === 'item' ? imagemDoItem(entry.imageDefinitionId) : null;
-  return <RetratoQuadrado src={catalogo} icone={catalogo ? undefined : CircleHelp} tamanho={tamanho}/>;
+  return <RetratoQuadrado src={catalogo} icone={catalogo ? undefined : CircleHelp} tamanho={tamanho} ampliar={titulo}/>;
 }
 
 /** Campos curtos que formam a linha abaixo do nome. */
 const LINHA: Record<string, string[]> = { npc: ['race', 'age'], monster: ['classification'], location: ['type', 'region'], organization: ['type'], discovery: ['type'], item: ['type'] };
 
-export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links, rows, trilha, topo, acoes, controlesVinculo, rodapeVinculos, privado, onOpenContent }: {
+export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links, rows, trilha, topo, acoes, privado, onOpenContent }: {
   entry: Conhecimento;
   versaoPosse?: unknown;
   mostrarPosse: boolean;
   links: CodexLink[];
   rows: readonly LinhaCompendio[];
   trilha?: string; topo?: ReactNode; acoes?: ReactNode;
-  controlesVinculo?: ControlesVinculo;
-  rodapeVinculos?: ReactNode;
   /** Visão do mestre: acrescenta as notas privadas e as propriedades completas da definição. */
   privado?: boolean;
   onOpenContent: (s: TabSpec) => void;
@@ -87,11 +87,12 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
   const definicao = carregada?.kind === 'item' && (!entry.sheet?.length || mesmasSecoes(secoesDaDefinicao(carregada), entry.sheet)) ? carregada : undefined;
   const secoes = criatura ? [] : entry.sheet ?? [];
   const texto = (t: string) => <TextoNarrativo texto={t} rows={rows} onAbrir={onOpenContent}/>;
-  const mostrar = !!(fatos.length || descricao || longos.length || habitantes || textoHabitantes || secoes.length || definicao || demais.length || rodapeVinculos || (privado) || (mostrarPosse && entry.category === 'item'));
+  const mostrar = !!(fatos.length || descricao || longos.length || habitantes || textoHabitantes || secoes.length || definicao || demais.length || (privado && entry.secret?.trim()) || (mostrarPosse && entry.category === 'item'));
   return <Carta trilha={trilha ?? nomesRegistro[entry.category]} topo={topo} acoes={acoes} nome={entry.title}
     alcunha={apelido && apelido !== entry.title ? apelido : null} linha={linha || (criatura ? null : entry.category === 'npc' ? null : nomesRegistro[entry.category])}
     formato={entry.category === 'location' ? 'panorama' : entry.category === 'organization' ? 'simbolo' : 'retrato'}
-    imagem={<ImagemRegistro entry={entry} tamanho={200}/>}>
+    retratoGrande={entry.category === 'npc' || criatura}
+    imagem={<ImagemRegistro entry={entry} tamanho={entry.category === 'npc' || criatura ? 300 : 200} ampliar/>}>
     {mostrar && <>
       <FatosCarta fatos={fatos}/>
       {mostrarPosse && entry.category === 'item' && <Posse id={entry.id} versao={versaoPosse}>{nomes => <p>Com: {nomes}</p>}</Posse>}
@@ -105,10 +106,9 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
       {definicao
         ? <div className="cd-definition"><DetalheItem item={definicao.item} descricao={definicao.descricao} personalizado={!!definicao.campanha} onOpenContent={onOpenContent} mostrarImagem={false}/></div>
         : secoes.length > 0 && <section aria-label={privado ? 'Propriedades' : 'Informações conhecidas'}><h2>{privado ? 'Propriedades' : 'Informações conhecidas'}</h2><dl className="cd-campos">{secoes.map(s => <div key={s.k}><dt>{s.l}</dt><dd>{s.v}</dd></div>)}</dl></section>}
-      {(demais.length > 0 || rodapeVinculos) && <section className="cd-relations" aria-label="Registros relacionados">
-        {demais.length > 0 && <h2>Registros relacionados</h2>}
-        <ListaVinculos links={demais} rows={rows} controles={controlesVinculo} onOpenContent={onOpenContent}/>
-        {rodapeVinculos}
+      {demais.length > 0 && <section className="cd-relations" aria-label="Registros relacionados">
+        <h2>Registros relacionados</h2>
+        <ListaVinculos links={demais} rows={rows} onOpenContent={onOpenContent}/>
       </section>}
       {privado && !!entry.secret?.trim() && <section className="cd-private"><h2>Notas privadas do mestre</h2><p className="cd-texto">{entry.secret}</p></section>}
     </>}

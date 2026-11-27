@@ -121,7 +121,11 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
     <section className="ficha-cabecalho" aria-label="Resumo do personagem">
       <div className="ficha-identidade">
-        <button type="button" className="ficha-retrato" aria-label="Alterar retrato" title="Alterar retrato" onClick={() => setEditandoRetrato(true)}><RetratoQuadrado tipo="personagem" tamanho={104} src={retratoValido(draft.portrait) ? draft.portrait : null}/></button>
+        {retratoValido(draft.portrait)
+          // com imagem: tocar nela só amplia; trocar ou enquadrar é o botão separado
+          ? <span className="ficha-retrato-caixa"><RetratoQuadrado tipo="personagem" tamanho={104} src={draft.portrait} ampliar={nomeExibido}/>
+            <button type="button" className="ficha-retrato-editar" aria-label="Alterar retrato" title="Alterar retrato e enquadramento" onClick={() => setEditandoRetrato(true)}><Pencil size={12} aria-hidden="true"/></button></span>
+          : <button type="button" className="ficha-retrato" aria-label="Alterar retrato" title="Alterar retrato" onClick={() => setEditandoRetrato(true)}><RetratoQuadrado tipo="personagem" tamanho={104} src={null}/></button>}
         <div className="ficha-nomes"><h1>{nomeExibido}</h1>
           {draft.nickname?.trim() && <p className="identidade-alcunha"><em>{draft.nickname.trim()}</em></p>}
           <p className="ficha-linha-origem">{[raca, label2014(draft.classId) + (subclasse ? ` (${label2014(subclasse)})` : ""), origem].join(" · ")}</p>

@@ -30,14 +30,14 @@ export function FichaMonstro({ monstro: m, nome, retrato, personalizado, memoria
     {voltar}
     <section className="ficha-cabecalho" aria-label="Resumo da criatura">
       <div className="ficha-identidade">
-        <span className="ficha-retrato">{retrato ?? <RetratoQuadrado src={imagemDoMonstro(m.id)} tipo="monstro" tamanho={104}/>}</span>
+        <span className="ficha-retrato">{retrato ?? <RetratoQuadrado src={imagemDoMonstro(m.id)} tipo="monstro" tamanho={104} ampliar={titulo}/>}</span>
         <div className="ficha-nomes"><h1>{titulo}</h1>
           {titulo !== m.nome && <p className="identidade-alcunha"><em>{m.nome}</em></p>}
           <p className="ficha-linha-origem">{linhaDeTipo(m)}</p>
         </div>
       </div>
       <div className="ficha-numeros">
-        <Indicador tipo="ca" rotulo="CA" valor={m.ca}/>
+        <Indicador tipo="ca" rotulo="CA" valor={m.ca} extra={m.caDetalhe ? <small className="muted">{m.caDetalhe}</small> : undefined}/>
         <Indicador tipo="pv" rotulo="PV máximos" valor={m.pv} extra={<small className="muted">{m.dadosVida}</small>}/>
         <Indicador tipo="deslocamento" rotulo="Deslocamento" valor={m.deslocamento.walk ? metros(m.deslocamento.walk) : "—"} extra={formatarDeslocamento(m.deslocamento, m.planar) !== (m.deslocamento.walk ? metros(m.deslocamento.walk) : "—") ? <small className="muted">{formatarDeslocamento(m.deslocamento, m.planar)}</small> : undefined}/>
         <Indicador tipo="iniciativa" rotulo="Iniciativa" valor={formatarModificador(modificadorDe(m.atributos.dex))}/>

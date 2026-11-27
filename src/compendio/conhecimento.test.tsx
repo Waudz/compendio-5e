@@ -320,6 +320,65 @@ describe("Compêndio unificado", () => {
     fireEvent.click(carta().getByRole("button", { name: "Voltar à carta anterior" }));
     expect(await carta().findByRole("heading", { name: "Edric Voss", level: 1 })).toBeTruthy();
   });
+  it("Vincular registro fica na edição, onde também se remove um vínculo comum", async () => {
+    const codex = codexDemo(true, "ca");
+    const cidade = await codex.save("ca", null, 0, { category: "location", systemId: "dnd5e-2014", title: "Daggerford" });
+    const id = await npc(codex);
+    await codex.link("ca", id, cidade, { kind: "related", label: "Relacionado", inverse: "Relacionado" });
+    await mount("mestre", codex);
+    await abrirRegistro("Personagens", "Edric Voss");
+    expect(carta().queryByRole("button", { name: "Vincular registro" })).toBeNull();
+    expect(carta().queryByRole("button", { name: /^Remover vínculo/ })).toBeNull();
+    fireEvent.click(carta().getByRole("button", { name: "Editar registro" }));
+    const editor = within(screen.getByRole("dialog", { name: "Editar registro" }));
+    expect(editor.getByRole("button", { name: "Vincular registro" })).toBeTruthy();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(await editor.findByRole("button", { name: "Remover vínculo com Daggerford" }));
+    await waitFor(async () => expect(await codex.links("ca", id)).toEqual([]));
+  });
+  it("aviso discreto quando o texto revelado cita o próprio nome oculto; o texto não muda", async () => {
+    const codex = codexDemo(true, "ca");
+    const descricao = [{ type: "paragraph", content: [{ type: "text", text: "Todos no porto temem edric vóss." }] }];
+    const id = await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", description: descricao, fields: { nickname: "O Corvo", history: "Nada consta." } });
+    await mount("mestre", codex);
+    await abrirRegistro("Personagens", "Edric Voss");
+    fireEvent.click(carta().getByRole("button", { name: "Gerenciar conhecimento" }));
+    const aviso = () => carta().queryByRole("note");
+    expect(aviso()).toBeNull();   // nada revelado ainda
+    fireEvent.click(carta().getByRole("button", { name: "Revelar História" }));
+    expect(aviso()).toBeNull();
+    fireEvent.click(carta().getByRole("button", { name: "Revelar Descrição" }));
+    expect(aviso()!.textContent).toMatch(/aparece no texto revelado em: Descrição\. O texto não será alterado\./);
+    fireEvent.click(carta().getByRole("button", { name: "Revelar Nome" }));
+    expect(aviso()).toBeNull();
+    fireEvent.click(carta().getByRole("button", { name: "Ocultar Nome" }));
+    fireEvent.click(carta().getByRole("switch", { name: "Registro conhecido" }));
+    fireEvent.click(carta().getByRole("button", { name: "Salvar conhecimento" }));
+    await carta().findByRole("button", { name: "Gerenciar conhecimento" });
+    expect((await codex.list("ca")).find((x) => x.id === id)!.description).toEqual(descricao);
+  });
+  it("imagem da carta amplia sem fechar a carta; criatura sem imagem revelada não oferece ampliação ao jogador", async () => {
+    const codex = codexDemo(true, "ca");
+    await codex.save("ca", null, 0, { category: "monster", systemId: "dnd5e-2014", definitionId: "goblin", title: "Goblin da mesa" });
+    await mount("mestre", codex);
+    fireEvent.click(portal("Bestiário"));
+    fireEvent.change(await screen.findByLabelText("Pesquisar no Compêndio"), { target: { value: "goblin" } });
+    fireEvent.click(await screen.findByRole("button", { name: /^Goblin da mesa / }));
+    await screen.findByRole("dialog", { name: "Consulta do Compêndio" });
+    fireEvent.click(await carta().findByRole("button", { name: "Ampliar imagem de Goblin da mesa" }));
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "Imagem ampliada: Goblin da mesa" }), { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: /^Imagem ampliada/ })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Consulta do Compêndio" })).toBeTruthy();
+    // na prévia sem a imagem revelada não existe imagem para ampliar
+    fireEvent.click(carta().getByRole("button", { name: "Gerenciar conhecimento" }));
+    fireEvent.click(carta().getByRole("switch", { name: "Registro conhecido" }));
+    fireEvent.click(carta().getByRole("button", { name: "Revelar Nome" }));
+    fireEvent.click(carta().getByRole("button", { name: "Salvar conhecimento" }));
+    fireEvent.click(await carta().findByRole("button", { name: "Ver como jogador" }));
+    const previa = await screen.findByRole("region", { name: "Prévia do jogador" });
+    expect(within(previa).queryByRole("button", { name: /^Ampliar imagem/ })).toBeNull();
+    expect(previa.querySelector("img")).toBeNull();
+  });
   it("NPC ganha 'Ver ficha' só com ficha de combate vinculada; a ficha reutiliza a criatura e mostra a identidade", async () => {
     const codex = codexDemo(true, "ca");
     await npc(codex);

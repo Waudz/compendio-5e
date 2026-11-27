@@ -99,3 +99,20 @@
 .carta .btn-link { color: var(--accent-text); }
 /* no celular a barra superior já tem o Voltar */
 .mobile .ficha-criatura > .cd-back { display: none; }
+
+/* retrato em destaque nas cartas de personagens e criaturas (o das fichas técnicas continua compacto) */
+.carta-imagem .retrato-ampliar { width: min(200px, 64%); }
+.carta-imagem .retrato-ampliar .retrato-q { width: 100% !important; }
+.carta-imagem[data-grande] > .retrato-q, .carta-imagem[data-grande] > .retrato-ampliar { width: min(300px, 100%) !important; }
+.carta-imagem[data-formato=panorama] > .retrato-ampliar { width: 100%; }
+.carta-imagem[data-formato=simbolo] > .retrato-ampliar { width: min(140px, 46%); border-radius: 50%; }
+.conhecimento-aviso { margin: 0 0 6px !important; padding: 6px 10px; border-left: 3px solid #d9a441; border-radius: 4px; background: var(--bg); font-size: 12.5px; }
+@media (max-width: 700px) {
+  .carta-imagem[data-grande] > .retrato-q, .carta-imagem[data-grande] > .retrato-ampliar { width: min(260px, 100%) !important; }
+  /* menos vazio acima do retrato: a barra do aplicativo já dá o contexto */
+  .mobile .content.cd-page { padding-top: 4px !important; }
+  .mobile .cd-page > .cd-back { margin: 0; padding: 4px 0; }
+  .mobile .carta { padding-top: 0; }
+  .mobile .carta-topo { min-height: 0; }
+  .mobile .carta-imagem { margin-top: 4px; }
+}

@@ -64,3 +64,13 @@ export function CampoNarrativo({ label, value, onChange, maxLength, rows }: {
       <button type="button" onClick={() => escolher(r)}><strong>{r.title}</strong><small>{nomesRegistro[r.category]}</small></button></li>)}</ul>}
   </div>;
 }
+
+const escapar = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** O texto cita o nome (palavra inteira, sem diferenciar acentos nem caixa)? Citações ao próprio registro não contam:
+ *  o servidor já as troca pelo título público. */
+export function citaNome(texto: string, nome: string, proprio: string) {
+  const alvo = normalizar(nome).trim();
+  if (alvo.length < 3) return false;
+  const limpo = normalizar(texto.replace(REF, (_m, exibido: string, id: string) => (id.toLowerCase() === proprio.toLowerCase() ? ' ' : exibido)));
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escapar(alvo)}($|[^\\p{L}\\p{N}])`, 'u').test(limpo);
+}

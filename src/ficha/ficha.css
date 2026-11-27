@@ -310,3 +310,7 @@
 }
 @container (max-width: 330px) { .ficha-retrato .retrato-q { width: 72px !important; height: 72px !important; } .ficha.ficha-jogo .ficha-acoes button.ficha-botao { padding: 4px 6px; font-size: 11px; } }
 @media (max-width: 480px) { .menu-acoes-titulo { max-width: none; } }
+
+.ficha-retrato-caixa { position: relative; display: inline-block; line-height: 0; }
+.ficha.ficha-jogo button.ficha-retrato-editar { position: absolute; right: -4px; bottom: -4px; width: 28px; height: 28px; min-height: 0; margin: 0; padding: 0; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--text); cursor: pointer; }
+.ficha.ficha-jogo .ficha-retrato-caixa button.retrato-ampliar { width: auto; }

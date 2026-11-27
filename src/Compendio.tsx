@@ -283,7 +283,7 @@ export function ItemPagina({
   return (
     <div className="content cd-page item-pagina"><VoltarCompendio onOpenContent={onOpenContent}/>
       <Carta trilha="Regras / Item" nome={item.nome} linha={item.en} rotulo={`Detalhes de ${item.nome}`}
-        imagem={imagemDoItem(id) ? <RetratoQuadrado src={imagemDoItem(id)} tipo="avulso" tamanho={200}/> : undefined}
+        imagem={imagemDoItem(id) ? <RetratoQuadrado src={imagemDoItem(id)} tipo="avulso" tamanho={200} ampliar={item.nome}/> : undefined}
         acoes={active?.role === "mestre" ? <><RegistrarDescoberta category="item" id={id} onOpenContent={onOpenContent}/><EntregarItem definitionId={id} nome={item.nome}/></> : undefined}>
         <DetalheItem item={item} descricao={efetiva?.descricao} personalizado={!!efetiva?.campanha} onOpenContent={onOpenContent} mostrarImagem={false}/>
         {efetiva && <AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}
@@ -307,7 +307,7 @@ export function NpcFichaPagina({id,onOpenContent}:{id:string;onOpenContent:(s:Ta
  const {active}=useCampaigns(),knowledge=useConhecimento();const master=active?.role==='mestre';
  const npc=knowledge.items.find(x=>x.id===id&&x.category==='npc');
  if(master&&!knowledge.loading&&!npc?.combatDefinitionId)return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t="Este NPC não tem ficha de combate vinculada."/></div>;
- return <PaginaFichaTecnica definitionId={master?npc?.combatDefinitionId:undefined} nome={npc?.title} retrato={npc?<ImagemRegistro entry={npc} tamanho={104}/>:undefined} carregando={knowledge.loading}
+ return <PaginaFichaTecnica definitionId={master?npc?.combatDefinitionId:undefined} nome={npc?.title} retrato={npc?<ImagemRegistro entry={npc} tamanho={104} ampliar/>:undefined} carregando={knowledge.loading}
   memoria={`${active?.campaign.id}:npc:${id}`} onOpenContent={onOpenContent} semAcoes
   terceira={{id:'identidade',rotulo:'Identidade',conteudo:<div className="ficha-embutida"><RegistroCompendioPagina id={id} onOpenContent={onOpenContent} semFicha/></div>}}/>;
 }

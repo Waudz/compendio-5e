@@ -47,7 +47,7 @@ export function RelacoesRegistro({id,onOpenContent}:{id:string;onOpenContent:(s:
  if(!master&&!vinculos.links.length&&!vinculos.error)return null;
  return <section className="cd-relations" aria-label="Registros relacionados">{vinculos.links.length>0&&<h2>Registros relacionados</h2>}{(vinculos.error||acoes.error)&&<Aviso erro t={vinculos.error??acoes.error!}/>}
  <ListaVinculos links={vinculos.links} rows={vinculos.data.rows} onOpenContent={onOpenContent} controles={master&&editar?acoes.controlesVinculo:undefined}/>
- {master&&<div className="cd-share-actions"><NovoVinculoBotao id={id} vinculos={vinculos}/>{vinculos.links.length>0&&<button type="button" className="btn-link" aria-pressed={editar} onClick={()=>setEditar(v=>!v)}>{editar?'Concluir':'Remover vínculos'}</button>}</div>}</section>;
+ {master&&<div className="cd-share-actions">{editar&&<NovoVinculoBotao id={id} vinculos={vinculos}/>}<button type="button" className="btn-link" aria-pressed={editar} onClick={()=>setEditar(v=>!v)}>{editar?'Concluir edição':'Editar vínculos'}</button></div>}</section>;
 }
 /** Operações de divulgação: uma por vez, até a projeção recarregada trazer a nova versão. */
 function useDivulgacao(vinculos:ReturnType<typeof useVinculos>){
@@ -110,8 +110,7 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
    ?<div className="cd-preview" aria-label="Prévia do jogador" role="region"><VisaoRegistro entry={vista.data.entry} versaoPosse={entry} mostrarPosse={!!entry.revealed?.includes('holders')} links={vista.data.links} rows={[]} trilha={nomesCategoria[vista.data.entry.category]} topo={<SeletorPapel jogador onTrocar={setAsPlayer}/>} onOpenContent={onOpenContent}/></div>
    :<Carta trilha="Prévia do jogador" topo={<SeletorPapel jogador onTrocar={setAsPlayer}/>} nome="Prévia do jogador" rotulo="Prévia do jogador">{vista?.error?<Aviso erro t={vista.error}/>:!vista?.data?<p role="status">Gerando prévia…</p>:<p>Os jogadores não veem este registro.</p>}</Carta>)
  :master&&gerenciando?<GerenciarConhecimento entry={atual} links={vinculos.links} busy={acoes.busy} origem={origem} onCancelar={()=>setGerenciando(false)} onSalvar={r=>acoes.revelar(entry,{...r,...extra},()=>setGerenciando(false))}/>
- :<VisaoRegistro entry={atual} mostrarPosse links={vinculos.links} rows={data.rows} onOpenContent={onOpenContent} trilha={master?trilhaMestre:nomesCategoria[entry.category]} acoes={botoes} privado={master}
-   rodapeVinculos={master?<NovoVinculoBotao id={id} vinculos={vinculos}/>:undefined}/>}
+ :<VisaoRegistro entry={atual} mostrarPosse links={vinculos.links} rows={data.rows} onOpenContent={onOpenContent} trilha={master?trilhaMestre:nomesCategoria[entry.category]} acoes={botoes} privado={master}/>}
  {escolhendo&&<Modal titulo={`Ficha de combate de ${entry.title}`} onFechar={()=>setEscolhendo(false)} largura={520}>
    <p className="muted">Reutiliza uma criatura do Bestiário ou criada nesta campanha. Os jogadores não recebem a ficha.</p>
    <SeletorMonstro rotulo="Bestiário" acao="Vincular" onEscolher={m=>{setEscolhendo(false);ficharNpc(m.id);}}/>
@@ -134,7 +133,7 @@ export function IdentidadePagina({id,onOpenContent}:{id:string;onOpenContent:(s:
  const descricao=card?card.description:p?.descricao??'';
  return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent} label="Personagens"/>
   {!p||!visto?<Aviso t={error??'Identidade indisponível nesta campanha.'}/>:<Carta trilha="Personagens / Aventureiro" nome={visto.nome} alcunha={visto.alcunha} rotulo={`Identidade pública de ${visto.nome}`}
-   imagem={<RetratoQuadrado src={card?card.imageUrl:p.retratoUrl} tipo="personagem" tamanho={200}/>}
+   retratoGrande imagem={<RetratoQuadrado src={card?card.imageUrl:p.retratoUrl} tipo="personagem" tamanho={300} ampliar={visto.nome}/>}
    acoes={podeFicha?<button type="button" className="btn-primary" onClick={()=>onOpenContent({kind:'ficha',ref:id,title:p.nome})}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>:undefined}>
    <FatosCarta fatos={fatos}/>
    {descricao&&<p className="cd-texto">{descricao}</p>}
@@ -154,7 +153,7 @@ function CriaturaDoBestiario({id,onOpenContent}:{id:string;onOpenContent:(s:TabS
  return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent} label="Bestiário"/>
   {active?.role!=='mestre'?<Aviso t={data.loading?'Verificando conhecimento…':'Criatura não revelada nesta campanha.'}/>:!m?<p role="status">Carregando criatura…</p>
   :<Carta trilha="Bestiário / Criatura" nome={m.nome} linha={`${rotuloTipoCriatura(m.tipo)} · ${rotuloTamanho(m.tamanho)}`}
-    imagem={<RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={200}/>}
+    retratoGrande imagem={<RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={300} ampliar={m.nome}/>}
     acoes={<><button type="button" className="btn-primary" onClick={()=>onOpenContent(monstroSpec(id,m.nome))}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button><RegistrarDescoberta category="monster" id={id} onOpenContent={onOpenContent}/></>}>
     <p className="muted">Esta criatura ainda não tem história registrada na campanha. Os jogadores não a veem.</p>
   </Carta>}</div>;

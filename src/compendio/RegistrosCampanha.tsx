@@ -14,7 +14,7 @@ import { carregarDefinicao, secoesDaDefinicao, useDefinicao, useDefinicoes } fro
 import { registroSpec } from "./navegacao";
 import { CampoNarrativo } from "./referencias";
 import { useLinhasCampanha } from "./consulta";
-import { useVinculos } from "./Vinculos";
+import { useVinculos, ListaVinculos, NovoVinculoBotao } from "./Vinculos";
 import { RELACOES, VAGAS, type Vaga } from "./relacoes";
 import type { TabSpec } from "../workspace";
 import {
@@ -28,7 +28,7 @@ import {
   type EdicaoConhecimento,
 } from "./conhecimento";
 
-export function ImagemConhecida({ path, framing, tamanho=160 }: { path: string; framing?:Enquadramento; tamanho?:number }) {
+export function ImagemConhecida({ path, framing, tamanho=160, ampliar }: { path: string; framing?:Enquadramento; tamanho?:number; ampliar?: string }) {
   const api = useCodexApi();
   const [image, setImage] = useState<{ path: string; url: string }>();
   useEffect(() => {
@@ -52,6 +52,7 @@ export function ImagemConhecida({ path, framing, tamanho=160 }: { path: string; 
     <RetratoQuadrado
       src={image?.path === path ? juntar(image.url,framing??ENQUADRAMENTO_PADRAO) : null}
       tamanho={tamanho}
+      ampliar={ampliar}
     />
   );
 }
@@ -140,6 +141,11 @@ export function EditorConhecimento({
   const vinculadosEm = (v: Vaga) => (entry ? vinculos.links.filter((l) => l.kind === v.kind && l.outgoing === v.outgoing) : []);
   const candidatos = (v: Vaga) => dados.rows.filter((r) => r.id !== entry?.id && (v.campo === "leadership" ? r.category === "npc" || r.category === "character" : r.category === "location"));
   const [removendo, setRemovendo] = useState(false);
+  const removerVinculo = (link: string, titulo: string) => {
+    if (!api || !active || !window.confirm(`Remover o vínculo com ${titulo}? Os registros são preservados.`)) return;
+    setRemovendo(true);
+    void api.unlink(active.campaign.id, link).then(() => { vinculos.reload(); avisarConhecimento(); }, () => setError("Não foi possível remover o vínculo.")).finally(() => setRemovendo(false));
+  };
   const releaseGuard=useUnsavedGuard(
     origin ?? "secao:compendio",
     title !== (entry?.title ?? "") ||
@@ -209,11 +215,7 @@ export function EditorConhecimento({
             {candidatos(vaga).map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
           </select>
           {atuais.map((l) => <small key={l.id} className="muted">Vinculado: {l.title}{" "}
-            <button type="button" className="btn-link" disabled={removendo} aria-label={`Remover vínculo com ${l.title}`} onClick={() => {
-              if (!api || !active || !window.confirm(`Remover o vínculo com ${l.title}? Os registros são preservados.`)) return;
-              setRemovendo(true);
-              void api.unlink(active.campaign.id, l.id).then(() => { vinculos.reload(); avisarConhecimento(); }, () => setError("Não foi possível remover o vínculo.")).finally(() => setRemovendo(false));
-            }}>remover</button></small>)}
+            <button type="button" className="btn-link" disabled={removendo} aria-label={`Remover vínculo com ${l.title}`} onClick={() => removerVinculo(l.id, l.title)}>remover</button></small>)}
         </div>
       );
     }
@@ -243,6 +245,22 @@ export function EditorConhecimento({
       <CampoNarrativo label="Descrição compartilhada" value={text} maxLength={10000} onChange={setText} rows={dados.rows.filter((r) => r.id !== entry?.id)} />
       <p className="muted">Digite @ para citar um registro; o texto entre colchetes é o que aparece. Linha iniciada por ## vira subtítulo.</p>
       {campos.some((f) => f.long) && <details open={campos.some((f) => f.long && !!entry?.fields?.[f.id])}><summary>História e detalhes opcionais</summary>{campos.filter((f) => f.long).map(campo)}</details>}
+      {entry && (
+        <section className="cd-relations" aria-label="Vínculos">
+          <h3>Vínculos</h3>
+          <p className="muted">Vínculos são gravados na hora, mesmo que você cancele o restante da edição.</p>
+          {vinculos.error && <Aviso erro t={vinculos.error} />}
+          {/* os que ocupam um campo próprio são removidos no próprio campo, acima */}
+          <ListaVinculos
+            links={vinculos.links.filter((l) => !vagas.some((v) => v.kind === l.kind && v.outgoing === l.outgoing))}
+            rows={dados.rows}
+            onOpenContent={() => {}}
+            semAbrir
+            controles={{ busy: removendo, onRemover: (l) => removerVinculo(l.id, l.title) }}
+          />
+          <NovoVinculoBotao id={entry.id} vinculos={vinculos} />
+        </section>
+      )}
       <label>
         Notas privadas do mestre
         <textarea value={secret} maxLength={4000} onChange={(e) => setSecret(e.target.value)} />

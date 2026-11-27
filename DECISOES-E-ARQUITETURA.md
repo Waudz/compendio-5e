@@ -437,3 +437,4 @@ separadamente, sem tratar a decisão como funcionalidade publicada.
 - Citações `@` usam marcação `@[texto](id)` no texto simples existente, sem novo editor rico.
 - Naturalidade, residência, liderança e sede aceitam texto livre ou vínculo tipado; o vínculo ocupa o campo e não se repete em "Registros relacionados". Vínculo novo nasce secreto.
 - Sem novo sistema de navegação, abas temporárias ou retrocompatibilidade extra.
+- Refinamentos (27/11/2026): retratos de personagens e criaturas nas cartas com cerca de 300 px (260 px no celular), compactos nas fichas; visualizador único em tela cheia da imagem original, somente leitura (o enquadramento continua sendo ação separada), usando apenas o endereço já autorizado da tela; ficha técnica sem repetir o que está no cabeçalho; "Vincular registro" no modo de edição; aviso ao mestre, em "Gerenciar conhecimento", quando o texto revelado cita o próprio nome oculto, sem alterar o texto.

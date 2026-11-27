@@ -880,3 +880,10 @@ Mesma branch `feat/compendio-conhecimento-granular`. **Sem merge/publicação; 0
 
 **Pendências e limites:** "Abrir no Compêndio" a partir do inventário e os nomes em Encontros continuam navegando na aba (sem carta); algumas características de raças/classes seguem no idioma original (anterior a esta etapa); NPC com ficha não tem aba Inventário; nome secreto digitado fora de uma citação `@` não é detectado; registros de criatura antigos ficam com os novos campos narrativos vazios e ocultos até o mestre preencher; anexos de mapas e documentos continuam futuros.
 
+### Refinamentos antes do PR (27/11/2026, mesma branch)
+
+Retratos maiores nas cartas; visualizador de imagens (`src/imagem/VisualizadorImagem.tsx`, ligado pela opção `ampliar` de `RetratoQuadrado`); na ficha de personagem, tocar no retrato amplia e o lápis altera; ficha de criatura sem a seção "Estatísticas" (detalhe da armadura passou ao indicador de CA; percepção passiva saiu da linha de sentidos); "Vincular registro" no editor (e em "Editar vínculos" na identidade de aventureiro), o que também devolve a remoção de vínculos comuns à página do registro; topo compacto no celular; aviso de nome oculto. **Sem mudança no banco** (0020 inalterada).
+
+**Imagens e permissões:** o visualizador não faz pedido novo nem guarda endereço; fecha se a imagem sair da tela. Ele mostra o arquivo original, sem o enquadramento: quem já podia ver o retrato já podia baixar o arquivo inteiro, mas agora a parte fora do recorte fica visível na interface.
+
+**Validação local:** Vitest 1793/1793 (148 arquivos), tipos, build e `check-build-oficial`; navegador direcionado: Base 54 + 6 condicionais (inclui `compendio-imagem.spec.ts`: zoom por botões e roda, arraste, pinça sintética, Esc, Voltar e larguras do retrato), Creator 24 (ficha e catálogo), Quality 52 + 28 (layout e acessibilidade). Não repetidas as baterias completas. Não verificado: pinça em celular físico e imagens reais do Storage (no teste, as imagens externas são substituídas).

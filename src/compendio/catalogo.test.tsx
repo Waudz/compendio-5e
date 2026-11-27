@@ -129,7 +129,11 @@ describe('monstros', () => {
     pesquisar('goblin'); verFicha('Goblin');
     const det = within(await screen.findByRole('region', { name: 'Detalhes de Goblin' }));
     const fato = (r: string) => det.getByText(r).nextSibling?.textContent;
-    expect(fato('Classe de Armadura')).toMatch(/^15/); expect(fato('Pontos de vida')).toBe('7 (2d6)'); expect(fato('Deslocamento')).toBe('9 m'); expect(fato('Nível de desafio')).toBe('1/4 (50 XP)');
+    // CA, PV, deslocamento e ND aparecem uma única vez, no cabeçalho
+    const topo = (r: string) => { const alvo = within(screen.getByRole('region', { name: 'Resumo da criatura' })).getByText(r).closest('.dnd-indicador')!; return alvo.textContent!.replace(r, ''); };
+    expect(topo('CA')).toMatch(/^15/); expect(topo('PV máximos')).toBe('72d6'); expect(topo('Deslocamento')).toBe('9 m'); expect(topo('Nível de desafio')).toBe('1/450 XP');
+    expect(det.queryByRole('region', { name: 'Estatísticas' })).toBeNull(); expect(det.queryByText('Pontos de vida')).toBeNull(); expect(det.queryByText('Classe de Armadura')).toBeNull();
+    expect(fato('Sentidos')).toBe('visão no escuro 18 m');
     const attrs = [...det.getByRole('region', { name: 'Atributos' }).querySelectorAll('.ficha-atributo')];
     expect(attrs.map(c => c.querySelector('.dnd-nome-longo')?.textContent)).toEqual(['Força', 'Destreza', 'Constituição', 'Inteligência', 'Sabedoria', 'Carisma']);
     expect(attrs[1].querySelector('.dnd-atributo-valor')?.textContent).toBe('14'); expect(attrs[1].querySelector('.dnd-atributo-mod')?.textContent).toBe('+2');
@@ -145,9 +149,9 @@ describe('monstros', () => {
     await montar(); await abrirCompendio(); categoria('Monstros'); await waitFor(() => expect(contagem()).toBe('323'));
     pesquisar('dragao vermelho adulto'); verFicha('Dragão Vermelho Adulto');
     const det = within(await screen.findByRole('region', { name: 'Detalhes de Dragão Vermelho Adulto' }));
-    const dados = within(det.getByRole('region', { name: 'Estatísticas' }));
-    expect(dados.getByText('Nível de desafio').nextSibling?.textContent).toBe('17 (18.000 XP)');
-    expect(dados.getByText('Deslocamento').nextSibling?.textContent).toBe('12 m, voo 24 m, escalada 12 m');
+    const resumo = screen.getByRole('region', { name: 'Resumo da criatura' });
+    expect(resumo.textContent).toContain('18.000 XP');
+    expect(resumo.textContent).toContain('12 m, voo 24 m, escalada 12 m');
     abaDaFicha('Habilidades'); expect(det.getByRole('region', { name: 'Ações lendárias' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', {name:'Voltar na aba'}));
     pesquisar(''); filtro('tipo', 'dragon'); expect(contagem()).toBe('43'); marcar('Tem ações lendárias'); filtro('nível de desafio', 'nd17+'); expect(Number(contagem())).toBeGreaterThan(5);
