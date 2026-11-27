@@ -9,7 +9,7 @@ import { avisarConhecimento } from "./compendio/conhecimento";
 import { limparRecuperacao } from "./criador/recuperacao";
 import { listarPersonagens, type PersonagemCampanha } from "./personagensCampanha";
 import { useJogadoresCampanha } from "./jogadoresCampanha";
-import type { AcaoCiclo, AvisoPersonagem, OfertaPersonagem, Situacao } from "./cicloPersonagem";
+import { CONFIRMACAO_DE_EXCLUSAO, type AcaoCiclo, type AvisoPersonagem, type OfertaPersonagem, type Situacao } from "./cicloPersonagem";
 import type { Member } from "./campaigns";
 import type { Kind } from "./workspace";
 import { Modal } from "./ui/Modal";
@@ -133,7 +133,8 @@ function useOperacao() {
     if (id.current?.acao !== chave) id.current = { acao: chave, operacao: crypto.randomUUID() };
     setOcupado(true); setErro("");
     try {
-      const r = await fichas.ciclo.agir({ campaignId: active.campaign.id, ids, acao, operacao: id.current.operacao, revisoes, destino });
+      // só se chega aqui pela exclusão depois da confirmação explícita da própria janela
+      const r = await fichas.ciclo.agir({ campaignId: active.campaign.id, ids, acao, operacao: id.current.operacao, revisoes, destino, ...(acao === "excluir" ? { confirmacao: CONFIRMACAO_DE_EXCLUSAO } : {}) });
       if (!r.ok) { setErro(r.error); return false; }
       return true;
     } catch { setErro("Não foi possível confirmar a operação. Confira a lista antes de tentar de novo."); return false; }
@@ -163,12 +164,12 @@ function Renuncia({ id, onFechar, onFeito }: { id: string; onFechar: () => void;
 
 type Opcao = { acao: AcaoCiclo; titulo: string; texto: string };
 const OPCOES: Opcao[] = [
-  { acao: "compendio", titulo: "Manter apenas no Compêndio", texto: "Remove a ficha técnica. A identidade e os vínculos continuam no Compêndio." },
-  { acao: "arquivar", titulo: "Arquivar personagem", texto: "Preserva a ficha inteira e os vínculos e tira o personagem das listas de ativos." },
+  { acao: "compendio", titulo: "Manter apenas no Compêndio", texto: "Remove a ficha técnica; a identidade e os vínculos continuam no Compêndio. Uma cópia privada fica guardada por 30 dias para recuperação pelo responsável do sistema." },
+  { acao: "arquivar", titulo: "Arquivar personagem", texto: "Preserva a ficha inteira e os vínculos, sem prazo, enquanto a campanha existir. Sai das listas de ativos." },
   { acao: "npc", titulo: "Converter em NPC", texto: "A ficha completa passa ao seu controle, no mesmo registro, listado entre os NPCs." },
   { acao: "reativar", titulo: "Reativar", texto: "Volta a ser um personagem ativo, sob o seu controle. Para devolver a um jogador, transfira." },
   { acao: "transferir", titulo: "Transferir para outro jogador", texto: "Quem receber precisa aceitar. Ficha, inventário, progresso, identidade e vínculos vão junto." },
-  { acao: "excluir", titulo: "Excluir definitivamente", texto: "Remove a ficha, o registro no Compêndio e os vínculos. Documentos e históricos continuam. Não há como desfazer pelo aplicativo." },
+  { acao: "excluir", titulo: "Excluir definitivamente", texto: "Apaga a ficha e a cópia de recuperação, o registro no Compêndio e os vínculos. Ficam só os documentos e históricos. Não há como recuperar; cópias em backups técnicos expiram no prazo do provedor." },
 ];
 const opcoesPara = (p: PersonagemCampanha): Opcao[] => OPCOES.filter(o => {
   if (o.acao === "excluir") return true;
@@ -221,7 +222,7 @@ function Gestao({ id, onFechar, onFeito }: { id: string; onFechar: () => void; o
       {escolha === "transferir" && <label>Novo jogador<select value={destino} onChange={e => setDestino(e.target.value)}><option value="">Selecione</option>
         {membros.filter(m => m.user_id !== p.ownerId).map(m => <option key={m.user_id} value={m.user_id}>{m.display_name}{m.user_id === user?.id ? " (você, sem precisar de aceite)" : ""}</option>)}</select></label>}
       {destrutiva && <label className="check ciclo-confirmo"><input type="checkbox" checked={confirmado} onChange={e => setConfirmado(e.target.checked)}/>
-        {escolha === "excluir" ? `Confirmo a exclusão definitiva de ${p.nome}` : `Confirmo a remoção da ficha técnica de ${p.nome}`}</label>}
+        {escolha === "excluir" ? `Confirmo a exclusão definitiva de ${p.nome}, sem cópia de recuperação` : `Confirmo a remoção da ficha técnica de ${p.nome}`}</label>}
     </div>}
     {op.erro && <p role="alert">{op.erro}</p>}
   </Modal>;
@@ -238,7 +239,7 @@ function Lote({ ids, onFechar, onFeito }: { ids: string[]; onFechar: () => void;
     {falhaDeLeitura && <p role="alert">{falhaDeLeitura}</p>}
     {lista && !completos && <p role="alert">A lista mudou. Feche esta janela e selecione de novo.</p>}
     {completos && <>
-      <p>Excluir definitivamente {alvos.length === 1 ? "este personagem" : `estes ${alvos.length} personagens`}? Fichas, registros no Compêndio e vínculos são removidos. Documentos e históricos continuam. Se um falhar, nenhum é excluído.</p>
+      <p>Excluir definitivamente {alvos.length === 1 ? "este personagem" : `estes ${alvos.length} personagens`}? Fichas (sem cópia de recuperação), registros no Compêndio e vínculos são apagados. Ficam só os documentos e históricos. Se um falhar, nenhum é excluído.</p>
       <ul className="ciclo-alvos" aria-label="Personagens a excluir">{alvos.map(p => <li key={p.id}>{p.nome} <small className="muted">{ROTULO_SITUACAO[p.situacao]}</small></li>)}</ul>
       <label>Digite EXCLUIR para confirmar<input value={texto} autoComplete="off" disabled={op.ocupado} onChange={e => setTexto(e.target.value)}/></label>
     </>}

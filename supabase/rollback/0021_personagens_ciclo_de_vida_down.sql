@@ -9,7 +9,12 @@ end $$;
 drop function public.character_offer_answer(uuid, boolean);
 drop function public.character_offers(uuid);
 drop function public.character_states(uuid);
-drop function public.character_lifecycle(uuid, uuid[], text, uuid, jsonb, uuid);
+drop function public.character_lifecycle(uuid, uuid[], text, uuid, jsonb, uuid, text);
+do $$ begin
+ if to_regclass('cron.job') is not null then
+  perform cron.unschedule(jobid) from cron.job where jobname = 'compendio-purgar-copias-de-ficha';
+ end if;
+end $$;
 drop function private_ficha.aplicar_ciclo(uuid, text, uuid, uuid);
 drop function private_ficha.definir_situacao(uuid, uuid, text, uuid);
 drop function private_ficha.mestre_de(uuid);
@@ -91,6 +96,7 @@ drop function private.mudanca_de_ciclo(uuid);
 drop table public.character_notices;
 drop table private_ficha.mudanca_ciclo;
 drop table private_ficha.transferencias;
+drop function private_ficha.purgar_copias();
 drop table private_ficha.ciclo_eventos;
 drop table private_ficha.ciclo;
 create or replace function public.codex_capabilities() returns integer language sql stable set search_path = '' as $$ select 20 $$;

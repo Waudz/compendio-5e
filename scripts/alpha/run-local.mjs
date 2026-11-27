@@ -371,7 +371,8 @@ try {
     assert.equal(await sheet(p), undefined);
     assert.equal((await act(secondPlayer.access_token, 'excluir', {p_revisions: {[id]: await revision()}})).ok, false);
     assert.equal((await act(m, 'excluir', {p_revisions: {[id]: 1}})).ok, false, 'stale revision is refused');
-    assert.ok((await act(m, 'excluir', {p_revisions: {[id]: await revision()}})).ok);
+    assert.equal((await act(m, 'excluir', {p_revisions: {[id]: await revision()}})).ok, false, 'definitive deletion needs the explicit confirmation');
+    assert.ok((await act(m, 'excluir', {p_revisions: {[id]: await revision()}, p_confirm: 'excluir-sem-recuperacao'})).ok);
     for (const token of [m, p, secondPlayer.access_token]) {
       assert.equal(await sheet(token), undefined);
       assert.deepEqual(await ok(`/rest/v1/notes?id=eq.${id}&deleted_at=is.null`, {token}), []);

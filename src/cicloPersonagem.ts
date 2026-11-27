@@ -9,10 +9,12 @@ export type OfertaPersonagem = { id: string; characterId: string; title: string;
 export type TipoAviso = "renuncia" | "oferta" | "oferta-aceita" | "oferta-recusada";
 export type AvisoPersonagem = { id: number; characterId: string; kind: TipoAviso; title: string; readAt: string | null; createdAt: string };
 
+export const CONFIRMACAO_DE_EXCLUSAO = "excluir-sem-recuperacao";
 export type PedidoCiclo = {
   campaignId: string; ids: string[]; acao: AcaoCiclo; /** A mesma em uma nova tentativa: repetir não faz nada. */ operacao: string;
   /** Revisão de cada ficha que quem pede está vendo (exigida quando a ficha é removida ou renunciada). */ revisoes?: Record<string, number>;
   destino?: string;
+  /** Exigida pelo banco na exclusão definitiva, que não deixa cópia de recuperação. */ confirmacao?: typeof CONFIRMACAO_DE_EXCLUSAO;
 };
 
 export type CicloApi = {
@@ -30,6 +32,7 @@ export function mensagemDoCiclo(bruta: string): string {
   const m = bruta.toLowerCase();
   if (m.includes("conflito_de_revisao")) return "A ficha mudou em outro lugar. Feche esta janela, confira a versão atual e tente de novo. Nada foi alterado.";
   if (m.includes("personagem_indisponivel")) return "Este personagem não está mais disponível. Nada foi alterado.";
+  if (m.includes("confirmacao_exigida")) return "Confirme a exclusão definitiva. Nada foi alterado.";
   if (m.includes("sem_permissao")) return "Você não tem permissão para esta ação. Nada foi alterado.";
   if (m.includes("sem_ficha")) return "Este personagem não tem mais ficha técnica. Nada foi alterado.";
   if (m.includes("destino_invalido")) return "Escolha outro participante desta campanha. Nada foi alterado.";
@@ -52,7 +55,7 @@ export function criarCicloApi(client: SupabaseClient): CicloApi {
       const r = await rpc("character_states", { p_campaign: campaignId }, d => (d ?? []) as SituacaoPersonagem[]);
       return !r.ok && r.error === ERRO_SEM_CICLO ? { ok: true, data: null } : r;
     },
-    agir: p => rpc("character_lifecycle", { p_campaign: p.campaignId, p_ids: p.ids, p_action: p.acao, p_operation: p.operacao, p_revisions: p.revisoes ?? {}, p_target: p.destino ?? null }, () => true as const),
+    agir: p => rpc("character_lifecycle", { p_campaign: p.campaignId, p_ids: p.ids, p_action: p.acao, p_operation: p.operacao, p_revisions: p.revisoes ?? {}, p_target: p.destino ?? null, p_confirm: p.confirmacao ?? null }, () => true as const),
     ofertas: campaignId => rpc("character_offers", { p_campaign: campaignId }, d => (d ?? []) as OfertaPersonagem[]),
     responder: (oferta, aceitar) => rpc("character_offer_answer", { p_offer: oferta, p_accept: aceitar }, () => true as const),
     avisos: async campaignId => {

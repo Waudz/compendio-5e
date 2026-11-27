@@ -979,3 +979,7 @@ Corrigido no caminho: no celular o menu de contexto apenas navegava, e as açõe
 **Não feito:** consulta ou escrita em produção; verificação em celular físico; Auth/REST reais fora do CI (o cenário do ciclo foi acrescentado a `scripts/alpha/run-local.mjs` e roda no workflow Alpha Supabase isolado do PR). Decisão pendente: apagar ou manter a cópia privada após a exclusão definitiva.
 
 **Próximo passo exato:** com o ciclo revisado e integrado, **Minhas anotações do jogador** (DEC-035): lista por última edição, título, BlockNote existente (`EditorLazy`/`PageEditor`), tela cheia no celular, salvamento automático, recuperação, retorno à lista preservando o documento, privadas por usuário e campanha inclusive para o mestre, preservando as notas atuais. Ainda não iniciado. Depois: foto da conta, #100 (criação sem escolhas prévias), #96/#99 e o roteiro com mestre e dois jogadores.
+
+### PR #168 e decisão de retenção (27/11/2026)
+
+PR **#168** aberto pelo responsável: https://github.com/Waudz/compendio-5e/pull/168. **Não mesclar nem aplicar a 0021** sem revisão e autorização. A decisão pendente sobre a cópia foi respondida (retenção em `EXCLUSAO-VISIBILIDADE-PERSONAGENS.md`): 30 dias em "só no Compêndio", sem prazo no arquivamento e nenhuma cópia na exclusão definitiva, com confirmação exigida também pelo banco. No commit anterior (`83f8839`) passaram Preview, Validar projeto e Alpha Supabase isolado, incluindo o cenário do ciclo com Auth/REST reais. Depois de aplicar a 0021, é obrigatório conferir o agendamento da limpeza.

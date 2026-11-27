@@ -1,6 +1,6 @@
 // Apoio aos testes e ao modo de demonstração: imita as regras da 0021 sobre o banco em memória das fichas.
 // As políticas REAIS são conferidas em `supabase/ciclo-personagens.test.ts`; isto serve para testar a interface.
-import { mensagemDoCiclo, ERRO_SEM_CICLO, type AcaoCiclo, type AvisoPersonagem, type CicloApi, type Situacao, type TipoAviso } from "./cicloPersonagem";
+import { mensagemDoCiclo, ERRO_SEM_CICLO, CONFIRMACAO_DE_EXCLUSAO, type AcaoCiclo, type AvisoPersonagem, type CicloApi, type Situacao, type TipoAviso } from "./cicloPersonagem";
 import type { BancoFichas } from "./fichasMemoria";
 
 export type CicloEmMemoria = {
@@ -70,10 +70,11 @@ export function cicloEmMemoria(uid: string, banco: BancoFichas, avisar: () => vo
         return { id, state: s?.state ?? "ativo", ...(mestre && oferta ? { pendingTo: oferta.para } : {}), ...(mestre && s?.previousOwner ? { previousOwner: s.previousOwner } : {}), ...(semJogador.includes(id) ? { ownerLeft: true } : {}) };
       }) };
     },
-    agir: async ({ campaignId, ids, acao, operacao, revisoes = {}, destino }) => {
+    agir: async ({ campaignId, ids, acao, operacao, revisoes = {}, destino, confirmacao }) => {
       const x = indisponivel(); if (x) return x;
       const mestre = mestreDe(campaignId) === uid;
       if (!membro(campaignId, uid) || (acao !== "renunciar" && !mestre)) return falha("sem_permissao");
+      if (acao === "excluir" && confirmacao !== CONFIRMACAO_DE_EXCLUSAO) return falha("confirmacao_exigida");
       const unicos = [...new Set(ids)];
       // tudo ou nada: confere todos antes de alterar qualquer um
       for (const id of unicos) {

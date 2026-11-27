@@ -9,7 +9,12 @@
 --   npc         ficha intacta, controlada pelo mestre, listada entre os NPCs (mesmo registro, mesmo ID)
 --   compendio   ficha técnica removida; identidade pública e vínculos continuam
 --   excluido    ficha, vínculos e registro ativo removidos; documentos e históricos continuam
--- Onde a ficha é removida (compendio, excluido) fica antes uma cópia privada em `private_ficha.ciclo_eventos`, sem acesso pela API.
+-- Retenção (decisão de 27/11/2026):
+--   compendio  cópia privada da ficha em `private_ficha.ciclo_eventos`, sem acesso pela API, por 30 dias; depois é apagada
+--   arquivado  a própria ficha continua inteira, sem prazo, enquanto a campanha existir
+--   excluido   nenhuma cópia recuperável: a ficha não é copiada, cópias anteriores são apagadas e a linha pública é esvaziada;
+--              ficam só o histórico (quem, quando, o quê, título) e os registros narrativos e de jogo. Backups técnicos do
+--              provedor seguem a retenção dele.
 -- Nenhum dado existente é alterado ao aplicar. Reversão em supabase/rollback/0021_personagens_ciclo_de_vida_down.sql.
 begin;
 
@@ -32,9 +37,22 @@ create table private_ficha.ciclo_eventos (
   acao text not null,
   titulo text not null,
   copia jsonb,
+  copia_expira_em timestamptz check (copia is null or copia_expira_em is not null),
   em timestamptz not null default now(),
   unique (character_id, operation_id)
 );
+
+create index ciclo_eventos_expira on private_ficha.ciclo_eventos(copia_expira_em) where copia is not null;
+
+-- Apaga as cópias vencidas. Roda todo dia pelo agendador do banco (fim deste arquivo) e também no começo de cada operação do ciclo.
+create function private_ficha.purgar_copias() returns integer language plpgsql security definer set search_path = '' as $$
+declare n integer;
+begin
+  update private_ficha.ciclo_eventos set copia = null, copia_expira_em = null where copia is not null and copia_expira_em <= now();
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke all on function private_ficha.purgar_copias() from public, anon, authenticated;
 
 create table private_ficha.transferencias (
   id uuid primary key default gen_random_uuid(),
@@ -228,12 +246,11 @@ end $$;
 create function private_ficha.aplicar_ciclo(p_id uuid, p_acao text, p_operacao uuid, p_destino uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 declare
-  n public.notes; s public.character_sheets; atual text; copia jsonb; refs jsonb; vistos jsonb; vinculos jsonb;
+  n public.notes; s public.character_sheets; copia jsonb; refs jsonb; vistos jsonb;
   mestre uuid; eu uuid := (select auth.uid()); anterior uuid;
 begin
   select * into s from public.character_sheets where character_id = p_id;
   select * into n from public.notes where id = p_id;
-  atual := private.situacao_personagem(p_id);
   mestre := private_ficha.mestre_de(n.campaign_id);
   anterior := case when n.owner_id <> mestre then n.owner_id end;
 
@@ -267,22 +284,22 @@ begin
   elsif p_acao in ('compendio', 'excluir') then
     if p_acao = 'compendio' and s.character_id is null then raise exception 'sem_ficha' using errcode = 'P0002'; end if;
     update private_ficha.transferencias set status = 'cancelada', closed_at = now() where character_id = p_id and status = 'pendente';
-    if s.character_id is not null then
+    if p_acao = 'compendio' then
       select coalesce(jsonb_agg(v.item_id), '[]'::jsonb) into vistos from private_ficha.itens_vistos v where v.character_id = p_id;
-      copia := jsonb_build_object('ficha', to_jsonb(s), 'itens_vistos', vistos);
+      copia := jsonb_build_object('ficha', to_jsonb(s), 'itens_vistos', vistos, 'nota', to_jsonb(n));
     end if;
     perform private_ficha.trocar_dono(p_id, mestre);
     refs := private_ficha.desligar_referencias(n.campaign_id, p_id);
-    copia := coalesce(copia, '{}'::jsonb) || jsonb_build_object('nota', to_jsonb(n), 'referencias', refs);
-    -- a ficha técnica sai das tabelas da aplicação (a cópia acima é a única que resta)
+    if copia is not null then copia := copia || jsonb_build_object('referencias', refs); end if;
+    -- a ficha técnica sai das tabelas da aplicação
     delete from public.character_sheets where character_id = p_id;
     insert into private_ficha.mudanca_ciclo(txid, character_id) values (txid_current(), p_id) on conflict do nothing;
     if p_acao = 'excluir' then
-      select coalesce(jsonb_agg(to_jsonb(l)), '[]'::jsonb) into vinculos from public.codex_links l where p_id in (l.source_id, l.target_id);
-      copia := copia || jsonb_build_object('vinculos', vinculos);
       delete from public.codex_links l where p_id in (l.source_id, l.target_id);
       delete from public.character_notices where character_id = p_id;
-      update public.notes set deleted_at = now() where id = p_id;
+      -- fica só o marcador com o título, para o histórico e o ID estável; o resumo público derivado da ficha sai junto
+      update public.notes set deleted_at = now(), meta = '{}'::jsonb, body = '' where id = p_id;
+      update private_ficha.ciclo_eventos e set copia = null, copia_expira_em = null where e.character_id = p_id and e.copia is not null;
     end if;
     delete from private_ficha.mudanca_ciclo m where m.txid = txid_current() and m.character_id = p_id;
     perform private_ficha.definir_situacao(n.campaign_id, p_id, case p_acao when 'compendio' then 'compendio' else 'excluido' end, anterior);
@@ -290,8 +307,8 @@ begin
     raise exception 'acao_invalida' using errcode = '23514';
   end if;
 
-  insert into private_ficha.ciclo_eventos(campaign_id, character_id, actor_id, operation_id, acao, titulo, copia)
-  values (n.campaign_id, p_id, eu, p_operacao, p_acao, n.title, copia);
+  insert into private_ficha.ciclo_eventos(campaign_id, character_id, actor_id, operation_id, acao, titulo, copia, copia_expira_em)
+  values (n.campaign_id, p_id, eu, p_operacao, p_acao, n.title, copia, case when copia is not null then now() + interval '30 days' end);
 end $$;
 revoke all on function private_ficha.trocar_dono(uuid, uuid), private_ficha.desligar_referencias(uuid, uuid),
   private_ficha.avisar(uuid, uuid, uuid, text, text), private_ficha.mestre_de(uuid), private_ficha.definir_situacao(uuid, uuid, text, uuid),
@@ -301,7 +318,8 @@ revoke all on function private_ficha.trocar_dono(uuid, uuid), private_ficha.desl
 -- Um ou vários personagens da mesma campanha numa única transação (tudo ou nada). Repetir a mesma operação não faz nada.
 -- `p_revisoes` (id -> revisão da ficha) é obrigatória para as ações que removem a ficha: uma ficha alterada por outra sessão não é perdida.
 create function public.character_lifecycle(p_campaign uuid, p_ids uuid[], p_action text, p_operation uuid,
-                                           p_revisions jsonb default '{}'::jsonb, p_target uuid default null) returns jsonb
+                                           p_revisions jsonb default '{}'::jsonb, p_target uuid default null,
+                                           p_confirm text default null) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   eu uuid := (select auth.uid()); master boolean; cid uuid; n public.notes; s public.character_sheets; situacao text;
@@ -319,6 +337,9 @@ begin
     raise exception 'sem_permissao' using errcode = '42501';
   end if;
   if p_action = 'transferir' and cardinality(p_ids) <> 1 then raise exception 'acao_invalida' using errcode = '23514'; end if;
+  -- sem cópia de recuperação: a intenção precisa vir declarada na própria chamada
+  if p_action = 'excluir' and p_confirm is distinct from 'excluir-sem-recuperacao' then raise exception 'confirmacao_exigida' using errcode = '23514'; end if;
+  perform private_ficha.purgar_copias();
 
   -- ordem fixa de travas (ficha, depois nota; ids em ordem): igual à gravação guiada, sem impasse entre operações cruzadas
   foreach cid in array array(select distinct x from unnest(p_ids) x order by x) loop
@@ -347,8 +368,8 @@ begin
   end loop;
   return jsonb_build_object('ok', true);
 end $$;
-revoke all on function public.character_lifecycle(uuid, uuid[], text, uuid, jsonb, uuid) from public, anon;
-grant execute on function public.character_lifecycle(uuid, uuid[], text, uuid, jsonb, uuid) to authenticated;
+revoke all on function public.character_lifecycle(uuid, uuid[], text, uuid, jsonb, uuid, text) from public, anon;
+grant execute on function public.character_lifecycle(uuid, uuid[], text, uuid, jsonb, uuid, text) to authenticated;
 
 -- Situação dos personagens (quem não aparece está ativo). O mestre recebe também a transferência pendente, o dono anterior e quem
 -- ficou sem jogador na campanha (as regras de leitura escondem dos outros a linha pública de quem saiu).
@@ -427,4 +448,13 @@ begin
 end $$;
 
 create or replace function public.codex_capabilities() returns integer language sql stable set search_path = '' as $$ select 21 $$;
+
+-- Limpeza diária das cópias vencidas. Onde o agendador não existe (PostgreSQL de teste), vale a limpeza feita a cada operação.
+-- Em produção o agendamento é OBRIGATÓRIO: conferir depois de aplicar (preflight/0021_conferir_retencao.sql).
+do $$ begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    create extension if not exists pg_cron;
+    perform cron.schedule('compendio-purgar-copias-de-ficha', '17 3 * * *', 'select private_ficha.purgar_copias()');
+  end if;
+end $$;
 commit;

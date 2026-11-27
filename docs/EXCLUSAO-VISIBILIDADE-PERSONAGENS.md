@@ -24,9 +24,19 @@ Perder o controle é **trocar o dono para o mestre da campanha**. Ficha, vitais,
 - Portadores de itens e destino de transferência de itens ignoram quem está aguardando ou arquivado.
 - Imagens de retrato não são apagadas.
 
-## O que fica guardado
+## Retenção (decisão do responsável, 27/11/2026)
 
-Ao remover a ficha ("só no Compêndio" e exclusão), uma cópia (ficha, itens já vistos, linha pública, referências de combate/encontro e, na exclusão, vínculos) fica em `private_ficha.ciclo_eventos`, **sem acesso pela API**. Serve à recuperação pelo responsável; o aplicativo não restaura. **Decisão a confirmar:** se "definitiva" deve também apagar essa cópia (e por quanto tempo mantê-la).
+| Decisão do mestre | O que fica | Prazo |
+|---|---|---|
+| Arquivar | a ficha completa, nas próprias tabelas, e o Compêndio | sem expiração enquanto a campanha existir |
+| Manter apenas no Compêndio | cópia privada (ficha, itens já vistos, linha pública e referências de combate/encontro) em `private_ficha.ciclo_eventos`, sem acesso pela API | **30 dias**, depois é apagada |
+| Excluir definitivamente | **nenhuma cópia recuperável**; só registros históricos e narrativos | imediato |
+
+- **Exclusão definitiva:** a ficha não é copiada; cópias anteriores do mesmo personagem (por exemplo de um "só no Compêndio" ainda no prazo) são apagadas na mesma transação; itens já vistos, status de combate, vínculos e avisos do personagem saem; a linha excluída fica só como marcador, com o título, e sem o resumo público derivado da ficha. Permanecem: histórico do ciclo (quem, quando, o quê, título), combate e encontros (nome, PV, condições), documentos, diário e textos.
+- **Confirmação explícita:** além da janela (caixa de confirmação; no lote, digitar EXCLUIR), o banco recusa `excluir` sem `p_confirm = 'excluir-sem-recuperacao'`.
+- **Limpeza dos 30 dias:** `private_ficha.purgar_copias()`, agendada pela migração no `pg_cron` (todo dia às 03:17 UTC) e também executada no começo de cada operação do ciclo. Uma cópia vencida pode permanecer até a próxima limpeza (no máximo cerca de um dia com o agendador ativo). **Sem o agendador, o prazo não é garantido**: conferir com `supabase/preflight/0021_conferir_retencao.sql`.
+- **Recuperação** de uma cópia no prazo é manual, pelo responsável do sistema; o aplicativo não restaura e não há script pronto.
+- **Fora do alcance da exclusão:** backups técnicos do provedor (expiram conforme a retenção contratada); a imagem de retrato no armazenamento da campanha (não é apagada); e rascunhos de recuperação guardados no navegador de **outros** aparelhos do antigo dono (o aparelho que executa a operação limpa o seu). A exclusão também não apaga o que combate, diário e textos já registraram.
 
 ## Limites
 
@@ -49,9 +59,10 @@ Não é possível saber em produção quantos registros há em cada caso sem rod
 2. Rodar **somente leitura** `supabase/preflight/personagens_exclusao_visibilidade.sql` e guardar as contagens. Se `ocultas_recentes_a_investigar` for maior que zero, **não** rodar o reparo. `ciclo_ja_existe` e `avisos_ja_existem` devem ser falsos.
 3. Com autorização, aplicar o arquivo completo `supabase/migrations/0021_personagens_ciclo_de_vida.sql` (já tem `BEGIN/COMMIT`).
 4. Com autorização separada, executar `supabase/reparos/identidades_ocultas_antigas.sql` e repetir o preflight.
+4b. Rodar **somente leitura** `supabase/preflight/0021_conferir_retencao.sql`: o agendamento `compendio-purgar-copias-de-ficha` precisa existir e estar ativo. Se a consulta a `cron.job` falhar ou vier vazia, habilitar o `pg_cron` no projeto e executar `select cron.schedule('compendio-purgar-copias-de-ficha','17 3 * * *','select private_ficha.purgar_copias()');` (com autorização) antes de publicar.
 5. Testar com mestre, dois jogadores e outra campanha em dados temporários; só então publicar o aplicativo.
 6. Reversão: `supabase/rollback/0021_personagens_ciclo_de_vida_down.sql` funciona apenas **antes do primeiro uso**; depois ela se recusa, para não devolver acesso nem perder cópias.
 
-SHA-256 (fim de linha LF): migração `0485e4a315342716e2df7b4e74272450c16a311d844bb501546195edfd7b9d75`; reparo `7816a708bfe28bf1c69973f77f3010707836122f5a9c1ed8e3568d280241a438`. Recalcular se mudarem.
+SHA-256 (fim de linha LF): migração `6d3f30a3c128178ff84f455361dcea3894e7cab278d711c8d85b2e0e59683016`; reparo `7816a708bfe28bf1c69973f77f3010707836122f5a9c1ed8e3568d280241a438`. Recalcular se mudarem.
 
 Nenhuma limpeza de personagens é automática. Os de teste podem ser removidos pelo mestre em Personagens → Selecionar → "Selecionar todos da campanha".

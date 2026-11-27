@@ -54,9 +54,18 @@ async function criar(dono: string, nome: string, publicar = true, onde = campanh
   expect(r.error).toBeUndefined();
   return r.rows[0].character_id as string;
 }
-const acao = (quem: string | null, ids: string | string[], nome: string, extra: { op?: string; revisoes?: Record<string, number>; destino?: string; campanha?: string } = {}) =>
-  como(quem, "select public.character_lifecycle($1,$2::uuid[],$3,$4,$5::jsonb,$6) as r",
-    [extra.campanha ?? campanha, Array.isArray(ids) ? ids : [ids], nome, extra.op ?? crypto.randomUUID(), JSON.stringify(extra.revisoes ?? {}), extra.destino ?? null]);
+const acao = (quem: string | null, ids: string | string[], nome: string, extra: { op?: string; revisoes?: Record<string, number>; destino?: string; campanha?: string; confirmacao?: string | null } = {}) =>
+  como(quem, "select public.character_lifecycle($1,$2::uuid[],$3,$4,$5::jsonb,$6,$7) as r",
+    [extra.campanha ?? campanha, Array.isArray(ids) ? ids : [ids], nome, extra.op ?? crypto.randomUUID(), JSON.stringify(extra.revisoes ?? {}), extra.destino ?? null,
+      extra.confirmacao !== undefined ? extra.confirmacao : nome === "excluir" ? "excluir-sem-recuperacao" : null]);
+/** Todo o texto guardado no banco (inclusive esquemas privados), para provar que um conteúdo não sobrou em lugar nenhum. */
+async function ondeAparece(trecho: string) {
+  const tabelas = await admin("select format('%I.%I', schemaname, tablename) as t from pg_tables where schemaname in ('public','private','private_ficha','private_combates')") as { t: string }[];
+  const achadas: string[] = [];
+  for (const { t } of tabelas) if ((await admin(`select 1 from ${t} x where x::text like $1 limit 1`, [`%${trecho}%`])).length) achadas.push(t);
+  return achadas;
+}
+const copias = async (id: string) => admin("select acao, copia is not null as tem, copia_expira_em from private_ficha.ciclo_eventos where character_id=$1 order by id", [id]) as Promise<{ acao: string; tem: boolean; copia_expira_em: Date | null }[]>;
 const lerFicha = async (quem: string, id: string) => (await como(quem, "select owner_id, revision, draft from public.character_sheets where character_id=$1", [id])).rows[0] as { owner_id: string; revision: number; draft: Row } | undefined;
 const revisao = async (id: string) => (await admin("select revision from public.character_sheets where character_id=$1", [id]))[0].revision as number;
 const nota = async (id: string) => (await admin("select owner_id, visibility, title, meta, deleted_at, kind from public.notes where id=$1", [id]))[0];
@@ -155,6 +164,8 @@ describe("decisões do mestre", () => {
     await db.query("insert into public.campaign_combats as b(campaign_id,state) values($1,$2::jsonb) on conflict(campaign_id) do update set state=excluded.state,version=b.version+1", [campanha, JSON.stringify({ combatentes: [combatente], turno: "c1", rodada: 2 })]);
     await db.query("insert into public.campaign_encounters as b(campaign_id,state) values($1,$2::jsonb) on conflict(campaign_id) do update set state=excluded.state,version=b.version+1", [campanha, JSON.stringify({ encontros: [{ id: "e1", nome: "Ponte", participantes: [{ id: "p1", nome: "Dain", quantidade: 1, pv: 13, ref: { tipo: "personagem", id } }] }] })]);
     const op = crypto.randomUUID(), rev = await revisao(id);
+    for (const confirmacao of [null, "sim"]) expect((await acao(mestre, id, "excluir", { revisoes: { [id]: rev }, confirmacao })).error).toContain("confirmacao_exigida");
+    expect(await lerFicha(mestre, id)).toBeDefined();
     expect((await acao(mestre, id, "excluir", { op, revisoes: { [id]: rev } })).error).toBeUndefined();
     expect((await acao(mestre, id, "excluir", { op, revisoes: { [id]: rev } })).error).toBeUndefined();
     expect((await acao(mestre, id, "excluir", { revisoes: { [id]: rev } })).error).toContain("personagem_indisponivel");
@@ -176,8 +187,13 @@ describe("decisões do mestre", () => {
     expect(estado.combatentes[0]).toEqual({ id: "c1", nome: "Dain", iniciativa: 5, lado: "aliado", pv: 9, pvMax: 20 });
     const encontros = (await admin("select state from public.campaign_encounters where campaign_id=$1", [campanha]))[0].state as { encontros: { participantes: Row[] }[] };
     expect(encontros.encontros[0].participantes[0]).toEqual({ id: "p1", nome: "Dain", quantidade: 1, pv: 13 });
-    const [{ copia }] = await admin("select copia from private_ficha.ciclo_eventos where character_id=$1 and acao='excluir'", [id]) as { copia: Row }[];
-    expect(Object.keys(copia).sort()).toEqual(["ficha", "itens_vistos", "nota", "referencias", "vinculos"]);
+    // nenhuma cópia recuperável: nem a do próprio ato; só o histórico (quem, quando, o quê, título) continua
+    expect(await copias(id)).toEqual([{ acao: "excluir", tem: false, copia_expira_em: null }]);
+    expect((await admin("select acao, titulo, actor_id from private_ficha.ciclo_eventos where character_id=$1", [id]))).toEqual([{ acao: "excluir", titulo: "Alcunha de Dain", actor_id: mestre }]);
+    expect(await nota(id)).toMatchObject({ meta: {} });
+    expect(await ondeAparece("História de Dain")).toEqual([]);
+    expect(JSON.stringify([await nota(id), await admin("select * from private_ficha.ciclo_eventos where character_id=$1", [id])])).not.toContain("Descrição pública");   // resumo público derivado da ficha
+    expect(await admin("select 1 from private_ficha.itens_vistos where character_id=$1", [id])).toEqual([]);
     expect((await avisos(mestre)).some(a => a.title === "Alcunha de Dain")).toBe(false);
   });
 
@@ -201,6 +217,46 @@ describe("decisões do mestre", () => {
     expect((await acao(mestre, simples, "arquivar")).error).toContain("sem_ficha");
     expect((await acao(mestre, simples, "excluir")).error).toBeUndefined();
     expect((await nota(simples)).deleted_at).not.toBeNull();
+  });
+});
+
+describe("retenção das cópias", () => {
+  it("só no Compêndio: a cópia dura 30 dias e depois é apagada pela limpeza (agendada ou na operação seguinte)", async () => {
+    const id = await criar(ana, "Prazo");
+    expect((await acao(mestre, id, "compendio", { revisoes: { [id]: await revisao(id) } })).error).toBeUndefined();
+    const [antes] = await copias(id);
+    expect(antes.tem).toBe(true);
+    const dias = (new Date(antes.copia_expira_em!).getTime() - Date.now()) / 86400000;
+    expect(dias).toBeGreaterThan(29.9); expect(dias).toBeLessThan(30.1);
+    expect(await ondeAparece("História de Prazo")).toEqual(["private_ficha.ciclo_eventos"]);
+    for (const quem of [ana, mestre]) {
+      expect((await como(quem, "select copia from private_ficha.ciclo_eventos")).error).toBeDefined();
+      expect((await como(quem, "select private_ficha.purgar_copias()")).error).toMatch(/permission denied/);
+    }
+    // um dia antes do vencimento continua; vencida, a limpeza apaga
+    await db.query("update private_ficha.ciclo_eventos set copia_expira_em = now() + interval '1 day' where character_id=$1", [id]);
+    await admin("select private_ficha.purgar_copias()");
+    expect((await copias(id))[0].tem).toBe(true);
+    await db.query("update private_ficha.ciclo_eventos set copia_expira_em = now() - interval '1 second' where character_id=$1", [id]);
+    const outro = await criar(beto, "Gatilho");
+    expect((await acao(mestre, outro, "arquivar")).error).toBeUndefined();       // qualquer operação do ciclo também limpa
+    expect(await copias(id)).toEqual([{ acao: "compendio", tem: false, copia_expira_em: null }]);
+    expect(await ondeAparece("História de Prazo")).toEqual([]);
+    expect(await nota(id)).toMatchObject({ deleted_at: null, title: "Alcunha de Prazo" });   // o registro do Compêndio continua
+  });
+
+  it("excluir depois de só no Compêndio apaga a cópia ainda no prazo; arquivar não tem prazo", async () => {
+    const id = await criar(ana, "Apagar");
+    expect((await acao(mestre, id, "compendio", { revisoes: { [id]: await revisao(id) } })).error).toBeUndefined();
+    expect(await ondeAparece("História de Apagar")).toEqual(["private_ficha.ciclo_eventos"]);
+    expect((await acao(mestre, id, "excluir")).error).toBeUndefined();
+    expect((await copias(id)).map(c => c.tem)).toEqual([false, false]);
+    expect(await ondeAparece("História de Apagar")).toEqual([]);
+    const guardado = await criar(ana, "Guardado");
+    expect((await acao(mestre, guardado, "arquivar")).error).toBeUndefined();
+    await admin("select private_ficha.purgar_copias()");
+    expect((await lerFicha(mestre, guardado))!.draft).toMatchObject({ story: { historia: "História de Guardado" } });
+    expect((await copias(guardado)).every(c => !c.tem && c.copia_expira_em === null)).toBe(true);
   });
 });
 
