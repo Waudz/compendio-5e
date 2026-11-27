@@ -1041,3 +1041,10 @@ Cobertura nova: `supabase/npc-ficha.test.ts` (0022: permissões, mestre rebaixad
 1. **Pendência de publicação (depende do responsável):** aplicar a 0022 conforme [APLICAR-0022](APLICAR-0022.md). Confirmada a aplicação e o diagnóstico: mesclar o #170 (merge commit), conferir os workflows da `main` ("Publicar versão de testes" e E2E), conferir no site os textos "Gerenciar ficha" e "Estado vital", atualizar o registro da 0022 em `supabase/migrations/LEIA-ME.md`, o README e o status.
 2. **Próxima tarefa: anotações dos jogadores** — começar por [ANOTACOES-JOGADOR](ANOTACOES-JOGADOR.md), em branch nova a partir da `main` já com o #170.
 3. Depois, na ordem já registrada: foto de perfil, criador/ficha/inventário, Compêndio restante, PWA e estabilização.
+
+
+## Encerramento do PR #170 — 27/11/2026
+
+Em 27/11/2026, a 0022 foi aplicada em produção pelo ChatGPT com autorização expressa. Capacidade 21 → 22; contagens antes/depois iguais: 115 notas, 0 fichas, 6 páginas, 1 NPC com ficha de criatura. RLS de character_life ativa; codex_npc_sheet_set disponível a authenticated e não a anon. Não reaplicar. O diagnóstico completo das 12 funções e o agendamento não foram conferidos nesta aplicação; não há confirmação de backup novo. PR #170 mesclado em 5c75a51; publicação e E2E pós-merge aprovados. Teste manual com contas reais pendente.
+
+Próximo módulo: `docs/ANOTACOES-JOGADOR.md`, preservando quadros e cartões existentes. Não reabrir o módulo anterior sem necessidade.

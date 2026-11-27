@@ -1,5 +1,7 @@
 # Aplicação da migração 0022 em produção
 
+**ENCERRADO — não reaplicar.** Em 27/11/2026, a 0022 foi aplicada em produção pelo ChatGPT com autorização expressa. Capacidade 21 → 22; contagens antes/depois iguais: 115 notas, 0 fichas, 6 páginas, 1 NPC com ficha de criatura. RLS de character_life ativa; codex_npc_sheet_set disponível a authenticated e não a anon. Não reaplicar. O diagnóstico completo das 12 funções e o agendamento não foram conferidos nesta aplicação; não há confirmação de backup novo. PR #170 mesclado em 5c75a51; publicação e E2E pós-merge aprovados. Teste manual com contas reais pendente.
+
 Projeto Supabase: **compendio-5e** (`gwcttjlxzelzjhbuitmi`). Nunca no projeto legado `rastreador-dnd`.
 **Aplicar somente com autorização do responsável.** Nenhuma senha, token ou chave secreta entra no repositório ou na conversa.
 

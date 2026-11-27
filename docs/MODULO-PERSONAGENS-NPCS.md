@@ -8,9 +8,9 @@ Reformulação das DEC-038 a DEC-041. **Escopo fechado pelo responsável:** não
 |---|---|---|---|
 | Ciclo de vida e visibilidade (DEC-038) | integrado (#168) | 0021 **aplicada** (não reaplicar) | publicado |
 | Página Personagens, lista/grade, seleção (#169) | integrado | sem migração | publicado |
-| Fichas de NPC, PV/condições, Iniciativa, Encontros, estado vital (#170) | no PR #170 | **0022 não aplicada** | **não publicado** |
+| Fichas de NPC, PV/condições, Iniciativa, Encontros, estado vital (#170) | integrado (#170) | **0022 aplicada** | **publicado** |
 
-Publicação do #170: aplicar a 0022 com autorização ([APLICAR-0022](APLICAR-0022.md)), mesclar e conferir.
+Em 27/11/2026, a 0022 foi aplicada em produção pelo ChatGPT com autorização expressa. Capacidade 21 → 22; contagens antes/depois iguais: 115 notas, 0 fichas, 6 páginas, 1 NPC com ficha de criatura. RLS de character_life ativa; codex_npc_sheet_set disponível a authenticated e não a anon. Não reaplicar. O diagnóstico completo das 12 funções e o agendamento não foram conferidos nesta aplicação; não há confirmação de backup novo. PR #170 mesclado em 5c75a51; publicação e E2E pós-merge aprovados. Teste manual com contas reais pendente.
 
 ## O que o módulo faz
 
@@ -69,7 +69,7 @@ DEC-038 (ciclo de vida e retenção), DEC-039 (áreas, NPC e estado vital), DEC-
 
 ## Limitações conhecidas
 
-1. **Nada do #170 está disponível no site** até a 0022 e o merge. Com o banco 21 o aplicativo se comporta como antes.
+1. **#170 publicado em 27/11/2026.** Com o banco 21 o aplicativo se comporta como antes.
 2. Sem filtro por estado vital nas listas (previsto na DEC-039, fora desta entrega).
 3. O jogador ainda não vê na tela o estado vital do próprio aventureiro (o banco já permite); outros jogadores não o veem. Aventureiros não têm divulgação por campo.
 4. Personagem convertido em NPC não tem conhecimento por campo nem "Gerenciar ficha"; usa "Gerenciar personagem".
