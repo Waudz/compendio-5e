@@ -1,5 +1,6 @@
 /** Carta narrativa de um registro. A mesma composição serve ao mestre, ao jogador e à prévia; o jogador e a prévia
  *  exibem exclusivamente o que veio na projeção do servidor. Criaturas nunca mostram estatísticas aqui. */
+import { RotuloVital } from '../npc/ControleVital';
 import { useEffect, useState, type ReactNode } from 'react';
 import { CircleHelp, Eye, EyeOff } from 'lucide-react';
 import { useCampaigns } from '../CampaignsContext';
@@ -77,6 +78,8 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
     else if (valor(f.id)) fatos.push({ k: f.id, rotulo: f.label, valor: valor(f.id) });
   }
   for (const v of vagas) if (v.campo !== 'inhabitants' && !curtos.some(f => f.id === v.campo)) fatos.push({ k: v.campo, rotulo: v.rotulo, valor: <span className="carta-valores">{v.links.map(vinculo)}</span> });
+  // estado vital: o jogador só o recebe se revelado; 'desconhecido' é um valor, não a falta de informação
+  if (entry.category === 'npc' && entry.vitalStatus) fatos.push({ k: 'vitalStatus', rotulo: 'Estado vital', valor: <RotuloVital estado={entry.vitalStatus}/> });
   const descricao = deBlocos(entry.description ?? []).trim();
   const longos = campos.filter(f => f.long && f.id !== 'inhabitants' && valor(f.id));
   const habitantes = vagas.find(v => v.campo === 'inhabitants'), textoHabitantes = valor('inhabitants');

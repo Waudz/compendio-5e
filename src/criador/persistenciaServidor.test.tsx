@@ -529,16 +529,13 @@ describe("página Personagens", () => {
 
   it("NPC do Compêndio com ficha de personagem: uma identidade só, nunca aventureiro, abre e salva sem publicar nada", async () => {
     await criarPersonagem("Thorin"); cleanup();
-    const codex = codexDemo(true, "ca");
+    const fichas = fichasEmMemoria(mestreUser.id, banco), codex = codexDemo(true, "ca", fichas.npc), notas = registros.dados.length;
     const id = await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "SEGREDO", fields: { nickname: "O Corvo" } });
-    const fichas = fichasEmMemoria(mestreUser.id, banco), notas = registros.dados.length;
-    expect((await fichas.criarDeNpc!("ca", id, 1, { ...structuredClone(banco.fichas[0].draft), name: "Edric Voss", nickname: "O Corvo" })).ok).toBe(true);
-    expect((await fichas.criarDeNpc!("ca", id, 1, banco.fichas[0].draft)).ok).toBe(false);
+    const nova = { tipo: "personagem" as const, draft: { ...structuredClone(banco.fichas[0].draft), name: "Edric Voss", nickname: "O Corvo" } };
+    await codex.definirFichaNpc!("ca", id, 1, nova, { operacao: "op-1" });
+    await expect(codex.definirFichaNpc!("ca", id, 2, null, { operacao: "op-2" })).rejects.toThrow(/Confirme/);
     expect((await fichasEmMemoria(me.id, banco).carregar(id))).toEqual({ ok: true, data: null });
     expect(registros.dados).toHaveLength(notas);   // nenhuma segunda identidade
-    // o adaptador de demonstração não conhece as fichas: a marca vem como a projeção do servidor a envia
-    const chave = "demo:codex:v2";
-    localStorage.setItem(chave, JSON.stringify(JSON.parse(localStorage.getItem(chave)!).map((e: { id: string }) => (e.id === id ? { ...e, characterSheet: true } : e))));
     const inicio = fonteAventureirosDoInicio(registrosEmMemoria("mestre", mestreUser.id, [], registros as never), null, fichas, mestreUser.id, true);
     for (const r of [await inicio.listar("ca"), await inicio.listarTodos!("ca")]) expect(r.ok && r.data.map(a => a.nome)).toEqual(["Thorin"]);
     await montar(mestreUser, true, codex); await abrirPersonagens();
@@ -560,6 +557,50 @@ describe("página Personagens", () => {
     await salvar(2);
     expect(banco.fichas.find(f => f.id === id)!.draft.name).toBe("Edric de Ferro");
     expect(registros.dados).toHaveLength(notas);
+  });
+
+  it("Iniciativa, Personagens e identidade usam o mesmo estado do NPC: dano persiste, 0 PV não é morte, confirmar a morte tira o NPC da lista", async () => {
+    await criarPersonagem("Thorin"); cleanup();
+    const fichas = fichasEmMemoria(mestreUser.id, banco), codex = codexDemo(true, "ca", fichas.npc);
+    const goblin = (await (await import("../catalogue/contratos")).monstroPorId("goblin"))!;
+    const garra = await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Garra", secret: "", fields: {} });
+    await codex.definirFichaNpc!("ca", garra, 1, { tipo: "criatura", base: "goblin", definicao: { ...goblin, id: `custom-npc-${garra}`, nome: "Garra" }, secoes: [] }, { operacao: "op-g" });
+    const mira = await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Mira", secret: "", fields: {} });
+    await codex.definirFichaNpc!("ca", mira, 1, { tipo: "personagem", draft: { ...structuredClone(banco.fichas[0].draft), name: "Mira" } }, { operacao: "op-m" });
+    const vida = async () => (await codex.vidas!("ca")).find(v => v.noteId === garra);
+    const cartao = async (nome: string) => within(await screen.findByRole("list", { name: "NPCs" })).findByRole("button", { name: new RegExp("^" + nome + " ") });
+    const linha = async (nome: string) => (await cartao(nome)).closest("li")!;
+    await montar(mestreUser, true, codex); await abrirPersonagens();
+    await waitFor(async () => expect((await linha("Garra")).textContent).toMatch(/PV 7\/7/));
+    await waitFor(async () => expect((await linha("Mira")).textContent).toMatch(/PV \d+\/\d+/));
+    fireEvent.click(menu().getByRole("button", { name: "Iniciativa" }));
+    const adicionar = async (nome: string) => {
+      fireEvent.change(await screen.findByLabelText("Buscar combatentes"), { target: { value: nome } });
+      fireEvent.click(await within(await screen.findByRole("region", { name: "Adicionar NPC da campanha" })).findByRole("button", { name: `Adicionar ${nome}` }));
+    };
+    await adicionar("Garra"); await adicionar("Mira");
+    await screen.findByLabelText("PV de Garra");
+    const dano = async (nome: string, valor: string) => {
+      fireEvent.change(await screen.findByLabelText(`Quantidade de dano ou cura de ${nome}`), { target: { value: valor } });
+      fireEvent.click(screen.getByRole("button", { name: `Causar dano a ${nome}` }));
+    };
+    await waitFor(() => expect(screen.getByLabelText("PV de Garra").textContent).toMatch(/7\/7/));
+    await dano("Garra", "3");
+    await waitFor(async () => expect((await vida())?.pv).toBe(4));
+    const antesMira = banco.fichas.find(f => f.id === mira)!.draft.currentHp;
+    await dano("Mira", "2");
+    await waitFor(() => expect(banco.fichas.find(f => f.id === mira)!.draft.currentHp).toBe(antesMira - 2));   // a própria ficha
+    await dano("Garra", "50");
+    await waitFor(async () => expect((await vida())?.pv).toBe(0));
+    expect((await vida())!.estado).toBe("vivo");
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar morte de Garra" }));
+    await waitFor(async () => expect((await vida())!.estado).toBe("morto"));
+    await abrirPersonagens();
+    await waitFor(async () => expect((await linha("Garra")).textContent).toMatch(/Morto/));
+    fireEvent.click(menu().getByRole("button", { name: "Iniciativa" }));
+    fireEvent.change(await screen.findByLabelText("Buscar combatentes"), { target: { value: "Garra" } });
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Adicionar Garra" })).toBeNull());
   });
 
   it("a alcunha fica sob o nome, fora do subtítulo, em lista e grade; sem alcunha não sobra elemento", async () => {

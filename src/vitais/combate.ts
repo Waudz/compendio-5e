@@ -6,7 +6,8 @@ import type { CharacterDraft } from "../rules/character-domain";
 import type { LinhaVital } from "./loja";
 
 export type CombatenteVivo = Combatente & { /** PV temporários da ficha. */ temp?: number; /** Estado vem da ficha (fonte única). */ daFicha?: boolean };
-export const idDePersonagem = (c: Combatente) => (c.ref?.tipo === "personagem" ? c.ref.id : null);
+/** Quem tem estado persistente fora do combate: personagem com ficha ou NPC com ficha de criatura. */
+export const idDePersonagem = (c: Combatente) => (c.ref?.tipo === "personagem" || c.ref?.tipo === "npc" ? c.ref.id : null);
 export const idsDePersonagens = (e: EstadoCombate) => [...new Set(e.combatentes.flatMap(c => { const id = idDePersonagem(c); return id ? [id] : []; }))];
 
 export function comEstadoDasFichas(e: EstadoCombate, ver: (id: string) => LinhaVital | undefined, maximos: ReadonlyMap<string, number>): EstadoCombate & { combatentes: CombatenteVivo[] } {
@@ -21,7 +22,7 @@ export function comEstadoDasFichas(e: EstadoCombate, ver: (id: string) => LinhaV
 export function useMaximos(linhas: readonly LinhaVital[]): ReadonlyMap<string, number> {
   const [mapa, setMapa] = useState<ReadonlyMap<string, number>>(new Map());
   const calculados = useRef(new Map<string, number>());   // id:revision → máximo
-  const chave = linhas.map(l => `${l.id}:${l.revision}`).sort().join("|");
+  const chave = linhas.map(l => `${l.id}:${l.revision}:${l.maximo ?? ""}`).sort().join("|");
   const atuais = useRef(linhas); atuais.current = linhas;
   useEffect(() => {
     if (!chave) return;
@@ -30,6 +31,7 @@ export function useMaximos(linhas: readonly LinhaVital[]): ReadonlyMap<string, n
       if (!vivo) return;
       const novo = new Map<string, number>();
       for (const l of atuais.current) {
+        if (l.maximo !== undefined) { novo.set(l.id, l.maximo); continue; }
         const k = `${l.id}:${l.revision}`;
         let max = calculados.current.get(k);
         if (max === undefined) { try { max = sheet2014({ ...(l.draft as CharacterDraft), name: l.draft.name || "Sem nome", currentHp: 0 }).maxHp; calculados.current.set(k, max); } catch { continue; } }

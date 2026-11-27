@@ -133,7 +133,7 @@ export function DemoRoot({ papel }: { papel: Role }) {
   const comFichas = new URLSearchParams(window.location.search).get("fichas") === "1";
   if (comFichas && new URLSearchParams(window.location.search).get("exemplo") === "1") semearFichaExemplo(CAMP.id, "demo:fichas:v1", KEY, carregar());
   const fichas = comFichas ? fichasDemo(uid, CAMP.id, { ler: carregar, gravar: d => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch { /* cota */ } } }) : undefined;
-  const codex = codexDemo(papel === "mestre", CAMP.id);
+  const codex = codexDemo(papel === "mestre", CAMP.id, fichas?.npc);
   return <CodexProvider api={codex}><AuthProvider client={client}><CampaignsProvider apiFactory={() => campanhas}><RegistrosProvider api={registros} capa={capaDemo} config={configDemo(papel)} fichas={fichas}>
     {new URLSearchParams(window.location.search).get("nuvem") === "1"
       ? <NuvemContext.Provider value={nuvemDemo}><AuthGate><App/></AuthGate></NuvemContext.Provider>

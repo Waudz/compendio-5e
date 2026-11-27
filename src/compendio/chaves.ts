@@ -12,7 +12,7 @@ export function gruposDeChaves(e: Conhecimento): GrupoChaves[] {
   const preenchidos = (long: boolean) => campos.filter(c => !!c.long === long && c.id !== 'nickname' && e.fields?.[c.id]?.trim()).map(c => ({ k: c.id, l: c.label }));
   const apelido = campos.find(c => c.id === 'nickname' && e.fields?.nickname?.trim());
   const grupos: GrupoChaves[] = [
-    { id: 'identidade', titulo: 'Identidade', chaves: [{ k: 'name', l: 'Nome' }, ...(apelido ? [{ k: 'nickname', l: apelido.label }] : []), ...(e.imagePath || e.imageDefinitionId ? [{ k: 'image', l: 'Imagem' }] : [])] },
+    { id: 'identidade', titulo: 'Identidade', chaves: [{ k: 'name', l: 'Nome' }, ...(apelido ? [{ k: 'nickname', l: apelido.label }] : []), ...(e.imagePath || e.imageDefinitionId ? [{ k: 'image', l: 'Imagem' }] : []), ...(e.category === 'npc' && e.vitalStatus ? [{ k: 'vitalStatus', l: 'Estado vital' }] : [])] },
     { id: 'descricao', titulo: 'Descrição', chaves: [...(deBlocos(e.description ?? []).trim() ? [{ k: 'description', l: 'Descrição' }] : []), ...preenchidos(false)] },
     { id: 'detalhes', titulo: 'Detalhes', chaves: preenchidos(true) },
     { id: 'ficha', titulo: 'Propriedades', chaves: e.category === 'monster' ? [] : (e.sheet ?? []).map(s => ({ k: 'sheet:' + s.k, l: s.l })) },

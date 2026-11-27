@@ -14,6 +14,7 @@ import { useCampaigns } from "../CampaignsContext";
 import type { BlocoTexto } from "../inicio";
 import type { Secao } from "./ficha";
 import type { LinhaDefinicao, TipoDefinicao } from "./definicoes";
+import type { EstadoVitalidade, LinhaVida, NovaFichaDeNpc, PatchVida, PedidoDeFicha } from "../npc/estado";
 export type CodexCategoria =
   | "npc"
   | "location"
@@ -44,6 +45,8 @@ export type Conhecimento = {
   combatDefinitionId?: string;
   /** O NPC tem ficha de personagem com o mesmo ID (0022); só o mestre recebe. */
   characterSheet?: boolean;
+  /** Estado vital do NPC (0022). O jogador só o recebe quando revelado ('desconhecido' é diferente de não revelado). */
+  vitalStatus?: EstadoVitalidade;
   fields?: Record<string, string>;
   sheet?: Secao[];
   relatedTerms?: string[];
@@ -102,6 +105,12 @@ export interface CodexApi {
   grantItem?(cid: string, characterId: string, definitionId: string, quantity: number, mask: { nome: string; descricao?: string } | null, operation: string): Promise<void>;
   identifyItem?(cid: string, token: string): Promise<void>;
   setCombatSheet?(cid: string, id: string, version: number, definitionId: string | null): Promise<void>;
+  /** Fichas de NPC, estado vital e PV persistentes (0022). */
+  bancoDeNpcs?(): Promise<boolean>;
+  /** Adiciona, substitui ou remove (nova nula) a ficha de um NPC; a ficha perdida fica 30 dias em cópia privada. */
+  definirFichaNpc?(cid: string, id: string, version: number, nova: NovaFichaDeNpc, pedido: PedidoDeFicha): Promise<{ revision?: number }>;
+  vidas?(cid: string): Promise<LinhaVida[]>;
+  gravarVida?(cid: string, noteId: string, patch: PatchVida, operacao: string, version?: number): Promise<LinhaVida>;
   saveDefinition?(cid: string, d: LinhaDefinicao, sheet: Secao[], baseName?: string): Promise<number>;
   removeDefinition?(cid: string, kind: TipoDefinicao, id: string, version: number, sheet?: Secao[], originalName?: string): Promise<void>;
 }
@@ -123,6 +132,8 @@ function semErro(r: { error: unknown }): void {
   if (r.error) throw Error(ERRO_CODEX);
 }
 export const VERSAO_BANCO_CODEX = 20;
+const linhaDeVida = (x: { note_id: string; estado: EstadoVitalidade; pv: number | null; temp: number; condicoes: string[]; version: number }): LinhaVida =>
+  ({ noteId: x.note_id, estado: x.estado, pv: x.pv, temp: x.temp, condicoes: x.condicoes, version: x.version });
 export function validarImagemConhecimento(file: File): void {
   if (
     !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
@@ -137,6 +148,9 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
     if (typeof capability !== "number" || capability < VERSAO_BANCO_CODEX)
       throw Error(`Atualização do banco necessária: migração 00${VERSAO_BANCO_CODEX}. Nada foi gravado.`);
   };
+  // sem a 0022 a tabela do estado vital não existe: nada é consultado
+  let versao: Promise<number> | null = null;
+  const capacidade = () => (versao ??= Promise.resolve(client.rpc("codex_capabilities")).then(r => (typeof r.data === "number" ? r.data : 0), () => { versao = null; return 0; }));
   return {
     definitions: async (cid) => conferir(await client.rpc("codex_definitions_for", { p_campaign: cid })) as LinhaDefinicao[],
     grantItem: async (cid, character, definition, quantity, mask, operation) =>
@@ -149,6 +163,27 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
       if ((r.error as { message?: string } | null)?.message?.includes("definicao_em_uso"))
         throw Error("Há uma página da campanha ligada a esta criação. Remova a página antes de excluir.");
       semErro(r);
+    },
+    bancoDeNpcs: async () => (await capacidade()) >= 22,
+    definirFichaNpc: async (cid, id, version, nova, pedido) => {
+      const p_nova = !nova ? null : nova.tipo === "personagem" ? { tipo: "personagem", draft: { ...nova.draft, id, _protocolo: 2 } }
+        : { tipo: "criatura", base: nova.base ?? null, definicao: nova.definicao, secoes: nova.secoes };
+      const r = await client.rpc("codex_npc_sheet_set", { p_campaign: cid, p_entry: id, p_version: version, p_nova, p_operation: pedido.operacao, p_revision: pedido.revisao ?? null, p_confirm: pedido.confirmar ? "remover-ficha" : null });
+      const erro = r.error as { code?: string; message?: string } | null;
+      if (erro?.code === "PGRST202") throw Error("O banco precisa da atualização 0022 para gerenciar fichas de NPC. Nada foi gravado.");
+      if (erro?.message?.includes("conflito_de_revisao")) throw Error("A ficha mudou em outra sessão. Recarregue antes de substituir ou remover; nada foi alterado.");
+      semErro(r);
+      return (r.data ?? {}) as { revision?: number };
+    },
+    vidas: async (cid) => {
+      if ((await capacidade()) < 22) return [];
+      const r = await client.from("character_life").select("note_id, estado, pv, temp, condicoes, version").eq("campaign_id", cid);
+      return (conferir(r) as unknown as { note_id: string; estado: EstadoVitalidade; pv: number | null; temp: number; condicoes: string[]; version: number }[]).map(linhaDeVida);
+    },
+    gravarVida: async (cid, noteId, patch, operacao, version) => {
+      const r = await client.rpc("character_life_set", { p_campaign: cid, p_note: noteId, p_patch: patch, p_operation: operacao, p_version: version ?? null });
+      semErro(r);
+      return linhaDeVida(r.data as { note_id: string; estado: EstadoVitalidade; pv: number | null; temp: number; condicoes: string[]; version: number });
     },
     setCombatSheet: async (cid, id, version, definitionId) => {
       await exigirBanco();
@@ -175,7 +210,7 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
         p_entry: id,
         p_version: version,
       });
-      if ((r.error as { message?: string } | null)?.message?.includes("npc_com_ficha")) throw Error("Este NPC tem uma ficha de personagem. A página não pode ser removida enquanto a ficha existir.");
+      if ((r.error as { message?: string } | null)?.message?.includes("npc_com_ficha")) throw Error("Este NPC tem uma ficha própria. Remova a ficha antes de remover a página.");
       if (r.error) throw Error(ERRO_CODEX);
     },
     upload: async (cid, id, file) => {

@@ -1,3 +1,9 @@
+import { FichaDoNpc } from "./npc/FichaDoNpc";
+import { EstadoNoCartao } from "./npc/EstadoNoCartao";
+import { useBancoDeNpcs, useFichasComNpcs, useVidas } from "./npc/estado";
+import { useVitais } from "./vitais/loja";
+import { useMaximos } from "./vitais/combate";
+import { avisarConhecimento } from "./compendio/conhecimento";
 import {useJogadoresCampanha} from "./jogadoresCampanha";
 import {useAbrirConsulta} from "./compendio/ConsultaCarta";
 import {identidadeSpec} from "./compendio/navegacao";
@@ -84,7 +90,7 @@ function useNpcsComFicha(ativo: boolean, fichasDeNpc?: ResumoFicha[]): { linhas:
         spec: { kind: "ficha" as const, ref: e.id, title: e.title }, rodape: "NPC · ficha de personagem", busca: normalizar(`${e.title} ${e.fields?.nickname ?? ""}`), situacaoDaLinha: "ativos" as const, npc: true };
     }
     const m = monstros.find(x => x.id === e.combatDefinitionId);
-    const detalhe = m ? `${m.nome} · ND ${formatarND(m.nd)} · PV ${m.pv}` : "Ficha de criatura";
+    const detalhe = m ? `${m.nome} · ND ${formatarND(m.nd)}` : "Ficha de criatura";
     return { id: e.id, title: e.title, alcunha: e.fields?.nickname, subtitle: detalhe, category: "npc", body: "", entry: e, spec: npcSpec(e.id, e.title), rodape: "NPC · ficha de criatura", busca: normalizar(`${e.title} ${e.fields?.nickname ?? ""}`), situacaoDaLinha: "ativos" as const, npc: true };
   }) };
 }
@@ -111,6 +117,16 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
   const { linhas: npcsDoCompendio, carregando: carregandoNpcs } = useNpcsComFicha(!!mestre && !somenteMeus, dados?.fichasDeNpc);
   const selecaoDe = useSelecao(`${userId}:${cid}:${active?.role}`);
   const caminhos = useUrlsDosCaminhos(dados?.personagens ?? []);
+  // PV e condições vêm da mesma fonte da ficha (e, nos NPCs de criatura, da mesma fila)
+  const bancoDeNpcs = useBancoDeNpcs(), vidas = useVidas(), conhecimento = useConhecimento(), comNpcs = useFichasComNpcs(fichas, !!mestre && !somenteMeus);
+  const idsComEstado = [
+    ...(dados?.personagens ?? []).filter(p => p.comFicha && p.situacao !== "compendio" && (mestre || p.meu)).map(p => p.id),
+    ...(dados?.fichasDeNpc ?? []).map(f => f.id), ...(somenteMeus ? [] : [...comNpcs.criaturas.keys()]),
+  ];
+  const vit = useVitais(comNpcs.api, idsComEstado, cid ?? null);
+  const maximos = useMaximos(idsComEstado.flatMap(i => { const l = vit.ver(i); return l ? [l] : []; }));
+  const [fichando, setFichando] = useState<string | null>(null);
+  const npcFichando = fichando ? conhecimento.items.find(e => e.id === fichando && e.category === "npc") : undefined;
   if (!active) return <div className="content"><h1>Personagens</h1><Aviso t="Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral."/></div>;
   if (!api) return <div className="content"><h1>Personagens</h1><Aviso t="Conta necessária para usar os personagens."/></div>;
   const campanhaId = active.campaign.id;
@@ -152,7 +168,8 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     rodape: "Rascunho", spec: { kind: "criador", ref: g.id, title: g.nome }, busca: normalizar(g.nome), situacaoDaLinha: "ativos", npc: false }));
   const universo = [...doGrupo.map(linhaDe), ...rascunhos, ...npcsDoCompendio];
   const termos = normalizar(pesquisa).split(/\s+/).filter(Boolean);
-  const linhas = universo.filter(l => (situacao === "todos" || l.situacaoDaLinha === situacao) && termos.every(t => l.busca.includes(t)))
+  const comEstado = (l: LinhaDePersonagem): LinhaDePersonagem => ({ ...l, estado: <EstadoNoCartao vital={vit.ver(l.id)} maximo={maximos.get(l.id)} vitalidade={vidas.estadoDe(l.id)}/> });
+  const linhas = universo.map(comEstado).filter(l => (situacao === "todos" || l.situacaoDaLinha === situacao) && termos.every(t => l.busca.includes(t)))
     .sort((a, b) => a.title.localeCompare(b.title, "pt-BR") * (ordem === "inverso" ? -1 : 1));
   const mostraSecoes = mestre && !somenteMeus;
   const vazio = !!dados && universo.length === 0;
@@ -162,7 +179,7 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
 
   const extrasDe = (linha: LinhaCompendio) => {
     const l = linha as LinhaDePersonagem, p = l.personagem;
-    if (!p) return l.entry ? [{ rotulo: "Abrir identidade no Compêndio", icone: Drama, acao: () => onOpenContent(registroSpec(l.id, l.title)) }] : [];
+    if (!p) return l.entry ? [...(bancoDeNpcs ? [{ rotulo: "Gerenciar ficha", icone: Settings2, acao: () => setFichando(l.id) }] : []), { rotulo: "Abrir identidade no Compêndio", icone: Drama, acao: () => onOpenContent(registroSpec(l.id, l.title)) }] : [];
     if (!comCiclo) return [];
     if (mestre) return [{ rotulo: "Gerenciar personagem", icone: Settings2, acao: () => ciclo.gerenciar(p.id) }];
     return p.meu && p.comFicha ? [{ rotulo: "Excluir personagem", icone: Trash2, perigo: true, acao: () => ciclo.pedirRenuncia(p.id) }] : [];
@@ -205,7 +222,8 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
           <button className="btn-primary" onClick={() => void enviar(g)} disabled={enviando !== null} aria-label={`${enviando === g.id ? "Enviando…" : "Enviar para a campanha"}: ${g.nome}`}>{enviando === g.id ? "Enviando…" : "Enviar para a campanha"}</button>
           {descartando === g.id ? <><button className="btn-secondary danger" onClick={() => descartar(g)}>Confirmar descarte</button><button className="btn-secondary" onClick={() => setDescartando(null)}>Cancelar</button></>
             : <button className="btn-secondary danger" onClick={() => setDescartando(g.id)} aria-label={`Descartar rascunho local ${g.nome}`}>Descartar</button>}</span></li>)}</ul></div>}
-    {criandoNpc && <EditorConhecimento category="npc" entry={null} onDone={id => { setCriandoNpc(false); avisarRegistros(); if (id) { setAviso({ ok: true, t: "NPC criado no Compêndio. Atribua uma ficha para ele aparecer em Personagens." }); onOpenContent(registroSpec(id)); } }}/>}
+    {criandoNpc && <EditorConhecimento category="npc" entry={null} onDone={id => { setCriandoNpc(false); avisarRegistros(); if (!id) return; setAviso({ ok: true, t: "NPC criado no Compêndio. Atribua uma ficha para ele aparecer em Personagens." }); if (bancoDeNpcs) { avisarConhecimento(); setFichando(id); } else onOpenContent(registroSpec(id)); }}/>}
+    {npcFichando && <FichaDoNpc entry={npcFichando} onFechar={() => setFichando(null)} onOpenContent={onOpenContent}/>}
   </div>;
 }
 

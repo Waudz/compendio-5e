@@ -6,7 +6,7 @@ import type { CharacterDraft } from "../rules/character-domain";
 import type { FichasApi } from "../fichas";
 import { aplicarAcao, novaOperacao, type AcaoVital, type EstadoVital, type Vitais } from "./vitais";
 
-export type LinhaVital = EstadoVital & { draft: CharacterDraft };
+export type LinhaVital = EstadoVital & { draft: CharacterDraft; /** PV máximo já conhecido (NPC com ficha de criatura). */ maximo?: number };
 type Pendente = { id: string; acao: AcaoVital; operacao: string };
 export const ERRO_REDE = "Sem conexão com o servidor.";
 
@@ -22,7 +22,8 @@ export function criarLoja(api: FichasApi, atrasoBase = 1500) {
     if (atual && (e.versao < atual.versao || (e.versao === atual.versao && e.revision < atual.revision))) return;
     const base = draft ?? atual?.draft;
     if (!base) return;
-    linhas.set(e.id, { id: e.id, versao: e.versao, revision: e.revision, pv: e.pv, temp: e.temp, condicoes: e.condicoes, morte: e.morte, draft: base });
+    const maximo = (e as LinhaVital).maximo ?? atual?.maximo;
+    linhas.set(e.id, { ...(maximo !== undefined ? { maximo } : {}), id: e.id, versao: e.versao, revision: e.revision, pv: e.pv, temp: e.temp, condicoes: e.condicoes, morte: e.morte, draft: base });
   };
 
   const ler = async (ids: readonly string[]) => {

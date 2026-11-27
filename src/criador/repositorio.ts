@@ -30,7 +30,10 @@ export interface RepositorioPersonagem {
   salvar(a: ArgsSalvar): Promise<{ id: string; revision: number | null }>;
 }
 
-export function repositorioServidor(api: FichasApi, campaignId: string, userId: string): RepositorioPersonagem {
+/** Destino NPC: a primeira gravação dá a ficha à identidade existente (mesmo ID); as seguintes são gravações comuns. */
+export type DestinoNpc = { id: string; criar: (draft: CharacterDraft) => Promise<void> };
+
+export function repositorioServidor(api: FichasApi, campaignId: string, userId: string, destino?: DestinoNpc): RepositorioPersonagem {
   return {
     tipo: "servidor",
     async carregar(id) {
@@ -45,6 +48,7 @@ export function repositorioServidor(api: FichasApi, campaignId: string, userId: 
       const ident = a.somenteFicha ? undefined : { identity: a.estado.identity, source: a.source };
       // os nomes em português de raça e classe vão na ficha: o servidor os usa para refazer a apresentação quando o mestre salva
       const draft = { ...a.estado.draft, publicLabels: { race: a.source.race, characterClass: a.source.characterClass } };
+      if (!a.existe && destino) { await destino.criar({ ...draft, id: destino.id }); return { id: destino.id, revision: 1 }; }
       const r = a.existe ? await api.salvar(a.id, a.revisao ?? 0, draft, ident) : await api.criar(campaignId, draft, { identity: a.estado.identity, source: a.source });
       if (!r.ok) throw ehConflitoDeRevisao(r) ? new ErroConflito(r.error) : new Error(r.error);
       return { id: r.data.id, revision: r.data.revision };

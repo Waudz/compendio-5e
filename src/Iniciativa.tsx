@@ -1,3 +1,7 @@
+import { RotuloVital } from "./npc/ControleVital";
+import type { EstadoVitalidade } from "./npc/estado";
+import { useBancoDeNpcs, useFichasComNpcs, useVidas } from "./npc/estado";
+import type { NpcEscolhido } from "./npc/SeletorNpc";
 import { BuscaCombatentes } from "./BuscaCombatentes";
 import { useFecharMenu } from "./useFecharMenu";
 import { ChevronLeft, ChevronRight, Ellipsis, Dices, LayoutGrid, List, Plus, RotateCcw, Swords, Trash2, Columns2 } from "lucide-react";
@@ -52,8 +56,10 @@ export function IniciativaPanel() {
   const { estado, aplicar } = loja;
   useUnsavedGuard("secao:iniciativa", loja.sujo, loja.salvar);
   // PV, PV temporários e condições dos PERSONAGENS com ficha são os DA FICHA (fonte única): lidos em tempo real e alterados por operação.
-  const idsPj = podeGerenciar && estado.status === "pronto" ? idsDePersonagens(estado.valor) : [];
-  const vit = useVitais(podeGerenciar ? fichas : null, idsPj, campaignId);
+  // NPC com ficha de criatura passa pela mesma fila: a API abaixo atende fichas e NPCs
+  const comNpcs = useFichasComNpcs(fichas, podeGerenciar), vidas = useVidas(podeGerenciar), bancoDeNpcs = useBancoDeNpcs();
+  const idsPj = podeGerenciar && estado.status === "pronto" ? idsDePersonagens(estado.valor).filter(id => comNpcs.criaturas.has(id) || !estado.valor.combatentes.some(c => c.ref?.tipo === "npc" && c.ref.id === id)) : [];
+  const vit = useVitais(podeGerenciar ? comNpcs.api : null, idsPj, campaignId);
   const linhasPj = idsPj.flatMap(id => { const l = vit.ver(id); return l ? [l] : []; });
   const maximos = useMaximos(linhasPj);
   const [nome, setNome] = useState(""), [ini, setIni] = useState(""), [pv, setPv] = useState(""), [lado, setLado] = useState<Lado>("inimigo");
@@ -91,6 +97,15 @@ export function IniciativaPanel() {
     aplicar(e => definirIniciativa(adicionar(e, { id, nome: nomeCombatenteDisponivel(e, m.nome), iniciativa: 0, lado: "inimigo", pv: m.pv, pvMax: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } }), id, r.total));
   };
   const adicionarPersonagem = (p: { id: string; nome: string }, pvMax?: number, pvAtual?: number) => { if (pvMax === undefined || pvAtual === undefined) return; aplicar(e => e.combatentes.some(c => c.ref?.tipo === "personagem" && c.ref.id === p.id) ? e : adicionar(e, { nome: p.nome, iniciativa: 0, lado: "aliado", ...(pvMax ? { pv: pvAtual ?? pvMax, pvMax } : {}), ref: { tipo: "personagem", id: p.id } })); };
+  /** NPC entra uma única vez; o lado começa neutro e a iniciativa é rolada quando a ficha é de criatura. */
+  const adicionarNpc = (n: NpcEscolhido) => {
+    const tipo = n.tipo, jaEsta = (e: EstadoCombate) => e.combatentes.some(c => (c.ref?.tipo === "personagem" || c.ref?.tipo === "npc") && c.ref.id === n.id);
+    const id = novoId(), pvs = { pv: n.pvAtual, pvMax: n.pvMax };
+    if (n.tipo === "personagem") { aplicar(e => (jaEsta(e) ? e : adicionar(e, { id, nome: n.nome, iniciativa: 0, lado: "neutro", ...pvs, ref: { tipo, id: n.id } }))); return; }
+    const bonus = modAtributo(n.destreza), r = rolarD20(bonus);
+    setMods(x => ({ ...x, [id]: bonus })); setRolagens(x => ({ ...x, [id]: r }));
+    aplicar(e => (jaEsta(e) ? e : definirIniciativa(adicionar(e, { id, nome: nomeCombatenteDisponivel(e, n.nome), iniciativa: 0, lado: "neutro", ...pvs, ca: n.ca, ref: { tipo, id: n.id } }), id, r.total)));
+  };
   const ordem = vivo ? ordenar(vivo.combatentes) : [];
   const removerCombatente: Aplicar = fn => {
     if (!combate) return false;
@@ -144,7 +159,7 @@ export function IniciativaPanel() {
         </div>
       </div>
       </div>
-      <BuscaCombatentes campaignId={campaignId} encontros={encontros.status === "pronto" ? encontros.valor : null} monstro={adicionarMonstro} personagem={adicionarPersonagem} enviar={enc => { if (!aplicar(e => enviarParaCombate(e, enc))) return; lojaEnc.aplicar(l => l.map(x => x.id === enc.id ? marcarEnviado(x, enc) : x)); }} avulso={<form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
+      <BuscaCombatentes campaignId={campaignId} encontros={encontros.status === "pronto" ? encontros.valor : null} monstro={adicionarMonstro} personagem={adicionarPersonagem} npc={adicionarNpc} enviar={enc => { if (!aplicar(e => enviarParaCombate(e, enc))) return; lojaEnc.aplicar(l => l.map(x => x.id === enc.id ? marcarEnviado(x, enc) : x)); }} avulso={<form className="ini-form" onSubmit={submeter} aria-label="Adicionar combatente">
         <label>Nome<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={60}/></label>
         <label>Iniciativa<input inputMode="decimal" value={ini} onChange={e => setIni(e.target.value)} placeholder="0"/></label>
         <label>PV (opcional)<input inputMode="numeric" value={pv} onChange={e => setPv(e.target.value)}/></label>
@@ -158,12 +173,12 @@ export function IniciativaPanel() {
       </div>
       {ordem.length === 0
         ? <div className="placeholder vazio" role="status"><Swords size={30} aria-hidden="true"/><strong>Nenhum combatente ainda</strong><span>Adicione quem vai lutar acima, com a iniciativa de cada um. Encontros preparados na aba Encontros podem ser enviados para cá.</span></div>
-        : <div role="group" aria-label="Combatentes" className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: (vivo!.combatentes as CombatenteVivo[]).filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: vivo!.combatentes as CombatenteVivo[] }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} naFicha={naFicha} aguardandoFicha={!!idDePersonagem(c) && !!fichas && !c.daFicha && !vit.carregado} aoRemover={() => removerCombatente(e => remover(e, c.id))} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
+        : <div role="group" aria-label="Combatentes" className={separarLados ? "ini-grupos separados" : "ini-grupos"}>{(separarLados ? (["aliado", "inimigo", "neutro"] as Lado[]).map(l => ({ titulo: rotuloLado[l], grupo: (vivo!.combatentes as CombatenteVivo[]).filter(c => c.lado === l) })).filter(g => g.grupo.length) : [{ titulo: "", grupo: vivo!.combatentes as CombatenteVivo[] }]).map(({ titulo, grupo }) => <section key={titulo || "todos"} className="ini-grupo">{titulo && <h3>{titulo}</h3>}<ol className={`ini-lista ${visualizacao === "lista" ? "ini-lista-compacta" : "ini-lista-cartoes"}`} aria-label={titulo || "Ordem de iniciativa"}>{grupo.map(c => <Linha key={c.id} c={c} atual={c.id === combate.turno} aplicar={aplicar} naFicha={naFicha} aguardandoFicha={!!idDePersonagem(c) && !!fichas && !c.daFicha && !vit.carregado} aoRemover={() => removerCombatente(e => remover(e, c.id))} vital={bancoDeNpcs && idDePersonagem(c) ? { estado: vidas.estadoDe(idDePersonagem(c)!), confirmarMorte: () => { if (window.confirm(`Confirmar a morte de ${c.nome}? O estado vital muda para Morto; a ficha, a história e os vínculos continuam.`)) void vidas.definir(idDePersonagem(c)!, "morto"); } } : undefined} bonus={mods[c.id] ?? 0} retrato={c.ref?.tipo === "personagem" ? retratos.get(c.ref.id) ?? null : null} rolagem={rolagens[c.id]} aoRolar={r => setRolagens(x => ({ ...x, [c.id]: r }))}/>)}</ol></section>)}</div>}
     </>}
   </div>;
 }
 type Aplicar = (fn: (e: EstadoCombate) => EstadoCombate) => boolean;
-function Linha({ c, atual, aplicar, naFicha, aguardandoFicha, aoRemover, bonus, retrato, rolagem, aoRolar }: { c: CombatenteVivo; atual: boolean; aplicar: Aplicar; naFicha: (c: CombatenteVivo, a: AcaoVital) => boolean; aguardandoFicha: boolean; aoRemover: () => void; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
+function Linha({ c, atual, aplicar, naFicha, aguardandoFicha, aoRemover, vital, bonus, retrato, rolagem, aoRolar }: { /** Quem tem identidade persistente: 0 PV não é morte; o mestre confirma. */ vital?: { estado: EstadoVitalidade; confirmarMorte: () => void }; c: CombatenteVivo; atual: boolean; aplicar: Aplicar; naFicha: (c: CombatenteVivo, a: AcaoVital) => boolean; aguardandoFicha: boolean; aoRemover: () => void; bonus: number; retrato: string | null; rolagem?: Rolagem; aoRolar: (r: Rolagem) => void }) {
   const [valor, setValor] = useState("1");
   // campo vazio vale 1, como na ficha
   const quantia = () => { const n = valor.trim() === "" ? 1 : numero(valor); return n !== undefined && Number.isInteger(n) && n > 0 ? n : null; };
@@ -177,7 +192,7 @@ function Linha({ c, atual, aplicar, naFicha, aguardandoFicha, aoRemover, bonus, 
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
   const pct = c.pvMax ? Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100)) : 0;
   return <li className={`ini-item lado-${c.lado}${c.pvMax && c.pv === 0 ? " derrotado" : ""}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
-    <CriaturaIdentidade monstroAoLado nome={c.nome} tipo={c.ref?.tipo ?? "avulso"} retrato={retrato} referencia={c.ref} detalhes={<>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}{c.ca ? ` · CA ${c.ca}` : ""}</>}/>
+    <CriaturaIdentidade monstroAoLado nome={c.nome} tipo={c.ref?.tipo ?? "avulso"} retrato={retrato} referencia={c.ref} detalhes={<>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : c.ref.tipo === "npc" ? " · NPC" : " · personagem") : ""}{atual ? " · turno atual" : ""}{c.ca ? ` · CA ${c.ca}` : ""}</>}/>
     {c.notas && <small className="ini-notas muted">{c.notas}</small>}
     <div className="ini-ini">
       <label className="ini-valor">Iniciativa<input aria-label={`Iniciativa de ${c.nome}`} inputMode="decimal" defaultValue={c.iniciativa} key={c.iniciativa}
@@ -191,6 +206,7 @@ function Linha({ c, atual, aplicar, naFicha, aguardandoFicha, aoRemover, bonus, 
       {c.daFicha && <button type="button" className="btn-secondary ini-temp-botao" aria-label={`Definir PV temporários de ${c.nome}`} title="Define os PV temporários com a quantidade do campo (0 remove)" onClick={temporarios}>Temp.</button>}
       {aguardandoFicha && <small className="muted" role="status">lendo a ficha…</small>}
       <div className="ini-pv-trilho" aria-hidden="true"><div className="ini-pv-preenchimento" style={{ width: `${pct}%` }} data-baixo={pct <= 25 ? "true" : undefined}/></div></div> : <span className="muted ini-pv">Sem PV</span>}
+    {vital && (vital.estado === "morto" ? <small className="ini-vital"><RotuloVital estado="morto"/></small> : c.pvMax && c.pv === 0 ? <button type="button" className="btn-secondary ini-vital" onClick={vital.confirmarMorte} aria-label={`Confirmar morte de ${c.nome}`}>Confirmar morte</button> : null)}
     <div className="ini-condicoes">
       {(c.condicoes ?? []).map(k => <button key={k} className="ini-chip" onClick={() => condicao(k, false)} aria-label={`Remover condição ${k} de ${c.nome}`}>{k} ×</button>)}
       <select aria-label={`Adicionar condição a ${c.nome}`} value="" onChange={e => { if (e.target.value) condicao(e.target.value, true); }}>

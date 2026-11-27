@@ -50,7 +50,9 @@ function projecaoDaFicha(identity: PublicIdentity, d: CharacterDraft, anterior: 
   const antes = (anterior as { identidadePublica?: { card?: { race?: string; characterClass?: string } } } | undefined)?.identidadePublica?.card;
   return projetarIdentidade({ identity, source: { name: d.name, alias: d.nickname ?? "", race: d.publicLabels?.race ?? antes?.race ?? "", characterClass: d.publicLabels?.characterClass ?? antes?.characterClass ?? "", level: String(d.level), portrait: d.portrait ?? "" } });
 }
-export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { banco: BancoFichas } {
+/** Ficha de personagem de um NPC, como a 0022 a grava (usada pelo codex de demonstração). */
+export type FichaDeNpcEmMemoria = { revisao: (id: string) => number | undefined; definir: (cid: string, id: string, draft: CharacterDraft | null) => void };
+export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { banco: BancoFichas; npc: FichaDeNpcEmMemoria } {
   const mestre = (cid: string) => banco.campanhas[cid]?.mestre === uid;
   const membro = (cid: string) => mestre(cid) || !!banco.campanhas[cid]?.jogadores.includes(uid);
   const le = (f: Linha) => (!f.npc && f.ownerId === uid && membro(f.campaignId)) || mestre(f.campaignId);       // política de SELECT/UPDATE da 0008
@@ -98,15 +100,6 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
     },
     assinar: (_filtro, aoMudar) => { ouvintes.add(aoMudar); return () => { ouvintes.delete(aoMudar); }; },
     ciclo: cicloEmMemoria(uid, banco, avisar),
-    // como no banco (0022): só o mestre, uma ficha por NPC, com o mesmo ID da página; nenhuma nota pública é criada
-    criarDeNpc: async (cid, entryId, _versao, draft) => {
-      if (banco.rede.caida) return semRede;
-      if (!mestre(cid)) return { ok: false, error: "Você não tem permissão para esta operação." };
-      if (banco.fichas.some(f => f.id === entryId)) return { ok: false, error: "Este NPC já tem uma ficha. Nada foi alterado." };
-      const l: Linha = { id: entryId, campaignId: cid, ownerId: uid, revision: 1, draft: { ...structuredClone(draft), id: entryId }, updatedAt: agora(), npc: true };
-      banco.fichas.push(l); avisar();
-      return { ok: true, data: { id: entryId, revision: 1, updatedAt: l.updatedAt } };
-    },
     listar: async cid => banco.rede.caida ? semRede : { ok: true, data: banco.fichas.filter(f => f.campaignId === cid && le(f)).map(f => ({ ...(f.npc ? { npc: true } : {}), id: f.id, ownerId: f.ownerId, nome: f.draft.name.trim() || "Sem nome", ...extrasDaFicha(f.draft), classId: f.draft.classId, nivel: f.draft.level, revision: f.revision, updatedAt: f.updatedAt })) },
     carregar: async id => {
       if (banco.rede.caida) return semRede;
@@ -143,5 +136,13 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
       return { ok: true, data: { id, revision: l.revision, updatedAt: l.updatedAt } };
     },
   };
-  return Object.assign(api, { banco });
+  const npc: FichaDeNpcEmMemoria = {
+    revisao: id => banco.fichas.find(f => f.id === id && f.npc)?.revision,
+    definir: (cid, id, draft) => {
+      banco.fichas = banco.fichas.filter(f => !(f.id === id && f.npc));
+      if (draft) banco.fichas.push({ id, campaignId: cid, ownerId: uid, revision: 1, draft: { ...structuredClone(draft), id }, updatedAt: agora(), npc: true });
+      avisar();
+    },
+  };
+  return Object.assign(api, { banco, npc });
 }

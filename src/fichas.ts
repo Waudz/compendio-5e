@@ -22,8 +22,6 @@ export type ResultadoItem = EstadoVital & { draft: CharacterDraft; updatedAt: st
 export type FiltroAssinatura = { characterId: string } | { campaignId: string };
 
 export type FichasApi = {
-  /** Dá uma ficha de personagem a um NPC do Compêndio, com o MESMO ID do registro (0022); só o mestre. */
-  criarDeNpc?: (campaignId: string, entryId: string, entryVersion: number, draft: CharacterDraft) => Promise<Res<GravacaoFicha>>;
   /** Fichas que o usuário pode LER (as próprias; todas as da campanha para o mestre). A RLS decide; nada aqui filtra por segurança. */
   /** Ciclo de vida (0021): renúncia, arquivo, NPC, transferência e exclusão. */
   ciclo?: CicloApi;
@@ -110,8 +108,6 @@ const msg = (e: unknown) => {
   if (m.includes("conflito_de_revisao")) return ERRO_CONFLITO_REVISAO;
   if (m.includes("ficha_nao_encontrada") || m.includes("nota_nao_encontrada")) return ERRO_SEM_FICHA;
   if (m.includes("aplicativo_desatualizado")) return "Esta página está desatualizada. Recarregue para continuar; nada foi sobrescrito.";
-  if (m.includes("banco_sem_0022")) return "O banco precisa da atualização 0022 para dar ficha de personagem a um NPC. Nada foi gravado.";
-  if (m.includes("npc_ja_tem_ficha")) return "Este NPC já tem uma ficha. Nada foi alterado.";
   if (m.includes("identidade_so_do_dono")) return "Só o dono do personagem altera a identidade pública.";
   if (m.includes("character_sheets_draft") || (m.includes("check constraint") && m.includes("character_sheets"))) return "A ficha é grande demais ou inválida para ser salva.";   // nome da restrição pode diferir do remoto
   if (m.includes("identidade_invalida") || m.includes("notes_guiado_meta_check")) return "A identidade pública contém dados não permitidos (confira a imagem https:// e o tamanho dos textos).";
@@ -153,16 +149,6 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
   });
   return {
     ciclo: criarCicloApi(client),
-    criarDeNpc: (campaignId, entryId, entryVersion, draft) => run<GravacaoFicha>(async () => {
-      const r = await client.rpc("codex_npc_sheet_create", { p_campaign: campaignId, p_entry: entryId, p_version: entryVersion, p_draft: comProtocolo({ ...draft, id: entryId }) });
-      if (r.error) {
-        const erro = r.error as { code?: string; message?: string };
-        if (erro.code === "PGRST202") return { data: null, error: { message: "banco_sem_0022" } };
-        return { data: null, error: r.error };
-      }
-      const x = r.data as { revision: number; updatedAt: string } | null;
-      return x ? { data: { id: entryId, revision: x.revision, updatedAt: x.updatedAt }, error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };
-    }),
     lerVitais: ids => run<LinhaVital[]>(async () => {
       const r = await client.from("character_sheets").select("character_id, revision, vitals_version, draft").in("character_id", ids);
       return r.error ? { data: null, error: r.error } : { data: (r.data as unknown as VitalRow[]).map(linhaVital), error: null };

@@ -1,4 +1,8 @@
 /** Páginas de consulta do Compêndio. São o mesmo conteúdo da janela de consulta (desktop) e da página completa. */
+import {FichaDoNpc} from '../npc/FichaDoNpc';
+import {ControleVital} from '../npc/ControleVital';
+import {temFicha,useBancoDeNpcs} from '../npc/estado';
+import {FilePlus2} from 'lucide-react';
 import {useCiclo} from '../CicloPersonagens';
 import {useJogadoresCampanha} from "../jogadoresCampanha";
 import {useContext,useEffect,useMemo,useRef,useState} from 'react';
@@ -69,6 +73,7 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
  const vinculos=useVinculos(id,data),acoes=useDivulgacao(vinculos),semDefinicoes=useDefinicoes().indisponivel;
  const origem=useContext(OrigemAbaContext)??'secao:compendio';
  const row=data.rows.find(r=>r.entry?.id===id),entry=row?.entry;
+ const bancoDeNpcs=useBancoDeNpcs(),[fichando,setFichando]=useState(false);
  const master=active?.role==='mestre';
  useEffect(()=>{if(entry)registrarTitulo(id,entry.title);},[id,entry?.title]);
  // A ficha enviada ao servidor acompanha a definição atual; divergências são regravadas na próxima divulgação.
@@ -92,7 +97,7 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
  const ficha=semFicha?undefined:entry.category==='monster'&&entry.definitionId&&entry.systemId==='dnd5e-2014'?monstroSpec(entry.definitionId,entry.title):entry.category==='npc'&&entry.characterSheet?{kind:'ficha' as const,ref:entry.id,title:entry.title}:entry.category==='npc'&&entry.combatDefinitionId?npcSpec(entry.id,entry.title):undefined;
  const ficharNpc=(definicao:string|null)=>{if(data.api?.setCombatSheet&&active)acoes.executar(()=>data.api!.setCombatSheet!(active.campaign.id,id,entry.version,definicao));};
  const menu:AcaoDeMenu[]=[
-  ...(entry.category==='npc'&&!entry.characterSheet&&data.api?.setCombatSheet?[{rotulo:entry.combatDefinitionId?'Trocar ficha de combate':'Vincular ficha de combate',icone:Link2,acao:()=>setEscolhendo(true)},
+  ...(entry.category==='npc'&&!bancoDeNpcs&&!entry.characterSheet&&data.api?.setCombatSheet?[{rotulo:entry.combatDefinitionId?'Trocar ficha de combate':'Vincular ficha de combate',icone:Link2,acao:()=>setEscolhendo(true)},
    ...(entry.combatDefinitionId?[{rotulo:'Desvincular ficha de combate',icone:Unlink,acao:()=>{if(window.confirm('Desvincular a ficha de combate deste NPC? A criatura continua no Bestiário.'))ficharNpc(null);}}]:[])]:[]),
   ...(entry.definitionId&&entry.category==='item'?[{rotulo:'Consultar definição original',icone:ExternalLink,acao:()=>onOpenContent({kind:'item',ref:entry.definitionId!})}]:[]),
   {rotulo:'Remover registro',icone:Trash2,perigo:true,acao:remove},
@@ -100,6 +105,8 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
  const trilhaMestre=entry.category==='item'?nomesCategoria.item:`${nomesCategoria[entry.category]} / ${nomesRegistro[entry.category]}`;
  const botoes=master?<>
   {ficha&&<button type="button" className="btn-primary" onClick={()=>onOpenContent(ficha)}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>}
+  {bancoDeNpcs&&entry.category==='npc'&&<button type="button" className="btn-secondary" onClick={()=>setFichando(true)}><FilePlus2 size={14} aria-hidden="true"/> {temFicha(entry)?'Gerenciar ficha':'Adicionar ficha'}</button>}
+  {bancoDeNpcs&&entry.category==='npc'&&<ControleVital noteId={entry.id} atual={entry.vitalStatus}/>}
   <button type="button" className="btn-secondary" aria-label="Editar registro" onClick={()=>setEdit(true)}><Pencil size={14} aria-hidden="true"/> Editar</button>
   <button type="button" className="btn-secondary" aria-label="Gerenciar conhecimento" onClick={()=>setGerenciando(true)}><Eye size={14} aria-hidden="true"/> Conhecimento</button>
   <button type="button" className="btn-secondary" aria-label="Ver como jogador" onClick={()=>setAsPlayer(true)}><Users2 size={14} aria-hidden="true"/> Prévia</button>
@@ -113,6 +120,7 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
    :<Carta trilha="Prévia do jogador" topo={<SeletorPapel jogador onTrocar={setAsPlayer}/>} nome="Prévia do jogador" rotulo="Prévia do jogador">{vista?.error?<Aviso erro t={vista.error}/>:!vista?.data?<p role="status">Gerando prévia…</p>:<p>Os jogadores não veem este registro.</p>}</Carta>)
  :master&&gerenciando?<GerenciarConhecimento entry={atual} links={vinculos.links} busy={acoes.busy} origem={origem} onCancelar={()=>setGerenciando(false)} onSalvar={r=>acoes.revelar(entry,{...r,...extra},()=>setGerenciando(false))}/>
  :<VisaoRegistro entry={atual} mostrarPosse links={vinculos.links} rows={data.rows} onOpenContent={onOpenContent} trilha={master?trilhaMestre:nomesCategoria[entry.category]} acoes={botoes} privado={master}/>}
+ {fichando&&<FichaDoNpc entry={entry} onFechar={()=>setFichando(false)} onOpenContent={onOpenContent}/>}
  {escolhendo&&<Modal titulo={`Ficha de combate de ${entry.title}`} onFechar={()=>setEscolhendo(false)} largura={520}>
    <p className="muted">Reutiliza uma criatura do Bestiário ou criada nesta campanha. Os jogadores não recebem a ficha.</p>
    <SeletorMonstro rotulo="Bestiário" acao="Vincular" onEscolher={m=>{setEscolhendo(false);ficharNpc(m.id);}}/>
@@ -122,7 +130,7 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
 
 /** Identidade pública de um aventureiro: a mesma carta no Compêndio e na página inicial. É a projeção do personagem. */
 export function IdentidadePagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
- const jogador=useJogadoresCampanha(),ciclo=useCiclo();
+ const jogador=useJogadoresCampanha(),ciclo=useCiclo(),bancoDeNpcs=useBancoDeNpcs();
  const {items,loading,error}=useIdentidades(),{active}=useCampaigns(),{user}=useAuth(),api=useRegistros();const p=items.find(x=>x.id===id);
  const [detail,setDetail]=useState<{scope:string;owner?:string;card:PublicIdentityCard|null}>();const scope=`${user?.id}:${active?.campaign.id}:${id}`;
  useEffect(()=>{let alive=true;if(api&&active)void api.get(id).then(r=>{if(!alive)return;const reg=r.ok&&r.data?.campaignId===active.campaign.id?r.data:null;setDetail({scope,owner:reg?.ownerId,card:reg&&(reg.visibility==='campaign'||reg.ownerId===user?.id)?cartaoPublico(reg.meta):null});},()=>{if(alive)setDetail({scope,card:null});});return()=>{alive=false;};},[api,scope]);
@@ -139,7 +147,7 @@ export function IdentidadePagina({id,onOpenContent}:{id:string;onOpenContent:(s:
  return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent} label="Personagens"/>
   {!p||!visto?<Aviso t={error??'Identidade indisponível nesta campanha.'}/>:<Carta trilha={p.situacao==='npc'?'Personagens / NPC':p.situacao?'Personagens':'Personagens / Aventureiro'} nome={visto.nome} alcunha={visto.alcunha} rotulo={`Identidade pública de ${visto.nome}`}
    retratoGrande imagem={<RetratoQuadrado src={card?card.imageUrl:p.retratoUrl} tipo="personagem" tamanho={300} ampliar={visto.nome}/>}
-   acoes={(podeFicha&&p.situacao!=='compendio')||gerencia?<>{podeFicha&&p.situacao!=='compendio'&&<button type="button" className="btn-primary" onClick={()=>onOpenContent({kind:'ficha',ref:id,title:p.nome})}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>}{gerencia&&<button type="button" className="btn-secondary" onClick={()=>ciclo.gerenciar(id)}>Gerenciar personagem</button>}</>:undefined}>
+   acoes={(podeFicha&&p.situacao!=='compendio')||gerencia?<>{active?.role==='mestre'&&bancoDeNpcs&&<ControleVital noteId={id}/>}{podeFicha&&p.situacao!=='compendio'&&<button type="button" className="btn-primary" onClick={()=>onOpenContent({kind:'ficha',ref:id,title:p.nome})}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>}{gerencia&&<button type="button" className="btn-secondary" onClick={()=>ciclo.gerenciar(id)}>Gerenciar personagem</button>}</>:undefined}>
    {jogador(atual?.owner)&&<p className="muted">Jogador: {jogador(atual?.owner)}</p>}
    <FatosCarta fatos={fatos}/>
    {descricao&&<p className="cd-texto">{descricao}</p>}

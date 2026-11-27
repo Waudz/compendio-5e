@@ -1,3 +1,4 @@
+import { avisarConhecimento, useCodexApi, useConhecimento } from "../compendio/conhecimento";
 import { registroSpec } from "../compendio/navegacao";
 import { metodoPreservado, manualValido, type MetodoAtributos } from './atributos-2014';
 import { consumirItem } from "../ficha/inventarioAcoes";
@@ -25,7 +26,7 @@ import { useUnsavedGuard } from "../unsaved";
 import { estaVisivel, EVENTO_ABRIR_FICHA, pedirFechamento, registrarAliasPersonagem, registrarVoltar } from "../voltarInterno";
 import type { TabSpec } from "../workspace";
 import { armazenamentoLocalExperimental, type ArmazenamentoCriador } from "./armazenamento";
-import { ErroConflito, repositorioLocal, repositorioServidor, type RepositorioPersonagem } from "./repositorio";
+import { ErroConflito, repositorioLocal, repositorioServidor, type DestinoNpc, type RepositorioPersonagem } from "./repositorio";
 import { ehPersonagemNovo, gravarMapaAba, gravarRecuperacao, lerMapaAba, lerRecuperacao, limparRecuperacao, type Recuperacao } from "./recuperacao";
 import { criadorRefs, criadorRules } from "./catalogo-criador";
 // O snapshot de personagens não entra no carregamento da navegação/catálogos gerais.
@@ -72,14 +73,26 @@ export function CriadorGuiado({ id, onOpenContent, initialView = false }: { id: 
   // das escolhas ainda não salvas.
   const userId = user?.id, campaignId = active?.campaign.id;
   const store = useMemo<ArmazenamentoCriador | null>(() => { try { return userId && campaignId ? armazenamentoLocalExperimental(userId, campaignId) : null; } catch { return null; } }, [userId, campaignId]);
-  const repo = useMemo<RepositorioPersonagem | null>(() => !userId || !campaignId || !store ? null : fichas ? repositorioServidor(fichas, campaignId, userId) : repositorioLocal(store), [userId, campaignId, store, fichas]);
+  // aba "novo-npc-<id>-…": a ficha nova pertence a um NPC do Compêndio, com o nome dele
+  const codex = useCodexApi(), conhecimento = useConhecimento();
+  const alvo = /^novo-npc-([0-9a-f-]{36})-(nova|trocar)-/.exec(id), npcId = alvo?.[1], trocar = alvo?.[2] === "trocar";
+  const npcAlvo = npcId ? conhecimento.items.find(e => e.id === npcId && e.category === "npc") : undefined;
+  const destino = useMemo<DestinoNpc | undefined>(() => !npcId || !codex?.definirFichaNpc || !campaignId ? undefined : { id: npcId, criar: async draft => {
+    const entry = (await codex.list(campaignId)).find(e => e.id === npcId);
+    if (!entry) throw new Error("A página deste NPC não está mais disponível. Nada foi gravado.");
+    const atual = entry.characterSheet ? await fichas?.carregar(npcId) : undefined;
+    await codex.definirFichaNpc!(campaignId, npcId, entry.version, { tipo: "personagem", draft }, { operacao: crypto.randomUUID(), confirmar: trocar, revisao: atual?.ok ? atual.data?.ficha.revision : undefined });
+    avisarConhecimento();
+  } }, [npcId, trocar, codex, fichas, campaignId]);
+  const repo = useMemo<RepositorioPersonagem | null>(() => !userId || !campaignId || !store ? null : fichas ? repositorioServidor(fichas, campaignId, userId, destino) : repositorioLocal(store), [userId, campaignId, store, fichas]);
   if (!user) return aviso("Conta necessária para usar o criador de personagens.");
   if (!active) return aviso("Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral.");
   if (!store || !repo) return aviso("Não foi possível preparar o armazenamento deste usuário e campanha.");
-  return <Editor key={`${active.campaign.id}:${id}`} id={id} repo={repo} store={store} userId={user.id} campaignId={active.campaign.id} campanha={active.campaign.name} onOpenContent={onOpenContent} initialView={initialView} mestre={active.role === "mestre"}/>;
+  if (npcId && !npcAlvo) return conhecimento.loading ? <div className="content" role="status">Carregando o NPC…</div> : aviso("A página deste NPC não está disponível.");
+  return <Editor npcAlvo={npcAlvo ? { nome: npcAlvo.title, alcunha: npcAlvo.fields?.nickname } : undefined} key={`${active.campaign.id}:${id}`} id={id} repo={repo} store={store} userId={user.id} campaignId={active.campaign.id} campanha={active.campaign.name} onOpenContent={onOpenContent} initialView={initialView} mestre={active.role === "mestre"}/>;
 }
 
-function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, initialView, mestre }: { mestre: boolean; id: string; repo: RepositorioPersonagem; store: ArmazenamentoCriador; userId: string; campaignId: string; campanha: string; onOpenContent: (s: TabSpec) => void; initialView: boolean }) {
+function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, initialView, mestre, npcAlvo }: { npcAlvo?: { nome: string; alcunha?: string }; mestre: boolean; id: string; repo: RepositorioPersonagem; store: ArmazenamentoCriador; userId: string; campaignId: string; campanha: string; onOpenContent: (s: TabSpec) => void; initialView: boolean }) {
   const servidor = repo.tipo === "servidor";
   const [carga, setCarga] = useState<"carregando" | "pronto" | { erro: string }>("carregando"), [tentativa, setTentativa] = useState(0);
   const [draft, setDraft] = useState<CharacterDraft>(() => novoRascunho(id));
@@ -93,8 +106,8 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const [identity, setIdentity] = useState<PublicIdentity>(defaultPublicIdentity);
   const [salvo, setSalvo] = useState<string | null>(null);          // retrato do último estado salvo (null = nunca salvo)
   const idRealRef = useRef(id);
-  const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
-  const [deNpc, setDeNpc] = useState(false);   // ficha de um NPC do Compêndio: identidade na página dele, fora do ciclo dos aventureiros
+  const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(!!npcAlvo);
+  const [deNpc, setDeNpc] = useState(!!npcAlvo);   // ficha de um NPC do Compêndio: identidade na página dele, fora do ciclo dos aventureiros
   const [salvando, setSalvando] = useState(false), [conflito, setConflito] = useState(false), [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
   const [etapa, setEtapa] = useState<Etapa>("identidade");
   const [subindo, setSubindo] = useState(false);
@@ -126,7 +139,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
         if (!vivo) return;
         if (!p && (!novoNaoSalvo || alvo !== id)) { setCarga({ erro: "Personagem não encontrado, removido ou sem acesso (por exemplo, você saiu da campanha). Nada foi alterado." }); return; }   // nunca abre um editor vazio no lugar de um personagem existente
         if (!p || modern2014(p.draft)) { await carregar2014(); if (!vivo) return; }
-        if (p) { aplicarCarregado(p); setVisualizando(true); } else { const novo = novoRascunho(id); setDraft(novo); registrarTitulo(id, "Novo personagem"); }
+        if (p) { aplicarCarregado(p); setVisualizando(true); } else { const novo = { ...novoRascunho(id), ...(npcAlvo ? { name: npcAlvo.nome, ...(npcAlvo.alcunha ? { nickname: npcAlvo.alcunha } : {}) } : {}) }; setDraft(novo); registrarTitulo(id, npcAlvo ? `Ficha de ${npcAlvo.nome}` : "Novo personagem"); }
         if (servidor) setRecuperacao(lerRecuperacao(userId, campaignId, id));   // alterações não enviadas de uma falha anterior
         setCarga("pronto");
       } catch (e) { if (vivo) setCarga({ erro: e instanceof Error ? e.message : "Não foi possível ler o personagem salvo." }); }

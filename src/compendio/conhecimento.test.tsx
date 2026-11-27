@@ -252,7 +252,7 @@ describe("Compêndio unificado", () => {
     fireEvent.click(carta().getByRole("switch", { name: "Registro conhecido" }));
     fireEvent.click(carta().getByRole("button", { name: "Revelar Alcunha" }));
     fireEvent.click(carta().getByRole("button", { name: "Revelar Ocupação" }));
-    expect(carta().getByRole("status").textContent).toBe("2 de 4 informações reveladas");
+    expect(carta().getByRole("status").textContent).toBe("2 de 5 informações reveladas")   // 0022: "Estado vital" também é revelável;
     fireEvent.click(carta().getByRole("button", { name: "Salvar conhecimento" }));
     await carta().findByRole("button", { name: "Gerenciar conhecimento" });
     expect(revelar).toHaveBeenCalledTimes(1);
@@ -380,8 +380,57 @@ describe("Compêndio unificado", () => {
     expect(within(previa).queryByRole("button", { name: /^Ampliar imagem/ })).toBeNull();
     expect(previa.querySelector("img")).toBeNull();
   });
-  it("NPC ganha 'Ver ficha' só com ficha de combate vinculada; a ficha reutiliza a criatura e mostra a identidade", async () => {
+  it("fichas de NPC (0022): adicionar cópia de um modelo, trocar com confirmação e remover sem perder a identidade", async () => {
+    const codex = codexDemo(true, "ca"), definir = vi.spyOn(codex, "definirFichaNpc" as never) as unknown as { mock: { calls: unknown[][] } };
+    await npc(codex);
+    await mount("mestre", codex);
+    await abrirRegistro("Personagens", "Edric Voss");
+    fireEvent.click(await carta().findByRole("button", { name: "Adicionar ficha" }));
+    const ficha = () => within(screen.getByRole("dialog", { name: "Ficha de Edric Voss" }));
+    expect(ficha().queryByRole("button", { name: "Remover ficha" })).toBeNull();
+    fireEvent.click(ficha().getByRole("button", { name: "Modelo do Bestiário" }));
+    fireEvent.change(await ficha().findByLabelText("Buscar monstro"), { target: { value: "goblin" } });
+    fireEvent.click(await ficha().findByRole("button", { name: "Vincular Goblin do Bestiário" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Ficha de Edric Voss" })).toBeNull());
+    const [salvo] = await codex.list("ca"), propria = `custom-npc-${salvo.id}`;
+    expect(salvo.combatDefinitionId).toBe(propria);
+    expect((await codex.definitions!("ca")).map(d => [d.definitionId, d.baseId])).toEqual([[propria, "goblin"]]);
+    fireEvent.click(await carta().findByRole("button", { name: "Gerenciar ficha" }));
+    expect(ficha().getByText("Ficha de criatura própria")).toBeTruthy();
+    const remover = () => ficha().getByRole("button", { name: "Remover ficha" }) as HTMLButtonElement;
+    expect(remover().disabled).toBe(true);
+    expect((ficha().getByRole("button", { name: "Ficha de personagem" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(ficha().getByRole("checkbox", { name: /cópia privada.*30 dias/ }));
+    fireEvent.click(remover());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Ficha de Edric Voss" })).toBeNull());
+    const [depois] = await codex.list("ca");
+    expect(depois).toMatchObject({ id: salvo.id, title: "Edric Voss", fields: salvo.fields });
+    expect(depois.combatDefinitionId).toBeUndefined();
+    expect(await codex.definitions!("ca")).toEqual([]);
+    expect(definir.mock.calls.at(-1)![4]).toMatchObject({ confirmar: true });
+    expect(await carta().findByRole("button", { name: "Adicionar ficha" })).toBeTruthy();
+  });
+
+  it("estado vital: o mestre escolhe na página; o jogador só vê quando revelado, e 'Desconhecido' é um valor", async () => {
     const codex = codexDemo(true, "ca");
+    await npc(codex);
+    await mount("mestre", codex);
+    await abrirRegistro("Personagens", "Edric Voss");
+    const escolha = await carta().findByRole("combobox", { name: "Estado vital" }) as HTMLSelectElement;
+    expect(escolha.value).toBe("vivo");
+    fireEvent.change(escolha, { target: { value: "desconhecido" } });
+    await waitFor(async () => expect((await codex.list("ca"))[0].vitalStatus).toBe("desconhecido"));
+    const [e] = await codex.list("ca");
+    await codex.reveal("ca", e.id, e.version, { visible: true, revealed: ["name"] });
+    expect((await codexDemo(false, "ca").list("ca"))[0]).not.toHaveProperty("vitalStatus");
+    const [e2] = await codex.list("ca");
+    await codex.reveal("ca", e2.id, e2.version, { visible: true, revealed: ["name", "vitalStatus"] });
+    expect((await codexDemo(false, "ca").list("ca"))[0].vitalStatus).toBe("desconhecido");
+  });
+
+  it("NPC ganha 'Ver ficha' só com ficha de combate vinculada; a ficha reutiliza a criatura e mostra a identidade", async () => {
+    // banco ainda sem a 0022: o vínculo antigo continua como era
+    const codex: CodexApi = { ...codexDemo(true, "ca"), bancoDeNpcs: undefined, vidas: undefined, gravarVida: undefined, definirFichaNpc: undefined };
     await npc(codex);
     await mount("mestre", codex);
     await abrirRegistro("Personagens", "Edric Voss");

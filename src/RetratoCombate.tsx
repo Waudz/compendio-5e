@@ -6,7 +6,7 @@ import { useCapa, useFichas } from "./RegistrosContext";
 import { estiloEnquadramento, juntar, separar } from "./imagem/enquadramento";
 import { VisualizadorImagem } from "./imagem/VisualizadorImagem";
 
-export type TipoRetrato = "personagem" | "monstro" | "avulso";
+export type TipoRetrato = "personagem" | "npc" | "monstro" | "avulso";
 
 /** Retrato enviado (`storage:<campanha>/<arquivo>`) vira um endereço temporário; os demais valores passam como estão. O enquadramento
  *  que viaja no fim da referência é preservado. */
@@ -31,7 +31,7 @@ export function RetratoQuadrado({ src, tipo = "avulso", tamanho = 44, icone, amp
   const referencia = useEnderecoDaImagem(src);
   const { base: endereco, enquadramento } = referencia ? separar(referencia) : { base: null, enquadramento: null };
   useEffect(() => setFalhou(false), [endereco]);
-  const Icone = icone ?? (tipo === "monstro" ? Skull : tipo === "personagem" ? UserRound : Swords);
+  const Icone = icone ?? (tipo === "monstro" ? Skull : tipo === "personagem" || tipo === "npc" ? UserRound : Swords);
   const visivel = !!endereco && !falhou;
   // sem imagem (ou sem acesso a ela) o visualizador fecha: nunca reaparece sozinho com outra
   useEffect(() => { if (!visivel) setAberta(false); }, [visivel]);
