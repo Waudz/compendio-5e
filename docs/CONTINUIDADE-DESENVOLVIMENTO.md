@@ -849,3 +849,13 @@ Branch `feat/compendio-conhecimento-granular`, a partir de `eed389f` (#161 e #16
 - Mapas e documentos anexados como arquivo continuam futuros (referência em texto, descrição e imagem).
 
 **Ordem obrigatória:** aplicar 0017 e 0018 na mesma janela da publicação do aplicativo.
+
+## RETOMAR AQUI — Compêndio finalizado: inventário, combate e itens não identificados (26/11/2026, PR #163)
+
+Mesma branch `feat/compendio-conhecimento-granular`. **Sem merge/publicação; 0017, 0018 e 0019 propostas, não aplicadas.** Substitui as pendências da seção anterior. Banco, ordem, revisão de segurança e SHA: `COMPENDIO-CONHECIMENTO.md`.
+
+**Concluído:** CI de `f8c56eb` e `77066b1` verde (sem falhas a corrigir); catálogo da campanha na ficha, inventário (pesquisa, detalhes, uso, ataques/CA, peso), loot, encontros e iniciativa; entrega de itens a personagens, identificados ou não, e "Identificar item" no inventário do mestre; itens criados e identificados em Regras → Itens e na pesquisa global; editor de monstros com salvaguardas, perícias e sentidos. A sobreposição do catálogo (`src/catalogue/campanha.ts`) contém só o autorizado pelo servidor e é esvaziada ao trocar de campanha/conta.
+
+**Pendente:** anexos de mapas e documentos (etapa própria); sintonização e cargas (já pendentes na ficha); item não identificado não pode ser usado nem equipado com efeito até ser identificado. A demonstração não simula entrega/identificação (coberto por PGlite, teste de interface e script da stack real).
+
+**Validação local sobre `9057325` (Windows, demonstração e PGlite):** tipos do app e E2E; Vitest 1771/1771 em 147 arquivos; `local-only` 4/4; build oficial e `check-build-oficial`; Playwright Base 148 + 20 condicionais, Quality 88 + 32, Creator 140 + 4, zero falhas. `run-local.mjs` ganhou a verificação da 0019 com Auth/REST/JWT reais: confirmar no workflow Alpha Supabase isolado do último commit do PR. Não verificado: Supabase hospedado, conversão sobre cópia de produção, celular físico, envio de imagem pela interface.

@@ -84,4 +84,24 @@ Requerem 0015 e 0016 (informadas como aplicadas). As seções acima sobre nívei
 
 **Aplicação (pelo responsável; nada foi aplicado):** confirmar projeto 2.0 e backup; rodar `supabase/preflight/0017_0018_compendio_granular.sql`; aplicar os arquivos completos 0017 e depois 0018; repetir as contagens; publicar o aplicativo correspondente **na mesma janela** (o aplicativo anterior deixa de gravar registros após a 0017 e o novo exige capacidade 17). Testar mestre, jogador e outra campanha. A ficha dos registros antigos é preenchida quando o mestre abre a página (sem aviso novo); até lá, quem tinha acesso completo continua vendo a definição. Reversão, com aprovação: 0018_down e depois 0017_down, junto da versão anterior do aplicativo; a 0017_down falha para o lado fechado (só permanece visível o que estava totalmente revelado; vínculos ocultos/repetidos e avisos são removidos, com arquivo privado).
 
-SHA-256 (LF): 0017 `21fc1cce0f6ff52be847c263826700d070facad7f795580500d3e17f74644e78`; 0018 `18c9257486e2c8dbada8e73a35604dc6168bcbaac910693e6e3b70aa4cee57a9`.
+SHA-256 (LF, vigentes): 0017 `09f74d0ac34ca7163982ed80fc20aaf1bdd45177254249c39f5beb3e0c7ef66c`; 0018 `18c9257486e2c8dbada8e73a35604dc6168bcbaac910693e6e3b70aa4cee57a9`; 0019 `450c5bf44a3c6a08015a5a87d747396e91b558f509fe68bbf551fe6d0bf4b0df`.
+
+
+## 0019 — catálogo da campanha no inventário e itens não identificados (proposta, não aplicada)
+
+Requer 0014, 0017 e 0018. Aplicar 0017 → 0018 → 0019 na mesma janela da publicação (reversão na ordem inversa).
+
+- `codex_definitions_for` é a única leitura de definições feita pelo aplicativo. Mestre: tudo, inclusive `identifiesAs`. Jogador: substituições/criações de itens que um personagem seu já teve, definições com identificação completa publicada e a aparência dos códigos que são seus.
+- Item não identificado: o inventário guarda só `unid-<32 hex>`; a definição verdadeira fica em `private_ficha.mascaras`, sem privilégio de API. Nome, propriedades, histórico, Realtime e transferências levam apenas o código. O jogador não cria nem troca códigos (guarda de entregas da 0013/0014).
+- `codex_grant_item` (mestre, idempotente) entrega identificado ou não; `codex_identify_item` troca o código pelo ID real em todos os inventários e históricos da campanha. Entregar não cria nem revela descoberta.
+- `private_ficha.itens_vistos` mantém o nome no histórico após consumo/perda; é preenchida por gatilho a partir de gravações já autorizadas e retroativamente na aplicação.
+- `usar_consumivel` passa a obedecer à fórmula/categoria da definição da campanha. Item não identificado não pode ser usado antes da identificação.
+- `codex_holders` considera também os itens não identificados (jogador só vê com `holders` revelado).
+- Substituição de um item comum (de livre adição) vale para a campanha: quem o tiver no inventário recebe a definição da mesa. Segredo deve usar criação própria ou item restrito.
+- Limites: a identificação protege dados do servidor; não esconde o que o próprio mestre escrever na aparência. Textos de histórico já gravados mantêm o nome aparente. Itens verdadeiros que já estavam nos inventários continuam identificados.
+
+### Revisão de segurança da 0017/0018 (26/11/2026)
+
+Corrigido na 0017 (ainda não aplicada; SHA alterado): (1) a regra de vínculos permitia ao mestre ligar a ficha privada de outro usuário e ler o título dela; voltou a valer só ficha publicada ou própria; (2) a projeção do jogador deixou de enviar `version`, que contava edições secretas. Conferidos sem alteração: RLS e privilégios das tabelas novas, funções auxiliares sem execução pela API, isolamento entre campanhas, Storage, notificações, conversão dos níveis e reversões. A 0018 não mudou.
+
+Conferência na aplicação da 0019: além do preflight da 0017/0018, comparar antes e depois a contagem de `character_sheets` e confirmar que `select count(*) from private_ficha.itens_vistos` cobre os inventários existentes.
