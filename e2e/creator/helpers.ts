@@ -20,7 +20,7 @@ export async function irEtapa(page: Page, nome: string) {
 export async function startCreator(page: Page) {
   await openDemo(page, 'jogador');
   await navigate(page, 'Personagens');
-  await expect(page.getByRole('heading', { name: 'Personagens', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: isMobile(page) ? 'Meus personagens' : 'Personagens', exact: true })).toBeVisible();
   await page.getByRole('button', { name: /Criar personagem/ }).click();
   await expect(nameField(page)).toBeVisible();
   await expect(etapasNav(page)).toBeVisible();

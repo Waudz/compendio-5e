@@ -438,3 +438,14 @@ separadamente, sem tratar a decisão como funcionalidade publicada.
 - Naturalidade, residência, liderança e sede aceitam texto livre ou vínculo tipado; o vínculo ocupa o campo e não se repete em "Registros relacionados". Vínculo novo nasce secreto.
 - Sem novo sistema de navegação, abas temporárias ou retrocompatibilidade extra.
 - Refinamentos (27/11/2026): retratos de personagens e criaturas nas cartas com cerca de 300 px (260 px no celular), compactos nas fichas; visualizador único em tela cheia da imagem original, somente leitura (o enquadramento continua sendo ação separada), usando apenas o endereço já autorizado da tela; ficha técnica sem repetir o que está no cabeçalho; "Vincular registro" no modo de edição; aviso ao mestre, em "Gerenciar conhecimento", quando o texto revelado cita o próprio nome oculto, sem alterar o texto.
+
+
+### DEC-035 — Rodada Alpha com jogadores reais (27/11/2026)
+
+Decisão mais recente do responsável: cadastro aberto. Substitui o bloqueio anterior de cadastro para esta rodada; campanhas privadas continuam exigindo convite e RLS. Os dados de produção agora pertencem também a usuários externos e não são descartáveis.
+
+Menu responsivo único: celular somente na barra inferior, sem segundo acionador no topo; Conta/Configurações/Sobre separados. Preferências existentes preservadas; versão central no package.json. Nome da conta em profiles, separado da identidade dos personagens. Foto da conta exige contrato próprio de persistência/permissões antes de ser disponibilizada.
+
+Anotações do jogador: lista “Minhas anotações” e documentos BlockNote privados por usuário/campanha, sem quadros, pastas, tags, grade ou compartilhamento novo; preservar os registros existentes. Esta é decisão aprovada, **não implementação concluída**. Não alterar as Anotações do mestre. Sem sistema interno de feedback ou telemetria adicional: relatos ao responsável, organização nas issues.
+
+Prioridades e roteiro em docs/ALPHA-JOGADORES-20261127.md e docs/ROTEIRO-TESTES-JOGADORES.md. Sem merge/deploy/SQL de produção sem autorização específica.

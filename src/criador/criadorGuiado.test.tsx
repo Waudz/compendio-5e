@@ -219,7 +219,7 @@ describe('criador guiado no celular', () => {
     await renderApp({ user: me, api: apiC(jogador), registros: registrosEmMemoria('jogador', me.id, [], { dados: [] }) });
     await waitFor(() => expect(document.querySelector('.mobile-page-title')?.textContent).toBe(camp.name));
     fireEvent.click(naBarra().getByRole('button', { name: 'Menu' }));
-    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Menu de navegação' })).getByRole('button', { name: 'Personagens' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Menu de navegação' })).getByRole('button', { name: 'Meus personagens' }));
     fireEvent.click(await screen.findByRole('button', { name: /Criar personagem/ }));
     fireEvent.change(await screen.findByLabelText('Nome do personagem'), { target: { value: 'Thorin' } });
     expect(screen.queryByRole('tablist')).toBeNull();

@@ -42,12 +42,12 @@ describe("porta de entrada: sem sessão, nada do aplicativo", () => {
     expect(screen.getByRole("status").textContent).toMatch(/Carregando sessão/);
     expect(screen.queryByTestId("app")).toBeNull();
   });
-  it("sem sessão: só login/recuperação; e a tela não menciona visitante", async () => {
+  it("sem sessão: login, cadastro e recuperação sem acesso de visitante", async () => {
     gate(fakeAuth(null).client);
     expect(await screen.findByRole("heading", { name: "Entrar" })).toBeTruthy();
     expect(screen.queryByTestId("app")).toBeNull();
     expect(document.body.textContent).not.toMatch(/visitante/i);
-    expect(screen.queryByRole("button", { name: "Criar conta" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Criar conta" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Esqueci a senha" })); expect(screen.getByRole("heading", { name: "Recuperar senha" })).toBeTruthy();
   });
   it("com sessão: abre o app; ao sair, o app some e volta o login", async () => {

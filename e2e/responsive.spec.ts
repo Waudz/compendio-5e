@@ -9,7 +9,7 @@ for (const role of ['mestre', 'jogador'] as const) {
       const nav = page.getByRole('navigation', { name: 'Navegação mobile' });
       await expect(nav).toBeInViewport({ ratio: 1 });
       await expect(nav.getByRole('button', { name: 'Menu', exact: true })).toBeInViewport({ ratio: 1 });
-      await page.getByRole('button', { name: 'Abrir menu', exact: true }).click();
+      await page.getByRole('button', { name: 'Menu', exact: true }).click();
       const menu = page.getByRole('dialog', { name: 'Menu de navegação' });
       await expect(menu).toBeInViewport({ ratio: 1 });
       // A folha do menu deve terminar ANTES da barra inferior, inclusive na área de gestos.

@@ -35,17 +35,28 @@ async function user(label) {
   return {...session, email};
 }
 try {
-  const master = await user('master'), player = await user('player'), other = await user('other-master');
+  const master = await user('master'), player = await user('player'), secondPlayer = await user('player-two'), other = await user('other-master');
   const m = master.access_token, p = player.access_token, o = other.access_token;
-  await check('server rejects public signup while existing users can log in', async () => {
-    const r = await api('/auth/v1/signup', {method: 'POST', body: {email: `blocked-${suffix}@example.test`, password}});
-    assert.equal(r.ok, false); assert.equal(r.data?.error_code, 'signup_disabled');
+  await check('public signup creates no campaign membership', async () => {
+    const r = await ok('/auth/v1/signup', {method: 'POST', body: {email: `new-${suffix}@example.test`, password}});
+    assert.ok(r.user?.id && r.access_token, 'Local signup returns a session (email confirmation tested in UI)');
+    const memberships = await ok(`/rest/v1/campaign_members?user_id=eq.${r.user.id}`, {token:r.access_token});
+    assert.deepEqual(memberships, []);
+  });
+  await check('profiles allow own name changes and reject another account', async () => {
+    const path = id => `/rest/v1/profiles?id=eq.${id}&select=display_name`;
+    const changed = await ok(path(player.user.id), {token:p, method:'PATCH', body:{display_name:'Player renamed'}});
+    assert.equal(changed[0].display_name, 'Player renamed');
+    const denied = await api(path(master.user.id), {token:p, method:'PATCH', body:{display_name:'Intruder'}});
+    assert.ok(!denied.ok || denied.data.length === 0);
+    assert.notEqual((await ok(path(master.user.id), {token:m}))[0].display_name, 'Intruder');
   });
   const a = await rpc('create_campaign', m, {p_name: 'Isolated A'});
   const b = await rpc('create_campaign', o, {p_name: 'Isolated B'});
   const code = await rpc('create_invite', m, {p_campaign_id: a});
   await check('invite assigns player role and campaigns remain isolated', async () => {
     assert.equal(await rpc('join_campaign', p, {p_code: code}), a);
+    assert.equal(await rpc('join_campaign', secondPlayer.access_token, {p_code: code}), a);
     const memberships = await ok(`/rest/v1/campaign_members?campaign_id=eq.${a}`, {token: p});
     assert.equal(memberships.find(x => x.user_id === player.user.id).role, 'jogador');
     assert.deepEqual(await ok(`/rest/v1/campaigns?id=eq.${b}`, {token: p}), []);
@@ -156,6 +167,7 @@ try {
   await check('private notes hidden even from master; sharing explicit; foreign campaign hidden', async () => {
     assert.equal(note.visibility, 'private');
     assert.deepEqual(await ok(`/rest/v1/notes?id=eq.${note.id}`, {token: m}), []);
+    assert.deepEqual(await ok(`/rest/v1/notes?id=eq.${note.id}`, {token: secondPlayer.access_token}), []);
     await ok(`/rest/v1/notes?id=eq.${note.id}&version=eq.${note.version}`, {token: p, method: 'PATCH', body: {visibility: 'campaign'}});
     assert.equal((await ok(`/rest/v1/notes?id=eq.${note.id}`, {token: m})).length, 1);
     assert.deepEqual(await ok(`/rest/v1/notes?id=eq.${note.id}`, {token: o}), []);
@@ -320,7 +332,7 @@ try {
     assert.equal(bad.ok, false, 'transfer to a character outside the campaign is refused');
     assert.equal((await sheetOf(p)).draft.inventory[0].quantity, 1);
   });
-  await check('password recovery remains available with signup disabled', async () => {
+  await check('password recovery remains available with public signup', async () => {
     await ok('/auth/v1/recover', {method: 'POST', body: {email: player.email}});
   });
   await check('expired JWT refused and refresh restores the existing account', async () => {

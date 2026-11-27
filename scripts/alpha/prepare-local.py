@@ -8,10 +8,10 @@ p = root / 'supabase/config.toml'
 text = p.read_text()
 text = re.sub(r'^project_id = .*$', 'project_id = "compendio-alpha-isolated"', text, flags=re.M)
 text = text.replace('jwt_expiry = 3600', 'jwt_expiry = 60')
-# [auth] controls new registration; email auth remains enabled for existing accounts.
-text = text.replace('enable_signup = true', 'enable_signup = false')
+# Public signup is approved for the Alpha player test round.
+text = text.replace('enable_signup = false', 'enable_signup = true')
 config = tomllib.loads(text)
-assert config['auth']['enable_signup'] is False
+assert config['auth']['enable_signup'] is True
 assert config['auth']['jwt_expiry'] == 60
 assert config['auth']['email']['enabled'] is True
 p.write_text(text)

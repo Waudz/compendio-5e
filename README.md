@@ -209,3 +209,7 @@ automática e controles compactos. Estado, evidências e limites em
 
 A pesquisa direta na janela de vínculos está preparada em branch dependente da revisão
 de navegação: [escopo e limites](docs/VINCULOS-PESQUISA-DIRETA.md).
+
+### Preparação para jogadores reais — 27/11/2026
+
+Estado e limites da rodada em [ALPHA-JOGADORES-20261127](docs/ALPHA-JOGADORES-20261127.md); [roteiro para encaminhar aos jogadores](docs/ROTEIRO-TESTES-JOGADORES.md). Cadastro aberto é a decisão vigente. Nome da conta, menu e preferências seguem a entrega de primeiro acesso; confirmar PR/CI/publicação na continuidade antes de considerar disponível no site. Foto da conta e nova lista de Anotações do jogador continuam pendentes.

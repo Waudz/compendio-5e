@@ -1,3 +1,4 @@
+import { PERFIL_ATUALIZADO } from "./profiles";
 import { Ellipsis, LogOut } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useFecharMenu } from "./useFecharMenu";
@@ -160,7 +161,7 @@ export function CampaignPanel({ id, onOpen, embedded = false, readOnly = false }
     setLoadErr(null); setMembers(m.data);
     if (mem.role === "mestre" && !readOnly) { const i = await api.invites(id); if (i.ok) setInvites(i.data); }
   }, [api, id, mem?.role, readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const refreshProfile = () => { void load(); }; void load(); window.addEventListener(PERFIL_ATUALIZADO, refreshProfile); return () => window.removeEventListener(PERFIL_ATUALIZADO, refreshProfile); }, [load]);
 
   if (!api) return <NeedLogin title="Campanha"/>;
   if (!mem) return <div className="auth"><h1>Campanha</h1><div className="notice">Você não participa desta campanha (ou ela foi removida).</div></div>;

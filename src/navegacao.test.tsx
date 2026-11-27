@@ -246,14 +246,14 @@ describe("celular (375 px): navegação independente", () => {
     await renderApp();
     fireEvent.click(bottom().getByRole("button", { name: "Menu" }));
     const menu = screen.getByRole("dialog", { name: "Menu de navegação" });
-    fireEvent.click(within(menu).getByRole("button", { name: "Gerenciar campanhas" }));
+    fireEvent.click(within(menu).getByRole("button", { name: "Minhas campanhas" }));
     expect(screen.queryByRole("dialog", { name: "Menu de navegação" })).toBeNull();
   });
 
   it("os controles de navegação possuem nomes acessíveis", async () => {
     await renderApp();
     expect(screen.getByRole("button", { name: "Voltar" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Abrir menu" })).toBeTruthy();
+    expect(document.querySelector(".mobile-topbar")?.querySelector('[aria-label="Abrir menu"]')).toBeNull();
     for (const name of ["Início", "Anotações", "Ficha", "Compêndio", "Menu"]) {
       expect(bottom().getByRole("button", { name })).toBeTruthy();
     }

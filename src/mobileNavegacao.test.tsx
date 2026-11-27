@@ -114,12 +114,10 @@ describe("celular: Ficha do jogador", () => {
   it("um ID recente adulterado não prova propriedade da ficha alheia", async () => {
     await montar(jogador, dados());
     localStorage.setItem(`compendio5e:ficha-recente:${me.id}:ca`, "p3");
-    fireEvent.click(barra().getByRole("button", {name:"Menu"}));
-    fireEvent.click(within(screen.getByRole("dialog",{name:"Menu de navegação"})).getByRole("button",{name:"Personagens"}));
-    fireEvent.click(await screen.findByRole("button",{name:/^Alheio/}));
-    await waitFor(()=>expect(titulo()).toBe("Alheio"));
-    expect(screen.queryByRole("button",{name:"Meus personagens"})).toBeNull();
-    expect(screen.getByRole("button",{name:"Voltar"})).toBeTruthy();
+    fireEvent.click(barra().getByRole("button", {name:"Ficha"}));
+    await aguardarFicha("Torin");
+    expect(titulo()).not.toBe("Alheio");
+    expect(screen.getByRole("button",{name:"Meus personagens"})).toBeTruthy();
   });
   it("lembra a última ficha aberta e volta a ela", async () => {
     await montar(jogador, dados());

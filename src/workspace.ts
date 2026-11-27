@@ -11,7 +11,7 @@ export const MIN_GROUP_WIDTH = 220;
 const kindLabel = { categoria: "Categoria", nova: "Nova aba", registro:"Registro", identidade:"Personagem", monstro:"Criatura", regra:"Regra", secao: "", conta: "Conta", campanha: "Campanha", ficha: "Ficha", npc: "NPC", documento: "Documento", item: "Item", magia: "Magia", criador: "Personagem" } as const;
 export type Kind = keyof typeof kindLabel;
 export type TabSpec = { kind: Kind; ref: string; title?: string; pinned?: boolean; instance?: number };
-export type Page = "campanhas" | "planejamento" | "diario" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
+export type Page = "meus-personagens" | "campanhas" | "planejamento" | "diario" | "personagens" | "iniciativa" | "encontros" | "enciclopedia" | "compendio" | "documentos";
 
 export type Section = { page: Page; title: string; icon: typeof Users; masterOnly?: boolean };
 /** Itens do menu principal. "Campanhas" NÃO está aqui: a gestão de campanhas fica no seletor junto à campanha ativa (ver `campaignsHub`). */
@@ -27,7 +27,7 @@ export const sections: Section[] = [
 ];
 /** Gestão de campanhas (criar, entrar, ativar): continua sendo uma seção válida (abas salvas, convites, seletor), mas não é item do menu principal do desktop. */
 export const campaignsHub: Section = { page: "campanhas", title: "Campanhas", icon: Castle };
-const knownSections: Section[] = [campaignsHub, ...sections];
+const knownSections: Section[] = [campaignsHub, ...sections, {page:"meus-personagens",title:"Meus personagens",icon:Users}];
 /** Seções do menu para o papel atual. Anotações são acessíveis a ambos os papéis. */
 export const visibleSections = (isMaster: boolean): Section[] => sections.filter(s => s.page !== "enciclopedia" && s.page !== "documentos" && (!s.masterOnly || isMaster));
 /** Ordem do menu do desktop por papel (Início vem antes, separado). Sem campanha ativa (papel null) mantém todas as seções comuns. */
@@ -53,7 +53,7 @@ export const parseTabId = (id: unknown): { kind: Kind; ref: string } | null => {
   return { kind, ref, ...(instance && Number.isSafeInteger(instance) ? { instance } : {}) };
 };
 export const defaultTitle = (s: TabSpec) =>
-  s.title?.trim().slice(0, 40) || (s.kind === "conta" ? "Conta" : s.kind === "campanha" ? "Campanha" : s.kind === "secao" ? knownSections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
+  s.title?.trim().slice(0, 40) || (s.kind === "conta" ? (s.ref === "configuracoes" ? "Configurações" : s.ref === "sobre" ? "Sobre o Compêndio" : "Conta") : s.kind === "campanha" ? "Campanha" : s.kind === "secao" ? knownSections.find(x => x.page === s.ref)?.title ?? s.ref : `${kindLabel[s.kind]} ${s.ref}`);
 
 const global: IJsonModel["global"] = {
   tabEnableClose: true, tabEnableRename: false, tabEnablePopout: false, tabEnablePopoutIcon: false, tabEnableFloat: false,

@@ -59,10 +59,10 @@ describe("createAuthApi", () => {
     expect((await api.signIn("a@b.co", "x")).ok).toBe(true);
     expect(f.auth.signInWithPassword).toHaveBeenLastCalledWith({ email: "a@b.co", password: "x" });
   });
-  it("cadastro fechado recusa chamada direta sem acionar o SDK", async () => {
+  it("cadastro usa o SDK e orienta confirmação sem enumerar contas", async () => {
     const f = fakeClient();
-    expect(await createAuthApi(f.client).signUp("a@b.co", "12345678")).toMatchObject({ ok: false, error: expect.stringMatching(/cadastro está fechado/) });
-    expect(f.auth.signUp).not.toHaveBeenCalled();
+    expect(await createAuthApi(f.client).signUp(" a@b.co ", "12345678")).toMatchObject({ ok: true, message: expect.stringMatching(/Verifique seu e-mail/) });
+    expect(f.auth.signUp).toHaveBeenCalledWith({email: "a@b.co", password: "12345678", options: {emailRedirectTo: expect.any(String)}});
   });
   it("recuperação usa mensagem neutra; falha de rede vira erro amigável sem lançar", async () => {
     const f = fakeClient(); expect(await createAuthApi(f.client).requestReset("a@b.co")).toEqual({ ok: true, message: expect.stringMatching(/Se o e-mail estiver cadastrado/) });
@@ -105,13 +105,32 @@ describe("AuthProvider + AccountPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
     await waitFor(() => expect(f.auth.signInWithPassword).toHaveBeenCalledTimes(2));
   });
-  it("não oferece cadastro e mantém validação de login", async () => {
+  it("oferece cadastro e mantém validação de login", async () => {
     const f = fakeClient(); mount(f); await screen.findByRole("heading", { name: "Entrar" });
-    expect(screen.queryByRole("button", { name: "Criar conta" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Criar conta" })).toBeTruthy();
     fill("E-mail", "invalido"); fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/e-mail válido/);
     expect(f.auth.signInWithPassword).not.toHaveBeenCalled();
     expect(f.auth.signUp).not.toHaveBeenCalled();
+  });
+  it("cadastro valida senha, apresenta confirmação e permite reenviar", async () => {
+    const f = fakeClient(); mount(f); await screen.findByRole("heading", {name: "Entrar"});
+    fireEvent.click(screen.getByRole("button", {name: "Criar conta"}));
+    fill("E-mail", "nova@exemplo.com"); fill("Senha", "curta");
+    fireEvent.click(screen.getByRole("button", {name: "Criar conta"}));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/8 caracteres/);
+    expect(f.auth.signUp).not.toHaveBeenCalled();
+    fill("Senha", "senhasegura123"); fireEvent.click(screen.getByRole("button", {name: "Criar conta"}));
+    expect((await screen.findByRole("status")).textContent).toMatch(/Verifique seu e-mail/);
+    fireEvent.click(screen.getByRole("button", {name: "Reenviar e-mail de confirmação"}));
+    await waitFor(() => expect(f.auth.resend).toHaveBeenCalled());
+    expect((screen.getByLabelText("Senha") as HTMLInputElement).value).toBe("");
+  });
+  it("cadastro trata falha de conexão e recusa do servidor", async () => {
+    const f = fakeClient({signUp: vi.fn().mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({error: {code: "signup_disabled"}})});
+    const api = createAuthApi(f.client);
+    expect(await api.signUp("a@b.co", "12345678")).toMatchObject({ok: false, error: expect.stringMatching(/Sem conexão/)});
+    expect(await api.signUp("a@b.co", "12345678")).toMatchObject({ok: false, error: expect.stringMatching(/cadastro está fechado/)});
   });
   it("conta existente não confirmada continua podendo reenviar confirmação", async () => {
     const f = fakeClient({ signInWithPassword: vi.fn(async () => ({ error: { code: "email_not_confirmed" } })) });
@@ -135,6 +154,26 @@ describe("AuthProvider + AccountPanel", () => {
     await waitFor(() => expect(f.auth.signOut).toHaveBeenCalled());
     await f.emit("SIGNED_OUT", null);
     expect(await screen.findByRole("heading", { name: "Entrar" })).toBeTruthy();
+  });
+  it("edita o nome da conta e preserva edições feitas durante o salvamento", async () => {
+    let finish!: (value: unknown) => void;
+    const delayed = new Promise(resolve => {finish = resolve;});
+    const query = {select: vi.fn(() => query), eq: vi.fn(() => query), update: vi.fn(() => query), single: vi.fn().mockResolvedValueOnce({data:{display_name:"Ana"},error:null}).mockImplementationOnce(() => delayed)};
+    const f = fakeClient({}, {user}); Object.assign(f.client, {from:vi.fn(() => query)});
+    mount(f); await waitFor(() => expect((screen.getByLabelText("Nome de exibição") as HTMLInputElement).value).toBe("Ana"));
+    fill("Nome de exibição", "Ana nova"); fireEvent.click(screen.getByRole("button", {name:"Salvar nome"}));
+    fill("Nome de exibição", "Ana mais recente");
+    await act(async () => {finish({data:{display_name:"Ana nova"},error:null}); await delayed;});
+    expect((screen.getByLabelText("Nome de exibição") as HTMLInputElement).value).toBe("Ana mais recente");
+    expect((screen.getByRole("button", {name:"Salvar nome"}) as HTMLButtonElement).disabled).toBe(false);
+    expect(query.update).toHaveBeenCalledWith({display_name:"Ana nova"});
+  });
+  it("alteração de e-mail solicita confirmação e mantém o endereço atual", async () => {
+    const f = fakeClient({}, {user}); mount(f); await screen.findByText(user.email!);
+    fill("Novo e-mail", "outro@exemplo.com"); fireEvent.click(screen.getByRole("button", {name:"Solicitar alteração de e-mail"}));
+    expect((await screen.findByRole("status")).textContent).toMatch(/Confirme a alteração/);
+    expect(f.auth.updateUser).toHaveBeenCalledWith({email:"outro@exemplo.com"}, {emailRedirectTo:expect.any(String)});
+    expect(screen.getByText(user.email!)).toBeTruthy();
   });
   it("evento PASSWORD_RECOVERY abre a tela de nova senha e valida confirmação", async () => {
     const f = fakeClient(); mount(f); await screen.findByRole("heading", { name: "Entrar" });

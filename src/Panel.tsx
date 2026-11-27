@@ -1,7 +1,7 @@
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
 import { CategoriaCompendio, MonstroPagina, NpcFichaPagina } from "./Compendio";
 import { BookOpen } from "lucide-react";
-import { AccountPanel } from "./AccountPanel";
+import { AccountPanel, SettingsPanel, AboutPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
 import { CampaignsPanel } from "./CampaignPanels";
 import { CampaignHome } from "./CampaignHome";
@@ -30,6 +30,8 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "monstro") return <MonstroPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "npc") return <NpcFichaPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "regra") return <RegraPagina refId={id} onOpenContent={onOpenContent}/>;
+  if (kind === "conta" && id === "configuracoes") return <div className="content"><SettingsPanel/></div>;
+  if (kind === "conta" && id === "sobre") return <div className="content"><AboutPanel/></div>;
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   if (kind === "campanha") return <div className="content"><CampaignHome id={id} onOpen={onOpen} onOpenContent={onOpenContent}/></div>;
   if (kind === "secao" && id === "campanhas") return <div className="content"><CampaignsPanel onOpen={onOpen}/></div>;
@@ -41,6 +43,7 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "magia") return <MagiaPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "criador") return <CriadorGuiado id={id} onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "compendio") return <CompendioPanel onOpenContent={onOpenContent}/>;
+  if (kind === "secao" && id === "meus-personagens") return <PersonagensPanel somenteMeus onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "personagens") return <PersonagensPanel onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "iniciativa") return <IniciativaPanel/>;
   if (kind === "secao" && id === "encontros") return <EncontrosPanel/>;

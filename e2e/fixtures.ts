@@ -53,11 +53,18 @@ export async function navigate(page: Page, name: string) {
       await page.locator('.mobile-screen').evaluate(tela => { tela.scrollTop = Math.max(0, tela.scrollTop - 80); });
       await expect(page.locator('.app.chrome-hidden')).toHaveCount(0);
     }
-    const top = page.getByRole('button', { name: 'Abrir menu', exact: true });
-    const bottom = page.getByRole('navigation', { name: 'Navegação mobile' }).getByRole('button', { name: 'Menu', exact: true });
-    await (await top.isVisible() ? top : bottom).click();
-    await page.getByRole('dialog', { name: 'Menu de navegação' }).getByRole('button', { name, exact: true }).click();
-    await expect(page.getByRole('dialog', { name: 'Menu de navegação' })).toBeHidden();
+    const nav = page.getByRole('navigation', {name:'Navegação mobile'});
+    // Após F5/auth, a barra e o papel da campanha ainda podem estar carregando.
+    // Não escolher outro caminho por uma contagem instantânea de elementos.
+    await expect(nav).toBeVisible();
+    if (['Início','Anotações','Iniciativa','Compêndio','Ficha'].includes(name)) {
+      await nav.getByRole('button', {name, exact:true}).click(); return;
+    }
+    await nav.getByRole('button', {name:'Menu', exact:true}).click();
+    const menu = page.getByRole('dialog', {name:'Menu de navegação'});
+    const label = name === 'Conta' ? 'Minha conta' : name === 'Personagens' ? /^(Meus personagens|Personagens)$/ : name === 'Campanhas' || name === 'Gerenciar campanhas' ? /^(Minhas|Gerenciar) campanhas$/ : name;
+    await menu.getByRole('button', {name:label, exact:true}).click();
+    await expect(menu).toBeHidden();
   } else {
     await page.getByRole('navigation', { name: 'Menu principal' }).getByRole('button', { name, exact: true }).click();
   }
