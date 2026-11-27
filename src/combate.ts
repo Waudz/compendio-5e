@@ -3,7 +3,8 @@
 import { lerItensLoot, lerLinhasLoot, lerRecipientes, type ItemLoot, type LinhaLoot, type Recipiente } from "./loot";
 export type Lado = "aliado" | "inimigo" | "neutro";
 /** Referência opcional a um conteúdo do catálogo ou da campanha (guardada por id estável, nunca por nome). */
-export type RefCombate = { tipo: "monstro" | "personagem"; id: string };
+/** `npc`: NPC com ficha de criatura (estado persistente na identidade dele). Com ficha de personagem, ele entra como `personagem`. */
+export type RefCombate = { tipo: "monstro" | "personagem" | "npc"; id: string };
 /** Vínculo estável entre um combatente e a criatura do encontro que o originou (ids, nunca nomes). Um combate pode misturar criaturas de vários encontros. */
 export type VinculoEncontro = { encontroId: string; criaturaId: string };
 export type Combatente = { id: string; nome: string; iniciativa: number; lado: Lado; pv?: number; pvMax?: number; ca?: number; notas?: string; condicoes?: string[]; ref?: RefCombate; encontro?: VinculoEncontro };
@@ -170,6 +171,8 @@ export function enviarParaCombate(e: EstadoCombate, enc: Encontro): EstadoCombat
   let r = e;
   for (const i of instanciasParaEnviar(enc)) {
     if (r.combatentes.some(c => c.encontro?.encontroId === enc.id && c.encontro.criaturaId === i.criaturaId)) continue;
+    // uma ficha permanente (personagem ou NPC) não entra duas vezes no mesmo combate
+    if (i.ref && i.ref.tipo !== "monstro" && r.combatentes.some(c => c.ref?.tipo === i.ref!.tipo && c.ref.id === i.ref!.id)) continue;
     r = adicionar(r, { nome: nomeCombatenteDisponivel(r, i.nome), iniciativa: i.iniciativa ?? 0, lado: "inimigo", ca: i.ca, notas: i.notas, condicoes: i.condicoes, ...(i.pvMax ? { pv: i.pv, pvMax: i.pvMax } : {}), ...(i.ref ? { ref: i.ref } : {}), encontro: { encontroId: enc.id, criaturaId: i.criaturaId } });
   }
   return r;
@@ -180,7 +183,7 @@ const lados: readonly string[] = ["aliado", "inimigo", "neutro"];
 function lerVinculo(v: unknown): VinculoEncontro | undefined { return obj(v) && typeof v.encontroId === "string" && v.encontroId && typeof v.criaturaId === "string" && v.criaturaId ? { encontroId: v.encontroId, criaturaId: v.criaturaId } : undefined; }
 function lerRef(v: unknown): RefCombate | undefined {
   if (v === undefined) return undefined;
-  if (!obj(v) || (v.tipo !== "monstro" && v.tipo !== "personagem") || typeof v.id !== "string" || !v.id.trim() || v.id.length > 128) throw new Error("referência inválida");
+  if (!obj(v) || (v.tipo !== "monstro" && v.tipo !== "personagem" && v.tipo !== "npc") || typeof v.id !== "string" || !v.id.trim() || v.id.length > 128) throw new Error("referência inválida");
   return { tipo: v.tipo, id: v.id };
 }
 function lerCondicoes(v: unknown): string[] | undefined {

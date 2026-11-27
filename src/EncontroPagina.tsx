@@ -1,4 +1,5 @@
 // Página individual de um encontro (aberta na mesma aba da lista): nome, descrição e criaturas editáveis. Só edita o próprio encontro; o catálogo nunca é alterado.
+import { SeletorNpc, type NpcEscolhido } from "./npc/SeletorNpc";
 import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { adicionarParticipante, configurarCriatura, personalizarCriatura, definirDescricao, editarParticipante, removerParticipante, renomearEncontro, type Encontro, type ParticipanteEncontro, type RefCombate } from "./combate";
@@ -25,7 +26,7 @@ function Criatura({ enc, p, salvar }: { enc: Encontro; p: ParticipanteEncontro; 
     if (novo === enc) { setErro(true); return; }
     salvar(novo); setEditando(false);
   };
-  const tipo = p.ref?.tipo === "monstro" ? "monstro" : "avulso";
+  const tipo = p.ref?.tipo === "monstro" ? "monstro" : p.ref ? "npc" : "avulso";
   if (editando) return <li className="enc-criatura editando">
     <form className="ini-form" aria-label={`Editar ${p.nome}`} onSubmit={enviarEdicao}>
       <label>Nome<input value={f.nome} onChange={e => setF({ ...f, nome: e.target.value })} required maxLength={60}/></label>
@@ -110,6 +111,8 @@ export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincr
   const [renomeando, setRenomeando] = useState(false), [novoNome, setNovoNome] = useState(enc.nome);
   const [nome, setNome] = useState(""), [qtd, setQtd] = useState("1"), [pv, setPv] = useState(""), [ca, setCa] = useState("");
   const adicionarMonstro = (m: Monstro) => salvar(adicionarParticipante(enc, { nome: m.nome, quantidade: 1, pv: m.pv, ca: m.ca, ref: { tipo: "monstro", id: m.id } as RefCombate }));
+  // NPC é uma identidade permanente: um participante, uma unidade
+  const adicionarNpc = (n: NpcEscolhido) => { if (!enc.participantes.some(p => p.ref?.id === n.id)) salvar(adicionarParticipante(enc, { nome: n.nome, quantidade: 1, pv: n.pvMax, ...(n.tipo === "npc" ? { ca: n.ca } : {}), ref: { tipo: n.tipo, id: n.id } })); };
   const total = enc.participantes.reduce((s, p) => s + p.quantidade, 0);
   return <section className="enc-pagina" aria-label={`Página do encontro ${enc.nome}`}>
     <button className="btn-link" onClick={voltar}><ArrowLeft size={14} aria-hidden="true"/> Voltar à lista de encontros</button>
@@ -127,6 +130,7 @@ export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincr
     {enc.participantes.length === 0 ? <p className="muted">Sem criaturas. Adicione do Bestiário ou crie uma avulsa abaixo (um encontro também pode não ter combate).</p>
       : <ul className="enc-criaturas">{enc.participantes.map(p => <Criatura key={p.id} enc={enc} p={p} salvar={salvar}/>)}</ul>}
     <SeletorMonstro rotulo="Adicionar do Bestiário" onEscolher={adicionarMonstro}/>
+    <SeletorNpc onEscolher={adicionarNpc}/>
     <form className="ini-form" aria-label={`Adicionar participante a ${enc.nome}`} onSubmit={e => { e.preventDefault(); salvar(adicionarParticipante(enc, { nome, quantidade: numero(qtd) ?? 1, pv: numero(pv), ca: numero(ca) })); setNome(""); setQtd("1"); setPv(""); setCa(""); }}>
       <label>Nome<input value={nome} onChange={e => setNome(e.target.value)} required maxLength={60}/></label>
       <label>Quantidade<input inputMode="numeric" value={qtd} onChange={e => setQtd(e.target.value)}/></label>

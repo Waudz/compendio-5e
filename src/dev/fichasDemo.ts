@@ -1,6 +1,7 @@
 // Fichas de DEMONSTRAÇÃO (`?demo=...&fichas=1`, só em `npm run dev` e no Preview isolado): a API em memória das fichas, persistida no
 // localStorage e compartilhada entre abas do mesmo navegador (o evento `storage` faz o papel do tempo real). Serve para ver e testar
 // mestre e jogador lado a lado; as regras reais do banco são testadas em `supabase/*.test.ts`.
+import type { FichaDeNpcEmMemoria } from "../fichasMemoria";
 import type { FichasApi } from "../fichas";
 import { fichasEmMemoria, novoBancoFichas, type BancoFichas } from "../fichasMemoria";
 import type { Registro } from "../registros";
@@ -8,7 +9,7 @@ import type { Registro } from "../registros";
 const CHAVE = "demo:fichas:v1";
 type Guardado = { fichas: BancoFichas["fichas"]; ciclo?: BancoFichas["ciclo"] };
 
-export function fichasDemo(uid: string, campaignId: string, registros: { ler: () => Registro[]; gravar: (d: Registro[]) => void }): FichasApi {
+export function fichasDemo(uid: string, campaignId: string, registros: { ler: () => Registro[]; gravar: (d: Registro[]) => void }): FichasApi & { npc: FichaDeNpcEmMemoria } {
   const ouvintes = new Set<() => void>();
   const notas = { get dados() { return registros.ler(); }, set dados(v: Registro[]) { registros.gravar(v); } };
   const banco = (): BancoFichas => {
@@ -34,7 +35,15 @@ export function fichasDemo(uid: string, campaignId: string, registros: { ler: ()
     };
     return navigator.locks ? (await navigator.locks.request(CHAVE, executar)) as T : executar();
   };
+  const npc: FichaDeNpcEmMemoria = {
+    revisao: id => banco().fichas.find(f => f.id === id && f.npc)?.revision,
+    definir: (cid, id, draft) => {
+      const b = banco(); fichasEmMemoria(uid, b).npc.definir(cid, id, draft);
+      localStorage.setItem(CHAVE, JSON.stringify({ fichas: b.fichas, ciclo: b.ciclo }));
+    },
+  };
   return {
+    npc,
     ciclo: {
       situacoes: c => chamar(a => a.ciclo!.situacoes(c)), agir: p => chamar(a => a.ciclo!.agir(p)), ofertas: c => chamar(a => a.ciclo!.ofertas(c)),
       responder: (o, x) => chamar(a => a.ciclo!.responder(o, x)), avisos: c => chamar(a => a.ciclo!.avisos(c)), lerAvisos: ids => chamar(a => a.ciclo!.lerAvisos(ids)),

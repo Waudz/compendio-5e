@@ -54,8 +54,10 @@ export function comCategoria(item: SrdItem, categoria: SrdItem['categoria']): Sr
   return novo;
 }
 
-export function EditorDefinicao({ inicial, titulo, baseId, onFechar, onSalvo }: {
+export function EditorDefinicao({ inicial, titulo, baseId, onFechar, onSalvo, onGravar }: {
   inicial: Definicao; titulo: string; baseId?: string; onFechar: () => void; onSalvo: (id: string, registro?: string) => void;
+  /** Gravação própria de quem chama (ex.: ficha exclusiva de um NPC), em vez de salvar a definição no catálogo da campanha. */
+  onGravar?: (pronta: Definicao) => Promise<void>;
 }) {
   const api = useCodexApi(), { active } = useCampaigns(), conhecimento = useConhecimento();
   const [monstro, setMonstro] = useState(inicial.kind === 'monster' ? inicial.monstro : undefined);
@@ -75,6 +77,7 @@ export function EditorDefinicao({ inicial, titulo, baseId, onFechar, onSalvo }: 
       : { kind: 'item', id: inicial.id, nome: valido.data.nome, item: valido.data as SrdItem, descricao: descricao.trim() || undefined };
     setBusy(true); setError('');
     try {
+      if (onGravar) { await onGravar(pronta); return; }
       const padrao = criando && !ehCriacao(inicial.id) ? await definicaoPadrao(inicial.kind, inicial.id) : undefined;
       await api.saveDefinition(active.campaign.id, {
         kind: inicial.kind, definitionId: inicial.id, baseId: baseId ?? inicial.campanha?.baseId, version: inicial.campanha?.version ?? 0,
@@ -149,7 +152,7 @@ export function EditorDefinicao({ inicial, titulo, baseId, onFechar, onSalvo }: 
       <label className="cd-check"><input type="checkbox" checked={!!item.sintonia} onChange={e => i({ sintonia: e.target.checked || undefined })}/> Requer sintonização</label>
       <label>Descrição e efeitos (cargas, conteúdo de carta ou livro…)<textarea value={descricao} maxLength={5000} onChange={e => setDescricao(e.target.value)}/></label>
     </>}
-    {criando && <label className="cd-check"><input type="checkbox" checked={registrar} onChange={e => setRegistrar(e.target.checked)}/> {inicial.kind === 'item' ? 'Registrar como descoberta' : 'Registrar na campanha'}</label>}
+    {criando && !onGravar && <label className="cd-check"><input type="checkbox" checked={registrar} onChange={e => setRegistrar(e.target.checked)}/> {inicial.kind === 'item' ? 'Registrar como descoberta' : 'Registrar na campanha'}</label>}
     {error && <Aviso erro t={error}/>}
     <div className="row">
       <button className="btn-primary" disabled={busy || !(monstro ?? item)!.nome.trim()} onClick={() => void salvar()}>{busy ? 'Salvando…' : 'Salvar'}</button>

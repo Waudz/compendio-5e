@@ -1,3 +1,22 @@
+# Situação em 27/11/2026 (vigente)
+
+Sem percentuais: o quadro de 20/11 abaixo é histórico e não representa o código atual. "Publicado" = na `main` e no site; "pronto" = no PR, testado em ambiente isolado.
+
+| Área | Situação | Banco | Observação |
+|---|---|---|---|
+| Contas e campanhas | publicado | até 0021 em produção, conforme o responsável | cadastro aberto; campanhas por convite |
+| Ciclo de vida e visibilidade dos personagens | publicado (#168) | 0021 aplicada | |
+| Página Personagens (lista, grade, seleção) | publicado (#169) | — | |
+| Fichas de NPC (adicionar, editar, trocar, remover) | **pronto, não publicado** (#170) | **0022 pendente** | cópia de 30 dias |
+| PV, condições e estado vital em Personagens; NPCs na Iniciativa e nos Encontros | **pronto, não publicado** (#170) | **0022 pendente** | limitações no documento do módulo |
+| Anotações dos jogadores (lista e documentos) | **não iniciado — próxima tarefa** | provavelmente sem migração (confirmar) | `ANOTACOES-JOGADOR.md` |
+| Foto de perfil da conta | não iniciado | exige contrato próprio | |
+| Criador, ficha e inventário | publicado; refinamentos pendentes | | |
+| Compêndio | publicado; restante pendente | | |
+| PWA e estabilização | não iniciado | | |
+
+---
+
 > **Atualização mais recente (23/11/2026):** consulte [Estado da Alpha após integração do combate](ALPHA-STATUS-20261123.md). As porcentagens e o placeholder de iniciativa abaixo são registros históricos de 20/11, não representam a `main` atual.
 
 > **Guia para novas conversas:** [`CONTINUIDADE-DESENVOLVIMENTO.md`](CONTINUIDADE-DESENVOLVIMENTO.md). Atualizar estimativas apenas com justificativa; registrar evidência de testes, CI e diferença entre branch e produção. Nunca transformar percentuais estimados em declaração de prontidão.

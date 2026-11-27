@@ -87,7 +87,7 @@ export function useDefinicao(category: string, id: string | undefined, systemId 
 /** Lista do catálogo como a campanha a vê: substituições no lugar das originais e criações ao final. */
 export function aplicarDaCampanha<T extends { id: string }>(kind: TipoDefinicao, padrao: readonly T[], daMesa: readonly LinhaDefinicao[]): T[] {
   // Itens não identificados não são entradas de catálogo.
-  const minhas = daMesa.filter(d => d.kind === kind && !d.mask).flatMap(d => { const x = daCampanha(d); return x ? [(x.kind === 'item' ? x.item : x.monstro) as unknown as T] : []; });
+  const minhas = daMesa.filter(d => d.kind === kind && !d.mask && !d.definitionId.startsWith('custom-npc-')).flatMap(d => { const x = daCampanha(d); return x ? [(x.kind === 'item' ? x.item : x.monstro) as unknown as T] : []; });
   const porId = new Map(minhas.map(x => [x.id, x]));
   return [...padrao.map(x => porId.get(x.id) ?? x), ...minhas.filter(x => !padrao.some(p => p.id === x.id))];
 }

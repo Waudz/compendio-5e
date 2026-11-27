@@ -984,7 +984,7 @@ Corrigido no caminho: no celular o menu de contexto apenas navegava, e as açõe
 
 PR **#168** aberto pelo responsável: https://github.com/Waudz/compendio-5e/pull/168. **Não mesclar nem aplicar a 0021** sem revisão e autorização. A decisão pendente sobre a cópia foi respondida (retenção em `EXCLUSAO-VISIBILIDADE-PERSONAGENS.md`): 30 dias em "só no Compêndio", sem prazo no arquivamento e nenhuma cópia na exclusão definitiva, com confirmação exigida também pelo banco. No commit anterior (`83f8839`) passaram Preview, Validar projeto e Alpha Supabase isolado, incluindo o cenário do ciclo com Auth/REST reais. Depois de aplicar a 0021, é obrigatório conferir o agendamento da limpeza.
 
-## RETOMAR AQUI — DEC-039, etapa 1 concluída (branch `feat/alpha-personagens-etapa1`)
+## Histórico — DEC-039, etapa 1 concluída (branch `feat/alpha-personagens-etapa1`)
 
 Base: `main` em `49f4600` (#168 publicado; Pages e E2E da main aprovados). 0021 já aplicada em produção — **não reaplicar**. Etapa 1 sem migração.
 
@@ -1000,3 +1000,44 @@ Base: `main` em `49f4600` (#168 publicado; Pages e E2E da main aprovados). 0021 
 - Ficha de personagem exige nota `kind='character'` (`notes_ficha_guard`, `nota_guiada_ativa`, políticas de `character_sheets`). Dar ficha de personagem a um NPC do Compêndio **sem criar segunda identidade** pede migração: ou permitir a ficha ligada à nota `npc` do Codex, ou converter o registro preservando o ID, o conhecimento por campo e os vínculos. É a decisão técnica central da etapa; preparar, testar isolado e pedir autorização antes de produção.
 - Personagem convertido em NPC continua nota `character` (0021) e não tem conhecimento por campo; a etapa 2 deve unificar a apresentação.
 - Estado vital (etapa 5) deve entrar no registro narrativo e nas chaves de `codex_reveal`; os dois tipos de nota acima precisam dele.
+
+## Histórico — DEC-039, etapa 2 (branch `feat/alpha-npc-fichas-etapa2`)
+
+Base: `main` em `a664493` (#169 integrado; publicação e E2E da main aprovados; textos novos conferidos no site).
+
+**Etapa 2 (DEC-040):** migração **0022, proposta e não aplicada**, com reversão, diagnóstico (`preflight/0022_conferir.sql`) e `supabase/npc-ficha.test.ts`. No aplicativo: ficha de NPC separada dos aventureiros em todas as listas, linha "NPC · ficha de personagem" em Personagens, "Ver ficha" na página do NPC, ficha sem aba de identidade pública e sem ações do ciclo, `FichasApi.criarDeNpc`. Sem a 0022 o aplicativo se comporta como antes (não há como criar a ficha).
+
+**Antes de mesclar:** autorização para aplicar a 0022 em produção (aplicar antes ou depois do merge é compatível).
+
+**Próximo — etapa 3:** ações "Adicionar ficha" (modelo do bestiário com cópia própria em `campaign_definitions`, criatura personalizada, personagem pelo criador via `criarDeNpc`), trocar com aviso e confirmação e remover a ficha sem apagar a identidade. Remover ficha de personagem precisa de operação no servidor (a API não tem DELETE) e de decisão de retenção: proposta, a mesma do "só no Compêndio" (cópia privada por 30 dias). As cópias próprias de criatura precisam ficar fora das listas do Bestiário.
+
+## Histórico — DEC-041, implementação integrada (PR #170, branch `feat/alpha-npc-fichas-etapa2`)
+
+Entregue: fichas de NPC (adicionar, editar, trocar, remover), PV/condições/estado vital em Personagens, sincronização com Iniciativa e Encontros, estado vital com divulgação. Detalhes na DEC-041. Módulos novos em `src/npc/`.
+
+**Falta para publicar:** autorização do responsável para aplicar a **0022** em produção. Roteiro: backup; rodar `supabase/preflight/0022_conferir.sql` (antes), aplicar `0022_npc_ficha_de_personagem.sql`, rodar o diagnóstico de novo (contagens iguais, versão 22) e conferir o agendamento com `preflight/0021_conferir_retencao.sql`. Só então mesclar o #170 (o código também é compatível com o banco 21). Reversão em `supabase/rollback/0022_npc_ficha_de_personagem_down.sql` (recusa se já houver uso).
+
+**Depois:** conferir em produção com uma conta de mestre e uma de jogador; retomar as demais pendências da Alpha (anotações do jogador, foto de perfil, criador/ficha/inventário, Compêndio restante, PWA, estabilização).
+
+## Encerramento do módulo de personagens e NPCs
+
+DEC-042. Detalhes e limitações em [MODULO-PERSONAGENS-NPCS](MODULO-PERSONAGENS-NPCS.md).
+
+### Resultados dos testes (PR #170)
+
+| Verificação | Resultado |
+|---|---|
+| Unitários e SQL (`npx vitest run`, PostgreSQL descartável) | 1875 de 1875, em 155 arquivos |
+| TypeScript (aplicativo e testes de navegador), build e checagem do build oficial | aprovados |
+| Navegador, suíte principal (desktop, compacto, 390 px, 320 px) | 164 aprovados, 20 pulados |
+| Navegador, qualidade | 88 aprovados, 32 pulados |
+| Navegador, criador (8 larguras) | 139 aprovados, 4 pulados, **1 falha por tempo esgotado** (ficha de jogo, 700 px) enquanto testes SQL rodavam em paralelo; o mesmo teste repetido sozinho: 8 de 8 |
+| Workflows do PR no commit de código `dd58533` (inclui API real do Supabase isolado) | quatro aprovados |
+
+Cobertura nova: `supabase/npc-ficha.test.ts` (0022: permissões, mestre rebaixado, itens, troca e remoção, retenção, estado vital, diagnóstico, aplicação e reversão), cenário de NPC em `scripts/alpha/run-local.mjs` (Auth, PostgREST e PostgreSQL reais descartáveis) e testes de interface em `persistenciaServidor.test.tsx` e `conhecimento.test.tsx` (inclui o caminho com banco sem a 0022). **Não testado:** produção e contas reais.
+
+## RETOMAR AQUI
+
+1. **Pendência de publicação (depende do responsável):** aplicar a 0022 conforme [APLICAR-0022](APLICAR-0022.md). Confirmada a aplicação e o diagnóstico: mesclar o #170 (merge commit), conferir os workflows da `main` ("Publicar versão de testes" e E2E), conferir no site os textos "Gerenciar ficha" e "Estado vital", atualizar o registro da 0022 em `supabase/migrations/LEIA-ME.md`, o README e o status.
+2. **Próxima tarefa: anotações dos jogadores** — começar por [ANOTACOES-JOGADOR](ANOTACOES-JOGADOR.md), em branch nova a partir da `main` já com o #170.
+3. Depois, na ordem já registrada: foto de perfil, criador/ficha/inventário, Compêndio restante, PWA e estabilização.

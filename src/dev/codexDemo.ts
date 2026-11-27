@@ -2,13 +2,15 @@
 import type { CodexApi, CodexLink, Conhecimento } from "../compendio/conhecimento";
 import type { LinhaDefinicao } from "../compendio/definicoes";
 import type { Secao } from "../compendio/ficha";
+import type { LinhaVida } from "../npc/estado";
+import type { FichaDeNpcEmMemoria } from "../fichasMemoria";
 
 type Salvo = Conhecimento & { revealed: string[]; announced: string[] };
 type Link = { id: string; source: string; target: string; kind: string; label: string; inverse: string; revealed: boolean };
 type Aviso = { id: number; entry_id: string; is_new: boolean; created_at: string; read_at: string | null };
 const NEUTRO: Record<string, string> = { npc: "Pessoa desconhecida", location: "Local desconhecido", organization: "Organização desconhecida", monster: "Criatura desconhecida" };
 
-export function codexDemo(master: boolean, campaign: string): CodexApi {
+export function codexDemo(master: boolean, campaign: string, fichasNpc?: FichaDeNpcEmMemoria): CodexApi {
   const key = "demo:codex:v2";
   const parse = <T,>(k: string): T[] => { try { return JSON.parse(localStorage.getItem(k) ?? "[]"); } catch { return []; } };
   const store = <T,>(k: string, v: T[]) => localStorage.setItem(k, JSON.stringify(v));
@@ -51,9 +53,12 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
       imageDefinitionId: has("image") && has("name") ? e.definitionId : undefined,
       definitionId: e.category !== "monster" && identified(e) ? e.definitionId : undefined,
       relatedTerms: related.length ? related : undefined,
+      vitalStatus: e.category === "npc" && has("vitalStatus") ? vitalDe(e.id) : undefined,
     })) as Conhecimento;
   };
-  const asMaster = (e: Salvo): Conhecimento => { const { announced, ...rest } = e; void announced; return { ...rest, imageDefinitionId: e.definitionId }; };
+  const vidas = () => parse<LinhaVida>(key + ":vida");
+  const vitalDe = (id: string) => vidas().find(v => v.noteId === id)?.estado ?? "vivo";
+  const asMaster = (e: Salvo): Conhecimento => { const { announced, ...rest } = e; void announced; return { ...rest, imageDefinitionId: e.definitionId, ...(e.category === "npc" ? { vitalStatus: vitalDe(e.id) } : {}) }; };
   const announce = (id: string) => {
     const all = read(), e = all.find((x) => x.id === id);
     if (!e?.visible) return;
@@ -118,6 +123,31 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
       scope(cid);
       const all = parse<LinhaDefinicao>(key + ":definitions");
       return master ? all : all.filter((d) => d.kind === "item" && read().some((e) => e.visible && e.definitionId === d.definitionId && e.category === d.kind && identified(e)));
+    },
+    bancoDeNpcs: async () => true,
+    vidas: async (cid) => { scope(cid); return master ? vidas() : []; },
+    gravarVida: async (cid, noteId, patch, _operacao, version) => {
+      check(); scope(cid);
+      const antes = vidas().find(v => v.noteId === noteId);
+      if ((patch.pv !== undefined || patch.temp !== undefined || patch.condicoes !== undefined) && version !== (antes?.version ?? 0)) throw Error("Outra sessão alterou este registro. Recarregue antes de salvar.");
+      const nova: LinhaVida = { noteId, estado: "vivo", pv: null, temp: 0, condicoes: [], ...antes, ...patch, version: (antes?.version ?? 0) + 1 };
+      store(key + ":vida", [...vidas().filter(v => v.noteId !== noteId), nova]);
+      return nova;
+    },
+    // as mesmas regras da 0022: uma ficha por NPC e confirmação para perder a atual (a cópia de 30 dias é só do servidor)
+    definirFichaNpc: async (cid, id, version, nova, pedido) => {
+      check(); scope(cid);
+      const old = find(id, version), propria = "custom-npc-" + id;
+      const removida = fichasNpc?.revisao(id) !== undefined ? "personagem" : old.combatDefinitionId === propria ? "criatura" : null;
+      if (removida && !pedido.confirmar) throw Error("Confirme a remoção da ficha atual.");
+      if (removida === "personagem" && pedido.revisao !== fichasNpc!.revisao(id)) throw Error("A ficha mudou em outra sessão. Recarregue antes de substituir ou remover; nada foi alterado.");
+      if (nova?.tipo === "personagem" && !fichasNpc) throw Error("A demonstração sem fichas não cria ficha de personagem.");
+      const defs = parse<LinhaDefinicao>(key + ":definitions").filter(d => d.definitionId !== propria);
+      store(key + ":definitions", nova?.tipo === "criatura" ? [...defs, { kind: "monster" as const, definitionId: propria, baseId: nova.base, version: 1, data: { definition: nova.definicao } }] : defs);
+      fichasNpc?.definir(cid, id, nova?.tipo === "personagem" ? nova.draft : null);
+      store(key + ":vida", vidas().map(v => v.noteId === id ? { ...v, pv: null, temp: 0, condicoes: [], version: v.version + 1 } : v));
+      store(key, read().map(x => x.id === id ? { ...old, characterSheet: nova?.tipo === "personagem" || undefined, combatDefinitionId: nova?.tipo === "criatura" ? propria : undefined, version: version + 1 } : x));
+      return { revision: nova?.tipo === "personagem" ? 1 : undefined };
     },
     setCombatSheet: async (cid, id, version, definitionId) => {
       check(); scope(cid);

@@ -484,3 +484,24 @@ Decisão do responsável; substitui propostas anteriores incompatíveis. Prazo i
 - **Criação:** um único "+ Criar" (aventureiro, NPC) nas duas páginas, conforme permissões. Em Personagens, criar NPC leva à atribuição de ficha; no Compêndio o NPC pode ser só narrativo.
 - **Visual:** sem contorno no título ao abrir (sem remover `focus-visible`); com dois grupos, voltar/avançar e nova aba por grupo, reabrir e tela cheia uma vez à direita; mesmo eixo e largura em todos os tipos de ficha.
 - **Ordem:** (1) visual e página Personagens; (2) identidade e tipos de ficha de NPC; (3) adicionar/editar/substituir fichas; (4) PV, condições, Encontros e Iniciativa; (5) estado vital e conhecimento; (6) testes integrados, documentação e publicação autorizada. Um PR por etapa coerente. Migração nova: não destrutiva, com diagnóstico, reversão e teste isolado; produção só com autorização. Depois: anotações do jogador, foto de perfil, criador/ficha/inventário, Compêndio restante, PWA, estabilização.
+
+### DEC-040 — NPC com ficha de personagem e diretrizes de cartões (27/11/2026)
+
+- **Uma identidade por NPC:** a página do Compêndio (`campaign_codex`, categoria `npc`). A ficha de personagem usa o **mesmo ID** (`character_sheets.character_id`); não se cria nota de personagem. Um NPC tem no máximo uma ficha: de criatura (referência, 0020) **ou** de personagem (0022). A ficha não reescreve título, história, segredos nem divulgação; é só do mestre atual (políticas e operações do servidor); fica fora do ciclo de vida dos aventureiros e nunca aparece como aventureiro. Personagem convertido em NPC (0021) continua como está, com o mesmo ID e a própria ficha.
+- **Estado vital** (etapa 4) não é exibido nos cartões do Compêndio.
+- **Cartões (diretrizes; sem novos refinamentos isolados):** quadrados e uniformes, sem esmaecimento; nome com no máximo duas linhas e alcunha com uma; demonstrações com nomes naturais (nomes extensos só em testes de casos extremos); revisão definitiva quando PV e condições estiverem nos cartões.
+- **Ordem a partir daqui** (informada pelo responsável): unificação de NPCs e fichas; adicionar, editar e substituir fichas; PV, condições, Encontros e Iniciativa; estado vital; testes integrados e documentação. Migração nova só vai à produção com autorização.
+
+### DEC-041 — Implementação integrada de personagens e NPCs (27/11/2026)
+
+Decisão do responsável: as etapas restantes da DEC-039 viram uma entrega só (PR #170), reutilizando a mecânica existente, sem refinamentos novos.
+
+- **Ficha do NPC (0022, operação única `codex_npc_sheet_set`):** adicionar, trocar e remover numa transação. Ficha própria de criatura é uma definição exclusiva `custom-npc-<id>` (fora das listas do Bestiário e inacessível a outro NPC). Perder uma ficha exige confirmação; a cópia fica **30 dias** fora da API e é apagada pela limpeza diária já agendada. Identidade, retrato da página, vínculos, divulgação e estado vital não mudam. O vínculo antigo com criatura compartilhada continua válido.
+- **Mecânica:** NPC com ficha de personagem é uma ficha comum (PV, condições e morte por `alterar_vitais`). NPC com ficha de criatura guarda PV, temporários e condições em `character_life`, calculados pelo aplicativo com `aplicarAcao` e gravados com versão e identificador de operação, pela mesma fila (`vitais/loja`). Combate e encontros aceitam `ref npc`; uma ficha permanente não entra duas vezes.
+- **Estado vital** (vivo, morto, desconhecido) em `character_life`, para NPCs e aventureiros, só o mestre altera. 0 PV não é morte; "Confirmar morte" na Iniciativa muda o estado; mortos ficam fora das listas de combatentes, salvo pedido. O jogador vê o do NPC quando revelado (conhecimento por campo) e o do próprio aventureiro pela tabela; não aparece nos cartões do Compêndio.
+- **Compatibilidade:** sem a 0022 o aplicativo se comporta como antes (versão 21 do banco).
+- **Fora desta entrega:** filtro por estado vital nas listas (previsto na DEC-039) e o estado vital do próprio aventureiro na tela do jogador.
+
+### DEC-042 — Encerramento de personagens e NPCs; próxima tarefa (27/11/2026)
+
+O responsável aprovou o PR #170 e **encerrou o módulo**: sem novo escopo, auditorias ou refinamentos. Ordem: validar, documentar, preparar a 0022, **aplicar só com autorização**, mesclar o #170 e confirmar a publicação. A tarefa seguinte é a **reformulação das anotações dos jogadores** (DEC-035; ponto de partida em `docs/ANOTACOES-JOGADOR.md`).

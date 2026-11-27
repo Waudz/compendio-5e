@@ -1,6 +1,12 @@
 # Compêndio 5e 2.0
 
-Correções em revisão (DEC-037): consulta de personagens de outros jogadores pela carta compartilhada, identificação pelo nome público do perfil, alinhamento da ficha e leitura em lote de notificações. Implementação e evidências na última seção de [continuidade](docs/CONTINUIDADE-DESENVOLVIMENTO.md); não confundir branch/PR com publicação. Nenhuma migração nova nesta entrega.
+## Estado atual — 27/11/2026 (prevalece sobre os registros datados abaixo)
+
+- **Publicado:** ciclo de vida dos personagens (migração 0021 aplicada) e a nova página Personagens (#168 e #169).
+- **Pronto, ainda não publicado:** personagens e NPCs integrados ([PR #170](https://github.com/Waudz/compendio-5e/pull/170)): fichas de NPC, PV e condições em Personagens, Iniciativa, Encontros e estado vital. Depende da **migração 0022, não aplicada**: [roteiro de aplicação](docs/APLICAR-0022.md).
+- **Módulo encerrado:** o que faz, permissões e limitações em [Personagens e NPCs](docs/MODULO-PERSONAGENS-NPCS.md).
+- **Próxima tarefa:** [anotações dos jogadores](docs/ANOTACOES-JOGADOR.md).
+- Prazos: funcionalidades até 05/12/2026; lançamento em 12/12/2026.
 
 ## Atualização normativa — 22/11/2026
 
@@ -56,7 +62,7 @@ Campanha reúne aventureiros/NPCs, Bestiário conhecido, Locais, Organizações 
 
 Consulta em cartas, bestiário somente narrativo e fichas com abas (DEC-034). A migração 0020 consta como aplicada em produção (relatório de 27/11/2026). Para testar sem Supabase: `npm run dev` e abra `http://localhost:5173/compendio-5e/?demo=mestre` e, em outra aba, `?demo=jogador` (os dois compartilham os dados do navegador). Roteiro em `docs/CONTINUIDADE-DESENVOLVIMENTO.md`.
 
-Ciclo de vida dos personagens (DEC-038), com a **0021 aplicada em produção**; guia em `docs/EXCLUSAO-VISIBILIDADE-PERSONAGENS.md`. Em andamento: personagens, NPCs e fichas (**DEC-039**, normativa), entregue por etapas.
+Ciclo de vida dos personagens (DEC-038), com a **0021 aplicada em produção**; guia em `docs/EXCLUSAO-VISIBILIDADE-PERSONAGENS.md`.
 
 ## Validação no GitHub Actions e previews
 
@@ -92,6 +98,9 @@ Configuração (sem ela o aplicativo não abre, pois exige login): copie `.env.e
 | `docs/CONTINUIDADE-DESENVOLVIMENTO.md` | **Comece aqui**: protocolo de retomada, índice de decisões e referências, hierarquia documental e próximos passos. |
 | `DECISOES-E-ARQUITETURA.md` | Regras do projeto, arquitetura vigente e estado real de cada parte. **Ler primeiro.** |
 | `docs/PLANEJAMENTO-V2.md` | **Documento principal**: estado, arquitetura, roteiro, pendências e decisões consolidadas de múltiplos chats (atualização de 20/11/2026). **Consultar antes de desenvolver.** |
+| `docs/MODULO-PERSONAGENS-NPCS.md` | Personagens e NPCs (módulo encerrado): funcionalidades, permissões, limitações. |
+| `docs/ANOTACOES-JOGADOR.md` | **Próxima tarefa**: o que está aprovado, o que falta decidir e onde está o código. |
+| `docs/APLICAR-0022.md` | Aplicação da migração 0022 em produção. |
 | `docs/NAVEGACAO-ABAS.md` | Navegação por abas, fixação, divisão de painéis e proteção de alterações (implementado). |
 | `docs/NOTAS-PERMISSOES.md` | Notas: regras de visibilidade e RLS (`0004`, aplicada), revisão de segurança e evolução planejada. |
 | `docs/CRIADOR-FICHA-INVENTARIO.md` | **Memória do desenvolvimento** do criador, ficha e inventário: ferramentas, arquitetura, código piloto, testes e pendências. |

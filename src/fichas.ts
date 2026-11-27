@@ -12,8 +12,8 @@ import type { LinhaVital } from "./vitais/loja";
 
 /** O que o servidor confirma ao gravar: o id definitivo (do servidor), a nova revisão e a data. */
 export type GravacaoFicha = { id: string; revision: number; updatedAt: string };
-export type FichaServidor = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string };
-export type ResumoFicha = { id: string; ownerId: string; nome: string; nivel: number | null; classId?: string; alcunha?: string; retrato?: string; revision: number; updatedAt: string };
+export type FichaServidor = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string; /** Ficha de um NPC do Compêndio (0022): não tem identidade pública própria. */ npc?: boolean };
+export type ResumoFicha = { id: string; ownerId: string; nome: string; nivel: number | null; classId?: string; alcunha?: string; retrato?: string; revision: number; updatedAt: string; /** Ficha de um NPC do Compêndio (0022): nunca é um aventureiro. */ npc?: boolean };
 /** Identidade pública lida de `notes.meta.identidadePublica`: as escolhas (sem nenhum valor privado) e o cartão já resolvido. */
 export type IdentidadeGravada = { identity: PublicIdentity; card: PublicIdentityCard; publicada: boolean };
 export type EntradaIdentidade = { identity: PublicIdentity; source: SheetPublicSource };
@@ -164,19 +164,20 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
       } catch { return () => {}; }   // sem Realtime: a releitura periódica cobre
     },
     listar: campaignId => run<ResumoFicha[]>(async () => {
-      const r = await client.from("character_sheets").select("character_id, owner_id, revision, updated_at, nome:draft->>name, nivel:draft->>level, classe:draft->>classId, alcunha:draft->>nickname, retrato:draft->>portrait").eq("campaign_id", campaignId).order("updated_at", { ascending: false });
+      const r = await client.from("character_sheets").select("character_id, owner_id, revision, updated_at, nome:draft->>name, nivel:draft->>level, classe:draft->>classId, alcunha:draft->>nickname, retrato:draft->>portrait, nota:notes!character_sheets_nota_campanha_fk(kind)").eq("campaign_id", campaignId).order("updated_at", { ascending: false });
       if (r.error) return { data: null, error: r.error };
-      return { data: (r.data as unknown as { character_id: string; owner_id: string; revision: number; updated_at: string; nome: string | null; nivel: string | null; classe?: string | null; alcunha?: string | null; retrato?: string | null }[])
-        .map(x => ({ id: x.character_id, ownerId: x.owner_id, nome: (x.nome ?? "").trim() || "Sem nome", nivel: x.nivel !== null && Number.isInteger(Number(x.nivel)) ? Number(x.nivel) : null, ...(x.classe ? { classId: x.classe } : {}), ...(x.alcunha?.trim() ? { alcunha: x.alcunha.trim() } : {}), ...(retratoValido(x.retrato) ? { retrato: x.retrato! } : {}), revision: x.revision, updatedAt: x.updated_at })), error: null };
+      return { data: (r.data as unknown as { character_id: string; owner_id: string; revision: number; updated_at: string; nome: string | null; nivel: string | null; classe?: string | null; alcunha?: string | null; retrato?: string | null; nota?: { kind: string } | null }[])
+        .map(x => ({ ...(x.nota?.kind === "npc" ? { npc: true } : {}), id: x.character_id, ownerId: x.owner_id, nome: (x.nome ?? "").trim() || "Sem nome", nivel: x.nivel !== null && Number.isInteger(Number(x.nivel)) ? Number(x.nivel) : null, ...(x.classe ? { classId: x.classe } : {}), ...(x.alcunha?.trim() ? { alcunha: x.alcunha.trim() } : {}), ...(retratoValido(x.retrato) ? { retrato: x.retrato! } : {}), revision: x.revision, updatedAt: x.updated_at })), error: null };
     }),
     carregar: async id => {
       try {
         const s = await client.from("character_sheets").select("character_id, campaign_id, owner_id, revision, draft, updated_at").eq("character_id", id).maybeSingle();
         if (s.error) return { ok: false, error: msg(s.error) };
         if (!s.data) return { ok: true, data: null };
-        const n = await client.from("notes").select("meta, visibility").eq("id", id).maybeSingle();   // o mestre não lê a nota privada: identidade null
+        const n = await client.from("notes").select("meta, visibility, kind").eq("id", id).maybeSingle();   // o mestre não lê a nota privada: identidade null
         const identidade = !n.error && n.data ? identidadeDe((n.data as { meta: Record<string, unknown> }).meta, (n.data as { visibility: string }).visibility === "campaign") : null;
-        return { ok: true, data: { ficha: fromRow(s.data as FichaRow), identidade } };
+        const npc = !n.error && (n.data as { kind?: string } | null)?.kind === "npc";
+        return { ok: true, data: { ficha: { ...fromRow(s.data as FichaRow), ...(npc ? { npc: true } : {}) }, identidade } };
       } catch (e) { return { ok: false, error: msg(e) }; }
     },
     criar: async (campaignId, draft, identidade) => { let p: ReturnType<typeof params>; try { p = params(identidade); } catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Identidade pública inválida." }; }

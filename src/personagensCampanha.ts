@@ -23,7 +23,7 @@ export type PersonagemCampanha = {
   comFicha: boolean;
   meu: boolean; publicado: boolean;
 };
-export type ListaPersonagens = { personagens: PersonagemCampanha[]; avisoFichas: string | null; /** O banco permite as ações do ciclo de vida. */ ciclo: boolean };
+export type ListaPersonagens = { personagens: PersonagemCampanha[]; /** Fichas de NPCs do Compêndio (0022): a identidade deles é a página, não um personagem. */ fichasDeNpc?: ResumoFicha[]; avisoFichas: string | null; /** O banco permite as ações do ciclo de vida. */ ciclo: boolean };
 
 const nivelPublico = (v: string | null | undefined) => (v && Number.isInteger(Number(v)) ? Number(v) : null);
 
@@ -34,7 +34,7 @@ export async function listarPersonagens(campaignId: string, de: { registros: Reg
   if (c && !c.ok) return c;
   const situacoes = new Map((c?.data ?? []).map(s => [s.id, s]));
   const doCiclo = (id: string) => { const s = situacoes.get(id); return { situacao: s?.state ?? "ativo" as const, ...(s?.pendingTo ? { pendenteDe: s.pendingTo } : {}), ...(s?.ownerLeft ? { semJogador: true } : {}) }; };
-  const fichas = new Map<string, ResumoFicha>((f?.ok ? f.data : []).map(x => [x.id, x]));
+  const fichas = new Map<string, ResumoFicha>((f?.ok ? f.data : []).filter(x => !x.npc).map(x => [x.id, x]));
   const classeDaFicha = (x: ResumoFicha) => (x.classId ? rotuloClasse(x.classId) : "Aventureiro");
   const saida: PersonagemCampanha[] = r.data.map(nota => {
     const ficha = fichas.get(nota.id); fichas.delete(nota.id);
@@ -54,7 +54,7 @@ export async function listarPersonagens(campaignId: string, de: { registros: Reg
   // quem passou ao mestre pelo ciclo de vida não é um personagem "dele"
   for (const p of saida) if (p.situacao !== "ativo") p.meu = false;
   saida.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  return { ok: true, data: { personagens: saida, avisoFichas: f && !f.ok ? f.error : null, ciclo: !!c?.data } };
+  return { ok: true, data: { fichasDeNpc: f?.ok ? f.data.filter(x => x.npc) : [], personagens: saida, avisoFichas: f && !f.ok ? f.error : null, ciclo: !!c?.data } };
 }
 
 /** Aviso para quem enxerga algo que os outros jogadores não veem, na perspectiva de quem está olhando. */

@@ -136,6 +136,36 @@ try {
     assert.equal(JSON.stringify(await rpc('codex_list',p,{p_campaign:a})).includes('custom-creature'),false);
     for (const entry of [id,npc]) await rpc('codex_remove',m,{p_campaign:a,p_entry:entry,p_version:await codexVersion(entry)});
   });
+  await check('NPC character sheet (0022): real embed marks it, only the master reads or writes it, the page stays private', async () => {
+    const npc = await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:{category:'npc',title:'Sheeted NPC',secret:'NPC-SECRET'}});
+    const draft = {id:npc,name:'Sheeted NPC',level:3,classId:'fighter',inventory:[]};
+    const set = async (p_nova, extra = {}) => ({p_campaign:a,p_entry:npc,p_version:await codexVersion(npc),p_nova,p_operation:randomUUID(),...extra});
+    const body = await set({tipo:'personagem',draft});
+    for (const token of [p,o]) assert.equal((await api('/rest/v1/rpc/codex_npc_sheet_set',{token,method:'POST',body})).ok,false);
+    await rpc('codex_npc_sheet_set',m,body);
+    // a mesma seleção do aplicativo (fichas.listar): o vínculo composto desambigua o embed
+    // codificada: o validador de rotas do teste não aceita ':', '>' nem '!' soltos
+    const select = encodeURIComponent('character_id,owner_id,revision,nome:draft->>name,nota:notes!character_sheets_nota_campanha_fk(kind)').replace(/!/g,'%21');
+    const rows = await ok(`/rest/v1/character_sheets?campaign_id=eq.${a}&select=${select}`,{token:m});
+    assert.equal(rows.find(x=>x.character_id===npc)?.nota?.kind,'npc');
+    assert.deepEqual(await ok(`/rest/v1/character_sheets?character_id=eq.${npc}`,{token:p}),[]);
+    assert.equal((await ok(`/rest/v1/character_sheets?campaign_id=eq.${a}&select=${select}`,{token:p})).some(x=>x.character_id===npc),false);
+    assert.equal((await reveal(npc,['name'])).ok,true);
+    assert.equal(/characterSheet|NPC-SECRET|fighter/.test(JSON.stringify(await rpc('codex_list',p,{p_campaign:a}))),false);
+    assert.equal((await rpc('codex_list',m,{p_campaign:a})).find(x=>x.id===npc).characterSheet,true);
+    await rpc('save_guided_character',m,{p_id:npc,p_expected_revision:1,p_draft:{...draft,name:'Renamed sheet',_protocolo:2}});
+    assert.equal((await rpc('codex_list',m,{p_campaign:a})).find(x=>x.id===npc).secret,'NPC-SECRET');
+    assert.equal((await api('/rest/v1/rpc/codex_remove',{token:m,method:'POST',body:{p_campaign:a,p_entry:npc,p_version:await codexVersion(npc)}})).ok,false);
+    // substituir exige confirmação e revisão; a cópia privada não aparece pela API para ninguém
+    const creature = {tipo:'criatura',base:'bandit',definicao:{id:'custom-npc-'+npc,nome:'OWN-CREATURE'},secoes:[]};
+    assert.equal((await api('/rest/v1/rpc/codex_npc_sheet_set',{token:m,method:'POST',body:await set(creature)})).ok,false);
+    await rpc('codex_npc_sheet_set',m,await set(creature,{p_confirm:'remover-ficha',p_revision:2}));
+    assert.deepEqual(await ok(`/rest/v1/character_sheets?character_id=eq.${npc}`,{token:m}),[]);
+    assert.equal(/OWN-CREATURE|custom-npc/.test(JSON.stringify([await rpc('codex_list',p,{p_campaign:a}),await rpc('codex_definitions_for',p,{p_campaign:a})])),false);
+    for (const token of [m,p]) assert.equal((await api('/rest/v1/npc_ficha_eventos',{token})).ok,false);
+    await rpc('codex_npc_sheet_set',m,await set(null,{p_confirm:'remover-ficha'}));
+    await rpc('codex_remove',m,{p_campaign:a,p_entry:npc,p_version:await codexVersion(npc)});
+  });
   await check('codex Storage: real upload, replacement, read boundary and denied writes',async()=>{
     const data={category:'monster',systemId:'dnd5e-2014',definitionId:'storage-test',title:'Storage isolado'};
     const id=await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:data});
@@ -402,5 +432,7 @@ try {
   if (/^API \/(auth|rest)\/v1\/[a-z_/]+ status \d+$/.test(error.message)) console.error(error.message);
   // Never print bodies, credentials, JWTs or fixture emails to CI logs/artifacts.
   console.error(`FAIL isolated API validation after ${assertions} completed checks; checkpoint: ${checkpoint}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=Alpha isolado::apos ${assertions} verificacoes; falhou em: ${checkpoint}`
+    + (/^API \/(auth|rest)\/v1\/[a-z_/]+ status \d+$/.test(error.message) ? ` (${error.message})` : ''));
   process.exitCode = 1;
 }

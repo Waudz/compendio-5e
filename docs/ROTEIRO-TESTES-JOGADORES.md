@@ -66,3 +66,11 @@ O responsável registra os problemas nas issues do GitHub e avisa quais correç�
 5. Recarregue (F5) em várias páginas: o título não ganha contorno; navegando por Tab, os controles continuam com foco visível.
 6. Com dois grupos: reabrir aba e tela cheia só no da direita.
 7. Compare o alinhamento das abas nas fichas de aventureiro, de NPC e de monstro.
+
+## NPCs, fichas e estado vital (depois de aplicada a 0022)
+
+1. Mestre: na página de um NPC, "Adicionar ficha" a partir de um modelo; editar e conferir que o Bestiário não mudou.
+2. Trocar por ficha de personagem (marcar a confirmação) e, depois, remover; nome, história, retrato e vínculos continuam.
+3. Iniciativa: adicionar o NPC, causar dano, conferir o PV em Personagens; com 0 PV ele continua vivo até "Confirmar morte".
+4. NPC morto não aparece para adicionar, a menos que "Incluir mortos" esteja marcado.
+5. Jogador: não vê fichas de NPC; vê o estado vital de um NPC só quando o mestre revela.
