@@ -12,8 +12,8 @@ import type { LinhaVital } from "./vitais/loja";
 
 /** O que o servidor confirma ao gravar: o id definitivo (do servidor), a nova revisão e a data. */
 export type GravacaoFicha = { id: string; revision: number; updatedAt: string };
-export type FichaServidor = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string };
-export type ResumoFicha = { id: string; ownerId: string; nome: string; nivel: number | null; classId?: string; alcunha?: string; retrato?: string; revision: number; updatedAt: string };
+export type FichaServidor = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string; /** Ficha de um NPC do Compêndio (0022): não tem identidade pública própria. */ npc?: boolean };
+export type ResumoFicha = { id: string; ownerId: string; nome: string; nivel: number | null; classId?: string; alcunha?: string; retrato?: string; revision: number; updatedAt: string; /** Ficha de um NPC do Compêndio (0022): nunca é um aventureiro. */ npc?: boolean };
 /** Identidade pública lida de `notes.meta.identidadePublica`: as escolhas (sem nenhum valor privado) e o cartão já resolvido. */
 export type IdentidadeGravada = { identity: PublicIdentity; card: PublicIdentityCard; publicada: boolean };
 export type EntradaIdentidade = { identity: PublicIdentity; source: SheetPublicSource };
@@ -22,6 +22,8 @@ export type ResultadoItem = EstadoVital & { draft: CharacterDraft; updatedAt: st
 export type FiltroAssinatura = { characterId: string } | { campaignId: string };
 
 export type FichasApi = {
+  /** Dá uma ficha de personagem a um NPC do Compêndio, com o MESMO ID do registro (0022); só o mestre. */
+  criarDeNpc?: (campaignId: string, entryId: string, entryVersion: number, draft: CharacterDraft) => Promise<Res<GravacaoFicha>>;
   /** Fichas que o usuário pode LER (as próprias; todas as da campanha para o mestre). A RLS decide; nada aqui filtra por segurança. */
   /** Ciclo de vida (0021): renúncia, arquivo, NPC, transferência e exclusão. */
   ciclo?: CicloApi;
@@ -108,6 +110,8 @@ const msg = (e: unknown) => {
   if (m.includes("conflito_de_revisao")) return ERRO_CONFLITO_REVISAO;
   if (m.includes("ficha_nao_encontrada") || m.includes("nota_nao_encontrada")) return ERRO_SEM_FICHA;
   if (m.includes("aplicativo_desatualizado")) return "Esta página está desatualizada. Recarregue para continuar; nada foi sobrescrito.";
+  if (m.includes("banco_sem_0022")) return "O banco precisa da atualização 0022 para dar ficha de personagem a um NPC. Nada foi gravado.";
+  if (m.includes("npc_ja_tem_ficha")) return "Este NPC já tem uma ficha. Nada foi alterado.";
   if (m.includes("identidade_so_do_dono")) return "Só o dono do personagem altera a identidade pública.";
   if (m.includes("character_sheets_draft") || (m.includes("check constraint") && m.includes("character_sheets"))) return "A ficha é grande demais ou inválida para ser salva.";   // nome da restrição pode diferir do remoto
   if (m.includes("identidade_invalida") || m.includes("notes_guiado_meta_check")) return "A identidade pública contém dados não permitidos (confira a imagem https:// e o tamanho dos textos).";
@@ -149,6 +153,16 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
   });
   return {
     ciclo: criarCicloApi(client),
+    criarDeNpc: (campaignId, entryId, entryVersion, draft) => run<GravacaoFicha>(async () => {
+      const r = await client.rpc("codex_npc_sheet_create", { p_campaign: campaignId, p_entry: entryId, p_version: entryVersion, p_draft: comProtocolo({ ...draft, id: entryId }) });
+      if (r.error) {
+        const erro = r.error as { code?: string; message?: string };
+        if (erro.code === "PGRST202") return { data: null, error: { message: "banco_sem_0022" } };
+        return { data: null, error: r.error };
+      }
+      const x = r.data as { revision: number; updatedAt: string } | null;
+      return x ? { data: { id: entryId, revision: x.revision, updatedAt: x.updatedAt }, error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };
+    }),
     lerVitais: ids => run<LinhaVital[]>(async () => {
       const r = await client.from("character_sheets").select("character_id, revision, vitals_version, draft").in("character_id", ids);
       return r.error ? { data: null, error: r.error } : { data: (r.data as unknown as VitalRow[]).map(linhaVital), error: null };
@@ -164,19 +178,20 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
       } catch { return () => {}; }   // sem Realtime: a releitura periódica cobre
     },
     listar: campaignId => run<ResumoFicha[]>(async () => {
-      const r = await client.from("character_sheets").select("character_id, owner_id, revision, updated_at, nome:draft->>name, nivel:draft->>level, classe:draft->>classId, alcunha:draft->>nickname, retrato:draft->>portrait").eq("campaign_id", campaignId).order("updated_at", { ascending: false });
+      const r = await client.from("character_sheets").select("character_id, owner_id, revision, updated_at, nome:draft->>name, nivel:draft->>level, classe:draft->>classId, alcunha:draft->>nickname, retrato:draft->>portrait, nota:notes!character_sheets_nota_campanha_fk(kind)").eq("campaign_id", campaignId).order("updated_at", { ascending: false });
       if (r.error) return { data: null, error: r.error };
-      return { data: (r.data as unknown as { character_id: string; owner_id: string; revision: number; updated_at: string; nome: string | null; nivel: string | null; classe?: string | null; alcunha?: string | null; retrato?: string | null }[])
-        .map(x => ({ id: x.character_id, ownerId: x.owner_id, nome: (x.nome ?? "").trim() || "Sem nome", nivel: x.nivel !== null && Number.isInteger(Number(x.nivel)) ? Number(x.nivel) : null, ...(x.classe ? { classId: x.classe } : {}), ...(x.alcunha?.trim() ? { alcunha: x.alcunha.trim() } : {}), ...(retratoValido(x.retrato) ? { retrato: x.retrato! } : {}), revision: x.revision, updatedAt: x.updated_at })), error: null };
+      return { data: (r.data as unknown as { character_id: string; owner_id: string; revision: number; updated_at: string; nome: string | null; nivel: string | null; classe?: string | null; alcunha?: string | null; retrato?: string | null; nota?: { kind: string } | null }[])
+        .map(x => ({ ...(x.nota?.kind === "npc" ? { npc: true } : {}), id: x.character_id, ownerId: x.owner_id, nome: (x.nome ?? "").trim() || "Sem nome", nivel: x.nivel !== null && Number.isInteger(Number(x.nivel)) ? Number(x.nivel) : null, ...(x.classe ? { classId: x.classe } : {}), ...(x.alcunha?.trim() ? { alcunha: x.alcunha.trim() } : {}), ...(retratoValido(x.retrato) ? { retrato: x.retrato! } : {}), revision: x.revision, updatedAt: x.updated_at })), error: null };
     }),
     carregar: async id => {
       try {
         const s = await client.from("character_sheets").select("character_id, campaign_id, owner_id, revision, draft, updated_at").eq("character_id", id).maybeSingle();
         if (s.error) return { ok: false, error: msg(s.error) };
         if (!s.data) return { ok: true, data: null };
-        const n = await client.from("notes").select("meta, visibility").eq("id", id).maybeSingle();   // o mestre não lê a nota privada: identidade null
+        const n = await client.from("notes").select("meta, visibility, kind").eq("id", id).maybeSingle();   // o mestre não lê a nota privada: identidade null
         const identidade = !n.error && n.data ? identidadeDe((n.data as { meta: Record<string, unknown> }).meta, (n.data as { visibility: string }).visibility === "campaign") : null;
-        return { ok: true, data: { ficha: fromRow(s.data as FichaRow), identidade } };
+        const npc = !n.error && (n.data as { kind?: string } | null)?.kind === "npc";
+        return { ok: true, data: { ficha: { ...fromRow(s.data as FichaRow), ...(npc ? { npc: true } : {}) }, identidade } };
       } catch (e) { return { ok: false, error: msg(e) }; }
     },
     criar: async (campaignId, draft, identidade) => { let p: ReturnType<typeof params>; try { p = params(identidade); } catch (e) { return { ok: false as const, error: e instanceof Error ? e.message : "Identidade pública inválida." }; }

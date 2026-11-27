@@ -66,9 +66,11 @@ export type FichaJogoProps = {
   transferir?: (destino: string, instancia: string, quantidade: number) => Promise<string | null>;
   /** Identificador deste personagem (para não se oferecer como destino). */
   personagemId?: string; campaignId?: string;
+  /** Ficha de NPC: o ciclo de vida dos aventureiros não se aplica. */
+  semCiclo?: boolean;
 };
 
-export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, campaignId, podeConceder, moedas, identidade }: FichaJogoProps) {
+export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, semCiclo, campaignId, podeConceder, moedas, identidade }: FichaJogoProps) {
   const ciclo=useCiclo();
   const catalogo = useVersaoCatalogo();
   const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft, catalogo]);
@@ -135,7 +137,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
           <div className="ficha-acoes">
             <button type="button" className="ficha-botao" aria-label="Editar personagem" onClick={onEditar}><Pencil size={13} aria-hidden="true"/> Editar</button>
             <button type="button" className="ficha-botao" disabled={draft.level >= 20} onClick={onProgredir}><ChevronsUp size={13} aria-hidden="true"/> Subir de nível</button>
-            <MenuAcoes onRetrato={() => setEditandoRetrato(true)} ciclo={personagemId && ciclo.disponivel ? (podeConceder ? { rotulo: "Gerenciar personagem", acao: () => ciclo.gerenciar(personagemId) } : { rotulo: "Excluir personagem", perigo: true, acao: () => ciclo.pedirRenuncia(personagemId) }) : undefined}/></div>
+            <MenuAcoes onRetrato={() => setEditandoRetrato(true)} ciclo={personagemId && !semCiclo && ciclo.disponivel ? (podeConceder ? { rotulo: "Gerenciar personagem", acao: () => ciclo.gerenciar(personagemId) } : { rotulo: "Excluir personagem", perigo: true, acao: () => ciclo.pedirRenuncia(personagemId) }) : undefined}/></div>
         </div>
       </div>
       <div className="ficha-numeros">

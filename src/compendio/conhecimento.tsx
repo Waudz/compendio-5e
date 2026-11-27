@@ -42,6 +42,8 @@ export type Conhecimento = {
   secret?: string;
   /** Ficha de combate de um NPC (definição de criatura); só o mestre recebe. */
   combatDefinitionId?: string;
+  /** O NPC tem ficha de personagem com o mesmo ID (0022); só o mestre recebe. */
+  characterSheet?: boolean;
   fields?: Record<string, string>;
   sheet?: Secao[];
   relatedTerms?: string[];
@@ -173,6 +175,7 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
         p_entry: id,
         p_version: version,
       });
+      if ((r.error as { message?: string } | null)?.message?.includes("npc_com_ficha")) throw Error("Este NPC tem uma ficha de personagem. A página não pode ser removida enquanto a ficha existir.");
       if (r.error) throw Error(ERRO_CODEX);
     },
     upload: async (cid, id, file) => {

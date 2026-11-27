@@ -29,7 +29,7 @@ import { avisarRegistros, registrarTitulo, useVersaoRegistros } from "./registro
 import { useUnsavedGuard } from "./unsaved";
 import { armazenamentoLocalExperimental, type ResumoPersonagemGuiado } from "./criador/armazenamento";
 import { CriadorGuiado } from "./criador/CriadorGuiado";
-import { cartaoPublico, ehGuiado } from "./fichas";
+import { cartaoPublico, ehGuiado, type ResumoFicha } from "./fichas";
 import { presentation } from "./rules/public-identity";
 import { listarPersonagens, rotuloPrivacidade, type ListaPersonagens, type PersonagemCampanha } from "./personagensCampanha";
 import { RetratoQuadrado } from "./RetratoCombate";
@@ -69,14 +69,20 @@ const lerVisao = (userId: string | null): Visao => { try { return localStorage.g
 type LinhaDePersonagem = LinhaCompendio & { busca: string; situacaoDaLinha: Exclude<Situacao, "todos">; npc: boolean; personagem?: PersonagemCampanha };
 
 /** NPCs criados no Compêndio com ficha de criatura. Só o mestre recebe essa informação do banco. */
-function useNpcsComFicha(ativo: boolean): { linhas: LinhaDePersonagem[]; carregando: boolean } {
+function useNpcsComFicha(ativo: boolean, fichasDeNpc?: ResumoFicha[]): { linhas: LinhaDePersonagem[]; carregando: boolean } {
   const conhecimento = useConhecimento(), definicoes = useDefinicoes();
-  const comFicha = ativo ? conhecimento.items.filter(e => e.category === "npc" && e.combatDefinitionId) : [];
-  const precisa = comFicha.length > 0;
+  const comFicha = ativo ? conhecimento.items.filter(e => e.category === "npc" && (e.combatDefinitionId || e.characterSheet)) : [];
+  const precisa = comFicha.some(e => e.combatDefinitionId);
   const [padrao, setPadrao] = useState<Awaited<ReturnType<typeof import("./catalogue/contratos").todosOsMonstros>>>([]);
   useEffect(() => { if (!precisa) return; let vivo = true; void import("./catalogue/contratos").then(c => c.todosOsMonstros()).then(ms => { if (vivo) setPadrao(ms); }, () => {}); return () => { vivo = false; }; }, [precisa]);
   const monstros = useMemo(() => (padrao.length ? aplicarDaCampanha("monster", padrao, definicoes.lista) : padrao), [padrao, definicoes.lista]);
   return { carregando: ativo && conhecimento.loading, linhas: comFicha.map(e => {
+    if (e.characterSheet) {
+      const f = fichasDeNpc?.find(x => x.id === e.id);
+      const dados = f ? [f.classId ? rotuloClasse(f.classId) : null, f.nivel != null ? `nível ${f.nivel}` : null].filter(Boolean).join(" · ") : "";
+      return { id: e.id, title: e.title, alcunha: e.fields?.nickname, subtitle: dados || "Ficha de personagem", category: "npc", body: "", entry: e, image: f?.retrato ?? null,
+        spec: { kind: "ficha" as const, ref: e.id, title: e.title }, rodape: "NPC · ficha de personagem", busca: normalizar(`${e.title} ${e.fields?.nickname ?? ""}`), situacaoDaLinha: "ativos" as const, npc: true };
+    }
     const m = monstros.find(x => x.id === e.combatDefinitionId);
     const detalhe = m ? `${m.nome} · ND ${formatarND(m.nd)} · PV ${m.pv}` : "Ficha de criatura";
     return { id: e.id, title: e.title, alcunha: e.fields?.nickname, subtitle: detalhe, category: "npc", body: "", entry: e, spec: npcSpec(e.id, e.title), rodape: "NPC · ficha de criatura", busca: normalizar(`${e.title} ${e.fields?.nickname ?? ""}`), situacaoDaLinha: "ativos" as const, npc: true };
@@ -102,7 +108,7 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
   }, [api, fichas, cid, userId, v, tentativa]);
   const locais = useMemo<ResumoPersonagemGuiado[]>(() => { try { return userId && cid ? armazenamentoLocalExperimental(userId, cid).listar() : []; } catch { return []; } }, [userId, cid, v, tentativa]);
   useEffect(() => { locais.forEach(g => registrarTitulo(g.id, g.nome)); dados?.personagens.forEach(p => registrarTitulo(p.id, p.nome)); }, [locais, dados]);   // abas restauradas mostram o nome
-  const { linhas: npcsDoCompendio, carregando: carregandoNpcs } = useNpcsComFicha(!!mestre && !somenteMeus);
+  const { linhas: npcsDoCompendio, carregando: carregandoNpcs } = useNpcsComFicha(!!mestre && !somenteMeus, dados?.fichasDeNpc);
   const selecaoDe = useSelecao(`${userId}:${cid}:${active?.role}`);
   const caminhos = useUrlsDosCaminhos(dados?.personagens ?? []);
   if (!active) return <div className="content"><h1>Personagens</h1><Aviso t="Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral."/></div>;

@@ -527,6 +527,41 @@ describe("página Personagens", () => {
     expect(screen.getByRole("checkbox", { name: "Selecionar Thorin" })).toBeTruthy();
   });
 
+  it("NPC do Compêndio com ficha de personagem: uma identidade só, nunca aventureiro, abre e salva sem publicar nada", async () => {
+    await criarPersonagem("Thorin"); cleanup();
+    const codex = codexDemo(true, "ca");
+    const id = await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "SEGREDO", fields: { nickname: "O Corvo" } });
+    const fichas = fichasEmMemoria(mestreUser.id, banco), notas = registros.dados.length;
+    expect((await fichas.criarDeNpc!("ca", id, 1, { ...structuredClone(banco.fichas[0].draft), name: "Edric Voss", nickname: "O Corvo" })).ok).toBe(true);
+    expect((await fichas.criarDeNpc!("ca", id, 1, banco.fichas[0].draft)).ok).toBe(false);
+    expect((await fichasEmMemoria(me.id, banco).carregar(id))).toEqual({ ok: true, data: null });
+    expect(registros.dados).toHaveLength(notas);   // nenhuma segunda identidade
+    // o adaptador de demonstração não conhece as fichas: a marca vem como a projeção do servidor a envia
+    const chave = "demo:codex:v2";
+    localStorage.setItem(chave, JSON.stringify(JSON.parse(localStorage.getItem(chave)!).map((e: { id: string }) => (e.id === id ? { ...e, characterSheet: true } : e))));
+    const inicio = fonteAventureirosDoInicio(registrosEmMemoria("mestre", mestreUser.id, [], registros as never), null, fichas, mestreUser.id, true);
+    for (const r of [await inicio.listar("ca"), await inicio.listarTodos!("ca")]) expect(r.ok && r.data.map(a => a.nome)).toEqual(["Thorin"]);
+    await montar(mestreUser, true, codex); await abrirPersonagens();
+    const npcs = within(await screen.findByRole("list", { name: "NPCs" }));
+    const cartao = await npcs.findByRole("button", { name: /^Edric Voss / });
+    await waitFor(() => expect(cartao.textContent).toMatch(/Guerreiro · nível 1/));
+    expect(screen.getByText("NPC · ficha de personagem")).toBeTruthy();
+    expect(resultados("Aventureiros").queryByRole("button", { name: /^Edric Voss / })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Selecionar" }));
+    expect(screen.queryByRole("checkbox", { name: "Selecionar Edric Voss" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    fireEvent.click(cartao);
+    await screen.findByTestId("ficha-guiada-leitura");
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações do personagem" }));
+    expect(screen.queryByRole("button", { name: /Gerenciar personagem|Excluir personagem/ })).toBeNull();
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    fireEvent.change(await nomeInput(), { target: { value: "Edric de Ferro" } });
+    expect(screen.getByTestId("aviso-servidor").textContent).toMatch(/Ficha de NPC/);
+    await salvar(2);
+    expect(banco.fichas.find(f => f.id === id)!.draft.name).toBe("Edric de Ferro");
+    expect(registros.dados).toHaveLength(notas);
+  });
+
   it("a alcunha fica sob o nome, fora do subtítulo, em lista e grade; sem alcunha não sobra elemento", async () => {
     await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
     banco.fichas.find(f => f.draft.name === "Thorin")!.draft.nickname = "O Corvo";

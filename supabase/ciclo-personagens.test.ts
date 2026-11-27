@@ -325,11 +325,11 @@ describe("transferência com aceite", () => {
 });
 
 describe("capacidade e reversão", () => {
-  it("anuncia a 21 e a reversão é recusada depois que o ciclo foi usado", async () => {
-    expect((await chamar(mestre, "codex_capabilities")).rows[0].r).toBe(21);
+  it("anuncia a versão vigente e a reversão da 0021 é recusada depois que o ciclo foi usado", async () => {
+    expect((await chamar(mestre, "codex_capabilities")).rows[0].r).toBe(22);
     await expect(db.exec(sql("rollback", "0021_personagens_ciclo_de_vida_down.sql"))).rejects.toThrow(/reversao_0021_recusada/);
     await db.exec("rollback");
-    expect((await chamar(mestre, "codex_capabilities")).rows[0].r).toBe(21);
+    expect((await chamar(mestre, "codex_capabilities")).rows[0].r).toBe(22);
   });
 
   it("sem uso, a reversão volta à 0020 e a migração pode ser aplicada de novo", async () => {

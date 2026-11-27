@@ -1,3 +1,4 @@
+import { registroSpec } from "../compendio/navegacao";
 import { metodoPreservado, manualValido, type MetodoAtributos } from './atributos-2014';
 import { consumirItem } from "../ficha/inventarioAcoes";
 import { useVitais } from "../vitais/loja";
@@ -93,6 +94,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const [salvo, setSalvo] = useState<string | null>(null);          // retrato do último estado salvo (null = nunca salvo)
   const idRealRef = useRef(id);
   const [idReal, setIdReal] = useState(id), [existe, setExiste] = useState(false), [revisao, setRevisao] = useState<number | null>(null), [somenteFicha, setSomenteFicha] = useState(false);
+  const [deNpc, setDeNpc] = useState(false);   // ficha de um NPC do Compêndio: identidade na página dele, fora do ciclo dos aventureiros
   const [salvando, setSalvando] = useState(false), [conflito, setConflito] = useState(false), [recuperacao, setRecuperacao] = useState<Recuperacao | null>(null);
   const [etapa, setEtapa] = useState<Etapa>("identidade");
   const [subindo, setSubindo] = useState(false);
@@ -105,9 +107,9 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const [metodo, setMetodo] = useState<Metodo>("point-buy"), [erroAtrib, setErroAtrib] = useState("");
   const [excluindo, setExcluindo] = useState(false);
 
-  const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentity; revision: number | null; somenteFicha: boolean }) => {
+  const aplicarCarregado = (p: { id: string; draft: CharacterDraft; identity: PublicIdentity; revision: number | null; somenteFicha: boolean; npc?: boolean }) => {
     calcularFicha(p.draft);   // dado inválido/de outra versão falha aqui, não na tela
-    setDraft(p.draft); setIdentity(p.identity); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha);
+    setDraft(p.draft); setIdentity(p.identity); setIdReal(p.id); setExiste(true); setRevisao(p.revision); setSomenteFicha(p.somenteFicha); setDeNpc(!!p.npc);
     setSalvo(JSON.stringify({ draft: p.draft, identity: p.identity }));
     setMetodo(metodoPreservado(p.draft.baseAbilities, p.draft.abilityMethod));
     setBase(null); setSaida(null);
@@ -391,7 +393,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       <button type="button" className="btn-primary" onClick={editar}>Editar personagem</button></div>;
     const naoSalvo = sujo && !salvando && falhou.current === retrato;
     return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
-      <FichaJogo identidade={<AbaIdentidade identity={identity} source={origem} retrato={draft.portrait} editavel={!somenteFicha} onChange={proxima => { setIdentity(proxima); setMsg(null); }}/>} draft={draftTela} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudarNaFicha} vital={vital} usarItem={usarItem} transferir={transferir} personagemId={idReal} campaignId={campaignId} onOpenContent={onOpenContent}
+      <FichaJogo semCiclo={deNpc} identidade={deNpc ? <div className="ficha-identidade-npc"><p className="muted">A história deste NPC e o que os jogadores veem ficam na página dele no Compêndio.</p><button type="button" className="btn-secondary" onClick={() => onOpenContent(registroSpec(idReal, draft.name))}>Abrir no Compêndio</button></div> : <AbaIdentidade identity={identity} source={origem} retrato={draft.portrait} editavel={!somenteFicha} onChange={proxima => { setIdentity(proxima); setMsg(null); }}/>} draft={draftTela} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudarNaFicha} vital={vital} usarItem={usarItem} transferir={transferir} personagemId={idReal} campaignId={campaignId} onOpenContent={onOpenContent}
         onEditar={editar} onProgredir={() => { setMsg(null); setSubindo(true); }} podeConceder={mestre} moedas={configMoedas.pronto ? moedas : null}
         salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
           {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
@@ -415,7 +417,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
         <button type="button" className="btn-secondary" disabled={salvando} onClick={() => void salvarEdicao()}>Salvar e voltar</button>
         <button type="button" className="btn-secondary danger" onClick={() => { consumirEntradaDoHistorico(); descartarEdicao(); }}>Descartar alterações</button></div></div>}
     {!servidor && <div className="notice" role="note" data-testid="aviso-armazenamento">Armazenamento <strong>experimental</strong>: o personagem fica só neste navegador, não sincroniza entre aparelhos e não é privado de quem usa o mesmo navegador.</div>}
-    {servidor && somenteFicha && <p className="muted" role="note" data-testid="aviso-servidor">Ficha de outro jogador: você a edita como mestre.</p>}
+    {servidor && somenteFicha && <p className="muted" role="note" data-testid="aviso-servidor">{deNpc ? "Ficha de NPC: só o mestre a vê. A história fica no Compêndio." : "Ficha de outro jogador: você a edita como mestre."}</p>}
     {avisoConflito}
     {recuperacao && <div className="notice" role="status" data-testid="aviso-recuperacao"><p>Há alterações deste personagem que não chegaram ao servidor ({recuperacao.motivo || "falha anterior"}), guardadas neste navegador em {new Date(recuperacao.em).toLocaleString("pt-BR")}.</p><div className="row"><button type="button" className="btn-primary" onClick={restaurar}>Restaurar essas alterações</button><button type="button" className="btn-secondary" onClick={descartarRecuperacao}>Descartar</button></div></div>}
     {msg && <Aviso erro={!msg.ok} t={msg.t}/>}

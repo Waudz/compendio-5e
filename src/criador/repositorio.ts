@@ -15,6 +15,8 @@ export type PersonagemCarregado = EstadoPersonagem & {
   revision: number | null;
   /** true quando quem abre NÃO é o dono (mestre): edita a ficha, mas a identidade pública não é dele nem é lida. */
   somenteFicha: boolean;
+  /** Ficha de um NPC do Compêndio: sem identidade pública própria e fora do ciclo de vida dos aventureiros. */
+  npc?: boolean;
 };
 export type ArgsSalvar = { id: string; existe: boolean; revisao: number | null; estado: EstadoPersonagem; somenteFicha: boolean; source: SheetPublicSource };
 
@@ -37,7 +39,7 @@ export function repositorioServidor(api: FichasApi, campaignId: string, userId: 
       if (!r.data) return null;
       const { ficha, identidade } = r.data;
       if (ficha.campaignId !== campaignId) return null; // nunca abrir uma ficha na campanha errada, mesmo com acesso às duas
-      return { id: ficha.id, draft: ficha.draft, identity: identidade?.identity ?? defaultPublicIdentity(), revision: ficha.revision, somenteFicha: ficha.ownerId !== userId };
+      return { id: ficha.id, draft: ficha.draft, identity: identidade?.identity ?? defaultPublicIdentity(), revision: ficha.revision, somenteFicha: !!ficha.npc || ficha.ownerId !== userId, ...(ficha.npc ? { npc: true } : {}) };
     },
     async salvar(a) {
       const ident = a.somenteFicha ? undefined : { identity: a.estado.identity, source: a.source };

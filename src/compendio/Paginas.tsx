@@ -89,10 +89,10 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
  const remove=()=>{if(!data.api||!active||!window.confirm('Remover este registro? Os registros relacionados serão preservados.'))return;void data.api.remove(active.campaign.id,id,entry.version).then(()=>{avisarConhecimento();onOpenContent({kind:'secao',ref:'compendio'});},()=>setError('Não foi possível remover. Recarregue a versão atual.'));};
  const atual:Conhecimento=secoes?{...entry,sheet:secoes}:entry;
  const extra=desatualizada?{sheet:secoes}:{};
- const ficha=semFicha?undefined:entry.category==='monster'&&entry.definitionId&&entry.systemId==='dnd5e-2014'?monstroSpec(entry.definitionId,entry.title):entry.category==='npc'&&entry.combatDefinitionId?npcSpec(entry.id,entry.title):undefined;
+ const ficha=semFicha?undefined:entry.category==='monster'&&entry.definitionId&&entry.systemId==='dnd5e-2014'?monstroSpec(entry.definitionId,entry.title):entry.category==='npc'&&entry.characterSheet?{kind:'ficha' as const,ref:entry.id,title:entry.title}:entry.category==='npc'&&entry.combatDefinitionId?npcSpec(entry.id,entry.title):undefined;
  const ficharNpc=(definicao:string|null)=>{if(data.api?.setCombatSheet&&active)acoes.executar(()=>data.api!.setCombatSheet!(active.campaign.id,id,entry.version,definicao));};
  const menu:AcaoDeMenu[]=[
-  ...(entry.category==='npc'&&data.api?.setCombatSheet?[{rotulo:entry.combatDefinitionId?'Trocar ficha de combate':'Vincular ficha de combate',icone:Link2,acao:()=>setEscolhendo(true)},
+  ...(entry.category==='npc'&&!entry.characterSheet&&data.api?.setCombatSheet?[{rotulo:entry.combatDefinitionId?'Trocar ficha de combate':'Vincular ficha de combate',icone:Link2,acao:()=>setEscolhendo(true)},
    ...(entry.combatDefinitionId?[{rotulo:'Desvincular ficha de combate',icone:Unlink,acao:()=>{if(window.confirm('Desvincular a ficha de combate deste NPC? A criatura continua no Bestiário.'))ficharNpc(null);}}]:[])]:[]),
   ...(entry.definitionId&&entry.category==='item'?[{rotulo:'Consultar definição original',icone:ExternalLink,acao:()=>onOpenContent({kind:'item',ref:entry.definitionId!})}]:[]),
   {rotulo:'Remover registro',icone:Trash2,perigo:true,acao:remove},

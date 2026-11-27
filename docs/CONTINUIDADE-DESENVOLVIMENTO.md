@@ -1000,3 +1000,13 @@ Base: `main` em `49f4600` (#168 publicado; Pages e E2E da main aprovados). 0021 
 - Ficha de personagem exige nota `kind='character'` (`notes_ficha_guard`, `nota_guiada_ativa`, políticas de `character_sheets`). Dar ficha de personagem a um NPC do Compêndio **sem criar segunda identidade** pede migração: ou permitir a ficha ligada à nota `npc` do Codex, ou converter o registro preservando o ID, o conhecimento por campo e os vínculos. É a decisão técnica central da etapa; preparar, testar isolado e pedir autorização antes de produção.
 - Personagem convertido em NPC continua nota `character` (0021) e não tem conhecimento por campo; a etapa 2 deve unificar a apresentação.
 - Estado vital (etapa 5) deve entrar no registro narrativo e nas chaves de `codex_reveal`; os dois tipos de nota acima precisam dele.
+
+## RETOMAR AQUI — DEC-039, etapa 2 (branch `feat/alpha-npc-fichas-etapa2`)
+
+Base: `main` em `a664493` (#169 integrado; publicação e E2E da main aprovados; textos novos conferidos no site).
+
+**Etapa 2 (DEC-040):** migração **0022, proposta e não aplicada**, com reversão, diagnóstico (`preflight/0022_conferir.sql`) e `supabase/npc-ficha.test.ts`. No aplicativo: ficha de NPC separada dos aventureiros em todas as listas, linha "NPC · ficha de personagem" em Personagens, "Ver ficha" na página do NPC, ficha sem aba de identidade pública e sem ações do ciclo, `FichasApi.criarDeNpc`. Sem a 0022 o aplicativo se comporta como antes (não há como criar a ficha).
+
+**Antes de mesclar:** autorização para aplicar a 0022 em produção (aplicar antes ou depois do merge é compatível).
+
+**Próximo — etapa 3:** ações "Adicionar ficha" (modelo do bestiário com cópia própria em `campaign_definitions`, criatura personalizada, personagem pelo criador via `criarDeNpc`), trocar com aviso e confirmação e remover a ficha sem apagar a identidade. Remover ficha de personagem precisa de operação no servidor (a API não tem DELETE) e de decisão de retenção: proposta, a mesma do "só no Compêndio" (cópia privada por 30 dias). As cópias próprias de criatura precisam ficar fora das listas do Bestiário.
