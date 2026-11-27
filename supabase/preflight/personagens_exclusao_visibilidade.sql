@@ -23,5 +23,15 @@ select count(*) as referencias_em_encontros
 from public.campaign_encounters e cross join lateral jsonb_array_elements(e.state->'encontros') x
 cross join lateral jsonb_array_elements(x->'participantes') p where p#>>'{ref,tipo}'='personagem';
 
-select to_regprocedure('public.delete_campaign_character(uuid,bigint,text,uuid)') is not null as operacao_ja_existe;
+-- Quantas notas ocultas são anteriores ao corte do reparo (reparos/identidades_ocultas_antigas.sql) e quantas não são.
+select count(*) filter(where n.updated_at < timestamptz '2026-11-26 02:01:19+00') as ocultas_antigas_reparaveis,
+ count(*) filter(where n.updated_at >= timestamptz '2026-11-26 02:01:19+00') as ocultas_recentes_a_investigar
+from public.character_sheets s join public.notes n on n.id=s.character_id and n.campaign_id=s.campaign_id
+where n.visibility <> 'campaign' and n.deleted_at is null;
+
+-- Pré-requisitos e colisões da 0021.
+select to_regprocedure('public.codex_definitions_for(uuid)') is not null as tem_0019_ou_0020,
+ public.codex_capabilities() as capacidade_atual,
+ to_regclass('private_ficha.ciclo') is not null as ciclo_ja_existe,
+ to_regclass('public.character_notices') is not null as avisos_ja_existem;
 rollback;
