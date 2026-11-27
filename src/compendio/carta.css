@@ -98,7 +98,7 @@
 /* contraste AA dos links de texto sobre o fundo da carta */
 .carta .btn-link { color: var(--accent-text); }
 /* no celular a barra superior já tem o Voltar */
-.mobile .ficha-criatura > .cd-back { display: none; }
+.mobile .ficha-criatura > .ficha-largura > .cd-back { display: none; }
 
 /* retrato em destaque nas cartas de personagens e criaturas (o das fichas técnicas continua compacto) */
 .carta-imagem .retrato-ampliar { width: min(200px, 64%); }

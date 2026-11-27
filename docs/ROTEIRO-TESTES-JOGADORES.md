@@ -56,3 +56,13 @@ O responsável registra os problemas nas issues do GitHub e avisa quais correç�
 5. Mestre: "Manter apenas no Compêndio" (a janela informa a cópia de 30 dias) e "Excluir definitivamente" (informa que não há recuperação) em personagens de teste. Confira combate, diário e textos.
 6. Mestre: para limpar personagens de teste, Selecionar → "Selecionar todos da campanha" → Excluir (digite EXCLUIR). É definitivo.
 7. Início, Personagens e Compêndio não devem mostrar "oculto dos jogadores" em personagem ativo.
+
+## DEC-039, etapa 1 (depois de publicada)
+
+1. Personagens abre em lista; troque para grade, recarregue e confira que continua em grade.
+2. Pesquise pelo nome do personagem e pelo nome do jogador.
+3. Mestre: veja Aventureiros e NPCs separados e os filtros de situação; jogador: só aventureiros, sem NPCs.
+4. "+ Criar" em Personagens e em Compêndio → Personagens.
+5. Recarregue (F5) em várias páginas: o título não ganha contorno; navegando por Tab, os controles continuam com foco visível.
+6. Com dois grupos: reabrir aba e tela cheia só no da direita.
+7. Compare o alinhamento das abas nas fichas de aventureiro, de NPC e de monstro.
