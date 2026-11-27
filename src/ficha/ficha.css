@@ -1,6 +1,6 @@
 /* Ficha de jogo: cartões simples com as cores e a tipografia do Compêndio, adaptados à largura do PAINEL (não só da janela). */
 .ficha.ficha-jogo { container-type: inline-size; }
-.ficha-jogo > * { width: 100%; max-width: 1080px; margin-inline: auto; }
+.ficha-jogo > .ficha-largura { width: 100%; max-width: 1080px; margin-inline: auto; }
 .ficha-jogo button { max-width: 100%; }
 .ficha-jogo .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* botões compactos (o formulário genérico `.auth` esticaria todos) */

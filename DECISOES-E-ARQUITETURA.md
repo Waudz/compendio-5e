@@ -456,3 +456,10 @@ Prioridades e roteiro em docs/ALPHA-JOGADORES-20261127.md e docs/ROTEIRO-TESTES-
 Decisões explícitas do responsável: dono deve acessar/editar a própria ficha completa em desktop/celular; mestre conforme permissões vigentes; outros jogadores apenas identidade pública autorizada. Investigar o relato sem tornar fichas públicas ou flexibilizar RLS. Aprovar “Marcar todas como lidas” no topo da janela de notificações, com ícone de confirmação dupla, contador imediato, persistência, erro de rede, somente usuário/escopo atuais, sem excluir notificações e preservando leitura individual e visual existente. Ambas **pendentes de implementação**.
 
 Encerrar esta sessão e transferir ao Codex, sem novas funcionalidades/refatorações/etapas. Planejamento e critérios completos preservados em docs/PROMPT-CODEX-ALPHA-20261127.md; estado/testes/publicação/investigação em docs/TRANSFERENCIA-CODEX-20261127.md. Restrições de produção e escopo continuam vigentes; nenhuma autorização nova de merge, deploy ou migração.
+
+
+### DEC-037 — Personagens de outros jogadores e leitura em lote (27/11/2026)
+
+Correção explícita do diagnóstico pelo responsável: o dono já abre a própria ficha normalmente. Não há bloqueador P0 de autorização nesse relato. Na lista Personagens, o dono e o mestre abrem a ficha; outro jogador abre a carta de identidade do Compêndio existente (página no celular). Não modificar RLS para mudar essa apresentação. Identificar o responsável pelo `profiles.display_name` autorizado da API de participantes, nunca por e-mail. Abas e estado de salvamento pertencem ao mesmo contêiner de largura da ficha.
+
+Leitura em lote reutiliza as políticas existentes: campanha definida pelos IDs da projeção autorizada, IDs de notificações congelados antes das escritas, teto do feed aberto e somente `read_at` dos pendentes. Novas notificações não entram no lote. Falha parcial não é rollback: recarregar o estado real e exibir erro. Troca de usuário/campanha aborta a operação e descarta respostas antigas. Sem migração nova, exclusão, alteração de destinatário ou push.

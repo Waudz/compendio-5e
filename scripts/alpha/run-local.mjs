@@ -95,6 +95,16 @@ try {
     assert.equal((await api('/rest/v1/rpc/codex_list',{token:o,method:'POST',body:{p_campaign:a}})).ok,false);
     assert.equal((await api('/rest/v1/rpc/codex_list',{method:'POST',body:{p_campaign:a}})).ok,false);
     const notices=()=>ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:p});
+    // Leitura por IDs congelados: outro destinatário continua protegido por RLS.
+    const pending=await notices(), ownIds=pending.filter(n=>!n.read_at).map(n=>n.id);
+    assert.ok(ownIds.length>0);
+    const otherNotices=await ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:secondPlayer.access_token});
+    assert.ok(otherNotices.some(n=>!n.read_at));
+    await ok(`/rest/v1/codex_notifications?id=in.(${[...ownIds,...otherNotices.map(n=>n.id)].join(',')})`,{token:p,method:'PATCH',body:{read_at:new Date().toISOString()}});
+    assert.ok((await notices()).filter(n=>ownIds.includes(n.id)).every(n=>n.read_at));
+    assert.ok((await ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:secondPlayer.access_token})).every(n=>!n.read_at));
+    const freshSession=await ok('/auth/v1/token?grant_type=password',{method:'POST',body:{email:player.email,password}});
+    assert.ok((await ok(`/rest/v1/codex_notifications?entry_id=eq.${id}`,{token:freshSession.access_token})).filter(n=>ownIds.includes(n.id)).every(n=>n.read_at));
     const before=(await notices()).length;
     await rpc('codex_save',m,{p_campaign:a,p_entry:id,p_version:await codexVersion(id),p_data:{...data,title:'Texto corrigido'}});
     assert.equal((await notices()).length,before);

@@ -942,3 +942,26 @@ Nova prioridade: **P0 própria ficha no desktop**. Inspeção sem correção: fr
 0020 confirmada aplicada; nenhuma 0021 criada/aplicada aqui. Foto da conta, novas Anotações do jogador, #100 e demais critérios permanecem conforme tabela de classificação no relatório. Cadastro aberto permanece aprovado. Contas/dados externos preservados; nenhuma escrita em produção, merge, deploy ou exclusão nesta execução. Não alterar 1.0/Assimilação.
 
 Branch de documentação **docs/transferencia-codex-alpha-20261127**, baseada em #165; PR só documental dependente. Código e handoff enviados ao GitHub. Não há código desta sessão apenas local. Próxima IA deve usar clone/worktree limpo dos remotos e atualizar HEAD/PR antes de agir, sem repetir auditorias/testes já concluídos. Autorizações de publicação/migração continuam necessárias.
+
+
+## RETOMAR AQUI — Diagnóstico corrigido e notificações (27/11/2026)
+
+Base atualizada: `3226a7292ce7dafcb0a6ced1e5a5139079b0b32a`; #165 e #166 já integrados (confirmação Git/remoto e estado de #165). O responsável retirou expressamente o relato de inacessibilidade da própria ficha: o problema era a página pública inteira para **outro jogador** na lista Personagens. Não reabrir investigação P0 de proprietários/RLS por esse relato. Testes adicionados confirmam dono/mestre na ficha e privacidade do terceiro.
+
+Branch `codex/ficha-propria-desktop`: Personagens usa `identidadeSpec` + `useAbrirConsulta` para terceiros, mantendo `ficha` para dono/mestre e os mesmos gestos/contexto. Nome público do responsável via API `members`/`profiles.display_name` na lista e carta, sem e-mail. Hook `jogadoresCampanha.ts` isola respostas por usuário/campanha e atualiza após edição de perfil. `FichaJogo` usa um contêiner comum `ficha-largura`, incluindo abas, salvamento e conteúdo.
+
+Notificações: `CheckCheck`/Marcar todas como lidas no topo, oculto sem pendências; `notificacoesLote.ts` pagina os IDs autorizados além dos 50 do feed, congela a seleção e grava somente `read_at`. AbortSignal na troca de escopo; erro não simula sucesso; o feed real reconcilia sucessos parciais. Demonstração implementa o mesmo contrato; não comprova produção. **Nenhuma migração necessária ou aplicada.** Acrescentada regressão REST/JWT isolada no cenário existente para leitura persistente e proteção de outro destinatário.
+
+Validação intermediária: 54 testes direcionados de ficha/notificações, 1820 testes completos antes da correção adicional da listagem, 62 regressões atualizadas de ficha e 16 Playwright do Compêndio aprovados. Validação final e CI serão registrados no PR; não reutilizar o resultado anterior como aprovação de arquivos posteriores. Uma tentativa paralela local foi interrompida após queda do serviço esbuild/Vite; execução repetida com concorrência reduzida.
+
+Sem merge, deploy, consulta/escrita em produção ou mudança no legado. Foto da conta, Minhas anotações, contrato de criação sem escolhas prévias (#100) e demais itens da DEC-035 continuam planejados, não entregues por este PR. Próximo ciclo segue essa fila após a revisão desta correção; sem iniciar Encontros, Loot ou PWA.
+
+
+### Ampliação prioritária solicitada após o commit 8285e50
+
+Exclusão de personagens e identidade indevidamente oculta passam à frente de foto/notas/PWA. Investigação e critérios: [EXCLUSAO-VISIBILIDADE-PERSONAGENS.md](EXCLUSAO-VISIBILIDADE-PERSONAGENS.md). A exclusão guiada é bloqueada explicitamente no guard 0013 e não possui operação de FichasApi: exige contrato de arquivo/referências e testes backend antes de disponibilizar os menus. Não está implementada no PR #167. Visibilidade já é fixada em campaign ao salvar desde 0013; backfill de registros antigos exige diagnóstico seletivo, sem apagar escolhas privadas nem presumir intenção. Não aplicar SQL em produção.
+
+Resultado adicional local: build final e tipos E2E aprovados. Ficha em 320/390: quatro cenários aprovados; desktop1440 repetido sozinho após timeout sob concorrência, dois cenários aprovados, incluindo alinhamento em tela cheia e dois grupos, sem aumentar timeout/retries. Compêndio: 16/16 aprovados. Suíte completa anterior 1820/1820; execução final local ainda sem relatório, conferir CI no commit 8285e50. PR #167 aberto em rascunho, sem merge/deploy.
+
+
+Validação final local concluída: **1821/1821 testes** aprovados (relatório alpha-final.json), build e tipos E2E aprovados. CI de 5fba414: Validar projeto e Preview aprovados; E2E ainda em execução. Alpha falhou duas vezes antes da stack: npm 404 para @ecies/ciphers durante instalação do CLI, sem executar cenários. Ajuste pontual do workflow usa supabase/setup-cli@v3, mantendo CLI 3.2.0 e o fallback oficial verificado por checksum; mesmos comandos locais, barreiras e testes. Resultado do novo HEAD deve ser confirmado no PR.

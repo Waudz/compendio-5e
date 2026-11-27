@@ -39,3 +39,10 @@ O fluxo novo **Minhas anotações** ainda não está disponível nesta entrega. 
 - Excluir somente documento de teste, com confirmação, verificando antes que cancelar não exclui.
 
 O responsável registra os problemas nas issues do GitHub e avisa quais correções foram publicadas. Este roteiro não declara a Alpha concluída.
+
+
+### Após publicar a correção DEC-037 (ainda em revisão)
+
+- Desktop: Personagens → próprio personagem abre ficha; outro jogador abre carta e fecha sem sair da lista. Mestre mantém acesso à ficha. Conferir nome do jogador responsável, sem e-mail.
+- Abas e Tudo salvo devem alinhar ao cabeçalho em janela larga, dividida, tela cheia e celular.
+- Sino → Marcar todas como lidas: contador e Descobertas atualizam; recarregar/abrir em outro aparelho deve preservar leitura. Notificação recebida depois não deve desaparecer. Em falha de rede, conferir aviso e tentar novamente, sem excluir notificações.

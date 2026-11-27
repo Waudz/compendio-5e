@@ -40,6 +40,7 @@ const api = (items: Conhecimento[] = []): CodexApi => ({
   holders: vi.fn(async () => []),
   reveal: vi.fn(async () => {}),
   preview: vi.fn(async () => ({ entry: null, links: [] })),
+  seenAll: vi.fn(async()=>{}),
   seen: vi.fn(async () => {}),
 });
 async function mount(role: "mestre" | "jogador", codex: CodexApi = api(), aventureiros?: FonteAventureiros) {

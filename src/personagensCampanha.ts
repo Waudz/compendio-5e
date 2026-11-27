@@ -12,7 +12,7 @@ import { lerPerfil } from "./perfilPersonagem";
 import type { RegistrosApi } from "./registros";
 
 export type PersonagemCampanha = {
-  id: string; nome: string; alcunha: string | null; classe: string; nivel: number | null;
+  id: string; ownerId?:string; nome: string; alcunha: string | null; classe: string; nivel: number | null;
   /** Imagem pública (https) de personagem guiado, ou caminho no armazenamento do retrato de um perfil simples. */
   retratoUrl: string | null; retratoCaminho: string | null;
   guiado: boolean;
@@ -36,14 +36,14 @@ export async function listarPersonagens(campaignId: string, de: { registros: Reg
       const c = cartaoPublico(nota.meta);
       // quem lê a ficha vê o personagem como ele é; os demais, só a apresentação (o que o dono não ocultou)
       const visto = ficha ? { nome: ficha.nome, alcunha: ficha.alcunha ?? null } : c ? presentation(c) : { nome: nota.title, alcunha: null };
-      return { id: nota.id, nome: visto.nome, alcunha: visto.alcunha, classe: ficha ? classeDaFicha(ficha) : [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: ficha ? ficha.nivel : nivelPublico(c?.level),
+      return { id: nota.id, ownerId: ficha?.ownerId??nota.ownerId, nome: visto.nome, alcunha: visto.alcunha, classe: ficha ? classeDaFicha(ficha) : [c?.race, c?.characterClass].filter(Boolean).join(" ") || "Aventureiro", nivel: ficha ? ficha.nivel : nivelPublico(c?.level),
         retratoUrl: (ficha ? ficha.retrato : c?.imageUrl) ?? null, retratoCaminho: null, guiado: true, comFicha: !!ficha, meu, publicado };
     }
     const p = lerPerfil(nota.meta);
-    return { id: nota.id, nome: nota.title, alcunha: null, classe: p.classe || "Sem classe", nivel: p.nivel, retratoUrl: null, retratoCaminho: p.retrato, guiado: false, comFicha: false, meu, publicado };
+    return { id: nota.id, ownerId: ficha?.ownerId??nota.ownerId, nome: nota.title, alcunha: null, classe: p.classe || "Sem classe", nivel: p.nivel, retratoUrl: null, retratoCaminho: p.retrato, guiado: false, comFicha: false, meu, publicado };
   });
   // fichas legíveis cuja linha pública não é (ex.: mestre diante de identidade privada): aparecem uma única vez, pelos dados da ficha
-  for (const x of fichas.values()) saida.push({ id: x.id, nome: x.nome, alcunha: x.alcunha ?? null, classe: classeDaFicha(x), nivel: x.nivel, retratoUrl: x.retrato ?? null, retratoCaminho: null, guiado: true, comFicha: true, meu: x.ownerId === de.userId, publicado: false });
+  for (const x of fichas.values()) saida.push({ id: x.id, ownerId:x.ownerId, nome: x.nome, alcunha: x.alcunha ?? null, classe: classeDaFicha(x), nivel: x.nivel, retratoUrl: x.retrato ?? null, retratoCaminho: null, guiado: true, comFicha: true, meu: x.ownerId === de.userId, publicado: false });
   saida.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   return { ok: true, data: { personagens: saida, avisoFichas: f && !f.ok ? f.error : null } };
 }

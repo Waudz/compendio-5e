@@ -1,4 +1,5 @@
 /** Páginas de consulta do Compêndio. São o mesmo conteúdo da janela de consulta (desktop) e da página completa. */
+import {useJogadoresCampanha} from "../jogadoresCampanha";
 import {useContext,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft,ClipboardList,Eye,Link2,Pencil,Trash2,Unlink,ExternalLink,Users2} from 'lucide-react';
 import {useCampaigns} from '../CampaignsContext';
@@ -120,6 +121,7 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
 
 /** Identidade pública de um aventureiro: a mesma carta no Compêndio e na página inicial. É a projeção do personagem. */
 export function IdentidadePagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
+ const jogador=useJogadoresCampanha();
  const {items,loading,error}=useIdentidades(),{active}=useCampaigns(),{user}=useAuth(),api=useRegistros();const p=items.find(x=>x.id===id);
  const [detail,setDetail]=useState<{scope:string;owner?:string;card:PublicIdentityCard|null}>();const scope=`${user?.id}:${active?.campaign.id}:${id}`;
  useEffect(()=>{let alive=true;if(api&&active)void api.get(id).then(r=>{if(!alive)return;const reg=r.ok&&r.data?.campaignId===active.campaign.id?r.data:null;setDetail({scope,owner:reg?.ownerId,card:reg&&(reg.visibility==='campaign'||reg.ownerId===user?.id)?cartaoPublico(reg.meta):null});},()=>{if(alive)setDetail({scope,card:null});});return()=>{alive=false;};},[api,scope]);
@@ -135,6 +137,7 @@ export function IdentidadePagina({id,onOpenContent}:{id:string;onOpenContent:(s:
   {!p||!visto?<Aviso t={error??'Identidade indisponível nesta campanha.'}/>:<Carta trilha="Personagens / Aventureiro" nome={visto.nome} alcunha={visto.alcunha} rotulo={`Identidade pública de ${visto.nome}`}
    retratoGrande imagem={<RetratoQuadrado src={card?card.imageUrl:p.retratoUrl} tipo="personagem" tamanho={300} ampliar={visto.nome}/>}
    acoes={podeFicha?<button type="button" className="btn-primary" onClick={()=>onOpenContent({kind:'ficha',ref:id,title:p.nome})}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>:undefined}>
+   {jogador(atual?.owner)&&<p className="muted">Jogador: {jogador(atual?.owner)}</p>}
    <FatosCarta fatos={fatos}/>
    {descricao&&<p className="cd-texto">{descricao}</p>}
    {active?.role==='mestre'&&!card&&p.nota&&<p className="muted">Identidade pública indisponível ({p.nota}).</p>}

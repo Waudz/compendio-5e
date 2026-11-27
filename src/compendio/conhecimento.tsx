@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {marcarLote} from "./notificacoesLote";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useAuth } from "../AuthContext";
 import { useCampaigns } from "../CampaignsContext";
@@ -83,6 +84,7 @@ export interface CodexApi {
   link(cid: string, source: string, target: string, relation: NovoVinculo): Promise<string>;
   unlink(cid: string, id: string): Promise<void>;
   feed(cid: string): Promise<NotificationFeed>;
+  seenAll(cid:string,through:number,signal:AbortSignal):Promise<void>;
   list(cid: string): Promise<Conhecimento[]>;
   save(cid: string, id: string | null, version: number, data: EdicaoConhecimento): Promise<string>;
   reveal(cid: string, id: string, version: number, data: Divulgacao): Promise<void>;
@@ -191,6 +193,7 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
       conferir(
         await client.rpc("codex_holders", { p_campaign: cid, p_entry: id }),
       ) as { id: string; title: string }[],
+    seenAll: (cid,through,signal) => marcarLote(client,cid,through,signal),
     seen: async (id) => {
       const r = await client
         .from("codex_notifications")

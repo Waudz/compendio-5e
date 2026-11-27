@@ -117,7 +117,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
   const origem = origem2014(draft.backgroundId)?.nome ?? label2014(draft.backgroundId);
   const [editandoRetrato, setEditandoRetrato] = useState(false);
   const nomeExibido = draft.name.trim() || "Personagem sem nome";
-  return <div ref={raiz} className="content ficha auth wide ficha-jogo sistema-dnd" data-testid="ficha-guiada-leitura" {...gesto}>
+  return <div ref={raiz} className="content ficha auth wide ficha-jogo sistema-dnd" data-testid="ficha-guiada-leitura" {...gesto}><div className="ficha-largura">
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
     <section className="ficha-cabecalho" aria-label="Resumo do personagem">
       <div className="ficha-identidade">
@@ -167,7 +167,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
       {aba === "identidade" && identidade}
     </div>
     <p className="muted ficha-dado">Cálculos das regras SRD 5.1 (2014).</p>
-  </div>;
+  </div></div>;
 }
 
 /** Ajuste de PV: campo vazio vale 1 ao executar uma ação. */

@@ -27,6 +27,11 @@ jobs:
           node-version: '22'
       - name: Validar barreiras contra produção
         run: node --test scripts/alpha/local-only.test.mjs
+      - name: Instalar CLI fixado (fallback oficial com checksum)
+        if: needs.impacto.outputs.nivel != 'quick' && needs.impacto.outputs.nivel != 'functional'
+        uses: supabase/setup-cli@v3
+        with:
+          version: 3.2.0
       - name: Preparar projeto descartável sem vínculo remoto
         if: needs.impacto.outputs.nivel != 'quick' && needs.impacto.outputs.nivel != 'functional'
         shell: bash
@@ -35,7 +40,7 @@ jobs:
           alpha_workdir=$(mktemp -d /tmp/compendio-alpha-XXXXXX)
           echo "ALPHA_WORKDIR=$alpha_workdir" >> "$GITHUB_ENV"
           echo "ALPHA_STATUS_FILE=$alpha_workdir/status.json" >> "$GITHUB_ENV"
-          npx --yes --package=supabase@3.2.0 supabase init --workdir "$alpha_workdir"
+          supabase init --workdir "$alpha_workdir"
           python3 scripts/alpha/prepare-local.py "$alpha_workdir"
           # as migrações 0009–0011 (combate, encontros, status das fichas) já vêm de supabase/migrations: nada de fixture separada
       - name: Iniciar Auth, PostgREST e PostgreSQL locais
@@ -44,8 +49,8 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          npx --yes --package=supabase@3.2.0 supabase start --workdir "$ALPHA_WORKDIR" -x studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor > "$ALPHA_WORKDIR/start.log" 2>&1 || { node scripts/alpha/start-diagnostics.mjs "$ALPHA_WORKDIR/start.log"; exit 1; }
-          npx --yes --package=supabase@3.2.0 supabase status --workdir "$ALPHA_WORKDIR" --output json > "$ALPHA_STATUS_FILE"
+          supabase start --workdir "$ALPHA_WORKDIR" -x studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor > "$ALPHA_WORKDIR/start.log" 2>&1 || { node scripts/alpha/start-diagnostics.mjs "$ALPHA_WORKDIR/start.log"; exit 1; }
+          supabase status --workdir "$ALPHA_WORKDIR" --output json > "$ALPHA_STATUS_FILE"
       - name: Testar contas reais locais, JWT, RLS e persistência
         if: needs.impacto.outputs.nivel != 'quick' && needs.impacto.outputs.nivel != 'functional'
         env:
@@ -61,4 +66,4 @@ jobs:
       - name: Parar somente a stack descartável
         if: always() && env.ALPHA_WORKDIR != ''
         shell: bash
-        run: npx --yes --package=supabase@3.2.0 supabase stop --workdir "$ALPHA_WORKDIR" > /dev/null 2>&1
+        run: supabase stop --workdir "$ALPHA_WORKDIR" > /dev/null 2>&1

@@ -20,6 +20,14 @@ async function arrastar(page: Page, dx: number) {
 
 test('ficha de jogo: quatro abas, inventário na CA, sem estouro horizontal e com nomes acessíveis', async ({ page }, info) => {
   await abrirFichaDeJogo(page);
+  const aligned=async()=>{
+    const header=await page.getByRole('region',{name:'Resumo do personagem'}).boundingBox();
+    for(const locator of [abas(page),page.getByTestId('estado-salvamento'),page.locator('.ficha-conteudo')]){
+      const box=await locator.boundingBox();expect(box).not.toBeNull();
+      expect(Math.abs(box!.x-header!.x)).toBeLessThan(2);expect(Math.abs(box!.width-header!.width)).toBeLessThan(2);
+    }
+  };
+  await aligned();
   await expect(abas(page).getByRole('button')).toHaveText(['Ficha', 'Habilidades', 'Inventário', 'Identidade']);
   const topo = page.getByRole('region', { name: 'Resumo do personagem' });
   await expect(topo).toContainText('Escudo de Pedra');
@@ -46,6 +54,14 @@ test('ficha de jogo: quatro abas, inventário na CA, sem estouro horizontal e co
   await acaoDoItem(page, armadura, equipada ? 'Equipar' : 'Desequipar');
   await expect(ca).toHaveText(antes!);
   await expect(page.getByTestId('estado-salvamento')).toHaveText('Tudo salvo.');
+  if(!isMobile(page)){
+    await page.getByRole('button',{name:'Alternar tela cheia',exact:true}).first().click();await aligned();
+    await page.getByRole('button',{name:'Alternar tela cheia',exact:true}).first().click();await aligned();
+    await page.getByRole('tab',{selected:true}).first().click({button:'right'});
+    await page.getByRole('menuitem',{name:'Abrir em nova coluna à direita',exact:true}).click();
+    await expect(page.locator('.flexlayout__tabset')).toHaveCount(2);await aligned();
+    await evidence(page,info,'ficha-alinhada-dois-grupos');
+  }
 });
 
 test('ficha de jogo: arrasto no celular e estado preservado ao trocar de menu', async ({ page }) => {
