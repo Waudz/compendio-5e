@@ -103,7 +103,7 @@ describe("Compêndio: conhecimento granular e isolamento", () => {
     expect(await seen(id)).toBeUndefined();
   });
   it("cada campo e seção da ficha é independente; ID de catálogo só com identificação completa", async () => {
-    const id = await save(master, null, 0, payload());
+    const id = await save(master, null, 0, payload("NOME-VERDADEIRO", { category: "item" }));
     const secrets = /NOME-VERDADEIRO|ID-CATALOGO|SEGREDO|DESCRICAO|HISTORIA|VULNERAVEL|ACAO-SECRETA/;
     await reveal(id, ["nickname"]);
     expect((await seen(id))!.title).toBe("Alcunha");
@@ -124,6 +124,64 @@ describe("Compêndio: conhecimento granular e isolamento", () => {
     expect(e.sheet).toEqual(SHEET);
     expect(e.secret).toBeUndefined();
     expect(e.revealed).toBeUndefined();
+  });
+  it("criatura: nenhum nível de conhecimento entrega estatística, definição ou ficha de combate ao jogador", async () => {
+    const definitionId = "custom-" + crypto.randomUUID();
+    expect((await as(master, "select public.codex_definition_save($1,'monster',$2,0,null,$3::jsonb,$4::jsonb)",
+      [cid, definitionId, JSON.stringify({ definition: { id: definitionId, nome: "CRIATURA-SECRETA", pv: 987654 } }), JSON.stringify(SHEET)])).error).toBeUndefined();
+    const narrative = { appearance: "APARENCIA", habitat: "HABITAT", behavior: "COMPORTAMENTO", weaknesses: "FRAQUEZA-NARRATIVA", classification: "Gigante" };
+    const id = await save(master, null, 0, payload("Troll", { definitionId, fields: narrative }));
+    const everything = ["name", "image", "description", "sheet", "sheet:ac", "sheet:actions", ...Object.keys(narrative)];
+    await reveal(id, everything);
+    const entry = (await seen(id))!;
+    expect(entry.fields).toEqual(narrative);
+    expect(entry.sheet).toBeUndefined();
+    expect(entry.definitionId).toBeUndefined();
+    expect((await db.query<Row>("select revealed from public.campaign_codex where id=$1", [id])).rows[0].revealed).not.toContain("sheet");
+    const preview = (await call(master, "codex_preview", cid, id)).rows[0].r as Row;
+    expect(preview.entry).toEqual(entry);
+    for (const [fn, ...args] of [["codex_list", cid], ["codex_links_for", cid, id], ["codex_notification_feed", cid], ["codex_definitions_for", cid]] as const) {
+      const result = (await call(player, fn, ...args)).rows[0].r;
+      expect(JSON.stringify(fn === "codex_list" ? (result as Row[]).filter((x) => x.id === id || x.category === "monster") : result)).not.toMatch(/VULNERAVEL|ACAO-SECRETA|CRIATURA-SECRETA|987654/);
+    }
+    // alterar a definição sincroniza a ficha sem gerar aviso nem entregar nada
+    const before = (await noticesOf(id)).length;
+    expect((await as(master, "select public.codex_definition_save($1,'monster',$2,1,null,$3::jsonb,$4::jsonb)",
+      [cid, definitionId, JSON.stringify({ definition: { id: definitionId, nome: "CRIATURA-SECRETA", pv: 1 } }), JSON.stringify([{ k: "hp", l: "PV", v: "PV-NOVO" }])])).error).toBeUndefined();
+    expect((await noticesOf(id)).length).toBe(before);
+    expect(JSON.stringify(await seen(id))).not.toMatch(/PV-NOVO/);
+    await db.query("delete from public.campaign_definitions where definition_id=$1", [definitionId]);
+  });
+  it("referências no texto: o jogador só recebe o ID de destino aberto e nunca o nome verdadeiro oculto", async () => {
+    const hidden = await save(master, null, 0, payload("Seita Oculta", { category: "organization" }));
+    const nickOnly = await save(master, null, 0, payload("Corvo Verdadeiro", { category: "location", fields: { nickname: "Entreposto" } }));
+    await reveal(nickOnly, ["nickname"]);
+    const narrative = `Trabalha em @[Corvo Verdadeiro](${nickOnly}) e serve @[Seita Oculta](${hidden}), os @[amigos de "sempre"](${hidden}).`;
+    const id = await save(master, null, 0, payload("Varyn", { category: "npc", description: text(narrative), fields: { history: narrative } }));
+    await reveal(id, ["name", "description", "history"]);
+    const entry = JSON.stringify(await seen(id));
+    expect(entry).toContain(`@[Entreposto](${nickOnly})`);
+    expect(entry).not.toContain(hidden);
+    expect(entry).not.toMatch(/Corvo Verdadeiro|Seita Oculta/);
+    expect(entry).toContain("amigos de");
+    expect((await as(player, "select public.codex_refs_text($1,'x')", [cid])).error).toMatch(/permission denied/);
+  });
+  it("ficha de combate de NPC: só o mestre vincula e vê; criação em uso não é excluída", async () => {
+    const definitionId = "custom-" + crypto.randomUUID();
+    expect((await as(master, "select public.codex_definition_save($1,'monster',$2,0,null,$3::jsonb,'[]'::jsonb)", [cid, definitionId, JSON.stringify({ definition: { id: definitionId, nome: "Guarda" } })])).error).toBeUndefined();
+    const id = await save(master, null, 0, payload("Guarda do Portão", { category: "npc", definitionId: null }));
+    for (const user of [player, other]) expect((await call(user, "codex_set_combat_sheet", cid, id, await versionOf(id), definitionId)).error).toMatch(/sem_permissao/);
+    expect((await call(master, "codex_set_combat_sheet", cid, id, 999, definitionId)).error).toMatch(/conflito_de_versao/);
+    expect((await call(master, "codex_set_combat_sheet", cid, id, await versionOf(id), "custom-inexistente")).error).toMatch(/definicao_inexistente/);
+    expect((await call(master, "codex_set_combat_sheet", cid, id, await versionOf(id), definitionId)).error).toBeUndefined();
+    await reveal(id, ["name"]);
+    expect(JSON.stringify(await seen(id))).not.toContain(definitionId);
+    expect(((await call(master, "codex_list", cid)).rows[0].r as Row[]).find((x) => x.id === id)!.combatDefinitionId).toBe(definitionId);
+    await save(master, id, await versionOf(id), payload("Guarda do Portão", { category: "npc", definitionId: null }));
+    expect((await db.query<Row>("select combat_definition_id c from public.campaign_codex where id=$1", [id])).rows).toEqual([{ c: definitionId }]);
+    expect((await as(master, "select public.codex_definition_remove($1,'monster',$2,1)", [cid, definitionId])).error).toMatch(/definicao_em_uso/);
+    expect((await call(master, "codex_set_combat_sheet", cid, id, await versionOf(id), null)).error).toBeUndefined();
+    expect((await as(master, "select public.codex_definition_remove($1,'monster',$2,1)", [cid, definitionId])).error).toBeUndefined();
   });
   it("item não identificado aparece como descoberta, sem pista do tipo", async () => {
     const id = await save(master, null, 0, payload("Chave do Corvo", { category: "item" }));
@@ -484,6 +542,8 @@ describe("0017 sobre dados existentes", () => {
     db = fresh;
     try {
       for (const f of readdirSync(join(__dirname, "migrations")).filter((x) => x.endsWith(".sql")).sort()) await db.exec(readFileSync(join(__dirname, "migrations", f), "utf8"));
+      await db.exec(readFileSync(join(__dirname, "rollback", "0020_compendio_cartas_bestiario_down.sql"), "utf8"));
+      expect((await db.query<Row>("select public.codex_capabilities() r")).rows).toEqual([{ r: 19 }]);
       await db.exec(readFileSync(join(__dirname, "rollback", "0019_compendio_inventario_campanha_down.sql"), "utf8"));
       expect((await db.query<Row>("select public.codex_capabilities() r")).rows).toEqual([{ r: 18 }]);
       await db.exec(readFileSync(join(__dirname, "rollback", "0018_compendio_definicoes_campanha_down.sql"), "utf8"));
