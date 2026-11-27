@@ -15,7 +15,7 @@ import {normalizar} from '../catalogue/nucleo/busca';
 import {semReferencias} from './referencias';
 export const nomesCategoria:Record<string,string>={npc:'Personagens',character:'Personagens',monster:'Bestiário',location:'Locais',organization:'Organizações',discovery:'Descobertas',item:'Descobertas','catalog-item':'Itens'};
 export const nomesRegistro:Record<string,string>={npc:'NPC',character:'Aventureiro',monster:'Criatura',location:'Local',organization:'Organização',discovery:'Descoberta',item:'Item descoberto','catalog-item':'Item do catálogo'};
-export type LinhaCompendio={/** Linha extra mostrada só na grade. */resumo?:string;id:string;title:string;subtitle:string;category:string;body:string;image?:string|null;spec:TabSpec;entry?:Conhecimento;pc?:Aventureiro;filter?:string;/** Ficha técnica acessível direto da lista (só o mestre). */ficha?:TabSpec};
+export type LinhaCompendio={/** Linha extra mostrada só na grade. */resumo?:string;/** Substitui o rótulo do rodapé do cartão. */rodape?:string;id:string;title:string;subtitle:string;category:string;body:string;image?:string|null;spec:TabSpec;entry?:Conhecimento;pc?:Aventureiro;filter?:string;/** Ficha técnica acessível direto da lista (só o mestre). */ficha?:TabSpec};
 export function useIdentidades(){const source=useAventureiros(),{active}=useCampaigns(),{user}=useAuth(),version=useVersaoRegistros();
  const scope=`${user?.id}:${active?.campaign.id}`;
  const [state,setState]=useState<{scope:string;items:Aventureiro[];error?:string}>();

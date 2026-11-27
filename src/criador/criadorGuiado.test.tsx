@@ -58,7 +58,8 @@ const itensDaFicha = () => {
 };
 const montar = async (user = me) => { localStorage.setItem(activeKey(user.id), 'ca'); return renderApp({ user, api: apiC(jogador), registros: registrosEmMemoria('jogador', user.id, [], { dados: [] }) }); };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Personagens' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Personagens' })); };
-const novoGuiado = async () => { fireEvent.click(await screen.findByRole('button', { name: /Criar personagem/ })); return screen.findByLabelText('Nome do personagem'); };
+const criarAventureiro = async () => { fireEvent.click(await screen.findByRole('button', { name: /^Criar$/ })); fireEvent.click(screen.getByRole('menuitem', { name: 'Criar aventureiro' })); };
+const novoGuiado = async () => { await criarAventureiro(); return screen.findByLabelText('Nome do personagem'); };
 const preencherFicha = async (nome: string) => {
   fireEvent.change(await screen.findByLabelText('Nome do personagem'), { target: { value: nome } });
   await escolherPericiasDeGuerreiro();
@@ -220,7 +221,7 @@ describe('criador guiado no celular', () => {
     await waitFor(() => expect(document.querySelector('.mobile-page-title')?.textContent).toBe(camp.name));
     fireEvent.click(naBarra().getByRole('button', { name: 'Menu' }));
     fireEvent.click(within(await screen.findByRole('dialog', { name: 'Menu de navegação' })).getByRole('button', { name: 'Meus personagens' }));
-    fireEvent.click(await screen.findByRole('button', { name: /Criar personagem/ }));
+    await criarAventureiro();
     fireEvent.change(await screen.findByLabelText('Nome do personagem'), { target: { value: 'Thorin' } });
     expect(screen.queryByRole('tablist')).toBeNull();
     expect(screen.getByTestId('aviso-armazenamento')).toBeTruthy();

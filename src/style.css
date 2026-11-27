@@ -1167,3 +1167,5 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .ciclo-gestao select{width:100%;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:9px;font:inherit}
 .ciclo-alvos{max-height:220px;overflow:auto;margin:0;padding-left:18px}
 .modal label.ciclo-confirmo,.ciclo-gestao label.ciclo-confirmo{display:flex;flex-direction:row;align-items:flex-start;gap:8px;text-align:left}.ciclo-confirmo input{width:auto;flex:none;margin-top:3px}
+/* título focado pelo aplicativo ao abrir a página (leitores de tela): sem contorno */
+[data-foco-automatico]:focus,[data-foco-automatico]:focus-visible{outline:none}

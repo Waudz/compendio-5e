@@ -137,3 +137,7 @@
 .cd-grade-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));gap:0 10px;align-items:end}
 .cd-lista-editor{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-block:12px;min-width:0}
 .cd-lista-editor>div+div{border-top:1px solid var(--line);margin-top:10px}
+.cd-cards > li.cd-marcavel { padding-left:34px; }
+.cd-page .cd-cards input.cd-marcar, .cd-cards input.cd-marcar { position:absolute; left:10px; top:22px; width:18px; height:18px; z-index:1; margin:0; padding:0; }
+.botao-criar > .btn-primary { display:inline-flex; align-items:center; gap:6px; width:auto; margin:0; }
+.personagens h2.personagens-secao { font-size:16px; margin:18px 0 10px; }

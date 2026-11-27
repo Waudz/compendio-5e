@@ -2,7 +2,7 @@ import { test, expect, openDemo, navigate, mobile } from './helpers';
 
 test('barras mobile não interceptam o criador e liberam o espaço ao ocultar', async ({page},info)=>{
  await openDemo(page,'jogador'); await navigate(page,'Personagens');
- await page.getByRole('button',{name:/Criar personagem/}).click();
+ await page.getByRole('button',{name:'Criar',exact:true}).click(); await page.getByRole('menuitem',{name:'Criar aventureiro',exact:true}).click();
  await expect(page.getByRole('textbox',{name:'Nome do personagem',exact:true})).toBeVisible();
  const creator=page.locator('.content.criador.auth.wide');
  if(!mobile(page)){

@@ -1,4 +1,5 @@
 /** Páginas de consulta do Compêndio. São o mesmo conteúdo da janela de consulta (desktop) e da página completa. */
+import {useCiclo} from '../CicloPersonagens';
 import {useJogadoresCampanha} from "../jogadoresCampanha";
 import {useContext,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeft,ClipboardList,Eye,Link2,Pencil,Trash2,Unlink,ExternalLink,Users2} from 'lucide-react';
@@ -121,7 +122,7 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
 
 /** Identidade pública de um aventureiro: a mesma carta no Compêndio e na página inicial. É a projeção do personagem. */
 export function IdentidadePagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
- const jogador=useJogadoresCampanha();
+ const jogador=useJogadoresCampanha(),ciclo=useCiclo();
  const {items,loading,error}=useIdentidades(),{active}=useCampaigns(),{user}=useAuth(),api=useRegistros();const p=items.find(x=>x.id===id);
  const [detail,setDetail]=useState<{scope:string;owner?:string;card:PublicIdentityCard|null}>();const scope=`${user?.id}:${active?.campaign.id}:${id}`;
  useEffect(()=>{let alive=true;if(api&&active)void api.get(id).then(r=>{if(!alive)return;const reg=r.ok&&r.data?.campaignId===active.campaign.id?r.data:null;setDetail({scope,owner:reg?.ownerId,card:reg&&(reg.visibility==='campaign'||reg.ownerId===user?.id)?cartaoPublico(reg.meta):null});},()=>{if(alive)setDetail({scope,card:null});});return()=>{alive=false;};},[api,scope]);
@@ -130,13 +131,15 @@ export function IdentidadePagina({id,onOpenContent}:{id:string;onOpenContent:(s:
  const atual=detail?.scope===scope?detail:undefined,card=atual?.card??null;
  const visto=card?presentation(card):p?{nome:p.nome,alcunha:p.alcunha??null}:null;
  const podeFicha=active?.role==='mestre'||!!p?.meu||(!!atual?.owner&&atual.owner===user?.id);
+ // quem está só no Compêndio saiu da página Personagens: a gestão continua acessível por aqui
+ const gerencia=active?.role==='mestre'&&ciclo.disponivel;
  const fatos:Fato[]=(card?[['race','Raça',card.race],['class','Classe',card.characterClass],['level','Nível',card.level]]:[['class','Classe',p?.classe],['level','Nível',p?.nivel!=null?String(p.nivel):null]])
   .flatMap(([k,rotulo,valor])=>valor?[{k:k!,rotulo:rotulo!,valor}]:[]);
  const descricao=card?card.description:p?.descricao??'';
  return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent} label="Personagens"/>
-  {!p||!visto?<Aviso t={error??'Identidade indisponível nesta campanha.'}/>:<Carta trilha="Personagens / Aventureiro" nome={visto.nome} alcunha={visto.alcunha} rotulo={`Identidade pública de ${visto.nome}`}
+  {!p||!visto?<Aviso t={error??'Identidade indisponível nesta campanha.'}/>:<Carta trilha={p.situacao==='npc'?'Personagens / NPC':p.situacao?'Personagens':'Personagens / Aventureiro'} nome={visto.nome} alcunha={visto.alcunha} rotulo={`Identidade pública de ${visto.nome}`}
    retratoGrande imagem={<RetratoQuadrado src={card?card.imageUrl:p.retratoUrl} tipo="personagem" tamanho={300} ampliar={visto.nome}/>}
-   acoes={podeFicha?<button type="button" className="btn-primary" onClick={()=>onOpenContent({kind:'ficha',ref:id,title:p.nome})}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>:undefined}>
+   acoes={(podeFicha&&p.situacao!=='compendio')||gerencia?<>{podeFicha&&p.situacao!=='compendio'&&<button type="button" className="btn-primary" onClick={()=>onOpenContent({kind:'ficha',ref:id,title:p.nome})}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>}{gerencia&&<button type="button" className="btn-secondary" onClick={()=>ciclo.gerenciar(id)}>Gerenciar personagem</button>}</>:undefined}>
    {jogador(atual?.owner)&&<p className="muted">Jogador: {jogador(atual?.owner)}</p>}
    <FatosCarta fatos={fatos}/>
    {descricao&&<p className="cd-texto">{descricao}</p>}

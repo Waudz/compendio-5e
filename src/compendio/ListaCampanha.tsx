@@ -1,7 +1,8 @@
 import {OrigemAbaContext} from '../abrirEmAba';
 import { registroSpec } from "./navegacao";
 import {useContext,useEffect,useMemo,useState} from 'react';
-import {Plus} from 'lucide-react';
+import {Plus,UserRound,Drama} from 'lucide-react';
+import {BotaoCriar} from '../ui/BotaoCriar';
 import {useAuth} from '../AuthContext';
 import {useCampaigns} from '../CampaignsContext';
 import {Aviso} from '../Diario';
@@ -26,7 +27,7 @@ export function ListaCampanha({category,onBack,onOpenContent}:{category:string;o
  const available=data.rows.filter(r=>category==='personagens'?['npc','character'].includes(r.category):category==='descobertas'?['discovery','item'].includes(r.category)&&r.entry?.registered!==false:r.category===categories[category]);
  const filters:readonly string[]=category==='personagens'?['Todos','Aventureiros','NPCs']:category==='descobertas'?FILTROS_DESCOBERTA:['Todos',...new Set(available.map(r=>r.filter).filter((x):x is string=>!!x))];
  const shown=pesquisarLinhas(available,query).filter(r=>filter==='Todos'||r.filter===filter).sort((a,b)=>a.title.localeCompare(b.title,'pt-BR')*(order==='inverso'?-1:1));
- return <div className="content cd-page"><CabecalhoCategoria title={labels[category]} onBack={onBack} actions={<>{category==='personagens'&&<button className="btn-secondary" onClick={()=>onOpenContent({kind:'criador',ref:'novo-'+crypto.randomUUID(),title:'Novo personagem'})}>Criar personagem</button>}{active?.role==='mestre'&&category!=='monstros'&&<button className="btn-primary" disabled={!!data.error||data.loading} onClick={()=>setCreate(true)}><Plus size={15}/> {category==='personagens'?'Criar NPC':'Novo registro'}</button>}{active?.role==='mestre'&&category==='descobertas'&&<RegistrarItemExistente onOpenContent={onOpenContent}/>}</>}/>
+ return <div className="content cd-page"><CabecalhoCategoria title={labels[category]} onBack={onBack} actions={category==='personagens'?<BotaoCriar opcoes={[{rotulo:'Criar aventureiro',icone:UserRound,acao:()=>onOpenContent({kind:'criador',ref:'novo-'+crypto.randomUUID(),title:'Novo personagem'})},...(active?.role==='mestre'?[{rotulo:'Criar NPC',icone:Drama,desabilitada:!!data.error||data.loading,motivo:'Aguarde o Compêndio carregar.',acao:()=>setCreate(true)}]:[])]}/>:<>{active?.role==='mestre'&&category!=='monstros'&&<button className="btn-primary" disabled={!!data.error||data.loading} onClick={()=>setCreate(true)}><Plus size={15}/> Novo registro</button>}{active?.role==='mestre'&&category==='descobertas'&&<RegistrarItemExistente onOpenContent={onOpenContent}/>}</>}/>
  <FerramentasCategoria query={query} onQuery={setQuery} view={view} onView={setView} order={order} onOrder={setOrder} filters={<div className="cd-filters" role="group" aria-label="Filtros da categoria">{filters.map(f=><button key={f} aria-pressed={filter===f} onClick={()=>setFilter(f)}>{f}</button>)}</div>}/>
  {data.loading&&<p role="status">Carregando registros…</p>}{data.error&&<Aviso erro t={data.error} onRetry={data.refresh}/>}{category==='personagens'&&data.pcError&&<Aviso erro t={data.pcError}/>}
  {!data.loading&&!shown.length&&<p className="muted">{query?'Nenhum resultado para esta pesquisa.':'Nenhum registro disponível nesta categoria.'}</p>}

@@ -8,7 +8,7 @@ async function reabrir(page:Page,role:'mestre'|'jogador'){await page.goto(`?demo
 async function home(page:Page){await navigate(page,'Compêndio');const back=page.locator('.cd-page').getByRole('button',{name:'Compêndio',exact:true});if(await back.count())await back.first().click();}
 async function campaign(page:Page){const tab=page.getByRole('group',{name:'Áreas do Compêndio'}).getByRole('button',{name:'Campanha',exact:true});if(await tab.count())await tab.click();}
 async function create(page:Page,category:string,title:string,publish=true,secret=''){
- await home(page);await campaign(page);await portal(page,category).click();await page.getByRole('button',{name:category==='Personagens'?'Criar NPC':'Novo registro',exact:true}).click();
+ await home(page);await campaign(page);await portal(page,category).click();if(category==='Personagens'){await page.getByRole('button',{name:'Criar',exact:true}).click();await page.getByRole('menuitem',{name:'Criar NPC',exact:true}).click();}else await page.getByRole('button',{name:'Novo registro',exact:true}).click();
  const form=page.getByRole('dialog',{name:'Novo registro',exact:true});await form.getByRole('textbox',{name:'Nome',exact:true}).fill(title);await form.getByRole('textbox',{name:'Descrição compartilhada',exact:true}).fill('Descrição pública de '+title);await form.getByRole('textbox',{name:'Notas privadas do mestre',exact:true}).fill(secret);await form.getByRole('button',{name:'Salvar',exact:true}).click();await expect(form).toBeHidden();await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
  if(publish)await revealAll(page.locator('.cd-record-page').filter({has:page.getByRole('heading',{name:title,exact:true})}));
 }

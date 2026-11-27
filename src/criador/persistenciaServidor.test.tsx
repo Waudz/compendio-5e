@@ -84,7 +84,7 @@ const nomeInput = async () => {
     return screen.getByLabelText("Nome do personagem") as HTMLInputElement;
   });
 };
-const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /Criar personagem/ })); return nomeInput(); };
+const novoGuiado = async () => { fireEvent.click(await screen.findByRole("button", { name: /^Criar$/ })); fireEvent.click(screen.getByRole("menuitem", { name: "Criar aventureiro" })); return nomeInput(); };
 const preencher = async (nome: string) => {
   fireEvent.change(await nomeInput(), { target: { value: nome } });
   await escolherPericiasDeGuerreiro();
@@ -482,10 +482,57 @@ describe("Personagens de outros jogadores",()=>{
 });
 
 
+describe("página Personagens", () => {
+  const resultados = (nome: string) => within(screen.getByRole("list", { name: nome }));
+  const buscar = (texto: string) => fireEvent.change(screen.getByLabelText("Pesquisar por personagem ou jogador"), { target: { value: texto } });
+
+  it("abre em lista, lembra a grade escolhida, pesquisa por personagem e por jogador e não mostra texto explicativo permanente", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
+    await montar(mestreUser); await abrirPersonagens(); await screen.findByRole("list", { name: "Aventureiros" });
+    expect(screen.getByRole("list", { name: "Aventureiros" }).getAttribute("data-view")).toBe("lista");
+    expect(screen.queryByText(/Cada participante cria o próprio personagem/)).toBeNull();
+    expect(screen.queryByText(/ficha de outro participante/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /NPCs e só no Compêndio/ })).toBeNull();
+    expect(await screen.findByText("Jogador: Jogador Um")).toBeTruthy();
+    buscar("jogador um"); expect(resultados("Aventureiros").getAllByRole("listitem")).toHaveLength(1);
+    expect(resultados("Aventureiros").getByRole("button", { name: /^Thorin / })).toBeTruthy();
+    buscar("lyr"); expect(resultados("Aventureiros").getByRole("button", { name: /^Lyra / })).toBeTruthy();
+    buscar("ninguém"); expect(screen.getByText("Nenhum personagem encontrado nesta pesquisa.")).toBeTruthy();
+    buscar(""); fireEvent.click(screen.getByRole("button", { name: "Grade" }));
+    cleanup(); await montar(mestreUser); await abrirPersonagens();
+    expect((await screen.findByRole("list", { name: "Aventureiros" })).getAttribute("data-view")).toBe("grade");
+  });
+
+  it("o mestre vê Aventureiros e NPCs separados; o jogador vê só aventureiros em jogo", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
+    const convertido = banco.fichas.find(f => f.draft.name === "Lyra")!;
+    expect((await fichasEmMemoria(mestreUser.id, banco).ciclo!.agir({ campaignId: "ca", ids: [convertido.id], acao: "npc", operacao: "op-npc" })).ok).toBe(true);
+    await montar(mestreUser); await abrirPersonagens();
+    const npcs = within(await screen.findByRole("list", { name: "NPCs" }));
+    expect(npcs.getByRole("button", { name: /^Lyra / })).toBeTruthy();
+    expect(screen.getByText("NPC · ficha de personagem")).toBeTruthy();
+    expect(resultados("Aventureiros").queryByRole("button", { name: /^Lyra / })).toBeNull();
+    cleanup(); await montar(me); await abrirPersonagens();
+    await screen.findByRole("button", { name: /^Thorin / });
+    expect(screen.queryByRole("button", { name: /^Lyra / })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "NPCs" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Situação dos personagens" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Criar" }));
+    expect(screen.getByRole("menuitem", { name: "Criar aventureiro" })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Criar NPC" })).toBeNull();
+  });
+});
+
 describe("ciclo de vida do personagem", () => {
   const abrirAcoes = async (nome: string, item: string) => {
-    fireEvent.click(await screen.findByRole("button", { name: `Mais ações de ${nome}` }));
+    fireEvent.click(await screen.findByRole("button", { name: `Ações de ${nome}` }));
     fireEvent.click(await screen.findByRole("menuitem", { name: item }));
+  };
+  /** O menu de reticências existe para todos (abrir em nova aba); as ações do ciclo, só para quem pode. */
+  const semAcoesDoCiclo = (nome: string) => {
+    fireEvent.click(screen.getByRole("button", { name: `Ações de ${nome}` }));
+    expect(screen.queryByRole("menuitem", { name: /Gerenciar personagem|Excluir personagem/ })).toBeNull();
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
   };
   const janela = async (titulo: string) => within(await screen.findByRole("dialog", { name: titulo }));
   const semJanela = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -519,7 +566,7 @@ describe("ciclo de vida do personagem", () => {
     expect(banco.fichas[0]).toMatchObject({ ownerId: mestreUser.id });
     expect(banco.fichas[0].draft.inventory).toEqual(inventario);
     await abrirPersonagens(); await screen.findByTestId("personagens-vazio");
-    expect(screen.getByRole("button", { name: /Criar personagem/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Criar$/ })).toBeTruthy();
     // a sessão antiga não grava mais
     expect(await fichasEmMemoria(me.id, banco).salvar(banco.fichas[0].id, banco.fichas[0].revision, banco.fichas[0].draft)).toMatchObject({ ok: false });
     cleanup(); await montar(mestreUser);
@@ -528,18 +575,19 @@ describe("ciclo de vida do personagem", () => {
     const d = await janela("Gerenciar personagem");
     expect(await d.findByText(/Aguardando decisão/)).toBeTruthy();
     fireEvent.click(d.getByRole("button", { name: "Decidir depois" })); await semJanela();
-    await abrirPersonagens(); await screen.findByText("Nenhum personagem neste grupo.");
-    grupo(/^Aguardando decisão 1$/); expect(await screen.findByRole("button", { name: /^Thorin / })).toBeTruthy();
+    await abrirPersonagens(); await screen.findByRole("button", { name: /^Thorin / });
+    grupo(/^Ativos$/); await screen.findByText("Nenhum personagem neste filtro.");
+    grupo(/^Aguardando decisão$/); expect(await screen.findByRole("button", { name: /^Thorin / })).toBeTruthy();
   });
 
   it("mestre arquiva e reativa pela lista; o jogador não recebe a gestão e o arquivado sai das listas de ativos", async () => {
     await criarPersonagem("Thorin"); cleanup(); await montar(other); await abrirPersonagens();
-    await screen.findByRole("button", { name: /^Thorin / }); expect(screen.queryByRole("button", { name: "Mais ações de Thorin" })).toBeNull();
+    await screen.findByRole("button", { name: /^Thorin / }); semAcoesDoCiclo("Thorin");
     expect(screen.queryByRole("button", { name: "Selecionar" })).toBeNull();
     cleanup(); await montar(mestreUser); await abrirPersonagens(); await abrirAcoes("Thorin", "Gerenciar personagem");
     let d = await decidir(/Arquivar personagem/); fireEvent.click(d.getByRole("button", { name: "Confirmar" })); await semJanela();
-    await screen.findByText("Nenhum personagem neste grupo.");
-    grupo(/^Arquivados 1$/); expect(await screen.findByRole("button", { name: /^Thorin / })).toBeTruthy();
+    grupo(/^Ativos$/); await screen.findByText("Nenhum personagem neste filtro.");
+    grupo(/^Arquivados$/); expect(await screen.findByRole("button", { name: /^Thorin / })).toBeTruthy();
     const fonte = fonteAventureirosDoInicio(registrosEmMemoria("mestre", mestreUser.id, [], registros as never), null, fichasEmMemoria(mestreUser.id, banco), mestreUser.id, true);
     expect(await fonte.listar("ca")).toMatchObject({ ok: true, data: [] });
     expect(await fonte.listarTodos!("ca")).toMatchObject({ ok: true, data: [{ situacao: "arquivado" }] });
@@ -628,7 +676,7 @@ describe("ciclo de vida do personagem", () => {
     for (const quem of [me, mestreUser]) {
       cleanup(); await montar(quem); await abrirPersonagens();
       await screen.findByRole("button", { name: /^Thorin / });
-      expect(screen.queryByRole("button", { name: "Mais ações de Thorin" })).toBeNull();
+      semAcoesDoCiclo("Thorin");
       expect(screen.queryByRole("button", { name: "Selecionar" })).toBeNull();
     }
   });

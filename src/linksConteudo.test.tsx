@@ -2,7 +2,7 @@
 // Links internos de conteúdo (decisão de 19/11/2026): abrem aba PERMANENTE ao lado da origem, sem substituir nada, sem duplicar,
 // em qualquer número de painéis. O menu lateral continua reutilizando a aba atual.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, waitFor, screen, within } from "@testing-library/react";
 import { storageKey } from "./persistence";
 import { me, memoryStorage, renderApp } from "./testUtils";
 
@@ -76,7 +76,20 @@ describe("link de conteúdo (desktop)", () => {
     fireEvent.click(screen.getByRole("button",{name:"Descartar alterações"}));
     expect(tabs()).toEqual(["Personagens"]);
   });
-  it("restaura histórico sem nomes privados e permite recuperar aba fechada",async()=>{
+  it("com dois painéis, voltar, avançar e nova aba são de cada um; reabrir e tela cheia aparecem uma vez, no da direita", async () => {
+    await renderApp();
+    const contar = (nome: string) => screen.queryAllByRole("button", { name: nome }).length;
+    expect([contar("Nova aba"), contar("Voltar na aba"), contar("Reabrir aba fechada"), contar("Alternar tela cheia")]).toEqual([1, 1, 1, 1]);
+    fireEvent.click(nav("Iniciativa"), { ctrlKey: true });
+    fireEvent.contextMenu(tabEl("Iniciativa")); pick("Abrir em nova coluna à direita");
+    await waitFor(() => expect(document.querySelectorAll(".flexlayout__tabset")).toHaveLength(2));
+    expect([contar("Nova aba"), contar("Voltar na aba"), contar("Avançar na aba"), contar("Fechar coluna"), contar("Reabrir aba fechada"), contar("Alternar tela cheia")]).toEqual([2, 2, 2, 2, 1, 1]);
+    const direita = document.querySelectorAll(".flexlayout__tabset")[1];
+    expect(direita.querySelector("[aria-label='Reabrir aba fechada']")).toBeTruthy();
+    expect([...direita.querySelectorAll("button[aria-label]")].map(b => b.getAttribute("aria-label")).slice(-2)).toEqual(["Reabrir aba fechada", "Alternar tela cheia"]);
+  });
+
+  it("a marca de permanente é salva sem títulos e restaurada ao recarregar",async()=>{
     const first=await renderApp();link();expect(localStorage.getItem(key)).not.toMatch(/Resumo/);
     first.unmount();await renderApp();expect(tabs()).toEqual(["Documento d1"]);
     fireEvent.contextMenu(tabEl("Documento d1"));expect(menuItems()[0]).toBe("Fixar aba");pick("Fechar aba");

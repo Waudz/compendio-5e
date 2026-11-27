@@ -14,7 +14,12 @@ export function PageViewport({pageKey,positions,children}:{pageKey:string;positi
   const focusTimer=setTimeout(()=>{
     if(document.activeElement!==document.body||!estaVisivel(root.current))return;
     const heading=root.current?.querySelector<HTMLElement>('h1');
-    if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
+    if(heading){
+      // foco só para leitores de tela: o título não entra na ordem do Tab, então não desenha contorno (os controles seguem com focus-visible)
+      heading.tabIndex=-1;heading.dataset.focoAutomatico='';
+      heading.addEventListener('blur',()=>{delete heading.dataset.focoAutomatico;heading.removeAttribute('tabindex');},{once:true});
+      heading.focus({preventScroll:true});
+    }
   },0);
   const stop=()=>{cancelled=true;};el.addEventListener('wheel',stop,{passive:true});el.addEventListener('touchstart',stop,{passive:true});
   return()=>{positions.set(pageKey,el.scrollTop);cancelled=true;clearTimeout(timer);clearTimeout(focusTimer);el.removeEventListener('wheel',stop);el.removeEventListener('touchstart',stop);};
