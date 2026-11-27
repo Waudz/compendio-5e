@@ -136,6 +136,24 @@ try {
     assert.equal(JSON.stringify(await rpc('codex_list',p,{p_campaign:a})).includes('custom-creature'),false);
     for (const entry of [id,npc]) await rpc('codex_remove',m,{p_campaign:a,p_entry:entry,p_version:await codexVersion(entry)});
   });
+  await check('NPC character sheet (0022): real embed marks it, only the master reads or writes it, the page stays private', async () => {
+    const npc = await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:{category:'npc',title:'Sheeted NPC',secret:'NPC-SECRET'}});
+    const body = {p_campaign:a,p_entry:npc,p_version:await codexVersion(npc),p_draft:{id:npc,name:'Sheeted NPC',level:3,classId:'fighter',inventory:[]}};
+    for (const token of [p,o]) assert.equal((await api('/rest/v1/rpc/codex_npc_sheet_create',{token,method:'POST',body})).ok,false);
+    await rpc('codex_npc_sheet_create',m,body);
+    // a mesma seleção do aplicativo (fichas.listar): o vínculo composto desambigua o embed
+    const select = 'character_id,owner_id,revision,nome:draft->>name,nota:notes!character_sheets_nota_campanha_fk(kind)';
+    const rows = await ok(`/rest/v1/character_sheets?campaign_id=eq.${a}&select=${select}`,{token:m});
+    assert.equal(rows.find(x=>x.character_id===npc)?.nota?.kind,'npc');
+    assert.deepEqual(await ok(`/rest/v1/character_sheets?character_id=eq.${npc}`,{token:p}),[]);
+    assert.equal((await ok(`/rest/v1/character_sheets?campaign_id=eq.${a}&select=${select}`,{token:p})).some(x=>x.character_id===npc),false);
+    assert.equal((await reveal(npc,['name'])).ok,true);
+    assert.equal(/characterSheet|NPC-SECRET|fighter/.test(JSON.stringify(await rpc('codex_list',p,{p_campaign:a}))),false);
+    assert.equal((await rpc('codex_list',m,{p_campaign:a})).find(x=>x.id===npc).characterSheet,true);
+    await rpc('save_guided_character',m,{p_id:npc,p_expected_revision:1,p_draft:{...body.p_draft,name:'Renamed sheet',_protocolo:2}});
+    assert.equal((await rpc('codex_list',m,{p_campaign:a})).find(x=>x.id===npc).secret,'NPC-SECRET');
+    assert.equal((await api('/rest/v1/rpc/codex_remove',{token:m,method:'POST',body:{p_campaign:a,p_entry:npc,p_version:await codexVersion(npc)}})).ok,false);
+  });
   await check('codex Storage: real upload, replacement, read boundary and denied writes',async()=>{
     const data={category:'monster',systemId:'dnd5e-2014',definitionId:'storage-test',title:'Storage isolado'};
     const id=await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:data});
