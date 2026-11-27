@@ -54,8 +54,12 @@ export async function navigate(page: Page, name: string) {
       await expect(page.locator('.app.chrome-hidden')).toHaveCount(0);
     }
     const nav = page.getByRole('navigation', {name:'Navegação mobile'});
-    const direct = nav.getByRole('button', {name, exact:true});
-    if (await direct.count()) { await direct.click(); return; }
+    // Após F5/auth, a barra e o papel da campanha ainda podem estar carregando.
+    // Não escolher outro caminho por uma contagem instantânea de elementos.
+    await expect(nav).toBeVisible();
+    if (['Início','Anotações','Iniciativa','Compêndio','Ficha'].includes(name)) {
+      await nav.getByRole('button', {name, exact:true}).click(); return;
+    }
     await nav.getByRole('button', {name:'Menu', exact:true}).click();
     const menu = page.getByRole('dialog', {name:'Menu de navegação'});
     const label = name === 'Conta' ? 'Minha conta' : name === 'Personagens' ? /^(Meus personagens|Personagens)$/ : name === 'Campanhas' || name === 'Gerenciar campanhas' ? /^(Minhas|Gerenciar) campanhas$/ : name;
