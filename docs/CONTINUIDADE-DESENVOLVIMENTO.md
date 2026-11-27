@@ -965,3 +965,17 @@ Resultado adicional local: build final e tipos E2E aprovados. Ficha em 320/390: 
 
 
 Validação final local concluída: **1821/1821 testes** aprovados (relatório alpha-final.json), build e tipos E2E aprovados. CI de 5fba414: Validar projeto e Preview aprovados; E2E ainda em execução. Alpha falhou duas vezes antes da stack: npm 404 para @ecies/ciphers durante instalação do CLI, sem executar cenários. Ajuste pontual do workflow usa supabase/setup-cli@v3, mantendo CLI 3.2.0 e o fallback oficial verificado por checksum; mesmos comandos locais, barreiras e testes. Resultado do novo HEAD deve ser confirmado no PR.
+
+## RETOMAR AQUI — Ciclo de vida dos personagens (27/11/2026, branch `codex/personagens-exclusao-visibilidade`)
+
+**PR #167 integrado e publicado:** merge `a3200c3` (árvore idêntica ao HEAD aprovado `2ecc871`); "Publicar versão de testes" e E2E da `main` aprovados.
+
+**Nesta branch (não mesclada, não publicada, nenhum SQL aplicado):** o trabalho local do Codex que não tinha sido enviado foi salvo como estava (`b3ea4a6`); a 0021 foi reescrita conforme a DEC-038, com interface do jogador e do mestre, transferência com aceite, lote, avisos e as duas origens do "oculto dos jogadores". Guia completo, aplicação e limites: [EXCLUSAO-VISIBILIDADE-PERSONAGENS.md](EXCLUSAO-VISIBILIDADE-PERSONAGENS.md).
+
+Corrigido no caminho: no celular o menu de contexto apenas navegava, e as ações da lista ficavam inacessíveis.
+
+**Ordem de publicação:** aplicar a 0021 antes de publicar o aplicativo (sem ela as ações simplesmente não aparecem). O reparo das identidades antigas é independente e precisa de autorização própria.
+
+**Não feito:** consulta ou escrita em produção; verificação em celular físico; Auth/REST reais fora do CI (o cenário do ciclo foi acrescentado a `scripts/alpha/run-local.mjs` e roda no workflow Alpha Supabase isolado do PR). Decisão pendente: apagar ou manter a cópia privada após a exclusão definitiva.
+
+**Próximo passo exato:** com o ciclo revisado e integrado, **Minhas anotações do jogador** (DEC-035): lista por última edição, título, BlockNote existente (`EditorLazy`/`PageEditor`), tela cheia no celular, salvamento automático, recuperação, retorno à lista preservando o documento, privadas por usuário e campanha inclusive para o mestre, preservando as notas atuais. Ainda não iniciado. Depois: foto da conta, #100 (criação sem escolhas prévias), #96/#99 e o roteiro com mestre e dois jogadores.

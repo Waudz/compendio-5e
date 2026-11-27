@@ -46,3 +46,13 @@ O responsável registra os problemas nas issues do GitHub e avisa quais correç�
 - Desktop: Personagens → próprio personagem abre ficha; outro jogador abre carta e fecha sem sair da lista. Mestre mantém acesso à ficha. Conferir nome do jogador responsável, sem e-mail.
 - Abas e Tudo salvo devem alinhar ao cabeçalho em janela larga, dividida, tela cheia e celular.
 - Sino → Marcar todas como lidas: contador e Descobertas atualizam; recarregar/abrir em outro aparelho deve preservar leitura. Notificação recebida depois não deve desaparecer. Em falha de rede, conferir aviso e tentar novamente, sem excluir notificações.
+
+## Ciclo de vida dos personagens (só depois que a 0021 for aplicada e o aplicativo publicado)
+
+1. Jogador: na ficha (reticências) ou na lista, "Excluir personagem". Confirme o aviso. A ficha some para você, em todos os seus aparelhos; crie outro personagem.
+2. Mestre: abra o aviso no sino. Teste "Decidir depois" e retome em Personagens → "Aguardando decisão".
+3. Mestre: arquive um personagem, converta outro em NPC e reative. Confira que ficha, inventário e vínculos continuam.
+4. Mestre: transfira para outro jogador. Antes do aceite nada muda; depois, só o destinatário controla.
+5. Mestre: "Manter apenas no Compêndio" e "Excluir definitivamente" em personagens de teste. Confira combate, diário e textos.
+6. Mestre: para limpar personagens de teste, Selecionar → "Selecionar todos da campanha" → Excluir (digite EXCLUIR). É definitivo.
+7. Início, Personagens e Compêndio não devem mostrar "oculto dos jogadores" em personagem ativo.

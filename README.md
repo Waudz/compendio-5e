@@ -54,7 +54,9 @@ Campanha reúne aventureiros/NPCs, Bestiário conhecido, Locais, Organizações 
 
 ## Cartas do Compêndio e bestiário narrativo (27/11/2026, em revisão)
 
-Consulta em cartas, bestiário somente narrativo e fichas com abas (DEC-034). **Publicação depende da migração 0020** (proposta, não aplicada). 0017–0019 já estão em produção. Para testar sem Supabase: `npm run dev` e abra `http://localhost:5173/compendio-5e/?demo=mestre` e, em outra aba, `?demo=jogador` (os dois compartilham os dados do navegador). Roteiro em `docs/CONTINUIDADE-DESENVOLVIMENTO.md`.
+Consulta em cartas, bestiário somente narrativo e fichas com abas (DEC-034). A migração 0020 consta como aplicada em produção (relatório de 27/11/2026). Para testar sem Supabase: `npm run dev` e abra `http://localhost:5173/compendio-5e/?demo=mestre` e, em outra aba, `?demo=jogador` (os dois compartilham os dados do navegador). Roteiro em `docs/CONTINUIDADE-DESENVOLVIMENTO.md`.
+
+Ciclo de vida dos personagens (DEC-038): renúncia do jogador, decisões do mestre, transferência com aceite e exclusão em lote. **Depende da migração 0021 (proposta, não aplicada)**; guia em `docs/EXCLUSAO-VISIBILIDADE-PERSONAGENS.md`. 0017–0020 já estão em produção.
 
 ## Validação no GitHub Actions e previews
 
