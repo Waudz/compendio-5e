@@ -1,8 +1,12 @@
--- 0022 — PROPOSTA, NÃO APLICADA. Requer 0001–0021. Não aplicar em produção sem autorização específica.
--- DEC-039, etapa 2: NPC do Compêndio com ficha de personagem, SEM segunda identidade. A ficha usa o mesmo ID do registro narrativo
--- (character_sheets.character_id = campaign_codex.id = notes.id). Um NPC tem no máximo uma ficha: de criatura (referência da 0020)
--- OU de personagem. A ficha é só do mestre; a projeção do jogador não muda.
--- Aditiva: nenhum dado existente é alterado. Reversão em supabase/rollback/0022_npc_ficha_de_personagem_down.sql.
+-- 0022 — PRONTA PARA APLICAR, ainda NÃO APLICADA. Requer 0001–0021. Aplicar em produção SOMENTE com autorização do responsável,
+-- seguindo docs/APLICAR-0022.md (diagnóstico antes e depois: supabase/preflight/0022_conferir.sql).
+-- Personagens e NPCs integrados (DEC-040 e DEC-041):
+--  1. Ficha de personagem em NPC do Compêndio, com o MESMO ID da página; um NPC tem no máximo uma ficha; só o mestre atual.
+--  2. codex_npc_sheet_set: adicionar, substituir ou remover (criatura própria `custom-npc-<id>` ou personagem) numa transação;
+--     a ficha perdida fica 30 dias em cópia privada, fora da API.
+--  3. character_life: estado vital (NPCs e aventureiros) e PV/condições do NPC com ficha de criatura.
+--  4. Combate e encontros aceitam a referência 'npc'; o estado vital entra no conhecimento por campo.
+-- Aditiva: nenhum dado existente é alterado. Reversão em supabase/rollback/0022_npc_ficha_de_personagem_down.sql (recusa após uso).
 begin;
 do $$ begin
  if public.codex_capabilities() <> 21 then raise exception 'migracao_0022_exige_0021'; end if;

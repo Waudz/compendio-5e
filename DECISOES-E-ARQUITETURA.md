@@ -501,3 +501,7 @@ Decisão do responsável: as etapas restantes da DEC-039 viram uma entrega só (
 - **Estado vital** (vivo, morto, desconhecido) em `character_life`, para NPCs e aventureiros, só o mestre altera. 0 PV não é morte; "Confirmar morte" na Iniciativa muda o estado; mortos ficam fora das listas de combatentes, salvo pedido. O jogador vê o do NPC quando revelado (conhecimento por campo) e o do próprio aventureiro pela tabela; não aparece nos cartões do Compêndio.
 - **Compatibilidade:** sem a 0022 o aplicativo se comporta como antes (versão 21 do banco).
 - **Fora desta entrega:** filtro por estado vital nas listas (previsto na DEC-039) e o estado vital do próprio aventureiro na tela do jogador.
+
+### DEC-042 — Encerramento de personagens e NPCs; próxima tarefa (27/11/2026)
+
+O responsável aprovou o PR #170 e **encerrou o módulo**: sem novo escopo, auditorias ou refinamentos. Ordem: validar, documentar, preparar a 0022, **aplicar só com autorização**, mesclar o #170 e confirmar a publicação. A tarefa seguinte é a **reformulação das anotações dos jogadores** (DEC-035; ponto de partida em `docs/ANOTACOES-JOGADOR.md`).

@@ -324,9 +324,18 @@ describe("aplicação e reversão da 0022", () => {
       const npc = await novoNpc("Mira");
       expect((await chamar(mestre, "codex_set_combat_sheet", campanha, npc, await versao(npc), "goblin")).error).toBeUndefined();
       const antes = await estado(banco);
+      const diagnostico = async () => (await banco.exec(sql("preflight", "0022_conferir.sql"))).map(r => r.rows as Row[]);
+      const [funcoesAntes, objetosAntes, contagensAntes, zerosAntes] = await diagnostico();
+      expect(funcoesAntes.map(f => f.situacao)).toEqual(Array(12).fill("antes"));
+      expect(objetosAntes[0]).toEqual({ versao: 21, tem_operacao_de_ficha: false, tem_estado_vital: false, tem_retencao_de_npc: false });
       await banco.exec(sql("migrations", "0022_npc_ficha_de_personagem.sql"));
       expect(await estado(banco)).toBe(antes);
       expect((await chamar(mestre, "codex_capabilities")).rows[0].r).toBe(22);
+      const [funcoesDepois, objetosDepois, contagensDepois, zerosDepois] = await diagnostico();
+      expect(funcoesDepois.map(f => f.situacao)).toEqual(Array(12).fill("depois"));
+      expect(objetosDepois[0]).toEqual({ versao: 22, tem_operacao_de_ficha: true, tem_estado_vital: true, tem_retencao_de_npc: true });
+      expect(contagensDepois).toEqual(contagensAntes);
+      for (const z of [zerosAntes, zerosDepois]) expect(Object.values(z[0]).map(Number)).toEqual([0, 0]);
       await banco.exec(sql("rollback", "0022_npc_ficha_de_personagem_down.sql"));
       expect(await estado(banco)).toBe(antes);
       expect((await chamar(mestre, "codex_capabilities")).rows[0].r).toBe(21);
