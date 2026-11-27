@@ -594,6 +594,20 @@ describe("ciclo de vida do personagem", () => {
     expect(banco.fichas).toHaveLength(0); expect(registros.dados).toHaveLength(0);
   });
 
+  it("no celular, o botão de ações da lista abre o menu (e não a ficha)", async () => {
+    await criarPersonagem("Thorin"); cleanup();
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("max-width"), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }));
+    await montar(me);
+    const barra = () => within(screen.getByRole("navigation", { name: "Navegação mobile" }));
+    await waitFor(() => expect(barra().getByRole("button", { name: "Menu" })).toBeTruthy());
+    fireEvent.click(barra().getByRole("button", { name: "Menu" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Meus personagens" }));
+    await abrirAcoes("Thorin", "Excluir personagem");
+    await renunciar(); await semJanela();
+    expect(banco.fichas[0].ownerId).toBe(mestreUser.id);
+    expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
+  });
+
   it("sem a atualização do banco, nenhuma ação do ciclo é oferecida", async () => {
     await criarPersonagem("Thorin"); banco.semCiclo = true;
     for (const quem of [me, mestreUser]) {

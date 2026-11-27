@@ -155,7 +155,7 @@ function Renuncia({ id, onFechar, onFeito }: { id: string; onFechar: () => void;
     {p?.meu && <>
       <p>Você vai perder o controle de <strong>{p.nome}</strong> nesta campanha: a ficha sai da sua lista e você não poderá mais abri-la nem editá-la.</p>
       <p>O mestre será avisado e decide o destino do personagem. Ele pode preservar a ficha, o inventário, o progresso, a identidade e os vínculos. Alterações ainda não salvas são descartadas. Você pode criar outro personagem em seguida.</p>
-      <label className="check"><input type="checkbox" checked={ciente} disabled={op.ocupado} onChange={e => setCiente(e.target.checked)}/> Entendo que vou perder o controle deste personagem</label>
+      <label className="check ciclo-confirmo"><input type="checkbox" checked={ciente} disabled={op.ocupado} onChange={e => setCiente(e.target.checked)}/> Entendo que vou perder o controle deste personagem</label>
     </>}
     {op.erro && <p role="alert">{op.erro}</p>}
   </Modal>;
@@ -220,7 +220,7 @@ function Gestao({ id, onFechar, onFeito }: { id: string; onFechar: () => void; o
       </fieldset>
       {escolha === "transferir" && <label>Novo jogador<select value={destino} onChange={e => setDestino(e.target.value)}><option value="">Selecione</option>
         {membros.filter(m => m.user_id !== p.ownerId).map(m => <option key={m.user_id} value={m.user_id}>{m.display_name}{m.user_id === user?.id ? " (você, sem precisar de aceite)" : ""}</option>)}</select></label>}
-      {destrutiva && <label className="check"><input type="checkbox" checked={confirmado} onChange={e => setConfirmado(e.target.checked)}/>
+      {destrutiva && <label className="check ciclo-confirmo"><input type="checkbox" checked={confirmado} onChange={e => setConfirmado(e.target.checked)}/>
         {escolha === "excluir" ? `Confirmo a exclusão definitiva de ${p.nome}` : `Confirmo a remoção da ficha técnica de ${p.nome}`}</label>}
     </div>}
     {op.erro && <p role="alert">{op.erro}</p>}

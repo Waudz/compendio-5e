@@ -14,6 +14,7 @@ import { consumirVoltar, EVENTO_FECHAR_TELA, pedirFicha } from "./voltarInterno"
 import { Panel } from "./Panel";
 import { PersonagensPanel } from "./Personagens";
 import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
+import { ContextMenu, type MenuState } from "./ContextMenu";
 import { tabId, defaultTitle, type TabSpec } from "./workspace";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
@@ -103,6 +104,7 @@ export function Mobile(_props: Props) {
     window.addEventListener(CICLO_ACESSO, perder); return () => window.removeEventListener(CICLO_ACESSO, perder);
   }, [active?.campaign.id, user?.id, current, screen, unsaved]);
   const navigate = irPara;
+  const [acoes, setAcoes] = useState<MenuState | null>(null);
   const goBack = () => {
     if (consumirVoltar()) return;
     if (!history.length) { irPara(home); return; }
@@ -181,7 +183,7 @@ export function Mobile(_props: Props) {
   }, [registros, escopoFicha]);
   const fichaPropria = !isMaster && screen.kind === "ficha" && !!user && !!active && propriedade === escopoFicha;
   const meus = !isMaster && isPage("meus-personagens");
-  return <AbrirEmAbaContext.Provider value={{navegar:s=>navigate(s),abrir:s=>navigate(s),mostrar:(_x,_y,s)=>navigate(s)}}><div className="mobile mobile-simple">
+  return <AbrirEmAbaContext.Provider value={{navegar:s=>navigate(s),abrir:s=>navigate(s),mostrar:(x,y,s,_origem,extras)=>{if(extras?.length)setAcoes({x,y,items:[{label:"Abrir",onSelect:()=>navigate(s)},...extras]});else navigate(s);}}}><div className="mobile mobile-simple">
     {!fichaPropria && !meus && <header className="mobile-topbar">
       <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
       <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{pageTitle}</span></div>
@@ -198,5 +200,6 @@ export function Mobile(_props: Props) {
       <button className={menuOpen ? "active" : ""} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/><span>Menu</span></button>
     </nav>
     {menuOpen && <GlobalMenu onNavigate={navigate} onClose={() => setMenuOpen(false)}/>}
+    {acoes && <ContextMenu menu={acoes} onClose={() => setAcoes(null)}/>}
   </div></AbrirEmAbaContext.Provider>;
 }
