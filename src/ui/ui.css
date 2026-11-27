@@ -18,6 +18,17 @@
 .menu-acoes-lista button:hover:not(:disabled), .menu-acoes-lista button:focus-visible { background: var(--hover); }
 .menu-acoes-lista button:disabled { color: var(--muted); cursor: default; }
 .menu-acoes-lista button.perigo { color: var(--danger); }
+/* seleção múltipla: textos discretos; ações coletivas só com algo marcado */
+.multi-selecao { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0 0 10px; font-size: 13px; }
+.multi-selecao .multi-selecao-link { background: none; border: 0; padding: 6px 0; margin: 0; width: auto; color: var(--accent-text, var(--accent)); font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; }
+.multi-selecao .multi-selecao-link:hover { text-decoration: underline; }
+.multi-selecao-contagem { color: var(--text-2); }
+.multi-selecao-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.multi-selecao-acoes button { width: auto; margin: 0; padding: 6px 10px; font-size: 13px; }
+.home-party { grid-auto-rows: 1fr; }
+/* nome em destaque; alcunha em linha própria, secundária e em itálico */
+.nome-alcunha { display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
+.nome-alcunha .nome-alcunha-apelido { font-style: italic; font-weight: 400; font-size: 13px; color: var(--text-2); }
 .menu-acoes-titulo { margin: 0; padding: 6px 9px 8px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 650; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .menu-acoes-lista button.perigo { border-top: 1px solid var(--line); border-radius: 0 0 5px 5px; margin-top: 3px; }
 /* telas muito estreitas: o menu vira uma janela inferior, acima da barra de navegação */

@@ -26,7 +26,7 @@ export function FichaMonstro({ monstro: m, nome, retrato, personalizado, memoria
   const trocar = (a: Aba) => { setAba(a); try { sessionStorage.setItem(chave, a); } catch { /* só não lembra */ } };
   const gesto = useGestoAbas(abas.map(([a]) => a), aba, trocar);
   const titulo = nome ?? m.nome;
-  return <div className="content ficha auth wide ficha-jogo ficha-criatura sistema-dnd" {...gesto}>
+  return <div className="content ficha auth wide ficha-jogo ficha-criatura sistema-dnd" {...gesto}><div className="ficha-largura">
     {voltar}
     <section className="ficha-cabecalho" aria-label="Resumo da criatura">
       <div className="ficha-identidade">
@@ -51,5 +51,5 @@ export function FichaMonstro({ monstro: m, nome, retrato, personalizado, memoria
       {aba === "habilidades" && <div className="ficha-pilha"><HabilidadesDoMonstro monstro={m} onAbrirMagia={onAbrirMagia}/><FonteDoMonstro monstro={m} personalizado={personalizado}/></div>}
       {aba === terceira.id && terceira.conteudo}
     </div>
-  </div>;
+  </div></div>;
 }

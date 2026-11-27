@@ -983,3 +983,20 @@ Corrigido no caminho: no celular o menu de contexto apenas navegava, e as açõe
 ### PR #168 e decisão de retenção (27/11/2026)
 
 PR **#168** aberto pelo responsável: https://github.com/Waudz/compendio-5e/pull/168. **Não mesclar nem aplicar a 0021** sem revisão e autorização. A decisão pendente sobre a cópia foi respondida (retenção em `EXCLUSAO-VISIBILIDADE-PERSONAGENS.md`): 30 dias em "só no Compêndio", sem prazo no arquivamento e nenhuma cópia na exclusão definitiva, com confirmação exigida também pelo banco. No commit anterior (`83f8839`) passaram Preview, Validar projeto e Alpha Supabase isolado, incluindo o cenário do ciclo com Auth/REST reais. Depois de aplicar a 0021, é obrigatório conferir o agendamento da limpeza.
+
+## RETOMAR AQUI — DEC-039, etapa 1 concluída (branch `feat/alpha-personagens-etapa1`)
+
+Base: `main` em `49f4600` (#168 publicado; Pages e E2E da main aprovados). 0021 já aplicada em produção — **não reaplicar**. Etapa 1 sem migração.
+
+**Etapa 1:** página Personagens com os componentes do Compêndio (lista padrão, grade, preferência por usuário, busca por personagem e jogador, ordenação, reticências), seções Aventureiros e NPCs (convertidos e NPCs do Compêndio com ficha de criatura), filtros de situação, sem texto permanente nem "ficha de outro participante"; "+ Criar" único (`ui/BotaoCriar`); quem está só no Compêndio é gerenciado pela identidade. Foco do título sem contorno; reabrir/tela cheia só no grupo da direita; ficha de criatura alinhada (o #167 tinha trocado `.ficha-jogo > *` por `.ficha-largura` sem envolver `FichaMonstro`).
+
+**Refinamentos da etapa 1 (PR #169):** seleção múltipla reutilizável em `ui/SelecaoMultipla` (link "Selecionar"; vale só o elegível e visível no filtro); em painel de até 700px (celular ou grupo estreito) a situação vira um seletor e a ordenação um ícone com menu (`compacta` em `FerramentasCategoria`); seção NPCs sempre presente para o mestre, com aviso quando não há ficha; cartões `enxuto`, com `LinhaCompendio.estado` reservado para PV e condições (sem sincronização ainda). A alcunha tem linha própria (secundária, itálico) pelo componente `ui/NomeComAlcunha`, nunca no subtítulo; no Compêndio, a do aventureiro continua vindo da identidade pública. Os cartões de pessoas têm a mesma altura (lista e grade; em Personagens, também entre as seções, com limite de linhas por texto); o retrato genérico reduzido só vale quando nenhum cartão da página tem imagem.
+
+**Provisório até a etapa 3:** em Personagens, "Criar NPC" cria o NPC narrativo e abre a identidade com o aviso para atribuir a ficha ("Vincular ficha de combate", só modelo de criatura compartilhado). **Pendentes da DEC-039:** PV/condições na lista e filtro de estado vital (etapas 4 e 5).
+
+**Próximo passo exato — etapa 2 (identidade e tipos de ficha de NPC).** Fatos já levantados:
+- NPC do Compêndio = `notes` (kind `npc`) + `campaign_codex`; sua ficha de criatura é só `combat_definition_id` (0020), **referência a uma definição do catálogo ou da campanha**, compartilhada: editar altera todos que a usam.
+- Ficha própria de criatura sem migração: copiar o modelo para uma `campaign_definitions` exclusiva (`custom-…`) com `codex_definition_save` e apontar com `codex_set_combat_sheet`. É preciso **ocultar essas cópias** das listas do bestiário e tratar a remoção (`codex_definition_remove` recusa definição em uso).
+- Ficha de personagem exige nota `kind='character'` (`notes_ficha_guard`, `nota_guiada_ativa`, políticas de `character_sheets`). Dar ficha de personagem a um NPC do Compêndio **sem criar segunda identidade** pede migração: ou permitir a ficha ligada à nota `npc` do Codex, ou converter o registro preservando o ID, o conhecimento por campo e os vínculos. É a decisão técnica central da etapa; preparar, testar isolado e pedir autorização antes de produção.
+- Personagem convertido em NPC continua nota `character` (0021) e não tem conhecimento por campo; a etapa 2 deve unificar a apresentação.
+- Estado vital (etapa 5) deve entrar no registro narrativo e nas chaves de `codex_reveal`; os dois tipos de nota acima precisam dele.

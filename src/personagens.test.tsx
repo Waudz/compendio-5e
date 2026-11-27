@@ -42,7 +42,7 @@ describe("Personagens e Aventureiros", () => {
     const store = { dados: [pc("p1", me.id, "Lydia", "private", { classe: "Clériga", nivel: 4 })] };
     await renderApp({ api: apiC(jogador), registros: registrosEmMemoria("jogador", me.id, [], store) });
     await abrir("Personagens");
-    fireEvent.click(screen.getByRole("button", { name: "Criar personagem" }));
+    fireEvent.click(screen.getByRole("button", { name: "Criar" })); fireEvent.click(screen.getByRole("menuitem", { name: "Criar aventureiro" }));
     expect(await screen.findByLabelText("Nome do personagem")).toBeTruthy();
     await abrir("Personagens");
     fireEvent.click(await screen.findByRole("button", { name: /^Lydia/ }));

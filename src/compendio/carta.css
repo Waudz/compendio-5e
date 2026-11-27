@@ -20,7 +20,7 @@
 .carta-imagem[data-formato=simbolo] .retrato-q { width: min(140px, 46%) !important; border-radius: 50%; }
 .carta-imagem .retrato-q img { width: 100%; height: 100%; object-fit: cover; }
 .content .carta h1.carta-nome { text-align: center; font-size: 21px; margin: 6px 0 2px; }
-.content .carta .carta-alcunha { text-align: center; font-style: italic; margin: 0 0 2px; }
+.content .carta .carta-alcunha { text-align: center; font-style: italic; font-size: 14px; color: var(--text-2); margin: 0 0 2px; }
 .content .carta .carta-linha { text-align: center; font-size: 13px; margin: 0; }
 .carta-acoes { display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
 .carta-acoes button, .carta-acoes .btn-secondary, .carta-acoes .menu-acoes-gatilho { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 5px 10px; font-size: 12.5px; border-radius: 7px; margin: 0; }
@@ -98,7 +98,7 @@
 /* contraste AA dos links de texto sobre o fundo da carta */
 .carta .btn-link { color: var(--accent-text); }
 /* no celular a barra superior já tem o Voltar */
-.mobile .ficha-criatura > .cd-back { display: none; }
+.mobile .ficha-criatura > .ficha-largura > .cd-back { display: none; }
 
 /* retrato em destaque nas cartas de personagens e criaturas (o das fichas técnicas continua compacto) */
 .carta-imagem .retrato-ampliar { width: min(200px, 64%); }

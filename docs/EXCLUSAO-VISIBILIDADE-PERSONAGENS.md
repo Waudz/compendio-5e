@@ -1,6 +1,8 @@
 # Ciclo de vida e visibilidade dos personagens (0021)
 
-Especificação do responsável de 27/11/2026. **Substitui** a versão anterior deste documento (exclusão arquivada pelo jogador). Nada foi aplicado em produção; a proposta anterior de 0021 nunca foi aplicada e foi reescrita.
+Especificação do responsável de 27/11/2026. **Substitui** a versão anterior deste documento (exclusão arquivada pelo jogador).
+
+**Estado (27/11/2026, informado pelo responsável):** PR #168 integrado e publicado; **0021 aplicada em produção** (não reaplicar); reparo das 4 identidades ocultas concluído com as 7 fichas preservadas; agendamento de retenção ativo. O roteiro de aplicação abaixo fica como registro. A organização das listas descrita pela DEC-039 substitui a da primeira entrega.
 
 ## Como funciona
 
@@ -65,4 +67,4 @@ Não é possível saber em produção quantos registros há em cada caso sem rod
 
 SHA-256 (fim de linha LF): migração `6d3f30a3c128178ff84f455361dcea3894e7cab278d711c8d85b2e0e59683016`; reparo `7816a708bfe28bf1c69973f77f3010707836122f5a9c1ed8e3568d280241a438`. Recalcular se mudarem.
 
-Nenhuma limpeza de personagens é automática. Os de teste podem ser removidos pelo mestre em Personagens → Selecionar → "Selecionar todos da campanha".
+Nenhuma limpeza de personagens é automática. Os de teste podem ser removidos pelo mestre em Personagens → "Selecionar" → "Selecionar todos" (vale o que estiver visível no filtro; quem está só no Compêndio é removido pela identidade).

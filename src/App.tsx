@@ -331,14 +331,17 @@ function Workspace({ userId }: { userId: string }) {
   const renderSet = useCallback((node: TabSetNode | { getType(): string }, v: { buttons: ReactNode[] }) => {
     if(node instanceof TabSetNode){
       v.buttons.push(<button key="new" className="grp-close" title="Nova aba" aria-label="Nova aba" onClick={()=>{model.doAction(Actions.setActiveTabset(node.getId()));openMenu({kind:"nova",ref:crypto.randomUUID(),title:"Nova aba"});}}><Plus size={14}/></button>);
-      v.buttons.push(<button key="reopen" className="grp-close" title="Reabrir aba fechada" aria-label="Reabrir aba fechada" disabled={!closed.current.length} onClick={reopen}><RotateCcw size={14}/></button>);
-      v.buttons.push(<button key="full" className="grp-close" title="Alternar tela cheia" aria-label="Alternar tela cheia" onClick={()=>{const app=document.querySelector<HTMLElement>(".app");void (document.fullscreenElement?document.exitFullscreen?.():app?.requestFullscreen?.())?.catch(()=>{});}}><Maximize size={14}/></button>);
     }
     if(node instanceof TabSetNode){const tab=node.getSelectedNode();if(tab instanceof TabNode){const h=historyOf(tab);
       v.buttons.unshift(<span className="workspace-history" key="history"><button title="Voltar na aba" aria-label="Voltar na aba" disabled={h.index===0} onClick={()=>step(tab.getId(),h.index-1)}><ArrowLeft size={14}/></button><button title="Avançar na aba" aria-label="Avançar na aba" disabled={h.index===h.pages.length-1} onClick={()=>step(tab.getId(),h.index+1)}><ArrowRight size={14}/></button></span>);
     }}
     if (node instanceof TabSetNode && groupCount(model) > 1)
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={guarded(node.getChildren().map(c => c.getId()), () => closeGroup(model, node.getId()))}><X size={14}/></button>);
+    // reabrir aba fechada e tela cheia valem para o aplicativo todo: uma vez, no grupo mais à direita
+    if (node instanceof TabSetNode && node.getId() === groups(model).at(-1)?.getId()) {
+      v.buttons.push(<button key="reopen" className="grp-close" title="Reabrir aba fechada" aria-label="Reabrir aba fechada" disabled={!closed.current.length} onClick={reopen}><RotateCcw size={14}/></button>);
+      v.buttons.push(<button key="full" className="grp-close" title="Alternar tela cheia" aria-label="Alternar tela cheia" onClick={()=>{const app=document.querySelector<HTMLElement>(".app");void (document.fullscreenElement?document.exitFullscreen?.():app?.requestFullscreen?.())?.catch(()=>{});}}><Maximize size={14}/></button>);
+    }
   }, [model, onModelChange, unsaved.api, step, reopen, openMenu]);
 
   // Ficha de monstro pela Iniciativa: outro grupo no computador; no celular, na própria aba, para Voltar devolver ao combate.
