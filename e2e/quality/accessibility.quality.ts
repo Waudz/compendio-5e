@@ -56,7 +56,7 @@ test('Escape fecha o menu contextual e devolve foco ao acionador', async ({ page
 test('diálogo do menu mobile recebe foco, contém Tab e fecha com Escape', async ({ page }, info) => {
   test.skip(!mobile(page), 'Menu mobile não existe no desktop.');
   await openDemo(page);
-  const trigger = page.getByRole('button', { name: 'Abrir menu', exact: true });
+  const trigger = page.getByRole('button', { name: 'Menu', exact: true });
   await trigger.focus(); await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog', { name: 'Menu de navegação' });
   await expect(dialog).toBeVisible(); await evidence(page, info, 'menu-mobile');

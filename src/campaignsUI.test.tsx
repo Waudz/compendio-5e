@@ -42,9 +42,11 @@ function mount(api: ReturnType<typeof fakeApi> | null, user: User | null = me) {
 const nav = (name: string) => within(screen.getByRole("navigation", { name: "Menu principal" })).getByRole("button", { name });
 /** O jsdom não mede tamanhos, então o conteúdo do FlexLayout não é desenhado: usamos a visão simples (celular), que usa o mesmo estado e os mesmos painéis. */
 const openMobile = async (section: string) => {
+  const direct = within(await screen.findByRole("navigation", {name:"Navegação mobile"})).queryByRole("button", {name: section});
+  if (direct) {fireEvent.click(direct); return;}
   // visão simples: as demais telas ficam no menu; a tela remonta ao carregar as campanhas, então tenta até o menu aparecer
-  await waitFor(() => { const m = document.querySelector<HTMLElement>(".mobile-simple"); if (!m) throw new Error("visão simples ausente"); if (!document.querySelector('[role="dialog"][aria-label="Menu de navegação"]')) fireEvent.click(within(m).getByRole("button", { name: "Abrir menu" })); expect(document.querySelector('[role="dialog"][aria-label="Menu de navegação"]')).toBeTruthy(); });
-  fireEvent.click(within(await screen.findByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: section === "Campanhas" ? "Gerenciar campanhas" : section }));
+  await waitFor(() => { const m = document.querySelector<HTMLElement>(".mobile-simple"); if (!m) throw new Error("visão simples ausente"); if (!document.querySelector('[role="dialog"][aria-label="Menu de navegação"]')) fireEvent.click(within(m).getByRole("button", { name: "Menu" })); expect(document.querySelector('[role="dialog"][aria-label="Menu de navegação"]')).toBeTruthy(); });
+  fireEvent.click(within(await screen.findByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: section === "Campanhas" ? /^(Gerenciar|Minhas) campanhas$/ : section }));
 };
 const fill = (label: string | RegExp, v: string) => fireEvent.change(screen.getByLabelText(label), { target: { value: v } });
 
@@ -256,14 +258,14 @@ describe("convites por link", () => {
     expect(screen.queryByText("Mesa do Caio")).toBeNull();
   });
 
-  it("cadastro fechado e recuperação preservam o convite sem criar contas", async () => {
+  it("cadastro e recuperação preservam somente convites válidos", async () => {
     withInvite();
     const { createAuthApi } = await import("./auth");
     const signUp = vi.fn(async () => ({ data: { user: { identities: [{}] }, session: null }, error: null }));
     const resetPasswordForEmail = vi.fn(async () => ({ data: {}, error: null }));
     const api = createAuthApi({ auth: { signUp, resetPasswordForEmail } } as unknown as SupabaseClient);
     await api.signUp("a@b.co", "12345678"); await api.requestReset("a@b.co");
-    expect(signUp).not.toHaveBeenCalled();
+    expect(signUp).toHaveBeenCalledWith({email: "a@b.co", password: "12345678", options: {emailRedirectTo: expect.stringMatching(/\?convite=ABCDEFGHIJKL$/)}});
     expect((resetPasswordForEmail.mock.calls[0] as unknown as [string, { redirectTo: string }])[1].redirectTo).toMatch(/\?convite=ABCDEFGHIJKL$/);
     withInvite("x; drop table");   // valor inválido nunca é propagado
     await api.requestReset("a@b.co");

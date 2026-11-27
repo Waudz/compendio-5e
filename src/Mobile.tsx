@@ -1,3 +1,4 @@
+import { GlobalMenu } from "./GlobalMenu";
 import {tituloDe,useVersaoRegistros} from "./registrosStore";
 import { useConhecimento } from "./compendio/conhecimento";
 import { VoltarPaginaContext } from "./voltarPagina";
@@ -5,13 +6,13 @@ import { SinoNotificacoes } from "./compendio/Notificacoes";
 import { EVENTO_TELA } from "./chromeHide";
 import { useEffect, useRef, useState } from "react";
 import { type Model, TabNode } from "flexlayout-react";
-import { ArrowLeft, BookOpen, Castle, House, Menu, NotebookPen, Swords, UserRound, ScrollText, X } from "lucide-react";
+import { ArrowLeft, BookOpen, House, Menu, NotebookPen, Swords, UserRound, ScrollText } from "lucide-react";
 import { type NavMode } from "./navigation";
 import { consumirVoltar, EVENTO_FECHAR_TELA, pedirFicha } from "./voltarInterno";
 import { Panel } from "./Panel";
 import { PersonagensPanel } from "./Personagens";
 import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
-import { tabId, visibleSections, defaultTitle, type TabSpec } from "./workspace";
+import { tabId, defaultTitle, type TabSpec } from "./workspace";
 import { useAuth } from "./AuthContext";
 import { useCampaigns } from "./CampaignsContext";
 import { useRegistros } from "./RegistrosContext";
@@ -54,26 +55,8 @@ export function Mobile(_props: Props) {
   const [screen, setScreen] = useState<TabSpec>(home);
   const [history, setHistory] = useState<TabSpec[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuDialog = useRef<HTMLDivElement>(null);
   const snapshots = useRef(new Map<string,{screen:TabSpec;history:TabSpec[]}>());
   const entry = useRef<string>('');
-  useEffect(() => {
-    if (!menuOpen || !menuDialog.current) return;
-    const root = menuDialog.current;
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const buttons = () => [...root.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
-    buttons()[0]?.focus();
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setMenuOpen(false); return; }
-      if (e.key !== 'Tab' || e.ctrlKey || e.metaKey) return;
-      const items = buttons(), first = items[0], last = items[items.length - 1];
-      if (!root.contains(document.activeElement) || document.activeElement === (e.shiftKey ? first : last)) {
-        e.preventDefault(); (e.shiftKey ? last : first)?.focus();
-      }
-    };
-    document.addEventListener('keydown', key, true);
-    return () => { document.removeEventListener('keydown', key, true); if (previous?.isConnected) previous.focus({ preventScroll: true }); };
-  }, [menuOpen]);
   const scroll = useRef<HTMLDivElement>(null);
   const positions = useRef(new Map<string, number>());
   useVersaoRegistros();
@@ -164,7 +147,6 @@ export function Mobile(_props: Props) {
   };
   const isPage = (ref: string) => screen.kind === "secao" && screen.ref === ref;
   const isMaster = active?.role === "mestre";
-  const sections = visibleSections(isMaster);
   const navItems = [
     { label: "Início", icon: House, spec: home, selected: current === tabId(home) },
     { label: "Anotações", icon: NotebookPen, spec: { kind: "secao", ref: "planejamento" } as TabSpec, selected: isPage("planejamento") },
@@ -189,7 +171,7 @@ export function Mobile(_props: Props) {
     {!fichaPropria && !meus && <header className="mobile-topbar">
       <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
       <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{pageTitle}</span></div>
-      <SinoNotificacoes onOpenContent={navigate}/><button className="mobile-icon-btn" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/></button>
+      <SinoNotificacoes onOpenContent={navigate}/>
     </header>}
     <div className="mobile-screen" ref={scroll}>
       <VoltarPaginaContext.Provider value={goBack}><OrigemAbaContext.Provider value={current}>
@@ -198,17 +180,9 @@ export function Mobile(_props: Props) {
       </OrigemAbaContext.Provider></VoltarPaginaContext.Provider>
     </div>
     <nav className="mobile-bottom-nav" aria-label="Navegação mobile">
-      {navItems.map(item => <button key={item.label} className={item.selected ? "active" : ""} aria-current={item.selected ? "page" : undefined} onClick={() => (item as { onClick?: () => void }).onClick ? (item as { onClick: () => void }).onClick() : navigate(item.spec)}><item.icon size={22}/><span>{item.label}</span></button>)}
+      {navItems.map(item => <button key={item.label} className={!menuOpen && item.selected ? "active" : ""} aria-current={!menuOpen && item.selected ? "page" : undefined} onClick={() => (item as { onClick?: () => void }).onClick ? (item as { onClick: () => void }).onClick() : navigate(item.spec)}><item.icon size={22}/><span>{item.label}</span></button>)}
       <button className={menuOpen ? "active" : ""} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}><Menu size={22}/><span>Menu</span></button>
     </nav>
-    {menuOpen && <div className="mobile-menu-overlay" onClick={() => setMenuOpen(false)}>
-      <div className="mobile-menu-sheet" role="dialog" aria-modal="true" ref={menuDialog} aria-label="Menu de navegação" onClick={e => e.stopPropagation()}>
-        <div className="mobile-menu-heading"><strong>Menu</strong><button aria-label="Fechar menu" onClick={() => setMenuOpen(false)}><X size={22}/></button></div>
-        <button onClick={() => navigate(home)}><House size={20}/> Início</button>
-        <button onClick={() => navigate({ kind: "secao", ref: "campanhas" })}><Castle size={20}/> Gerenciar campanhas</button>
-        {sections.map(s => <button key={s.page} onClick={() => navigate({ kind: "secao", ref: s.page })}><s.icon size={20}/>{s.title}</button>)}
-        <button onClick={() => navigate({ kind: "conta", ref: "perfil" })}><UserRound size={20}/> Conta</button>
-      </div>
-    </div>}
+    {menuOpen && <GlobalMenu onNavigate={navigate} onClose={() => setMenuOpen(false)}/>}
   </div></AbrirEmAbaContext.Provider>;
 }

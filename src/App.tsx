@@ -1,3 +1,4 @@
+import { GlobalMenu } from "./GlobalMenu";
 import {tituloCategoria} from "./Compendio";
 import { PageViewport } from "./PageViewport";
 import logo from "../compendio-logo.svg";
@@ -85,6 +86,7 @@ function Workspace({ userId }: { userId: string }) {
   const [modelKey, setModelKey] = useState(scopeKey);
   const [, redraw] = useState(0);
   const [collapsed, setCollapsed] = useState(true);
+  const [globalMenuOpen, setGlobalMenuOpen] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const registrosV = useVersaoRegistros();   // títulos de registros abertos mudam o rótulo das abas
   const mobile = useMobile();
@@ -339,7 +341,7 @@ function Workspace({ userId }: { userId: string }) {
 
   return <NotificacoesProvider><CatalogoDaCampanha/><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
-      <div className="brand"><img src={logo} width={24} height={24} alt=""/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}<SinoNotificacoes onOpenContent={s => { const origem = model.getActiveTabset()?.getSelectedNode()?.getId(); if (!mobile && origem) visit(s,origem); else openContentLink(s, origem, true); }}/></div>
+      <div className="brand"><button className="brand-menu" aria-label="Abrir menu global" title="Menu" aria-expanded={globalMenuOpen} onClick={() => setGlobalMenuOpen(true)}><img src={logo} width={24} height={24} alt=""/></button>{!collapsed && <strong>Compêndio <span>5e</span></strong>}<SinoNotificacoes onOpenContent={s => { const origem = model.getActiveTabset()?.getSelectedNode()?.getId(); if (!mobile && origem) visit(s,origem); else openContentLink(s, origem, true); }}/></div>
       <div className="campaign">
         <NavItem spec={homeSpec}
           className={activeId === (active ? `campanha:${active.campaign.id}` : `secao:${campaignsHub.page}`) ? "campaign-main selected" : "campaign-main"}
@@ -374,6 +376,7 @@ function Workspace({ userId }: { userId: string }) {
             onRenderTab={renderTab} onRenderTabSet={renderSet} onTabSetPlaceHolder={placeholder} supportsPopout={false} realtimeResize
             icons={ICONES}/>}
     </main>
+    {!mobile && globalMenuOpen && <GlobalMenu onNavigate={openMenu} onClose={() => setGlobalMenuOpen(false)}/>}
     {menu && <ContextMenu menu={menu} onClose={closeMenu}/>}
     {unsaved.dialog}
   </div></UnsavedContext.Provider></AbrirEmAbaContext.Provider></NotificacoesProvider>;

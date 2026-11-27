@@ -37,6 +37,7 @@ export type AuthApi = {
   signOut(): Promise<Result>;
   requestReset(email: string): Promise<Result>;
   changePassword(password: string): Promise<Result>;
+  changeEmail(email: string): Promise<Result>;
   resendConfirmation(email: string): Promise<Result>;
 };
 
@@ -47,8 +48,14 @@ export function createAuthApi(client: SupabaseClient): AuthApi {
       const { error } = await auth.signInWithPassword({ email: email.trim(), password });
       return error ? { ok: false, error: traduzirErro(error) } : { ok: true };
     }),
-    // Mantido no contrato para clientes antigos; não cria contas nesta Alpha fechada.
-    signUp: async () => ({ ok: false, error: "O cadastro está fechado. O acesso é liberado pela administração." }),
+    signUp: (email, password) => guard(async () => {
+      const invalid = validateEmail(email) ?? validatePassword(password);
+      if (invalid) return { ok: false, error: invalid };
+      const { data, error } = await auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: redirect() } });
+      if (error) return { ok: false, error: traduzirErro(error) };
+      // Resposta neutra também para contas existentes: não revela quais e-mails estão cadastrados.
+      return { ok: true, message: data.session ? "Conta criada. Bem-vindo ao Compêndio!" : "Verifique seu e-mail para confirmar o cadastro. Se já possui uma conta, entre ou recupere a senha." };
+    }),
     signOut: () => guard(async () => {
       const { error } = await auth.signOut();
       return error ? { ok: false, error: traduzirErro(error) } : { ok: true };
@@ -57,6 +64,12 @@ export function createAuthApi(client: SupabaseClient): AuthApi {
       const { error } = await auth.resetPasswordForEmail(email.trim(), { redirectTo: redirect() });
       // Mensagem neutra: não revela se o e-mail existe.
       return error ? { ok: false, error: traduzirErro(error) } : { ok: true, message: "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha." };
+    }),
+    changeEmail: email => guard(async () => {
+      const invalid = validateEmail(email);
+      if (invalid) return { ok: false, error: invalid };
+      const { error } = await auth.updateUser({ email: email.trim() }, { emailRedirectTo: redirect() });
+      return error ? { ok: false, error: traduzirErro(error) } : { ok: true, message: "Solicitação enviada. Confirme a alteração pelos links enviados por e-mail. Seu endereço atual permanece válido até a confirmação." };
     }),
     changePassword: password => guard(async () => {
       const { error } = await auth.updateUser({ password });

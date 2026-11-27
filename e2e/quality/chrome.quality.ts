@@ -33,6 +33,6 @@ test('barras mobile não interceptam o criador e liberam o espaço ao ocultar', 
  await expect(page.locator('.app')).toHaveClass(/chrome-hidden/);
  await page.mouse.wheel(0,-160);
  await expect(page.locator('.app')).not.toHaveClass(/chrome-hidden/);
- await expect(page.getByRole('button',{name:'Abrir menu',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Menu',exact:true})).toBeVisible();
  await info.attach('barras-mobile-restauradas',{body:await page.screenshot(),contentType:'image/png'});
 });

@@ -110,10 +110,10 @@ describe("workspace (interface)", () => {
     expect(screen.queryByRole("tablist")).toBeNull();                                            // sem abas nem colunas no celular
     expect(document.querySelector(".mobile-simple")).toBeTruthy();
     fireEvent.click(within(screen.getByRole("navigation", { name: "Navegação mobile" })).getByRole("button", { name: "Menu" }));
-    fireEvent.click(within(await screen.findByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: "Iniciativa" }));
-    expect(await screen.findByRole("heading", { name: "Iniciativa" })).toBeTruthy();
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Menu de navegação" })).getByRole("button", { name: "Minha conta" }));
+    expect(await screen.findByRole("heading", { name: "Perfil" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Voltar" }));                             // histórico próprio (botão Voltar)
-    await waitFor(() => expect(screen.queryByRole("heading", { name: "Iniciativa" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Perfil" })).toBeNull());
     expect((screen.getByRole("button", { name: "Voltar" }) as HTMLButtonElement).disabled).toBe(true);   // voltou à tela inicial
     expect(screen.queryByRole("tablist")).toBeNull();
   });

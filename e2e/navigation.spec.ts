@@ -39,8 +39,10 @@ test('jogador não acessa o conteúdo de iniciativa', async ({ page }) => {
     await expect(page.getByRole('navigation', { name: 'Menu principal' }).getByRole('button', { name: 'Iniciativa', exact: true })).toHaveCount(0);
     return;
   }
-  await navigate(page, 'Iniciativa');
-  await expect(page.getByText('Somente o mestre da campanha pode acessar este módulo.', { exact: true })).toBeVisible();
+  await page.getByRole('navigation', {name:'Navegação mobile'}).getByRole('button', {name:'Menu',exact:true}).click();
+  const menu = page.getByRole('dialog', {name:'Menu de navegação'});
+  await expect(menu.getByRole('button', {name:'Iniciativa',exact:true})).toHaveCount(0);
+  await expect(menu.getByRole('button', {name:'Encontros',exact:true})).toHaveCount(0);
   await expect(page.getByRole('form', { name: 'Adicionar combatente' })).toHaveCount(0);
 });
 

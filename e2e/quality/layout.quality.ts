@@ -9,7 +9,7 @@ test('largura da janela preserva início, Anotações e controles de navegação
   const bounds = await heading.boundingBox(); const width = page.viewportSize()!.width;
   expect(bounds).not.toBeNull(); expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width + 1);
-  if (mobile(page)) await expect(page.getByRole('button', { name: 'Abrir menu', exact: true })).toBeInViewport({ ratio: 1 });
+  if (mobile(page)) await expect(page.getByRole('button', { name: 'Menu', exact: true })).toBeInViewport({ ratio: 1 });
   await evidence(page, info, 'anotacoes-largura');
 });
 
