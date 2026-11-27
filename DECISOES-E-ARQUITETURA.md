@@ -449,3 +449,10 @@ Menu responsivo único: celular somente na barra inferior, sem segundo acionador
 Anotações do jogador: lista “Minhas anotações” e documentos BlockNote privados por usuário/campanha, sem quadros, pastas, tags, grade ou compartilhamento novo; preservar os registros existentes. Esta é decisão aprovada, **não implementação concluída**. Não alterar as Anotações do mestre. Sem sistema interno de feedback ou telemetria adicional: relatos ao responsável, organização nas issues.
 
 Prioridades e roteiro em docs/ALPHA-JOGADORES-20261127.md e docs/ROTEIRO-TESTES-JOGADORES.md. Sem merge/deploy/SQL de produção sem autorização específica.
+
+
+### DEC-036 — Correções da rodada e transferência (27/11/2026)
+
+Decisões explícitas do responsável: dono deve acessar/editar a própria ficha completa em desktop/celular; mestre conforme permissões vigentes; outros jogadores apenas identidade pública autorizada. Investigar o relato sem tornar fichas públicas ou flexibilizar RLS. Aprovar “Marcar todas como lidas” no topo da janela de notificações, com ícone de confirmação dupla, contador imediato, persistência, erro de rede, somente usuário/escopo atuais, sem excluir notificações e preservando leitura individual e visual existente. Ambas **pendentes de implementação**.
+
+Encerrar esta sessão e transferir ao Codex, sem novas funcionalidades/refatorações/etapas. Planejamento e critérios completos preservados em docs/PROMPT-CODEX-ALPHA-20261127.md; estado/testes/publicação/investigação em docs/TRANSFERENCIA-CODEX-20261127.md. Restrições de produção e escopo continuam vigentes; nenhuma autorização nova de merge, deploy ou migração.

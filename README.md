@@ -213,3 +213,7 @@ de navegação: [escopo e limites](docs/VINCULOS-PESQUISA-DIRETA.md).
 ### Preparação para jogadores reais — 27/11/2026
 
 Estado e limites da rodada em [ALPHA-JOGADORES-20261127](docs/ALPHA-JOGADORES-20261127.md); [roteiro para encaminhar aos jogadores](docs/ROTEIRO-TESTES-JOGADORES.md). Cadastro aberto é a decisão vigente. Nome da conta, menu e preferências seguem a entrega de primeiro acesso; confirmar PR/CI/publicação na continuidade antes de considerar disponível no site. Foto da conta e nova lista de Anotações do jogador continuam pendentes.
+
+### Transferência para o Codex — 27/11/2026
+
+[Estado verificado, evidências e pendências](docs/TRANSFERENCIA-CODEX-20261127.md) · [Prompt completo e independente](docs/PROMPT-CODEX-ALPHA-20261127.md). O PR #165 está validado e aguarda integração/publicação autorizada; a próxima tarefa é reproduzir o bloqueio da própria ficha no desktop. A leitura de notificações em lote está aprovada, ainda não iniciada. Nenhuma dessas pendências foi declarada resolvida.
