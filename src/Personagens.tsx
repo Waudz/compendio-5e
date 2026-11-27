@@ -4,7 +4,7 @@ import {identidadeSpec} from "./compendio/navegacao";
 import { origemPublica, rotuloClasse, rotuloRaca } from './criador/rotulos';
 // Personagens da campanha: lista (retrato, nome, classe, nível) e perfil de cada um. Qualquer participante cria o seu; só o dono edita.
 // Ficha completa só para dono/mestre; os demais consultam a identidade pública na carta compartilhada.
-import {useExclusaoPersonagem} from "./ExclusaoPersonagem";
+import { ROTULO_SITUACAO, useCiclo } from "./CicloPersonagens";
 import type {MenuItem} from "./ContextMenu";
 import { Plus, Trash2, UserRound,MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -53,14 +53,18 @@ function RetratoDaLista({ p }: { p: PersonagemCampanha }) {
   return <RetratoQuadrado src={p.retratoUrl ?? (url ? juntar(url, separar(p.retratoCaminho!).enquadramento) : null)} tipo="personagem" tamanho={56}/>;
 }
 
+type Grupo = "ativos" | "aguardando" | "arquivados" | "outros";
+const GRUPOS: [Grupo, string][] = [["ativos", "Ativos"], ["aguardando", "Aguardando decisão"], ["arquivados", "Arquivados"], ["outros", "NPCs e só no Compêndio"]];
+
 /** Uma lista só: cada personagem aparece uma vez, com a ficha e a identidade pública vinculadas pelo mesmo registro. */
 export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpenContent: (s: TabSpec) => void; somenteMeus?: boolean }) {
   const api = useRegistros(), fichas = useFichas(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros(), { aoClicarDireito, aoClicar, aoBotaoDoMeio,abrirMenuEm } = useAbrirEmAba();
   const [dados, setDados] = useState<ListaPersonagens | null>(null), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [aviso, setAviso] = useState<{ ok: boolean; t: string } | null>(null), [descartando, setDescartando] = useState<string | null>(null), [enviando, setEnviando] = useState<string | null>(null);
-  const consultar=useAbrirConsulta(onOpenContent),jogador=useJogadoresCampanha(),exclusao=useExclusaoPersonagem();
+  const consultar=useAbrirConsulta(onOpenContent),jogador=useJogadoresCampanha(),ciclo=useCiclo();
+  const [grupo, setGrupo] = useState<Grupo>("ativos"), [selecao, setSelecao] = useState<string[] | null>(null);
   const cid = active?.campaign.id, userId = user?.id ?? null;
-  useEffect(() => { setDados(null); setErro(null); setAviso(null); }, [cid]);   // nada de uma campanha aparece em outra
+  useEffect(() => { setDados(null); setErro(null); setAviso(null); setGrupo("ativos"); setSelecao(null); }, [cid]);   // nada de uma campanha aparece em outra
   useEffect(() => {
     if (!api || !cid) return; let vivo = true;
     listarPersonagens(cid, { registros: api, fichas, userId }).then(r => { if (!vivo) return; if (r.ok) { setDados(r.data); setErro(null); } else setErro(r.error); }, () => { if (vivo) setErro("Não foi possível carregar os personagens."); });
@@ -88,16 +92,28 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     finally { setEnviando(null); }
   };
   const descartar = (g: ResumoPersonagemGuiado) => { if (!userId) return; try { armazenamentoLocalExperimental(userId, campanhaId).excluir(g.id); } catch { /* ignora */ } setDescartando(null); avisarRegistros(); setTentativa(n => n + 1); setAviso({ ok: true, t: `Rascunho “${g.nome}” removido deste navegador.` }); };
+  const mestre = active.role === "mestre", comCiclo = ciclo.disponivel && !!dados?.ciclo;
+  const todos = dados?.personagens ?? [];
+  const selecionados = (selecao ?? []).filter(id => todos.some(p => p.id === id));
+  const alternar = (id: string) => setSelecao(s => (s?.includes(id) ? s.filter(x => x !== id) : [...(s ?? []), id]));
   const cartao = (chave: string, spec: TabSpec, dica: string, retrato: React.ReactNode, nome: string, alcunha: string | null, detalhe: string, notas: (string | null)[]) => {
-    const p=dados?.personagens.find(x=>x.id===chave);
-    const extras:MenuItem[]=p&&exclusao.disponivel&&(p.meu||active.role==="mestre")?["-",{label:"Excluir personagem",danger:true,onSelect:()=>exclusao.solicitar({id:p.id,nome:p.nome,revisao:p.revisao??null})}]:[];
+    const p = todos.find(x => x.id === chave);
+    const acao: MenuItem | null = !comCiclo || !p ? null : mestre ? { label: "Gerenciar personagem", onSelect: () => ciclo.gerenciar(p.id) }
+      : p.meu && p.comFicha ? { label: "Excluir personagem", danger: true, onSelect: () => ciclo.pedirRenuncia(p.id) } : null;
+    const extras: MenuItem[] = acao ? ["-", acao] : [];
     return <li key={chave}>
+    {selecao && p && <input type="checkbox" className="personagem-marcar" aria-label={`Selecionar ${nome}`} checked={selecionados.includes(p.id)} onChange={() => alternar(p.id)}/>}
     <button className="home-char" onClick={e => {if(!aoClicar(e,spec))consultar(spec);}} onAuxClick={e=>aoBotaoDoMeio(e,spec)} onMouseDown={e=>{if(e.button===1)e.preventDefault();}} onContextMenu={e => aoClicarDireito(e, spec,extras)} title={dica}>{retrato}
-      <span><strong>{nome}</strong>{alcunha && <>{" "}<em className="home-char-alcunha">{alcunha}</em></>}{" "}<small>{detalhe}</small>{notas.filter(Boolean).map(n => <small key={n} className="home-char-nota">{n}</small>)}</span></button>{extras.length>0&&<button className="personagem-menu icon-btn" aria-label={`Mais ações de ${nome}`} onClick={e=>abrirMenuEm(e.currentTarget,spec,extras)}><MoreHorizontal size={16}/></button>}</li>;};
-  const personagens = (dados?.personagens ?? []).filter(p => !somenteMeus || p.meu);
+      <span><strong>{nome}</strong>{alcunha && <>{" "}<em className="home-char-alcunha">{alcunha}</em></>}{" "}<small>{detalhe}</small>{notas.filter(Boolean).map(n => <small key={n} className="home-char-nota">{n}</small>)}</span></button>
+    {!selecao && extras.length > 0 && <button type="button" className="personagem-menu icon-btn" aria-label={`Mais ações de ${nome}`} onClick={e=>abrirMenuEm(e.currentTarget,spec,extras)}><MoreHorizontal size={16}/></button>}</li>;};
+  // fora da seleção, cada grupo mostra a sua situação; quem não é mestre só vê quem está em jogo (os demais continuam no Compêndio)
+  const grupoDe = (p: PersonagemCampanha): Grupo => (p.situacao === "ativo" ? "ativos" : p.situacao === "aguardando" ? "aguardando" : p.situacao === "arquivado" ? "arquivados" : "outros");
+  const mostraGrupos = mestre && comCiclo && !somenteMeus;
+  const personagens = todos.filter(p => (somenteMeus ? p.meu : grupoDe(p) === (mostraGrupos ? grupo : "ativos")));
   const soLocais = fichas ? [] : locais;   // sem API de fichas, os guiados deste navegador fazem parte da própria lista
   const vazio = !!dados && personagens.length === 0 && soLocais.length === 0;
-  return <div className="content personagens">{exclusao.dialog}
+  const abrirFicha = (p: PersonagemCampanha) => p.situacao !== "compendio" && (p.meu || mestre);
+  return <div className="content personagens">
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>{somenteMeus ? "Meus personagens" : "Personagens"}</h1><button className="btn-primary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
     <p className="muted">Cada participante cria o próprio personagem. A ficha é privada (dono e mestre); os outros jogadores veem só a apresentação, sem o que o dono ocultar.{fichas ? "" : " Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
@@ -105,12 +121,21 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
     {dados?.avisoFichas && <Aviso erro t={`${dados.avisoFichas} A lista pode estar incompleta.`} onRetry={() => setTentativa(n => n + 1)}/>}
     {!dados && !erro && <p className="muted" role="status">Carregando personagens…</p>}
-    {vazio && !dados?.avisoFichas && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}
+    {ciclo.ofertas.map(o => <p key={o.id} className="notice" role="note">O mestre quer transferir <strong>{o.title}</strong> para você.{" "}<button type="button" className="btn-secondary" onClick={() => ciclo.abrirOferta(o)}>Responder</button></p>)}
+    {mostraGrupos && <div className="personagens-gestao">
+      <div className="cd-filters" role="group" aria-label="Situação dos personagens">{GRUPOS.map(([id, rotulo]) => { const n = todos.filter(p => grupoDe(p) === id).length; return id === "outros" && !n ? null : <button key={id} type="button" aria-pressed={grupo === id} onClick={() => setGrupo(id)}>{rotulo}{" "}<span className="muted">{n}</span></button>; })}</div>
+      {!selecao ? <button type="button" className="btn-secondary" disabled={!todos.length} onClick={() => setSelecao([])}>Selecionar</button>
+        : <div className="personagens-selecao" role="group" aria-label="Seleção de personagens">
+          <button type="button" className="btn-secondary" onClick={() => setSelecao(todos.map(p => p.id))}>Selecionar todos da campanha ({todos.length})</button>
+          <button type="button" className="btn-secondary danger" disabled={!selecionados.length} onClick={() => ciclo.excluirVarios(selecionados)}>Excluir selecionados ({selecionados.length})</button>
+          <button type="button" className="btn-secondary" onClick={() => setSelecao(null)}>Cancelar seleção</button></div>}
+    </div>}
+    {vazio && !dados?.avisoFichas && <p className="muted" data-testid="personagens-vazio">{!todos.length || somenteMeus || !mostraGrupos && grupo === "ativos" ? "Nenhum personagem ainda. Crie o primeiro." : "Nenhum personagem neste grupo."}</p>}
     <section className="personagens-lista" aria-label="Personagens da campanha">
       <ul className="home-party">
-        {personagens.map(p => cartao(p.id, p.meu||active.role==="mestre"?{ kind: "ficha", ref: p.id, title: p.nome }:identidadeSpec(p.id,p.nome), p.meu||active.role==="mestre"?`Abrir ficha de ${p.nome}`:`Consultar ${p.nome}`, <RetratoDaLista p={p}/>, p.nome, p.alcunha,
+        {personagens.map(p => cartao(p.id, abrirFicha(p)?{ kind: "ficha", ref: p.id, title: p.nome }:identidadeSpec(p.id,p.nome), abrirFicha(p)?`Abrir ficha de ${p.nome}`:`Consultar ${p.nome}`, <RetratoDaLista p={p}/>, p.nome, p.alcunha,
           [p.classe, p.nivel != null ? `nível ${p.nivel}` : null, p.meu ? (p.comFicha ? "sua ficha" : "seu") : p.comFicha ? "ficha de outro participante" : null].filter(Boolean).join(" · "),
-          [jogador(p.ownerId)?`Jogador: ${jogador(p.ownerId)}`:null,rotuloPrivacidade(p, active.role === "mestre")]))}
+          [p.situacao === "ativo" && jogador(p.ownerId) ? `Jogador: ${jogador(p.ownerId)}` : null, p.situacao !== "ativo" ? ROTULO_SITUACAO[p.situacao] : null, p.pendenteDe ? `Transferência aguardando ${jogador(p.pendenteDe) ?? "aceite"}` : null, rotuloPrivacidade(p, mestre)]))}
         {soLocais.map(g => cartao(g.id, { kind: "criador", ref: g.id, title: g.nome }, `Abrir personagem guiado ${g.nome}`, <RetratoQuadrado tipo="personagem" tamanho={56}/>, g.nome, null, `${rotuloClasse(g.classId)} · nível ${g.nivel} · guiado (neste navegador)`, []))}
       </ul>
     </section>

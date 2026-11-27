@@ -9,8 +9,9 @@ import { aplicarAcao, comVitais, vitaisDoDraft } from "./vitais/vitais";
 import { consumirItem, transferirEntre } from "./ficha/inventarioAcoes";
 import { defaultPublicIdentity, type PublicIdentity } from "./rules/public-identity";
 import type { Registro } from "./registros";
+import { cicloEmMemoria, type CicloEmMemoria } from "./cicloMemoria";
 
-type Linha = { excluida?:boolean; operacaoExclusao?:string; id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string; vitalVersao?: number; operacoes?: string[] };
+type Linha = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string; vitalVersao?: number; operacoes?: string[] };
 export type BancoFichas = {
   fichas: Linha[];
   /** Notas públicas dos personagens guiados (a mesma lista usada por `registrosEmMemoria`, para a lista de Personagens enxergá-las). */
@@ -19,6 +20,10 @@ export type BancoFichas = {
   rede: { caida: boolean };
   /** "Tempo real" entre as APIs que usam o mesmo banco. */
   ouvintes?: Set<() => void>;
+  /** Ciclo de vida (0021): situação de quem não está ativo, ofertas, avisos e operações já aceitas. */
+  ciclo?: CicloEmMemoria;
+  /** Simula um banco sem a 0021. */
+  semCiclo?: boolean;
   /** Participação atual: mestre e jogadores por campanha (a RLS lê isto do banco, nunca do cliente). */
   campanhas: Record<string, { mestre: string; jogadores: string[] }>;
 };
@@ -48,7 +53,7 @@ function projecaoDaFicha(identity: PublicIdentity, d: CharacterDraft, anterior: 
 export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { banco: BancoFichas } {
   const mestre = (cid: string) => banco.campanhas[cid]?.mestre === uid;
   const membro = (cid: string) => mestre(cid) || !!banco.campanhas[cid]?.jogadores.includes(uid);
-  const le = (f: Linha) => !f.excluida && ((f.ownerId === uid && membro(f.campaignId)) || mestre(f.campaignId));       // política de SELECT/UPDATE da 0008
+  const le = (f: Linha) => (f.ownerId === uid && membro(f.campaignId)) || mestre(f.campaignId);       // política de SELECT/UPDATE da 0008
   const semRede = { ok: false as const, error: "Sem conexão com o servidor." };
   let n = 0;
   const agora = () => new Date(Date.now() + ++n).toISOString();
@@ -92,17 +97,7 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
       return { ok: true, data: itemDe(o) };
     },
     assinar: (_filtro, aoMudar) => { ouvintes.add(aoMudar); return () => { ouvintes.delete(aoMudar); }; },
-    excluir:async(id,revisao,nome,operacao)=>{
-      if(banco.rede.caida)return semRede;
-      const f=banco.fichas.find(x=>x.id===id);
-      if(!f||!membro(f.campaignId)||!(f.ownerId===uid||mestre(f.campaignId)))return {ok:false,error:ERRO_SEM_FICHA};
-      if(f.excluida)return f.operacaoExclusao===operacao?{ok:true,data:{id}}:{ok:false,error:ERRO_SEM_FICHA};
-      if(f.revision!==revisao)return {ok:false,error:ERRO_CONFLITO_REVISAO};
-      if(f.draft.name!==nome)return {ok:false,error:"Confirme o nome do personagem."};
-      f.excluida=true;f.operacaoExclusao=operacao;
-      const index=banco.registros.dados.findIndex(n=>n.id===id);if(index>=0)banco.registros.dados.splice(index,1);
-      avisar();return {ok:true,data:{id}};
-    },
+    ciclo: cicloEmMemoria(uid, banco, avisar),
     listar: async cid => banco.rede.caida ? semRede : { ok: true, data: banco.fichas.filter(f => f.campaignId === cid && le(f)).map(f => ({ id: f.id, ownerId: f.ownerId, nome: f.draft.name.trim() || "Sem nome", ...extrasDaFicha(f.draft), classId: f.draft.classId, nivel: f.draft.level, revision: f.revision, updatedAt: f.updatedAt })) },
     carregar: async id => {
       if (banco.rede.caida) return semRede;

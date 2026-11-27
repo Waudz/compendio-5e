@@ -1,5 +1,5 @@
-import {PERSONAGEM_EXCLUIDO} from "./ExclusaoPersonagem";
-import {lerMapaAba,limparRecuperacao} from "./criador/recuperacao";
+import { CICLO_ACESSO, type DetalheAcesso } from "./CicloPersonagens";
+import { lerMapaAba } from "./criador/recuperacao";
 import { GlobalMenu } from "./GlobalMenu";
 import {tituloDe,useVersaoRegistros} from "./registrosStore";
 import { useConhecimento } from "./compendio/conhecimento";
@@ -90,17 +90,18 @@ export function Mobile(_props: Props) {
       if (spec.kind === "ficha" && user && active) gravarFicha(chaveFicha(user.id, active.campaign.id), spec.ref);
     });
   };
-  useEffect(()=>{
-   const deleted=(event:Event)=>{
-    const value=(event as CustomEvent<{id:string;campaignId:string}>).detail;
-    if(value.campaignId!==active?.campaign.id||!user)return;
-    const matches=(s:TabSpec)=>["ficha","criador","identidade"].includes(s.kind)&&(s.ref===value.id||lerMapaAba(user.id,value.campaignId,s.ref)===value.id);
-    if(matches(screen)){unsaved.register(current,null);limparRecuperacao(user.id,value.campaignId,screen.ref);setScreen({kind:"secao",ref:"personagens"});}
-    setHistory(h=>h.filter(s=>!matches(s)));
-    snapshots.current.forEach((s,k)=>{if(matches(s.screen))snapshots.current.delete(k);else s.history=s.history.filter(p=>!matches(p));});
-   };
-   window.addEventListener(PERSONAGEM_EXCLUIDO,deleted);return()=>window.removeEventListener(PERSONAGEM_EXCLUIDO,deleted);
-  },[active?.campaign.id,user?.id,current,screen,unsaved]);
+  // o ciclo de vida tirou o acesso: sai da tela daquele personagem e a remove do histórico de voltar
+  useEffect(() => {
+    const perder = (event: Event) => {
+      const d = (event as CustomEvent<DetalheAcesso>).detail;
+      if (d.campaignId !== active?.campaign.id || !user) return;
+      const alvo = (s: TabSpec) => d.kinds.includes(s.kind) && (d.ids.includes(s.ref) || d.ids.includes(lerMapaAba(user.id, d.campaignId, s.ref) ?? ""));
+      if (alvo(screen)) { unsaved.register(current, null); setScreen({ kind: "secao", ref: "personagens" }); }
+      setHistory(h => (h.some(alvo) ? h.filter(s => !alvo(s)) : h));
+      snapshots.current.forEach((s, k) => { if (alvo(s.screen)) snapshots.current.delete(k); else s.history = s.history.filter(p => !alvo(p)); });
+    };
+    window.addEventListener(CICLO_ACESSO, perder); return () => window.removeEventListener(CICLO_ACESSO, perder);
+  }, [active?.campaign.id, user?.id, current, screen, unsaved]);
   const navigate = irPara;
   const goBack = () => {
     if (consumirVoltar()) return;

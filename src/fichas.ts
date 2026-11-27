@@ -2,6 +2,7 @@
 // Exige a migração `supabase/migrations/0008_character_sheets_persistencia.sql` (registrada no remoto em 21/11/2026; consulta de metadados em 22/11): sem ela as funções não existem e a
 // interface mostra a mensagem de "atualização do banco necessária" (ERRO_SCHEMA), sem perder o que foi digitado.
 // A autorização real é a RLS + as funções SECURITY INVOKER do banco; nada aqui concede acesso. Só a chave pública (anon) é usada no navegador.
+import { criarCicloApi, type CicloApi } from "./cicloPersonagem";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { erroCampanha, type Res } from "./campaigns";
 import type { CharacterDraft } from "./rules/character-domain";
@@ -22,7 +23,8 @@ export type FiltroAssinatura = { characterId: string } | { campaignId: string };
 
 export type FichasApi = {
   /** Fichas que o usuário pode LER (as próprias; todas as da campanha para o mestre). A RLS decide; nada aqui filtra por segurança. */
-  excluir:(id:string,revisao:number|null,nome:string,operacao:string)=>Promise<Res<{id:string}>>;
+  /** Ciclo de vida (0021): renúncia, arquivo, NPC, transferência e exclusão. */
+  ciclo?: CicloApi;
   listar: (campaignId: string) => Promise<Res<ResumoFicha[]>>;
   /** `null`: não existe ou sem permissão (indistinguíveis de propósito). `identidade` é null quando a linha pública não é legível (ex.: mestre). */
   carregar: (id: string) => Promise<Res<{ ficha: FichaServidor; identidade: IdentidadeGravada | null } | null>>;
@@ -109,9 +111,6 @@ const msg = (e: unknown) => {
   if (m.includes("identidade_so_do_dono")) return "Só o dono do personagem altera a identidade pública.";
   if (m.includes("character_sheets_draft") || (m.includes("check constraint") && m.includes("character_sheets"))) return "A ficha é grande demais ou inválida para ser salva.";   // nome da restrição pode diferir do remoto
   if (m.includes("identidade_invalida") || m.includes("notes_guiado_meta_check")) return "A identidade pública contém dados não permitidos (confira a imagem https:// e o tamanho dos textos).";
-  if(m.includes("confirmacao_invalida"))return "Digite o nome exato do personagem para confirmar.";
-  if(m.includes("personagem_excluido"))return "Este personagem foi excluído.";
-  if(m.includes("personagem_indisponivel"))return "Personagem indisponível ou sem permissão.";
   if (m.includes("personagem_guiado_nao_exclui")) return "Personagens salvos na campanha não podem ser excluídos por aqui.";
   if (m.includes("personagem_guiado_imutavel") || m.includes("campos_imutaveis")) return "Esta alteração não é permitida em um personagem salvo.";
   if (m.includes("item_nao_autorizado")) return "Este item só pode ser entregue pelo mestre.";
@@ -149,11 +148,7 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
     return r.data ? { data: ler(r.data as RespostaVital), error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };
   });
   return {
-    excluir:(id,revisao,nome,operacao)=>run(async()=>{
-      const r=await client.rpc("delete_campaign_character",{p_id:id,p_expected_revision:revisao,p_name:nome,p_operation:operacao});
-      if(r.error)return {data:null,error:r.error.code==="PGRST202"?{message:"Atualização do banco necessária para excluir personagens. Nada foi excluído."}:r.error};
-      return r.data?.deleted===true&&r.data.id===id?{data:{id},error:null}:{data:null,error:{message:"personagem_indisponivel"}};
-    }),
+    ciclo: criarCicloApi(client),
     lerVitais: ids => run<LinhaVital[]>(async () => {
       const r = await client.from("character_sheets").select("character_id, revision, vitals_version, draft").in("character_id", ids);
       return r.error ? { data: null, error: r.error } : { data: (r.data as unknown as VitalRow[]).map(linhaVital), error: null };

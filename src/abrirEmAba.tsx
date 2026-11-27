@@ -21,7 +21,7 @@ export function useAbrirEmAba() {
     navegar: (s: TabSpec) => (c?.navegar??c?.abrir)?.(s,origem),
     aoLado: (s: TabSpec) => (c?.aoLado??c?.navegar??c?.abrir)?.(s,origem),
     /** onContextMenu do item: abre o menu "Abrir em nova aba" (exceto sobre campos de texto/editor). */
-    aoClicarDireito: (e: ReactMouseEvent, s: TabSpec,extras?:MenuItem[]) => { if (!c || ehAreaDeEdicao(e.target)) return; e.preventDefault(); c.mostrar(e.clientX, e.clientY, s, origem,extras); },
+    aoClicarDireito: (e: ReactMouseEvent, s: TabSpec,extras?:MenuItem[]) => { if (!c || ehAreaDeEdicao(e.target)) return; e.preventDefault(); if (extras?.length) c.mostrar(e.clientX, e.clientY, s, origem, extras); else c.mostrar(e.clientX, e.clientY, s, origem); },
     /** Alternativa sem botão direito (celular/teclado): abre o mesmo menu junto de um botão. */
     abrirMenuEm: (el: Element, s: TabSpec,extras?:MenuItem[]) => { const r = el.getBoundingClientRect(); c?.mostrar(r.left, r.bottom, s, origem,extras); },
   };
