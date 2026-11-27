@@ -22,3 +22,8 @@ Solicitação do responsável em 27/11/2026, após a correção do diagnóstico 
 Investigar criação e atualização com duas contas isoladas. Identidade de aventureiros visível por padrão à campanha; ficha completa privada. Preservar integralmente a seleção de campos públicos. Aventureiros não herdam descoberta/ocultação de NPC/monstro.
 
 Preparar preflight de contagem de fichas com nota privada, notas ausentes/removidas e classificação indevida em campaign_codex, sem conteúdos pessoais. Não corrigir registros cuja intenção não possa ser determinada por um critério seguro. Validar reparo seletivo e idempotente antes de solicitar aplicação em produção. Não ocultar apenas o aviso visual para disfarçar um registro que continua inacessível aos demais.
+
+
+Preflight agregado preparado em `supabase/preflight/personagens_exclusao_visibilidade.sql`, ainda não executado em produção. Confere notas ocultas/removidas, formato de identidade, classificação no Codex, campos legitimamente ocultos e referências de combate/encontro sem imprimir conteúdos. Não substitui o teste da migração nem autoriza reparo indiscriminado.
+
+Direção técnica em análise: manter o ID canônico da nota como tombstone e arquivar a ficha/inventário com acesso bloqueado nas APIs normais; invalidar edições e sincronização após exclusão; preservar snapshots de combate e desativar seus vínculos vivos à ficha. Rollback não poderá tornar arquivos excluídos legíveis inadvertidamente. Nenhuma migração de exclusão ou reparo foi gerada nesta fatia de preparação.
