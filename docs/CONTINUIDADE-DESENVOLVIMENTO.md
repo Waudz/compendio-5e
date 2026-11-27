@@ -955,3 +955,10 @@ Notificações: `CheckCheck`/Marcar todas como lidas no topo, oculto sem pendên
 Validação intermediária: 54 testes direcionados de ficha/notificações, 1820 testes completos antes da correção adicional da listagem, 62 regressões atualizadas de ficha e 16 Playwright do Compêndio aprovados. Validação final e CI serão registrados no PR; não reutilizar o resultado anterior como aprovação de arquivos posteriores. Uma tentativa paralela local foi interrompida após queda do serviço esbuild/Vite; execução repetida com concorrência reduzida.
 
 Sem merge, deploy, consulta/escrita em produção ou mudança no legado. Foto da conta, Minhas anotações, contrato de criação sem escolhas prévias (#100) e demais itens da DEC-035 continuam planejados, não entregues por este PR. Próximo ciclo segue essa fila após a revisão desta correção; sem iniciar Encontros, Loot ou PWA.
+
+
+### Ampliação prioritária solicitada após o commit 8285e50
+
+Exclusão de personagens e identidade indevidamente oculta passam à frente de foto/notas/PWA. Investigação e critérios: [EXCLUSAO-VISIBILIDADE-PERSONAGENS.md](EXCLUSAO-VISIBILIDADE-PERSONAGENS.md). A exclusão guiada é bloqueada explicitamente no guard 0013 e não possui operação de FichasApi: exige contrato de arquivo/referências e testes backend antes de disponibilizar os menus. Não está implementada no PR #167. Visibilidade já é fixada em campaign ao salvar desde 0013; backfill de registros antigos exige diagnóstico seletivo, sem apagar escolhas privadas nem presumir intenção. Não aplicar SQL em produção.
+
+Resultado adicional local: build final e tipos E2E aprovados. Ficha em 320/390: quatro cenários aprovados; desktop1440 repetido sozinho após timeout sob concorrência, dois cenários aprovados, incluindo alinhamento em tela cheia e dois grupos, sem aumentar timeout/retries. Compêndio: 16/16 aprovados. Suíte completa anterior 1820/1820; execução final local ainda sem relatório, conferir CI no commit 8285e50. PR #167 aberto em rascunho, sem merge/deploy.
