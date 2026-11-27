@@ -198,12 +198,11 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     {dados?.avisoFichas && <Aviso erro t={`${dados.avisoFichas} A lista pode estar incompleta.`} onRetry={() => setTentativa(n => n + 1)}/>}
     {!dados && !erro && <p className="muted" role="status">Carregando personagens…</p>}
     {ciclo.ofertas.map(o => <p key={o.id} className="notice" role="note">O mestre quer transferir <strong>{o.title}</strong> para você.{" "}<button type="button" className="btn-secondary" onClick={() => ciclo.abrirOferta(o)}>Responder</button></p>)}
-    <FerramentasCategoria compacta searchLabel="Pesquisar por personagem ou jogador" placeholder="Pesquisar por personagem ou jogador…" query={pesquisa} onQuery={setPesquisa} view={visao} onView={trocarVisao} order={ordem} onOrder={setOrdem}
+    <FerramentasCategoria compacta acoes={podeSelecionar ? <BarraDeSelecao selecao={selecao} rotulo="Seleção de personagens" acoes={<button type="button" className="btn-secondary danger" onClick={() => ciclo.excluirVarios(selecao.marcados)}>Excluir selecionados ({selecao.marcados.length})</button>}/> : undefined} searchLabel="Pesquisar por personagem ou jogador" placeholder="Pesquisar por personagem ou jogador…" query={pesquisa} onQuery={setPesquisa} view={visao} onView={trocarVisao} order={ordem} onOrder={setOrdem}
       filters={mostraSecoes && comCiclo ? <>
         <div className="cd-filters" role="group" aria-label="Situação dos personagens">{SITUACOES.map(([id, rotulo]) => <button key={id} type="button" aria-pressed={situacao === id} onClick={() => setSituacao(id)}>{rotulo}</button>)}</div>
         <label className="cd-filtro-compacto"><span className="sr-only">Situação</span><select aria-label="Filtrar por situação" value={situacao} onChange={e => setSituacao(e.target.value as Situacao)}>{SITUACOES.map(([id, rotulo]) => <option key={id} value={id}>{rotulo}</option>)}</select></label>
       </> : undefined}/>
-    {podeSelecionar && <BarraDeSelecao selecao={selecao} rotulo="Seleção de personagens" acoes={<button type="button" className="btn-secondary danger" onClick={() => ciclo.excluirVarios(selecao.marcados)}>Excluir selecionados ({selecao.marcados.length})</button>}/>}
     {vazio && !dados?.avisoFichas && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}
     {!!dados && !vazio && !linhas.length && <p className="muted" role="status">{termos.length ? "Nenhum personagem encontrado nesta pesquisa." : "Nenhum personagem neste filtro."}</p>}
     <section className="personagens-lista" aria-label="Personagens da campanha">

@@ -18,8 +18,7 @@ import { mesmasSecoes } from './ficha';
 import { nomesRegistro, type LinhaCompendio } from './consulta';
 import { Carta, FatosCarta, type Fato } from './Carta';
 import { separarVinculos } from './relacoes';
-import { BotaoReferencia, TextoNarrativo } from './referencias';
-import { registroSpec, identidadeSpec } from './navegacao';
+import { TextoNarrativo } from './referencias';
 import type { TabSpec } from '../workspace';
 
 export function BotaoOlho({ on, rotulo, onClick, disabled }: { on: boolean; rotulo: string; onClick: () => void; disabled?: boolean }) {
@@ -65,24 +64,21 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
   const campos: Campo[] = CAMPOS[entry.category] ?? [];
   const campo = (id: string) => campos.find(f => f.id === id);
   const valor = (id: string) => (campo(id) ? entry.fields?.[id]?.trim() : '') || '';
-  const { vagas, demais } = separarVinculos(entry.category, links);
+  const { vagas } = separarVinculos(entry.category, links);
   const noLinha = LINHA[entry.category] ?? [];
   const linha = noLinha.map(valor).filter(Boolean).join(' · ');
   const apelido = valor('nickname');
-  const vinculo = (l: CodexLink) => <BotaoReferencia key={l.id} spec={l.category === 'character' ? identidadeSpec(l.targetId, l.title) : registroSpec(l.targetId, l.title)} onAbrir={onOpenContent}>{l.title}</BotaoReferencia>;
   const curtos = campos.filter(f => !f.long && f.id !== 'nickname' && !noLinha.includes(f.id));
   const fatos: Fato[] = [];
   for (const f of curtos) {
-    const vaga = vagas.find(v => v.campo === f.id);
-    if (vaga) fatos.push({ k: f.id, rotulo: vaga.rotulo, valor: <span className="carta-valores">{vaga.links.map(vinculo)}</span> });
-    else if (valor(f.id)) fatos.push({ k: f.id, rotulo: f.label, valor: valor(f.id) });
+    // A relação não duplica o mesmo destino em um fato e na lista de relacionados.
+    if (!vagas.some(v=>v.campo===f.id) && valor(f.id)) fatos.push({ k:f.id,rotulo:f.label,valor:valor(f.id) });
   }
-  for (const v of vagas) if (v.campo !== 'inhabitants' && !curtos.some(f => f.id === v.campo)) fatos.push({ k: v.campo, rotulo: v.rotulo, valor: <span className="carta-valores">{v.links.map(vinculo)}</span> });
   // estado vital: o jogador só o recebe se revelado; 'desconhecido' é um valor, não a falta de informação
   if (!privado && entry.category === 'npc' && entry.vitalStatus) fatos.push({ k: 'vitalStatus', rotulo: 'Estado vital', valor: <RotuloVital estado={entry.vitalStatus}/> });
   const descricao = deBlocos(entry.description ?? []).trim();
   const longos = campos.filter(f => f.long && f.id !== 'inhabitants' && valor(f.id));
-  const habitantes = vagas.find(v => v.campo === 'inhabitants'), textoHabitantes = valor('inhabitants');
+  const textoHabitantes = valor('inhabitants');
   const criatura = entry.category === 'monster';
   // O jogador com identificação completa de um item recebe o ID e vê o mesmo componente da definição.
   const carregada = useDefinicao(entry.category, privado || criatura ? undefined : entry.definitionId, entry.systemId);
@@ -90,7 +86,7 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
   const definicao = carregada?.kind === 'item' && (!entry.sheet?.length || mesmasSecoes(secoesDaDefinicao(carregada), entry.sheet)) ? carregada : undefined;
   const secoes = criatura ? [] : entry.sheet ?? [];
   const texto = (t: string) => <TextoNarrativo texto={t} rows={rows} onAbrir={onOpenContent}/>;
-  const mostrar = !!(fatos.length || descricao || longos.length || habitantes || textoHabitantes || secoes.length || definicao || demais.length || (privado && entry.secret?.trim()) || (mostrarPosse && entry.category === 'item'));
+  const mostrar = !!(fatos.length || descricao || longos.length || textoHabitantes || secoes.length || definicao || links.length || (privado && entry.secret?.trim()) || (mostrarPosse && entry.category === 'item'));
   return <Carta trilha={trilha ?? nomesRegistro[entry.category]} topo={topo} acoes={acoes} nome={entry.title}
     alcunha={apelido && apelido !== entry.title ? apelido : null} linha={linha || (criatura ? null : entry.category === 'npc' ? null : nomesRegistro[entry.category])}
     formato={entry.category === 'location' ? 'panorama' : entry.category === 'organization' ? 'simbolo' : 'retrato'}
@@ -101,17 +97,16 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
       {mostrarPosse && entry.category === 'item' && <Posse id={entry.id} versao={versaoPosse}>{nomes => <p>Com: {nomes}</p>}</Posse>}
       {descricao && texto(descricao)}
       {longos.map(f => <section key={f.id}><h2>{f.label}</h2>{texto(valor(f.id))}</section>)}
-      {(textoHabitantes || habitantes) && <section aria-label="Habitantes">
+      {textoHabitantes && <section aria-label="Sobre os habitantes">
         <h2>Habitantes</h2>
         {textoHabitantes && texto(textoHabitantes)}
-        {habitantes && <p className="carta-valores">{habitantes.links.map(vinculo)}</p>}
       </section>}
       {definicao
         ? <div className="cd-definition"><DetalheItem item={definicao.item} descricao={definicao.descricao} personalizado={!!definicao.campanha} onOpenContent={onOpenContent} mostrarImagem={false}/></div>
         : secoes.length > 0 && <section aria-label={privado ? 'Propriedades' : 'Informações conhecidas'}><h2>{privado ? 'Propriedades' : 'Informações conhecidas'}</h2><dl className="cd-campos">{secoes.map(s => <div key={s.k}><dt>{s.l}</dt><dd>{s.v}</dd></div>)}</dl></section>}
-      {demais.length > 0 && <section className="cd-relations" aria-label="Registros relacionados">
+      {links.length > 0 && <section className="cd-relations" aria-label="Registros relacionados">
         <h2>Registros relacionados</h2>
-        <ListaVinculos links={demais} rows={rows} onOpenContent={onOpenContent}/>
+        <ListaVinculos links={links} rows={rows} onOpenContent={onOpenContent}/>
       </section>}
       {privado && !!entry.secret?.trim() && <section className="cd-private"><h2>Notas privadas do mestre</h2><p className="cd-texto">{entry.secret}</p></section>}
     </>}

@@ -1,3 +1,5 @@
+> Prioridade posterior do responsável (27/11/2026): concluir exclusivamente #171 nesta rodada. **Não iniciar Anotações.** Requisitos completos e contexto para outra IA em [ANOTACOES-BETA-HANDOFF](ANOTACOES-BETA-HANDOFF.md); documentação não significa implementação.
+
 > Atualização de 27/11/2026: PR #170 publicado e 0022 aplicada. Padronização global em desenvolvimento na branch `feat/interface-global-consistente`; [entrega, testes e pendências](INTERFACE-GLOBAL.md). A proposta 0023 **não foi aplicada**. Não tratar a solicitação inteira como concluída nem reaplicar 0022.
 
 # Continuidade do desenvolvimento — Compêndio 5e 2.0

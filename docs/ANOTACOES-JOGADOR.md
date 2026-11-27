@@ -1,3 +1,9 @@
+> Especificação atual completa para a próxima IA: [Anotações da Beta — transferência de contexto](ANOTACOES-BETA-HANDOFF.md). **Somente documentação; implementação não iniciada.**
+
+> **Novo escopo aprovado — 27/11/2026:** depois de concluir o PR #171, desenvolver Anotações de mestre e jogador em um único PR dedicado. Mestre usa documentos e quadros; jogador somente documentos. Reutilizar BlockNote, privacidade por usuário/campanha, salvamento automático e sincronização. Preservar a última anotação durante a navegação e todos os dados anteriores. As restrições históricas abaixo que proíbem alterar o mestre ou reabrir a última anotação foram substituídas por este pedido.
+>
+> Quadros do mestre: cartões livres em área finita expansível, sem seções obrigatórias nem grade P/M/G; movimento horizontal/vertical/diagonal; pinça mobile e zoom desktop; enquadrar tudo; edição/leitura em tela cheia mobile. Avaliar biblioteca de gestos, preservando dados do modelo antigo por adaptação não destrutiva. Referências a encontros e registros originais do Compêndio nos dois tipos de anotação, sem cópias. Sem canvas infinito, desenho livre ou setas. Migrações de produção exigem autorização. Ainda não iniciado: o pré-requisito #171 permanece aberto.
+
 # Anotações dos jogadores — ponto de partida
 
 **Próxima tarefa aprovada.** Ainda não iniciada. Fontes normativas: [ESPECIFICACAO-EXPERIENCIA-JOGADOR, seção 5](ESPECIFICACAO-EXPERIENCIA-JOGADOR.md) e DEC-035 em [DECISOES-E-ARQUITETURA](../DECISOES-E-ARQUITETURA.md). Em caso de conflito, vale a decisão mais recente do responsável.

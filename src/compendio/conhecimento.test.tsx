@@ -297,16 +297,16 @@ describe("Compêndio unificado", () => {
     expect(screen.getByRole("button", { name: "Visualizar em grade" })).toBeTruthy();
     expect(document.querySelectorAll(".flexlayout__tab_button")).toHaveLength(antes);
   });
-  it("naturalidade e residência vinculadas ocupam o próprio campo, sem repetir em registros relacionados; @ cita outro registro", async () => {
+  it("residência vinculada aparece numa única linha de relacionados; @ cita outro registro", async () => {
     const codex = codexDemo(true, "ca");
     const cidade = await codex.save("ca", null, 0, { category: "location", systemId: "dnd5e-2014", title: "Daggerford" });
     const id = await npc(codex);
     await codex.link("ca", id, cidade, { kind: "resident", label: "Habita", inverse: "Habitante" });
     await mount("mestre", codex);
     await abrirRegistro("Personagens", "Edric Voss");
-    const residencia = await carta().findByText("Residência");
-    expect(within(residencia.parentElement!).getByRole("button", { name: "Daggerford" })).toBeTruthy();
-    expect(carta().queryByRole("heading", { name: "Registros relacionados" })).toBeNull();
+    const relacionados=await carta().findByRole("region",{name:"Registros relacionados"});
+    expect(within(relacionados).getByRole("button",{name:/Daggerford Habita/})).toBeTruthy();
+    expect(carta().queryByText("Residência")).toBeNull();
     fireEvent.click(acaoCarta("Editar registro"));
     const editor = screen.getByRole("dialog", { name: "Editar registro" });
     const descricao = within(editor).getByLabelText("Descrição compartilhada") as HTMLTextAreaElement;
@@ -315,9 +315,9 @@ describe("Compêndio unificado", () => {
     expect(descricao.value).toBe(`Vive em @[Daggerford](${cidade})`);
     fireEvent.click(within(editor).getByRole("button", { name: "Salvar" }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar registro" })).toBeNull());
-    await waitFor(() => expect(carta().getAllByRole("button", { name: "Daggerford" })).toHaveLength(2));
+    await waitFor(() => expect(carta().getAllByRole("button", { name: /^Daggerford(?: |$)/ })).toHaveLength(2));
     expect(screen.getByRole("dialog").textContent).not.toContain("@[");
-    fireEvent.click(carta().getAllByRole("button", { name: "Daggerford" })[1]);
+    fireEvent.click(carta().getAllByRole("button", { name: /^Daggerford(?: |$)/ })[1]);
     expect(await carta().findByRole("heading", { name: "Daggerford", level: 1 })).toBeTruthy();
     fireEvent.click(carta().getByRole("button", { name: "Voltar à carta anterior" }));
     expect(await carta().findByRole("heading", { name: "Edric Voss", level: 1 })).toBeTruthy();

@@ -55,7 +55,7 @@ export function ListaVinculos({ links, rows, controles, onOpenContent, semAbrir 
       return <li key={link.id}>
         <button type="button" className="cd-relation" disabled={semAbrir} onClick={e => { if (!context.aoClicar(e, spec)) onOpenContent(spec); }} onAuxClick={e => context.aoBotaoDoMeio(e, spec)} onMouseDown={e => { if (e.button === 1) e.preventDefault(); }} onContextMenu={e => context.aoClicarDireito(e, spec)}>
           <ImagemLinha row={rows.length ? row : { ...row, entry: undefined, image: row.category === 'character' ? row.image : null }} size={40}/>
-          <span><strong>{link.title}</strong><small>{link.relation} · {nomesCategoria[link.category]}</small></span>
+          <span><strong>{link.title}</strong>{" "}<small>{link.relation} · {nomesCategoria[link.category]}</small></span>
         </button>
         {controles && <button className="cd-icon" disabled={controles.busy} aria-label={`Remover vínculo com ${link.title}`} onClick={() => controles.onRemover(link)}><Trash2 size={15}/></button>}
       </li>;

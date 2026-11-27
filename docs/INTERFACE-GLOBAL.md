@@ -12,7 +12,7 @@ Base: `main` `1e6e2f206091791ebade01bcab474b4196bbe821`. Branch `feat/interface-
 - Removidos nomes redundantes de campanha dos cabeçalhos internos de Personagens, Diário, Anotações, Iniciativa, Encontros, criador e ficha.
 - Modo global **Ver como jogador** no Menu: mantém sessão e RLS reais, troca apenas apresentação, bloqueia mutações, usa `codex_preview` do servidor para registros, vínculos, títulos e imagens. Nenhum nome salvo em títulos antigos é usado como fallback para páginas privadas. Navegação comum mantém a prévia; Menu retorna ao mestre. A prévia é de um jogador genérico: não representa a conta de um participante, sua ficha nem notas pessoais; não reutiliza notificações, posses ou definições privadas do mestre.
 - Vínculos do editor ficam em rascunho (inclusões/remoções); cancelar não chama a API. Salvamento conjunto depende da proposta 0023. Sem sua capacidade, há mensagem **antes de qualquer gravação/upload**; texto e seleção permanecem no editor. Edições sem mudanças de vínculos continuam usando a infraestrutura 0022.
-- Relações comuns ficam em linhas compactas, com miniatura, nome, relação e categoria. Campos próprios (residência, naturalidade, habitantes) mantêm a apresentação contextual anterior.
+- Relações comuns ficam em linhas compactas, com miniatura, nome, relação e categoria. Destinos de campos próprios (residência, naturalidade, habitantes) também usam a lista compacta única, sem duplicação em fatos ou seções por relação. Texto livre dos campos é preservado.
 - Quadro do mestre no celular com rolagem horizontal e colunas roláveis verticalmente; sensores/alças reutilizados. A composição das anotações do jogador permanece como na base.
 
 ## Banco: proposta, não aplicada
@@ -36,9 +36,9 @@ Uploads são novos objetos; nunca sobrescrevem a imagem antiga. Uma falha poster
 
 1. Unificar integralmente o formulário narrativo de aventureiros e NPCs (incluindo origem, personalidade, observações, vínculos e notas privadas), com autorização e persistência próprias do aventureiro, sem duplicar raça/classe/nível da ficha. Esta branch ainda usa os editores existentes de identidade pública dos aventureiros.
 2. Mover o estado vital para esse formulário, com alteração só ao salvar e confirmação de morte. O controle atual e a fonte `character_life` foram preservados; não houve segunda fonte.
-3. Revisar os retornos internos de Encontros/ficha de criatura e a barra especial da ficha própria mobile: ainda há contextos não centralizados no cabeçalho.
-4. Completar padronização dos menus de todos os tipos de catálogo/identidade e levar a entrada da seleção múltipla ao menu da barra. As confirmações existentes foram mantidas.
-5. Unificar todos os vínculos, inclusive campos próprios, na mesma apresentação compacta; no editor transacional a criação de referência a item de catálogo ainda não cadastrado não está disponível (vincular registro existente funciona).
+3. Revisar o retorno interno de Encontros e a barra especial da ficha própria mobile. O retorno interno duplicado da ficha de criatura foi removido nesta continuação.
+4. Completar padronização dos menus de todos os tipos de catálogo/identidade. A entrada da seleção múltipla já está no menu compartilhado da barra; confirmações e restrições dos selecionados foram preservadas.
+5. No editor transacional, a criação de referência a item de catálogo ainda não cadastrado continua pendente. Registros existentes funcionam; a apresentação compacta de todos os vínculos foi unificada.
 6. Revisão/autorização da proposta 0023 antes de habilitar salvamento conjunto em produção; não aplicar automaticamente nem publicar como migração já instalada.
 7. Confirmar arraste real em Android com colunas roláveis e teclado físico/leitor de tela. Simulação Chromium não equivale a validação em aparelho físico.
 8. Otimizar leitura da prévia em campanhas grandes: usa até seis projeções simultâneas; não há endpoint de lote dedicado nesta entrega.
@@ -60,3 +60,11 @@ Dados inteiramente fictícios. Inspeção visual de cartões mobile/desktop, for
 A inspeção do cartão operacional encontrou uma regra antiga que limitava placeholders a 76 px. Ela foi removida; no navegador mobile, cartão e miniatura mediram **179,09 × 179,09 px**, com PV e responsável preservados. [Captura operacional](evidencias/interface-global/operacional-390.png).
 
 Primeira rodada Linux: validação (1.885 testes), Supabase isolado, preview, quality e as duas partes de creator aprovados. E2E geral: 168 aprovados, quatro expectativas antigas de menu não incluíam a nova ação "Ver como jogador"; a lista explícita de ações do mestre foi atualizada, preservando a lista do jogador. As 20 omissões condicionais dessa suíte já pertencem à infraestrutura; nenhuma foi adicionada para encobrir falhas. Verificar o resultado do HEAD no PR antes de integrar.
+
+### Continuação priorizada — somente #171
+
+Instrução posterior: concentrar esta IA exclusivamente em concluir #171. **Nenhuma implementação de Anotações foi iniciada.** A especificação completa está no documento [ANOTACOES-BETA-HANDOFF](ANOTACOES-BETA-HANDOFF.md), para outra IA.
+
+Nesta continuação: seleção múltipla abre pelo menu da barra e mantém elegibilidade/confirmacões; relações de campos próprios usam a lista única; nomes acessíveis separam título e relação com espaço; retorno duplicado da ficha de criatura removido. Testes direcionados: **50/50** (persistência/seleção/interface) e **20/20** (Compêndio/relações). Não houve execução redundante da suíte completa, migração de produção ou início do módulo de Anotações. E2E adaptado para continuar verificando relações ocultas, sem mascarar vazamento por mudança de nome acessível.
+
+**Ainda não concluído:** formulário narrativo unificado de aventureiros/NPCs; estado vital dentro dele com confirmação e gravação apenas em Salvar; retorno interno de Encontros/barra de ficha própria mobile; demais menus de catálogo/identidade; referência de catálogo ainda não registrada dentro da transação; revisão/autorização da proposta 0023; validação física em Android; otimização de leitura da prévia. Não declarar o PR pronto para integrar com base apenas nos testes aprovados.
