@@ -65,10 +65,10 @@ const acaoDoItem = (item: string, acao: string) => { fireEvent.click(screen.getB
 const acoesDe = (item: string) => { fireEvent.click(screen.getByRole("button", { name: `Ações de ${item}` })); const nomes = screen.getAllByRole("menuitem").map(m => m.textContent!.trim()); fireEvent.keyDown(document, { key: "Escape" }); return nomes; };
 
 describe("ficha de jogo", () => {
-  it("tem exatamente três abas e um cabeçalho com retrato, nome, alcunha e os números de combate", async () => {
+  it("tem as quatro abas internas e um cabeçalho com retrato, nome, alcunha e os números de combate", async () => {
     await semear();
     const ficha = await abrirFicha();
-    expect(abas().getAllByRole("button").map(b => b.textContent)).toEqual(["Ficha", "Habilidades", "Inventário"]);
+    expect(abas().getAllByRole("button").map(b => b.textContent)).toEqual(["Ficha", "Habilidades", "Inventário", "Identidade"]);
     const topo = within(screen.getByRole("region", { name: "Resumo do personagem" }));
     expect(topo.getByRole("heading", { name: "Thorin" })).toBeTruthy();
     expect(topo.getByText("Escudo de Pedra").tagName).toBe("EM");
@@ -176,6 +176,20 @@ describe("ficha de jogo", () => {
     expect(screen.getByRole("button", { name: "Ver em grade" }).getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("aba Identidade mostra a projeção pública do mesmo personagem e a edição é salva na ficha", async () => {
+    await semear();
+    await abrirFicha();
+    fireEvent.click(abas().getByRole("button", { name: "Identidade" }));
+    const previa = within(await screen.findByRole("article", { name: "Prévia da identidade pública" }));
+    expect(previa.getByRole("heading", { name: "Thorin" })).toBeTruthy();
+    expect(previa.queryByText(/Pontos de vida|PV|Inventário/)).toBeNull();
+    fireEvent.click(previa.getByRole("button", { name: "Editar identidade pública" }));
+    fireEvent.change(await screen.findByLabelText("Descrição pública"), { target: { value: "Um anão de poucas palavras." } });
+    await salvou(() => expect(JSON.stringify((registros as unknown as { dados: unknown[] }).dados[0])).toContain("Um anão de poucas palavras."));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir" }));
+    expect(within(screen.getByRole("article", { name: "Prévia da identidade pública" })).getByText("Um anão de poucas palavras.")).toBeTruthy();
+  });
+
   it("no celular, arrastar para o lado troca de aba; rolagem vertical, controles e a borda não trocam", async () => {
     await semear();
     const ficha = await abrirFicha();
@@ -190,7 +204,8 @@ describe("ficha de jogo", () => {
     arrastar(screen.getByRole("checkbox", { name: "Inspiração" }), [300, 400], [100, 400]); expect(atual()).toBe("Ficha");
     arrastar(alvo(), [300, 400], [150, 405]); expect(atual()).toBe("Habilidades");
     expect(abaDoGesto("ficha", 100, 0)).toBeNull();
-    expect(abaDoGesto("inventario", -100, 0)).toBeNull();
+    expect(abaDoGesto("inventario", -100, 0)).toBe("identidade");
+    expect(abaDoGesto("identidade", -100, 0)).toBeNull();
     expect(abaDoGesto("inventario", 100, 10)).toBe("habilidades");
     expect(abaDoGesto("ficha", -100, 80)).toBeNull();
   });

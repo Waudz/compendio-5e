@@ -7,6 +7,7 @@ import { registrarTitulo } from "../registrosStore";
 import {VoltarCompendio} from "./Paginas";
 import type { TabSpec } from "../workspace";
 import { DetalheMagia } from "./DetalheMagia";
+import { Carta } from "./Carta";
 
 export function MagiaPagina({ id, onOpenContent }: { id: string; onOpenContent: (s: TabSpec) => void }) {
   const [dados, setDados] = useState<{ id: string; magia?: Magia; erro?: boolean } | null>(null), [tentativa, setTentativa] = useState(0);
@@ -16,6 +17,6 @@ export function MagiaPagina({ id, onOpenContent }: { id: string; onOpenContent: 
     return () => { vivo = false; };
   }, [id, tentativa]);
   if (!dados || dados.id !== id) return <div className="content"><p className="muted" role="status">Carregando magia…</p></div>;
-  return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/>{dados.magia ? <article aria-label={`Detalhes de ${dados.magia.nome}`}><h1>{dados.magia.nome}</h1><DetalheMagia magia={dados.magia}/></article>
+  return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/>{dados.magia ? <Carta trilha="Regras / Magia" nome={dados.magia.nome}><DetalheMagia magia={dados.magia}/></Carta>
     : <Aviso erro t={dados.erro ? "Não foi possível carregar a magia." : "Magia não encontrada."} onRetry={dados.erro ? () => setTentativa(n => n + 1) : undefined}/>}</div>;
 }

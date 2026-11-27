@@ -119,7 +119,7 @@ export function BackupLocal({ chave, rotulo }: { chave: string; rotulo: string }
 
 // ---------------------------------------------------------------- seletores de conteúdo canônico (sem bancos paralelos)
 export const modAtributo = (v: number) => Math.floor((v - 10) / 2);
-export function SeletorMonstro({ rotulo, onEscolher, buscaControlada, ocultarVazio = false }: { ocultarVazio?: boolean; rotulo: string; onEscolher: (m: Monstro) => void; buscaControlada?: string }) {
+export function SeletorMonstro({ rotulo, onEscolher, buscaControlada, ocultarVazio = false, acao = "Adicionar" }: { acao?: "Adicionar" | "Vincular"; ocultarVazio?: boolean; rotulo: string; onEscolher: (m: Monstro) => void; buscaControlada?: string }) {
   const [buscaLocal, setBusca] = useState("");
   const busca = buscaControlada ?? buscaLocal;
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: readonly Monstro[] }>({ status: "carregando" });
@@ -137,7 +137,7 @@ export function SeletorMonstro({ rotulo, onEscolher, buscaControlada, ocultarVaz
     {dados.status === "carregando" && <p className="muted" role="status">Carregando o Bestiário…</p>}
     {dados.status === "erro" && <Aviso erro t="Não foi possível carregar o Bestiário." onRetry={carregar}/>}
     {dados.status === "pronto" && <>
-      <PesquisaCatalogo somenteResultados={buscaControlada !== undefined} rotulo="Buscar monstro" valor={busca} onChange={setBusca} vazio={!achados.length} resultados={achados.map(m => <li key={m.id}><button type="button" className="btn-secondary" onClick={() => { onEscolher(m); setBusca(""); }} aria-label={`Adicionar ${m.nome} do Bestiário`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="monstro" tamanho={36} src={imagemDoMonstro(m.id)}/><span><strong>{m.nome}</strong><small>ND {m.nd >= 1 ? m.nd : m.nd === 0.5 ? "1/2" : m.nd === 0.25 ? "1/4" : m.nd === 0.125 ? "1/8" : m.nd} · PV {m.pv} · CA {m.ca}</small></span></span></button></li>)}/>
+      <PesquisaCatalogo somenteResultados={buscaControlada !== undefined} rotulo="Buscar monstro" valor={busca} onChange={setBusca} vazio={!achados.length} resultados={achados.map(m => <li key={m.id}><button type="button" className="btn-secondary" onClick={() => { onEscolher(m); setBusca(""); }} aria-label={`${acao} ${m.nome} do Bestiário`}><span className="pesquisa-criatura"><RetratoQuadrado tipo="monstro" tamanho={36} src={imagemDoMonstro(m.id)}/><span><strong>{m.nome}</strong><small>ND {m.nd >= 1 ? m.nd : m.nd === 0.5 ? "1/2" : m.nd === 0.25 ? "1/4" : m.nd === 0.125 ? "1/8" : m.nd} · PV {m.pv} · CA {m.ca}</small></span></span></button></li>)}/>
     </>}
   </section>;
 }

@@ -29,7 +29,7 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
   const project = (e: Salvo): Conhecimento => {
     const has = (k: string) => e.revealed.includes(k);
     const fields = Object.fromEntries(Object.entries(e.fields ?? {}).filter(([k]) => has(k)));
-    const sheet = (e.sheet ?? []).filter((s) => has("sheet") || has("sheet:" + s.k));
+    const sheet = e.category === "monster" ? [] : (e.sheet ?? []).filter((s) => has("sheet") || has("sheet:" + s.k));
     const related = linksOf(e.id, true).map((l) => l.title);
     // Chaves ocultas ficam ausentes da resposta, como na projeção do servidor.
     return JSON.parse(JSON.stringify({
@@ -39,7 +39,7 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
       sheet: sheet.length ? sheet : undefined,
       imagePath: has("image") ? e.imagePath : undefined, framing: has("image") ? e.framing : undefined,
       imageDefinitionId: has("image") && has("name") ? e.definitionId : undefined,
-      definitionId: identified(e) ? e.definitionId : undefined,
+      definitionId: e.category !== "monster" && identified(e) ? e.definitionId : undefined,
       relatedTerms: related.length ? related : undefined,
     })) as Conhecimento;
   };
@@ -107,7 +107,12 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
     definitions: async (cid) => {
       scope(cid);
       const all = parse<LinhaDefinicao>(key + ":definitions");
-      return master ? all : all.filter((d) => read().some((e) => e.visible && e.definitionId === d.definitionId && e.category === d.kind && identified(e)));
+      return master ? all : all.filter((d) => d.kind === "item" && read().some((e) => e.visible && e.definitionId === d.definitionId && e.category === d.kind && identified(e)));
+    },
+    setCombatSheet: async (cid, id, version, definitionId) => {
+      check(); scope(cid);
+      const old = find(id, version);
+      store(key, read().map((x) => (x.id === id ? { ...old, combatDefinitionId: definitionId ?? undefined, version: version + 1 } : x)));
     },
     saveDefinition: async (cid, d, sheet, baseName) => {
       check(); scope(cid);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createModel, findTab, groupCount, groups, isColumnsOnly, moveToNewColumn } from "./workspace";
-import { navigate, openContentLink } from "./navigation";
+import { navigate, openAoLado, openContentLink } from "./navigation";
+import { emptyLayout, openTab } from "./workspace";
 
 const ids = (m: ReturnType<typeof createModel>) => groups(m).map(g => g.getChildren().map(t => t.getId()));
 
@@ -47,5 +48,29 @@ describe("navegação que preserva o espaço de trabalho", () => {
     openContentLink(m, { kind: "item", ref: "espada" }, "secao:personagens", true);
     expect(groupCount(m)).toBe(1);
     expect(ids(m)[0]).toEqual(["secao:personagens", "item:espada"]);
+  });
+});
+
+describe("ficha de monstro no outro grupo (Iniciativa)", () => {
+  const monstro = { kind: "monstro" as const, ref: "goblin", title: "Goblin" };
+  it("cria o segundo grupo, reutiliza a ficha da mesma definição e não duplica", () => {
+    const m = createModel(emptyLayout());
+    openTab(m, { kind: "secao", ref: "iniciativa" });
+    const origem = findTab(m, "secao:iniciativa")!.getId();
+    openAoLado(m, monstro, origem);
+    expect(groupCount(m)).toBe(2);
+    expect(findTab(m, "monstro:goblin")!.getParent()).not.toBe(findTab(m, origem)!.getParent());
+    expect(openAoLado(m, monstro, origem).action).toBe("selected");   // Goblin 1 e Goblin 2: a mesma ficha
+    openAoLado(m, { kind: "monstro", ref: "troll", title: "Troll" }, origem);
+    expect(groupCount(m)).toBe(2);
+    expect(findTab(m, "monstro:troll")!.getParent()).toBe(findTab(m, "monstro:goblin")!.getParent());
+  });
+  it("ficha já aberta no grupo do combate passa para o outro grupo, sem cobrir a Iniciativa", () => {
+    const m = createModel(emptyLayout());
+    openTab(m, monstro);
+    openTab(m, { kind: "secao", ref: "iniciativa" });
+    openAoLado(m, monstro, "secao:iniciativa");
+    expect(groupCount(m)).toBe(2);
+    expect(findTab(m, "monstro:goblin")!.getParent()).not.toBe(findTab(m, "secao:iniciativa")!.getParent());
   });
 });

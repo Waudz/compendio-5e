@@ -15,7 +15,7 @@ export function gruposDeChaves(e: Conhecimento): GrupoChaves[] {
     { id: 'identidade', titulo: 'Identidade', chaves: [{ k: 'name', l: 'Nome' }, ...(apelido ? [{ k: 'nickname', l: apelido.label }] : []), ...(e.imagePath || e.imageDefinitionId ? [{ k: 'image', l: 'Imagem' }] : [])] },
     { id: 'descricao', titulo: 'Descrição', chaves: [...(deBlocos(e.description ?? []).trim() ? [{ k: 'description', l: 'Descrição' }] : []), ...preenchidos(false)] },
     { id: 'detalhes', titulo: 'Detalhes', chaves: preenchidos(true) },
-    { id: 'ficha', titulo: e.category === 'monster' ? 'Ficha da criatura' : 'Propriedades', chaves: (e.sheet ?? []).map(s => ({ k: 'sheet:' + s.k, l: s.l })) },
+    { id: 'ficha', titulo: 'Propriedades', chaves: e.category === 'monster' ? [] : (e.sheet ?? []).map(s => ({ k: 'sheet:' + s.k, l: s.l })) },
     { id: 'posse', titulo: 'Posse', chaves: e.category === 'item' ? [{ k: 'holders', l: 'Quem está com o item' }] : [] },
   ];
   return grupos.filter(g => g.chaves.length > 0);
@@ -35,11 +35,17 @@ export function alternarChaves(reveladas: readonly string[], chaves: readonly st
 export function todasAsChaves(e: Conhecimento): string[] {
   const chaves = gruposDeChaves(e).flatMap(g => g.chaves.map(c => c.k));
   // A ficha inteira usa o curinga: seções novas da mesma definição continuam reveladas.
-  return [...chaves.filter(k => !k.startsWith('sheet:')), ...(e.definitionId ? ['sheet'] : [])];
+  return [...chaves.filter(k => !k.startsWith('sheet:')), ...(e.definitionId && e.category !== 'monster' ? ['sheet'] : [])];
 }
-export const PRESETS_BESTIARIO = ['Nome', 'Nome e descrição', 'Com imagem', 'Informações completas'] as const;
-/** Os quatro níveis do bestiário são atalhos: substituem a seleção e continuam ajustáveis campo a campo. */
+export const PRESETS_BESTIARIO = ['Identificado', 'Conhecido', 'Estudado', 'Compreendido'] as const;
+const NIVEIS: readonly string[][] = [
+  ['name'],
+  ['image', 'description', 'appearance', 'nickname', 'classification'],
+  ['habitat', 'behavior', 'diet', 'capabilities', 'sightings', 'history'],
+  ['weaknesses', 'defenses', 'strategies'],
+];
+/** Os quatro níveis são atalhos cumulativos sobre campos narrativos: substituem a seleção e continuam ajustáveis. */
 export function presetBestiario(nivel: 1 | 2 | 3 | 4, e: Conhecimento): string[] {
-  if (nivel === 4) return todasAsChaves(e);
-  return ['name', ...(nivel >= 2 ? ['description'] : []), ...(nivel >= 3 ? ['image'] : [])];
+  const disponiveis = new Set(todasAsChaves(e));
+  return NIVEIS.slice(0, nivel).flat().filter(k => k === 'name' || disponiveis.has(k));
 }

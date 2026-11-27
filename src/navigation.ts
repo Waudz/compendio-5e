@@ -102,3 +102,14 @@ export function openContentLink(m: Model, spec: TabSpec, originTabId?: string, m
   if (parent instanceof TabSetNode) m.doAction(Actions.setActiveTabset(parent.getId()));
   return { action: "created", tabId: id };
 }
+
+/** Abre no outro grupo, criando-o se preciso. Se o registro já estiver aberto no grupo de origem, a aba passa para o outro. */
+export function openAoLado(m: Model, spec: TabSpec, originTabId?: string): NavResult {
+  const origem = originTabId ? findTab(m, originTabId)?.getParent() : activeGroup(m);
+  const existing = abaDoRegistro(m, spec);
+  if (existing && origem && existing.getParent() === origem && existing.getId() !== originTabId) {
+    const outro = groups(m).find(g => g !== origem);
+    m.doAction(Actions.moveNode(existing.getId(), (outro ?? (origem as TabSetNode)).getId(), outro ? DockLocation.CENTER : DockLocation.RIGHT, -1, true));
+  }
+  return openContentLink(m, spec, originTabId, false, false);
+}

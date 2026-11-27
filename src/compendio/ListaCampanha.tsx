@@ -10,13 +10,14 @@ import {CabecalhoCategoria,FerramentasCategoria,CartoesCategoria} from './Compon
 import {pesquisarLinhas,useLinhasCampanha} from './consulta';
 import {FILTROS_DESCOBERTA} from './campos';
 import {RegistrarItemExistente} from './RegistrarItem';
+import {useAbrirConsulta} from './ConsultaCarta';
 import type {TabSpec} from '../workspace';
 import type {CodexCategoria} from './conhecimento';
 const categories:Record<string,CodexCategoria>={personagens:'npc',monstros:'monster',locais:'location',organizacoes:'organization',descobertas:'discovery'};
 const labels:Record<string,string>={personagens:'Personagens',monstros:'Bestiário',locais:'Locais',organizacoes:'Organizações',descobertas:'Descobertas'};
 type Preferences={query:string;view:'lista'|'grade';order:string;filter:string;limit?:number};const sessions=new WeakMap<object,Map<string,Preferences>>();
 export function ListaCampanha({category,onBack,onOpenContent}:{category:string;onBack:()=>void;onOpenContent:(s:TabSpec)=>void}){
- const {active}=useCampaigns(),{client,user}=useAuth(),data=useLinhasCampanha();
+ const {active}=useCampaigns(),{client,user}=useAuth(),data=useLinhasCampanha(),consultar=useAbrirConsulta(onOpenContent);
  const origin=useContext(OrigemAbaContext);
  const cache=useMemo(()=>{if(!client)return new Map<string,Preferences>();let c=sessions.get(client);if(!c){c=new Map();sessions.set(client,c);}return c;},[client]);const key=`${user?.id}:${active?.campaign.id}:${origin}:${category}`,pref=cache.get(key);
  const [limit,setLimit]=useState(pref?.limit??60);
@@ -30,7 +31,7 @@ export function ListaCampanha({category,onBack,onOpenContent}:{category:string;o
  {data.loading&&<p role="status">Carregando registros…</p>}{data.error&&<Aviso erro t={data.error} onRetry={data.refresh}/>}{category==='personagens'&&data.pcError&&<Aviso erro t={data.pcError}/>}
  {!data.loading&&!shown.length&&<p className="muted">{query?'Nenhum resultado para esta pesquisa.':'Nenhum registro disponível nesta categoria.'}</p>}
  <p role="status" className="muted">{shown.length} {shown.length===1?'resultado':'resultados'}{shown.length>limit?` (mostrando ${limit})`:""}</p>
- <CartoesCategoria rows={shown.slice(0,limit)} view={view} onOpen={onOpenContent} listLabel="Resultados do Compêndio"/>{shown.length>limit&&<button className="btn-secondary" onClick={()=>setLimit(v=>v+60)}>Mostrar mais</button>}
+ <CartoesCategoria rows={shown.slice(0,limit)} view={view} onOpen={consultar} onFicha={onOpenContent} listLabel="Resultados do Compêndio"/>{shown.length>limit&&<button className="btn-secondary" onClick={()=>setLimit(v=>v+60)}>Mostrar mais</button>}
  {create&&<EditorConhecimento category={categories[category]} entry={null} onDone={id=>{setCreate(false);data.refresh();if(id)onOpenContent(registroSpec(id));}}/>}
  </div>;
 }

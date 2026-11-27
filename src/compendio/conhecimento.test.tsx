@@ -5,6 +5,7 @@ import {
   cleanup,
   fireEvent,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { renderApp, me, memoryStorage } from "../testUtils";
@@ -136,7 +137,7 @@ describe("Compêndio unificado", () => {
     expect(screen.queryByText("SEGREDO")).toBeNull();
     expect(screen.queryByText("Classe de Armadura")).toBeNull();
     expect(screen.queryByRole("button", { name: /Novo registro/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button",{name:"Voltar na aba"}));
+    fireEvent.click(await screen.findByRole("button", { name: "Fechar consulta" }));
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "goblin" },
     });
@@ -220,35 +221,151 @@ describe("Compêndio unificado", () => {
     expect(await screen.findByText("Com: Portador B")).toBeTruthy();
     expect(screen.queryByText("Com: Portador A")).toBeNull();
   });
-  it("mestre revela campo a campo, publica, usa a prévia e o jogador recebe só o marcado", async () => {
-    const codex = codexDemo(true, "ca");
-    const id = await codex.save("ca", null, 0, {
-      category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "SEGREDO",
-      fields: { nickname: "O Corvo", occupation: "Contrabandista", history: "Nasceu no porto" },
-    });
+  const npc = (codex: CodexApi) => codex.save("ca", null, 0, {
+    category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "SEGREDO",
+    fields: { nickname: "O Corvo", occupation: "Contrabandista", history: "Nasceu no porto" },
+  });
+  const carta = () => within(screen.getByRole("dialog", { name: "Consulta do Compêndio" }));
+  const abrirRegistro = async (portalNome: string, nome: string) => {
+    fireEvent.click(portal(portalNome));
+    fireEvent.click(await screen.findByRole("button", { name: new RegExp("^" + nome + " ") }));
+    await screen.findByRole("dialog", { name: "Consulta do Compêndio" });
+    await carta().findByRole("heading", { name: nome, level: 1 });
+  };
+  it("consulta limpa; gerenciar é rascunho (cancelar não grava) e salvar é uma única operação; a prévia é a do jogador", async () => {
+    const codex = codexDemo(true, "ca"), revelar = vi.spyOn(codex, "reveal");
+    const id = await npc(codex);
     await mount("mestre", codex);
-    fireEvent.click(portal("Personagens"));
-    fireEvent.click(await screen.findByRole("button", { name: /^Edric Voss / }));
-    const barra = await screen.findByRole("region", { name: "Visibilidade para os jogadores" });
-    expect(within(barra).getByText(/Registro secreto/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Revelar Alcunha" }));
-    await screen.findByRole("button", { name: "Ocultar Alcunha" });
-    fireEvent.click(await screen.findByRole("button", { name: "Revelar Ocupação" }));
-    await screen.findByRole("button", { name: "Ocultar Ocupação" });
-    fireEvent.click(within(barra).getByRole("button", { name: "Publicar registro" }));
-    await within(barra).findByText(/Publicado/);
-    fireEvent.click(within(barra).getByRole("button", { name: "Ver como jogador" }));
+    await abrirRegistro("Personagens", "Edric Voss");
+    expect(carta().queryAllByRole("button", { name: /^(Revelar|Ocultar) / })).toHaveLength(0);
+    expect(carta().queryByRole("button", { name: "Ver ficha" })).toBeNull();   // NPC sem ficha vinculada
+    fireEvent.click(carta().getByRole("button", { name: "Gerenciar conhecimento" }));
+    fireEvent.click(carta().getByRole("switch", { name: "Registro conhecido" }));
+    fireEvent.click(carta().getByRole("button", { name: "Revelar Alcunha" }));
+    fireEvent.click(carta().getByRole("button", { name: "Cancelar" }));
+    expect(revelar).not.toHaveBeenCalled();
+    expect(await codexDemo(false, "ca").list("ca")).toEqual([]);
+    expect((await codexDemo(false, "ca").feed("ca")).unread).toBe(0);
+    fireEvent.click(carta().getByRole("button", { name: "Gerenciar conhecimento" }));
+    expect(carta().getByRole("button", { name: "Revelar Alcunha" })).toBeTruthy();
+    fireEvent.click(carta().getByRole("switch", { name: "Registro conhecido" }));
+    fireEvent.click(carta().getByRole("button", { name: "Revelar Alcunha" }));
+    fireEvent.click(carta().getByRole("button", { name: "Revelar Ocupação" }));
+    expect(carta().getByRole("status").textContent).toBe("2 de 4 informações reveladas");
+    fireEvent.click(carta().getByRole("button", { name: "Salvar conhecimento" }));
+    await carta().findByRole("button", { name: "Gerenciar conhecimento" });
+    expect(revelar).toHaveBeenCalledTimes(1);
+    expect((await codexDemo(false, "ca").feed("ca")).unread).toBe(1);
+    fireEvent.click(carta().getByRole("button", { name: "Ver como jogador" }));
     const previa = await screen.findByRole("region", { name: "Prévia do jogador" });
     expect(within(previa).getByRole("heading", { name: "O Corvo" })).toBeTruthy();
     expect(within(previa).getByText("Contrabandista")).toBeTruthy();
     expect(previa.textContent).not.toMatch(/Edric|Nasceu|SEGREDO|História/);
-    expect(within(previa).queryByRole("button", { name: /Revelar|Ocultar/ })).toBeNull();
+    expect(within(previa).queryByRole("button", { name: /Revelar|Ocultar|Editar|Conhecimento|Ver ficha/ })).toBeNull();
     const [visto] = await codexDemo(false, "ca").list("ca");
     expect(visto).toMatchObject({ id, title: "O Corvo", fields: { nickname: "O Corvo", occupation: "Contrabandista" } });
     expect(JSON.stringify(visto)).not.toMatch(/Edric|Nasceu|SEGREDO/);
-    fireEvent.click(within(barra).getByRole("button", { name: "Voltar à visão do mestre" }));
-    fireEvent.click(await within(barra).findByRole("button", { name: "Revelar tudo" }));
-    expect(await screen.findByRole("button", { name: "Ocultar História" })).toBeTruthy();
+    // o título da aba da página completa também usa a projeção durante a prévia
+    fireEvent.click(within(previa).getByRole("button", { name: "Mestre" }));
+    fireEvent.click(await carta().findByRole("button", { name: "Expandir para página completa" }));
+    const abas = () => [...document.querySelectorAll(".flexlayout__tabset_tabbar_inner .workspace-tab-title")].map((x) => x.textContent);
+    await waitFor(() => expect(abas()).toContain("Edric Voss"));
+    fireEvent.click(await screen.findByRole("button", { name: "Ver como jogador" }));
+    await screen.findByRole("region", { name: "Prévia do jogador" });
+    await waitFor(() => expect(abas()).toContain("O Corvo"));
+    expect(abas().join()).not.toContain("Edric");
+    fireEvent.click(screen.getByRole("button", { name: "Mestre" }));
+    await waitFor(() => expect(abas()).toContain("Edric Voss"));
+  });
+  it("carta abre sobre a lista; Escape e fechar preservam pesquisa e visualização sem criar aba", async () => {
+    const codex = codexDemo(true, "ca");
+    await npc(codex);
+    await mount("mestre", codex);
+    fireEvent.click(portal("Personagens"));
+    await screen.findByRole("button", { name: /^Edric Voss / });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "edric" } });
+    fireEvent.click(screen.getByRole("button", { name: "Lista" }));
+    const antes = document.querySelectorAll(".flexlayout__tab_button").length;
+    fireEvent.click(screen.getByRole("button", { name: /^Edric Voss / }));
+    fireEvent.keyDown(await screen.findByRole("dialog", { name: "Consulta do Compêndio" }), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Edric Voss / }));
+    fireEvent.click(await screen.findByRole("button", { name: "Fechar consulta" }));
+    expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("edric");
+    expect(screen.getByRole("button", { name: "Lista" }).getAttribute("aria-pressed")).toBe("true");
+    expect(document.querySelectorAll(".flexlayout__tab_button")).toHaveLength(antes);
+  });
+  it("naturalidade e residência vinculadas ocupam o próprio campo, sem repetir em registros relacionados; @ cita outro registro", async () => {
+    const codex = codexDemo(true, "ca");
+    const cidade = await codex.save("ca", null, 0, { category: "location", systemId: "dnd5e-2014", title: "Daggerford" });
+    const id = await npc(codex);
+    await codex.link("ca", id, cidade, { kind: "resident", label: "Habita", inverse: "Habitante" });
+    await mount("mestre", codex);
+    await abrirRegistro("Personagens", "Edric Voss");
+    const residencia = await carta().findByText("Residência");
+    expect(within(residencia.parentElement!).getByRole("button", { name: "Daggerford" })).toBeTruthy();
+    expect(carta().queryByRole("heading", { name: "Registros relacionados" })).toBeNull();
+    fireEvent.click(carta().getByRole("button", { name: "Editar registro" }));
+    const editor = screen.getByRole("dialog", { name: "Editar registro" });
+    const descricao = within(editor).getByLabelText("Descrição compartilhada") as HTMLTextAreaElement;
+    fireEvent.change(descricao, { target: { value: "Vive em @Dagg", selectionStart: 13 } });
+    fireEvent.click(await within(editor).findByRole("button", { name: /^Daggerford/ }));
+    expect(descricao.value).toBe(`Vive em @[Daggerford](${cidade})`);
+    fireEvent.click(within(editor).getByRole("button", { name: "Salvar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar registro" })).toBeNull());
+    await waitFor(() => expect(carta().getAllByRole("button", { name: "Daggerford" })).toHaveLength(2));
+    expect(screen.getByRole("dialog").textContent).not.toContain("@[");
+    fireEvent.click(carta().getAllByRole("button", { name: "Daggerford" })[1]);
+    expect(await carta().findByRole("heading", { name: "Daggerford", level: 1 })).toBeTruthy();
+    fireEvent.click(carta().getByRole("button", { name: "Voltar à carta anterior" }));
+    expect(await carta().findByRole("heading", { name: "Edric Voss", level: 1 })).toBeTruthy();
+  });
+  it("NPC ganha 'Ver ficha' só com ficha de combate vinculada; a ficha reutiliza a criatura e mostra a identidade", async () => {
+    const codex = codexDemo(true, "ca");
+    await npc(codex);
+    await mount("mestre", codex);
+    await abrirRegistro("Personagens", "Edric Voss");
+    expect(carta().queryByRole("button", { name: "Ver ficha" })).toBeNull();
+    fireEvent.click(carta().getByRole("button", { name: "Mais ações do registro" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Vincular ficha de combate" }));
+    const janela = screen.getByRole("dialog", { name: "Ficha de combate de Edric Voss" });
+    fireEvent.change(await within(janela).findByLabelText("Buscar monstro"), { target: { value: "goblin" } });
+    fireEvent.click(await within(janela).findByRole("button", { name: "Vincular Goblin do Bestiário" }));
+    fireEvent.click(await carta().findByRole("button", { name: "Ver ficha" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const secoes = within(await screen.findByRole("navigation", { name: "Seções da ficha" }));
+    expect(secoes.getAllByRole("button").map((x) => x.textContent)).toEqual(["Ficha", "Habilidades", "Identidade"]);
+    expect(screen.getByRole("heading", { name: "Edric Voss", level: 1 })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Atributos" })).toBeTruthy();
+    fireEvent.click(secoes.getByRole("button", { name: "Identidade" }));
+    expect(await screen.findByText("Contrabandista")).toBeTruthy();
+  });
+  it("Bestiário do mestre: o clique abre a carta narrativa sem estatísticas; Ver ficha abre a ficha com a aba Bestiário", async () => {
+    const codex = codexDemo(true, "ca");
+    await codex.save("ca", null, 0, { category: "monster", systemId: "dnd5e-2014", definitionId: "troll", title: "Troll", fields: { habitat: "Pântanos" }, sheet: [{ k: "hp", l: "Pontos de vida", v: "84 (8d10)" }] });
+    await mount("mestre", codex);
+    fireEvent.click(portal("Bestiário"));
+    fireEvent.change(await screen.findByLabelText("Pesquisar no Compêndio"), { target: { value: "troll" } });
+    fireEvent.click((await screen.findAllByRole("button", { name: /^Troll / }))[0]);
+    await screen.findByRole("dialog", { name: "Consulta do Compêndio" });
+    expect(await carta().findByText("Pântanos")).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).not.toMatch(/Pontos de vida|84|Classe de Armadura|Atributos/);
+    fireEvent.click(carta().getByRole("button", { name: "Ver ficha" }));
+    const secoes = within(await screen.findByRole("navigation", { name: "Seções da ficha" }));
+    expect(secoes.getAllByRole("button").map((x) => x.textContent)).toEqual(["Ficha", "Habilidades", "Bestiário"]);
+    const abasAntes = document.querySelectorAll(".flexlayout__tab_button").length;
+    fireEvent.click(secoes.getByRole("button", { name: "Bestiário" }));
+    expect(await screen.findByText("Pântanos")).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.querySelectorAll(".flexlayout__tab_button")).toHaveLength(abasAntes);
+  });
+  it("jogador com aba restaurada de criatura não recebe ficha técnica, mesmo com a criatura revelada", async () => {
+    localStorage.setItem(storageKey({ user: me.id, campaign: "ca", device: "navegador" }),
+      JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", children: [{ type: "tab", id: "monstro:goblin" }] }] } }));
+    await renderApp({ codex: api([row({ definitionId: "goblin" })]), api: { list: async () => ({ ok: true, data: [{ role: "jogador", campaign }] }) } as CampaignApi });
+    expect(await screen.findByText(/A ficha técnica é exclusiva do mestre/)).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Seções da ficha" })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Classe de Armadura|Pontos de vida/);
   });
   it("registrar item como descoberta cria página secreta, herdada da definição, sem duplicar", async () => {
     const codex = codexDemo(true, "ca");

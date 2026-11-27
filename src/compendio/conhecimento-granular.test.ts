@@ -16,25 +16,32 @@ const base: Conhecimento = {
 
 describe('chaves de divulgação', () => {
   it('"tudo" cobre apenas o que tem conteúdo e usa o curinga da ficha', () => {
-    expect(todasAsChaves(base)).toEqual(['name', 'nickname', 'image', 'sheet']);
-    expect(gruposDeChaves(base).map(g => g.id)).toEqual(['identidade', 'ficha']);
+    expect(todasAsChaves({ ...base, category: 'item' })).toEqual(['name', 'nickname', 'image', 'holders', 'sheet']);
+    expect(gruposDeChaves({ ...base, category: 'item' }).map(g => g.id)).toEqual(['identidade', 'ficha', 'posse']);
+  });
+  it('criatura nunca tem chave de ficha técnica, mesmo com seções sincronizadas', () => {
+    expect(todasAsChaves(base)).toEqual(['name', 'nickname', 'image']);
+    expect(gruposDeChaves(base).map(g => g.id)).toEqual(['identidade']);
   });
   it('ocultar uma seção expande o curinga sem revelar nem esconder as demais', () => {
     expect(alternarChaves(['name', 'sheet'], ['sheet:ac'], false, base)).toEqual(['name', 'sheet:vulnerabilities']);
     expect(alternarChaves(['name'], ['sheet:vulnerabilities'], true, base)).toEqual(['name', 'sheet:vulnerabilities']);
   });
   it('os quatro níveis do bestiário são atalhos crescentes', () => {
-    expect(presetBestiario(1, base)).toEqual(['name']);
-    expect(presetBestiario(2, base)).toEqual(['name', 'description']);
-    expect(presetBestiario(3, base)).toEqual(['name', 'description', 'image']);
-    expect(presetBestiario(4, base)).toEqual(todasAsChaves(base));
+    const troll: Conhecimento = { ...base, description: [{ type: 'paragraph', content: [{ type: 'text', text: 'd' }] }],
+      fields: { appearance: 'a', habitat: 'h', behavior: 'b', capabilities: 'c', weaknesses: 'f', defenses: 'r', strategies: 'e' } };
+    expect(presetBestiario(1, troll)).toEqual(['name']);
+    expect(presetBestiario(2, troll)).toEqual(['name', 'image', 'description', 'appearance']);
+    expect(presetBestiario(3, troll)).toEqual(['name', 'image', 'description', 'appearance', 'habitat', 'behavior', 'capabilities']);
+    expect([...presetBestiario(4, troll)].sort()).toEqual([...todasAsChaves(troll)].sort());
+    expect(presetBestiario(4, troll).some(k => k.startsWith('sheet'))).toBe(false);
   });
 });
 
 describe('campos, relações e ficha herdada', () => {
   it('campos aprovados por categoria', () => {
-    expect(CAMPOS.npc.map(c => c.id)).toEqual(['nickname', 'race', 'age', 'occupation', 'birthplace', 'residence', 'history', 'personality', 'relationships']);
-    expect(CAMPOS.organization.map(c => c.id)).toEqual(['nickname', 'type', 'memberCount', 'history', 'objectives']);
+    expect(CAMPOS.npc.map(c => c.id)).toEqual(['nickname', 'race', 'age', 'classLevel', 'occupation', 'birthplace', 'residence', 'history', 'personality', 'relationships']);
+    expect(CAMPOS.organization.map(c => c.id)).toEqual(['nickname', 'type', 'leadership', 'headquarters', 'memberCount', 'history', 'objectives']);
     expect(filtroDaDescoberta('discovery', 'Mapa')).toBe('Mapas');
     expect(filtroDaDescoberta('item')).toBe('Itens');
     expect(filtroDaDescoberta('discovery')).toBe('Outras');

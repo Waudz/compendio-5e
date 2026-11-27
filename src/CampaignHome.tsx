@@ -8,6 +8,8 @@ import { EditorCapa, FaixaCapa, useCapaCampanha, type EstadoCapa } from "./CapaC
 import { ConfigMoedas } from "./moedas/ConfigMoedas";
 import { RetratoQuadrado } from "./RetratoCombate";
 import { useAbrirEmAba } from "./abrirEmAba";
+import { useAbrirConsulta } from "./compendio/ConsultaCarta";
+import { identidadeSpec } from "./compendio/navegacao";
 import { AventureirosContext } from "./AventureirosContext";
 import { fonteAventureirosDoInicio } from "./personagensCampanha";
 import { useCapa, useFichas, useRegistros } from "./RegistrosContext";
@@ -97,8 +99,10 @@ export function DiarioPrevia({ campaignId, isMaster, fonte, onOpenContent }: { c
   return <section className="home-sec" aria-label="Diário"><h2><ScrollText size={16} aria-hidden="true"/> Diário</h2>{corpo}</section>;
 }
 
-export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId: string; fonte?: FonteAventureiros; onOpenContent: (s: TabSpec) => void }) {
-  const { aoClicarDireito } = useAbrirEmAba();
+export function Aventureiros({ campaignId, fonte, onOpenContent, mestre = false }: { campaignId: string; fonte?: FonteAventureiros; onOpenContent: (s: TabSpec) => void; mestre?: boolean }) {
+  const { aoClicarDireito } = useAbrirEmAba(), consultar = useAbrirConsulta(onOpenContent);
+  /** O próprio personagem abre a ficha; os demais (e o mestre) veem a carta de identidade pública. */
+  const destino = (a: Aventureiro): TabSpec => (a.meu && !mestre ? { kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` } : identidadeSpec(a.id, a.nome));
   const st = useFonte(`${campaignId}|${useVersaoRegistros()}`, fonte ? () => fonte.listar(campaignId) : null);
   let corpo;
   if (!st) corpo = <p className="muted" data-testid="aventureiros-indisponivel">Os personagens ainda não estão disponíveis nesta versão.</p>;
@@ -106,7 +110,7 @@ export function Aventureiros({ campaignId, fonte, onOpenContent }: { campaignId:
   else if (st.s === "erro") corpo = <div className="notice err" role="alert">{st.msg} <button className="btn-link" onClick={st.recarregar}>Tentar de novo</button></div>;
   else if (st.data.length === 0) corpo = <p className="muted" data-testid="aventureiros-vazio">Nenhum aventureiro vinculado a esta campanha.</p>;
   else corpo = <ul className="home-party">{st.data.map((a: Aventureiro) => <li key={a.id}>
-    <button className="home-char" onClick={() => onOpenContent({ kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} onContextMenu={ev => aoClicarDireito(ev, { kind: "ficha", ref: a.id, title: `Ficha: ${a.nome}` })} title={`Abrir ficha de ${a.nome}`}>
+    <button className="home-char" onClick={() => consultar(destino(a))} onContextMenu={ev => aoClicarDireito(ev, destino(a))} title={a.meu && !mestre ? `Abrir ficha de ${a.nome}` : `Ver ${a.nome}`}>
       <RetratoQuadrado src={a.retratoUrl} tipo="personagem" tamanho={72}/>
       <span><strong>{a.nome}</strong>{a.alcunha && <>{" "}<em className="home-char-alcunha">{a.alcunha}</em></>}{" "}<small>{a.classe}{a.nivel != null ? ` · nível ${a.nivel}` : ""}</small>{a.nota && <small className="home-char-nota">{a.nota}</small>}</span></button></li>)}</ul>;
   return <section className="home-sec" aria-label="Aventureiros"><h2><Users size={16} aria-hidden="true"/> Aventureiros</h2>{corpo}</section>;
@@ -135,7 +139,7 @@ export function CampaignHome({ id, onOpen, onOpenContent, diario, aventureiros }
     <FaixaCapa capa={capa} nome={mem.campaign.name} acao={isMaster && <button type="button" className="home-edit" aria-label="Editar informações" title="Editar campanha" aria-haspopup="dialog" onClick={() => setEditing(true)}><Pencil size={14} aria-hidden="true"/> Editar</button>}/>
     {capa.msg && !editing && <div className="notice err" role="alert">{capa.msg}</div>}
     <p className={descricao ? "home-desc" : "home-desc muted"}>{descricao || "Sem descrição."}</p>
-    <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent}/>
+    <Aventureiros campaignId={id} fonte={aventureiros ?? fonteAv ?? undefined} onOpenContent={onOpenContent} mestre={isMaster}/>
     <div className="home-columns">
       <DiarioPrevia campaignId={id} isMaster={isMaster} fonte={diarioFonte} onOpenContent={onOpenContent}/>
       <div className="home-people">{!editing && <CampaignPanel id={id} onOpen={onOpen} embedded readOnly={isMaster}/>}</div>

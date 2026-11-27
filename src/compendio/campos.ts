@@ -15,8 +15,8 @@ const descoberta: Campo[] = [
 ];
 export const CAMPOS: Record<CodexCategoria, Campo[]> = {
   npc: [
-    { id: 'nickname', label: 'Alcunha' }, { id: 'race', label: 'Raça' }, { id: 'age', label: 'Idade' }, { id: 'occupation', label: 'Ocupação' },
-    { id: 'birthplace', label: 'Naturalidade' }, { id: 'residence', label: 'Residência' }, historia,
+    { id: 'nickname', label: 'Alcunha' }, { id: 'race', label: 'Raça' }, { id: 'age', label: 'Idade' }, { id: 'classLevel', label: 'Classe e nível' },
+    { id: 'occupation', label: 'Ocupação' }, { id: 'birthplace', label: 'Naturalidade' }, { id: 'residence', label: 'Residência' }, historia,
     { id: 'personality', label: 'Personalidade', long: true }, { id: 'relationships', label: 'Observações sobre relações', long: true },
   ],
   location: [
@@ -24,12 +24,21 @@ export const CAMPOS: Record<CodexCategoria, Campo[]> = {
     { id: 'map', label: 'Mapa (referência em texto)' }, { id: 'inhabitants', label: 'Sobre os habitantes', long: true }, historia,
   ],
   organization: [
-    { id: 'nickname', label: 'Sigla ou alcunha' }, { id: 'type', label: 'Tipo' }, { id: 'memberCount', label: 'Quantidade de membros' },
+    { id: 'nickname', label: 'Sigla ou alcunha' }, { id: 'type', label: 'Tipo' }, { id: 'leadership', label: 'Liderança' },
+    { id: 'headquarters', label: 'Sede' }, { id: 'memberCount', label: 'Quantidade de membros' },
     historia, { id: 'objectives', label: 'Objetivos', long: true },
   ],
   discovery: descoberta,
   item: descoberta,
-  monster: [{ id: 'nickname', label: 'Alcunha' }, historia],
+  // Bestiário é somente narrativo: estatísticas ficam na ficha técnica, que o jogador não recebe.
+  monster: [
+    { id: 'nickname', label: 'Alcunha' }, { id: 'classification', label: 'Classificação narrativa' },
+    { id: 'appearance', label: 'Aparência', long: true }, { id: 'habitat', label: 'Habitat', long: true },
+    { id: 'behavior', label: 'Comportamento', long: true }, { id: 'diet', label: 'Alimentação', long: true },
+    { id: 'capabilities', label: 'Capacidades conhecidas', long: true }, { id: 'weaknesses', label: 'Fraquezas', long: true },
+    { id: 'defenses', label: 'Resistências e imunidades', long: true }, { id: 'strategies', label: 'Estratégias conhecidas', long: true },
+    { id: 'sightings', label: 'Onde foi avistada', long: true }, historia,
+  ],
 };
 /** Filtro da categoria Descobertas, a partir apenas do que a projeção autorizada trouxe. */
 export const FILTROS_DESCOBERTA = ['Todos', 'Itens', 'Mapas', 'Documentos', 'Informações', 'Outras'] as const;
