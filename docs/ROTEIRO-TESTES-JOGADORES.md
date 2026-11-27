@@ -54,7 +54,7 @@ O responsável registra os problemas nas issues do GitHub e avisa quais correç�
 3. Mestre: arquive um personagem, converta outro em NPC e reative. Confira que ficha, inventário e vínculos continuam.
 4. Mestre: transfira para outro jogador. Antes do aceite nada muda; depois, só o destinatário controla.
 5. Mestre: "Manter apenas no Compêndio" (a janela informa a cópia de 30 dias) e "Excluir definitivamente" (informa que não há recuperação) em personagens de teste. Confira combate, diário e textos.
-6. Mestre: para limpar personagens de teste, Selecionar → "Selecionar todos da campanha" → Excluir (digite EXCLUIR). É definitivo.
+6. Mestre: para limpar personagens de teste, "Selecionar" → "Selecionar todos" → Excluir selecionados (digite EXCLUIR). É definitivo.
 7. Início, Personagens e Compêndio não devem mostrar "oculto dos jogadores" em personagem ativo.
 
 ## DEC-039, etapa 1 (depois de publicada)

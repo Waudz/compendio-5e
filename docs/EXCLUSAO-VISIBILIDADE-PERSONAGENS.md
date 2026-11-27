@@ -67,4 +67,4 @@ Não é possível saber em produção quantos registros há em cada caso sem rod
 
 SHA-256 (fim de linha LF): migração `6d3f30a3c128178ff84f455361dcea3894e7cab278d711c8d85b2e0e59683016`; reparo `7816a708bfe28bf1c69973f77f3010707836122f5a9c1ed8e3568d280241a438`. Recalcular se mudarem.
 
-Nenhuma limpeza de personagens é automática. Os de teste podem ser removidos pelo mestre em Personagens → Selecionar → "Selecionar todos da campanha".
+Nenhuma limpeza de personagens é automática. Os de teste podem ser removidos pelo mestre em Personagens → "Selecionar" → "Selecionar todos" (vale o que estiver visível no filtro; quem está só no Compêndio é removido pela identidade).

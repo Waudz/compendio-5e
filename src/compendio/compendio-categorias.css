@@ -141,3 +141,59 @@
 .cd-page .cd-cards input.cd-marcar, .cd-cards input.cd-marcar { position:absolute; left:10px; top:22px; width:18px; height:18px; z-index:1; margin:0; padding:0; }
 .botao-criar > .btn-primary { display:inline-flex; align-items:center; gap:6px; width:auto; margin:0; }
 .personagens h2.personagens-secao { font-size:16px; margin:18px 0 10px; }
+
+/* ferramentas compactas: pela largura do PAINEL (celular ou grupo estreito) */
+.cd-order-menu, .cd-filtro-compacto { display:none; }
+.cd-order-botao { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:7px; border:1px solid var(--line); background:var(--panel); color:var(--text); padding:0; }
+@container (max-width:700px) {
+  .cd-tools.compacta { flex-wrap:nowrap; gap:8px; }
+  .cd-tools.compacta .cd-order, .cd-tools.compacta .cd-filters { display:none; }
+  .cd-tools.compacta .cd-filtro-compacto { display:block; flex:1 1 auto; min-width:0; }
+  .cd-tools.compacta .cd-filtro-compacto select { width:100%; padding:7px 8px; }
+  .cd-tools.compacta .cd-order-menu { display:inline-flex; flex:none; }
+  .cd-tools.compacta .cd-views { flex:none; }
+}
+/* cartões enxutos */
+.cd-cards.enxuto.grade { grid-template-columns:repeat(auto-fill,minmax(min(140px,100%),1fr)); }
+.cd-page:not(:has(.cd-cards.enxuto > li:not(.cd-sem-imagem))) .cd-cards.enxuto.grade .retrato-q { aspect-ratio:auto; height:76px !important; }
+.cd-cards.enxuto.grade > li.cd-sem-imagem .retrato-q-vazio svg { width:34px; height:34px; }
+.cd-card-estado { padding:0 12px 8px; min-width:0; }
+.cd-cards.enxuto.lista { gap:6px; }
+.cd-cards.enxuto.lista > li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; }
+.cd-cards.enxuto.lista > li.cd-com-estado { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto; }
+.cd-cards.enxuto.lista .cd-card-main { padding:8px 10px; align-items:center; }
+.cd-cards.enxuto.lista footer { position:static; padding:0 6px 0 0; gap:12px; justify-content:flex-end; }
+.cd-cards.enxuto.lista .cd-card-estado { padding:0 8px; }
+.cd-cards.enxuto.lista .cd-card-main > span:last-child { gap:2px; }
+@container (min-width:760px) {
+  /* nome e detalhes lado a lado; o responsável numa coluna própria, alinhada entre as linhas */
+  .cd-cards.enxuto.lista .cd-card-main > span:last-child { grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); align-items:center; column-gap:16px; flex:1; }
+  .cd-cards.enxuto.lista footer > small { width:230px; text-align:left; }
+}
+@container (max-width:759px) {
+  /* o responsável desce para baixo dos detalhes, sem sumir */
+  .cd-cards.enxuto.lista footer { display:contents; }
+  .cd-cards.enxuto.lista .cd-card-main { padding-bottom:2px; }
+  .cd-cards.enxuto.lista footer > small { display:block !important; grid-column:1 / -1; grid-row:2; padding:0 12px 8px 70px; }
+  .cd-cards.enxuto.lista footer > .cd-card-fim { grid-column:2; grid-row:1; padding-right:6px; }
+  .cd-cards.enxuto.lista > li.cd-com-estado { grid-template-columns:minmax(0,1fr) auto; }
+  .cd-cards.enxuto.lista .cd-card-estado { grid-column:1 / -1; grid-row:3; padding-left:70px; }
+}
+/* seleção: na lista a caixa fica numa margem própria; na grade, sobre o canto do cartão */
+.cd-cards.enxuto.lista > li.cd-marcavel { padding-left:34px; }
+.cd-cards.enxuto.grade > li.cd-marcavel { padding-left:0; }
+.cd-cards.enxuto.grade > li > input.cd-marcar { left:8px; top:8px; }
+
+/* cartões de pessoas sempre do mesmo tamanho: na mesma lista, pela linha mais alta */
+.cd-cards.uniforme { display:grid; grid-auto-rows:1fr; }
+/* Personagens: também iguais entre as seções. Cada texto tem um limite de linhas e o cartão reserva esse máximo no fim. */
+.cd-cards.enxuto > li { display:flex; flex-direction:column; }
+.cd-cards.enxuto .cd-card-main strong, .cd-cards.enxuto .cd-card-main small, .cd-cards.enxuto .nome-alcunha-apelido, .cd-cards.enxuto footer > small { display:-webkit-box; -webkit-box-orient:vertical; overflow:hidden; -webkit-line-clamp:1; }
+.cd-cards.enxuto.grade .cd-card-main strong, .cd-cards.enxuto.grade .cd-card-main small, .cd-cards.enxuto.grade footer > small { -webkit-line-clamp:2; }
+.cd-cards.enxuto.grade strong, .cd-cards.enxuto.grade .nome-alcunha-apelido { line-height:20px; }
+.cd-cards.enxuto.grade small { line-height:18px; }
+.cd-cards.enxuto.grade .cd-card-main > span:last-child { box-sizing:border-box; height:124px; padding:10px 12px; align-content:start; }
+@container (min-width:600px) { .cd-cards.enxuto.grade { grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); } }
+.cd-cards.enxuto.grade footer { box-sizing:border-box; min-height:48px; margin-top:auto; }
+.cd-cards.enxuto.lista > li { display:grid; min-height:66px; }
+@container (max-width:759px) { .cd-cards.enxuto.lista > li { min-height:98px; align-content:center; } }

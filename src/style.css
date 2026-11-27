@@ -1066,7 +1066,6 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 @media(max-width:700px) and (prefers-reduced-motion:reduce){.mobile-simple .mobile-screen,.mobile-simple .iniciativa .ini-turnos-topo{transition:none}}
 
 /* Nome em destaque; alcunha em itálico logo abaixo. */
-.home-char .home-char-alcunha{display:block;font-size:13px;color:var(--text-2);overflow-wrap:anywhere}
 .identidade-alcunha{margin:0;color:var(--text-2)}
 .identidade-previa{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px;margin:10px 0;min-width:0}
 .identidade-previa-titulo{margin:0;font-size:12px;font-weight:600;color:var(--text-2)}
@@ -1151,14 +1150,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .global-menu-group small{display:block;padding:6px 12px;color:var(--text-2)}
 @media(max-width:700px){.mobile-simple .global-menu-sheet{width:100%;border:0}.mobile-simple .global-menu-overlay{position:absolute;justify-content:stretch}.mobile-simple .global-menu-sheet .mobile-menu-heading{padding:0 4px}.mobile-simple .global-menu-sheet .global-menu-group{padding:6px 0}}
 
-.personagens .home-party>li{position:relative}.personagens .home-char{padding-right:44px}.personagem-menu{position:absolute;right:8px;top:50%;transform:translateY(-50%)}
 .ctx .danger,.barra-item.danger{color:var(--danger,#ed7777)}
-.personagens .home-party>li .personagem-marcar{position:absolute;left:-2px;top:50%;transform:translateY(-50%);width:18px;height:18px;z-index:1}
-.personagens .home-party>li:has(.personagem-marcar) .home-char{margin-left:24px;width:calc(100% - 24px)}
-.personagens-gestao{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
-.personagens-gestao .cd-filters button{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:20px;padding:8px 12px;font:inherit;font-size:13px}
-.personagens-gestao .cd-filters button[aria-pressed=true]{border-color:var(--accent);background:var(--active,#24364e)}
-.personagens-selecao{display:flex;flex-wrap:wrap;gap:8px}.personagens-selecao button{width:auto;margin:0}
 .ciclo-gestao{display:flex;flex-direction:column;gap:10px}.ciclo-gestao p{margin:0}
 .ciclo-opcoes{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}.ciclo-opcoes legend{padding:0 0 6px;font-size:13px;color:var(--text-2)}
 .ciclo-gestao label.ciclo-opcao{display:flex;flex-direction:row;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer;margin:0}

@@ -1,6 +1,7 @@
 // Início da campanha: capa, nome e descrição, prévia do Diário e Aventureiros. É a aba `campanha:<id>` (mesma entidade de sempre).
 // Capa, Diário e Personagens ainda não têm módulo/persistência: cada seção recebe uma fonte opcional (ver inicio.ts) e,
 // sem ela, mostra um estado honesto "ainda não disponível". Nada aqui inventa dados nem cria um segundo Diário.
+import { NomeComAlcunha } from "./ui/NomeComAlcunha";
 import { Pencil, ScrollText, Users, X } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "./AuthContext";
@@ -112,7 +113,7 @@ export function Aventureiros({ campaignId, fonte, onOpenContent, mestre = false 
   else corpo = <ul className="home-party">{st.data.map((a: Aventureiro) => <li key={a.id}>
     <button className="home-char" onClick={() => consultar(destino(a))} onContextMenu={ev => aoClicarDireito(ev, destino(a))} title={a.meu && !mestre ? `Abrir ficha de ${a.nome}` : `Ver ${a.nome}`}>
       <RetratoQuadrado src={a.retratoUrl} tipo="personagem" tamanho={72}/>
-      <span><strong>{a.nome}</strong>{a.alcunha && <>{" "}<em className="home-char-alcunha">{a.alcunha}</em></>}{" "}<small>{a.classe}{a.nivel != null ? ` · nível ${a.nivel}` : ""}</small>{a.nota && <small className="home-char-nota">{a.nota}</small>}</span></button></li>)}</ul>;
+      <span><NomeComAlcunha nome={a.nome} alcunha={a.alcunha}/>{" "}<small>{a.classe}{a.nivel != null ? ` · nível ${a.nivel}` : ""}</small>{a.nota && <small className="home-char-nota">{a.nota}</small>}</span></button></li>)}</ul>;
   return <section className="home-sec" aria-label="Aventureiros"><h2><Users size={16} aria-hidden="true"/> Aventureiros</h2>{corpo}</section>;
 }
 

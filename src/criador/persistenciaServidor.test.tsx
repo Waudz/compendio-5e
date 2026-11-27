@@ -11,6 +11,8 @@ import { activeKey } from "../CampaignsContext";
 import { fichasEmMemoria, novoBancoFichas, type BancoFichas } from "../fichasMemoria";
 import { registrosEmMemoria } from "../registrosMemoria";
 import { me, memoryStorage, other, renderApp } from "../testUtils";
+import { codexDemo } from "../dev/codexDemo";
+import type { CodexApi } from "../compendio/conhecimento";
 import { armazenamentoLocalExperimental } from "./armazenamento";
 import { storageKey } from "../persistence";
 import { defaultPublicIdentity } from "../rules/public-identity";
@@ -66,11 +68,11 @@ const itensDaFicha = () => {
 };
 const papelDe = (u: User): Role => (u.id === mestreUser.id ? "mestre" : "jogador");
 /** Monta o app como `user`. `layoutNovo`: descarta o layout salvo (janela nova) mantendo o resto do armazenamento. */
-const montar = async (user: User = me, layoutNovo = true) => {
+const montar = async (user: User = me, layoutNovo = true, codex?: CodexApi) => {
   if (layoutNovo) for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i)!; if (k.startsWith("compendio5e:workspace")) localStorage.removeItem(k); }
   localStorage.setItem(activeKey(user.id), "ca");
   const regs = registrosEmMemoria(papelDe(user), user.id, [], registros as never);
-  return renderApp({ user, api: apiC(papelDe(user)), registros: regs, fichas: fichasEmMemoria(user.id, banco) });
+  return renderApp({ user, api: apiC(papelDe(user)), registros: regs, fichas: fichasEmMemoria(user.id, banco), codex });
 };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole("button", { name: "Personagens" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Personagens" })); };
 const nomeInput = async () => {
@@ -503,6 +505,88 @@ describe("página Personagens", () => {
     expect((await screen.findByRole("list", { name: "Aventureiros" })).getAttribute("data-view")).toBe("grade");
   });
 
+  it("sem NPC elegível o mestre vê a seção NPCs com um aviso discreto; NPC do Compêndio só aparece quando tem ficha", async () => {
+    await criarPersonagem("Thorin"); cleanup();
+    const codex = codexDemo(true, "ca");
+    await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "", fields: {} });
+    await montar(mestreUser, true, codex); await abrirPersonagens();
+    const secao = within(await screen.findByRole("region", { name: "NPCs" }));
+    expect(await secao.findByText("Nenhum NPC com ficha. NPCs sem ficha ficam no Compêndio.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Edric Voss / })).toBeNull();
+    cleanup();
+    const [edric] = await codex.list("ca");
+    await codex.setCombatSheet!("ca", edric.id, edric.version, "goblin");
+    await montar(mestreUser, true, codex); await abrirPersonagens();
+    const npcs = within(await screen.findByRole("list", { name: "NPCs" }));
+    expect(npcs.getByRole("button", { name: /^Edric Voss / })).toBeTruthy();
+    expect(screen.getByText("NPC · ficha de criatura")).toBeTruthy();
+    expect(screen.queryByText(/Nenhum NPC com ficha/)).toBeNull();
+    // ficha de criatura não entra na seleção coletiva de personagens
+    fireEvent.click(screen.getByRole("button", { name: "Selecionar" }));
+    expect(screen.queryByRole("checkbox", { name: "Selecionar Edric Voss" })).toBeNull();
+    expect(screen.getByRole("checkbox", { name: "Selecionar Thorin" })).toBeTruthy();
+  });
+
+  it("a alcunha fica sob o nome, fora do subtítulo, em lista e grade; sem alcunha não sobra elemento", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
+    banco.fichas.find(f => f.draft.name === "Thorin")!.draft.nickname = "O Corvo";
+    banco.fichas.find(f => f.draft.name === "Lyra")!.draft.nickname = "";
+    const codex = codexDemo(true, "ca");
+    await codex.setCombatSheet!("ca", await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "", fields: { nickname: "A Sombra", occupation: "Contrabandista" } }), 1, "goblin");
+    await montar(mestreUser, true, codex); await abrirPersonagens(); await screen.findByRole("list", { name: "NPCs" });
+    for (const visao of ["Lista", "Grade"]) {
+      fireEvent.click(screen.getByRole("button", { name: visao }));
+      for (const [nome, alcunha] of [["Thorin", "O Corvo"], ["Edric Voss", "A Sombra"]]) {
+        const cartao = screen.getByRole("button", { name: new RegExp("^" + nome + " ") });
+        expect(cartao.querySelector(".nome-alcunha > strong + em.nome-alcunha-apelido")?.textContent).toBe(alcunha);
+        expect([...cartao.querySelectorAll("small")].map(s => s.textContent).join(" ")).not.toContain(alcunha);
+      }
+      expect(screen.getByRole("button", { name: /^Lyra / }).querySelector(".nome-alcunha")!.children).toHaveLength(1);
+    }
+  });
+
+  it("seleção múltipla: caixas só no modo de seleção, vale o que está visível, ações só com algo marcado, igual na grade", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
+    await montar(mestreUser); await abrirPersonagens(); await screen.findByRole("button", { name: /^Thorin / });
+    const clicar = (nome: string) => fireEvent.click(screen.getByRole("button", { name: nome }));
+    const barra = () => within(screen.getByRole("group", { name: "Seleção de personagens" }));
+    expect(screen.queryByRole("checkbox", { name: /^Selecionar / })).toBeNull();
+    clicar("Selecionar");
+    expect(screen.getAllByRole("checkbox", { name: /^Selecionar / })).toHaveLength(2);
+    expect(barra().getByRole("status").textContent).toBe("0 selecionados");
+    expect(screen.queryByRole("button", { name: /^Excluir selecionados/ })).toBeNull();
+    clicar("Selecionar todos");
+    expect(barra().getByRole("status").textContent).toBe("2 selecionados");
+    expect(screen.getByRole("button", { name: "Excluir selecionados (2)" })).toBeTruthy();
+    clicar("Desmarcar todos");
+    expect(screen.queryByRole("button", { name: /^Excluir selecionados/ })).toBeNull();
+    clicar("Selecionar todos");
+    buscar("thor");   // o que saiu do filtro não conta
+    expect(barra().getByRole("status").textContent).toBe("1 selecionado");
+    expect(screen.getByRole("button", { name: "Excluir selecionados (1)" })).toBeTruthy();
+    buscar(""); clicar("Grade");
+    expect(screen.getByRole("list", { name: "Aventureiros" }).getAttribute("data-view")).toBe("grade");
+    expect(screen.getAllByRole("checkbox", { name: /^Selecionar / })).toHaveLength(2);
+    clicar("Cancelar");
+    expect(screen.queryByRole("checkbox", { name: /^Selecionar / })).toBeNull();
+    expect(screen.getByRole("button", { name: "Selecionar" })).toBeTruthy();
+  });
+
+  it("controles compactos: o seletor de situação e o menu de ordenação fazem o mesmo que os do desktop", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
+    await montar(mestreUser); await abrirPersonagens(); await screen.findByRole("button", { name: /^Thorin / });
+    const nomes = () => resultados("Aventureiros").getAllByRole("listitem").map(li => li.textContent!.match(/Thorin|Lyra/)![0]);
+    expect(nomes()).toEqual(["Lyra", "Thorin"]);
+    fireEvent.click(screen.getByRole("button", { name: "Ordenar: Nome A–Z" }));
+    expect(screen.getByRole("menuitemradio", { name: "Nome A–Z" }).getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Nome Z–A" }));
+    expect(screen.queryByRole("menu", { name: "Ordenar" })).toBeNull();
+    expect(nomes()).toEqual(["Thorin", "Lyra"]);
+    fireEvent.change(screen.getByLabelText("Filtrar por situação"), { target: { value: "arquivados" } });
+    expect(await screen.findByText("Nenhum personagem neste filtro.")).toBeTruthy();
+    expect(within(screen.getByRole("group", { name: "Situação dos personagens" })).getByRole("button", { name: "Arquivados" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("o mestre vê Aventureiros e NPCs separados; o jogador vê só aventureiros em jogo", async () => {
     await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
     const convertido = banco.fichas.find(f => f.draft.name === "Lyra")!;
@@ -627,11 +711,11 @@ describe("ciclo de vida do personagem", () => {
     cleanup(); await montar(me); await abrirPersonagens(); expect((await screen.findByRole("button", { name: /^Thorin / })).textContent).not.toMatch(/sua ficha/);
   });
 
-  it("mestre seleciona todos da campanha e exclui de uma vez, digitando a confirmação", async () => {
+  it("mestre seleciona todos e exclui de uma vez, digitando a confirmação", async () => {
     await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
     await montar(mestreUser); await abrirPersonagens();
     fireEvent.click(await screen.findByRole("button", { name: "Selecionar" }));
-    fireEvent.click(screen.getByRole("button", { name: "Selecionar todos da campanha (2)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Selecionar todos" }));
     fireEvent.click(screen.getByRole("button", { name: "Excluir selecionados (2)" }));
     const d = await janela("Excluir personagens");
     const botao = (await d.findByRole("button", { name: "Excluir 2" })) as HTMLButtonElement;

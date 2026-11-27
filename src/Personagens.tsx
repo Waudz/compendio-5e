@@ -7,6 +7,7 @@ import { origemPublica, rotuloClasse, rotuloRaca } from './criador/rotulos';
 import { ROTULO_SITUACAO, useCiclo } from "./CicloPersonagens";
 import { Drama, Settings2, Trash2, UserRound } from "lucide-react";
 import { BotaoCriar, type OpcaoDeCriacao } from "./ui/BotaoCriar";
+import { BarraDeSelecao, useSelecao } from "./ui/SelecaoMultipla";
 import { CartoesCategoria, FerramentasCategoria } from "./compendio/ComponentesCategoria";
 import type { LinhaCompendio } from "./compendio/consulta";
 import { EditorConhecimento } from "./compendio/RegistrosCampanha";
@@ -68,18 +69,18 @@ const lerVisao = (userId: string | null): Visao => { try { return localStorage.g
 type LinhaDePersonagem = LinhaCompendio & { busca: string; situacaoDaLinha: Exclude<Situacao, "todos">; npc: boolean; personagem?: PersonagemCampanha };
 
 /** NPCs criados no Compêndio com ficha de criatura. Só o mestre recebe essa informação do banco. */
-function useNpcsComFicha(ativo: boolean): LinhaDePersonagem[] {
+function useNpcsComFicha(ativo: boolean): { linhas: LinhaDePersonagem[]; carregando: boolean } {
   const conhecimento = useConhecimento(), definicoes = useDefinicoes();
   const comFicha = ativo ? conhecimento.items.filter(e => e.category === "npc" && e.combatDefinitionId) : [];
   const precisa = comFicha.length > 0;
   const [padrao, setPadrao] = useState<Awaited<ReturnType<typeof import("./catalogue/contratos").todosOsMonstros>>>([]);
   useEffect(() => { if (!precisa) return; let vivo = true; void import("./catalogue/contratos").then(c => c.todosOsMonstros()).then(ms => { if (vivo) setPadrao(ms); }, () => {}); return () => { vivo = false; }; }, [precisa]);
   const monstros = useMemo(() => (padrao.length ? aplicarDaCampanha("monster", padrao, definicoes.lista) : padrao), [padrao, definicoes.lista]);
-  return comFicha.map(e => {
+  return { carregando: ativo && conhecimento.loading, linhas: comFicha.map(e => {
     const m = monstros.find(x => x.id === e.combatDefinitionId);
     const detalhe = m ? `${m.nome} · ND ${formatarND(m.nd)} · PV ${m.pv}` : "Ficha de criatura";
-    return { id: e.id, title: e.title, subtitle: detalhe, category: "npc", body: "", entry: e, spec: npcSpec(e.id, e.title), rodape: "NPC · ficha de criatura", busca: normalizar(`${e.title} ${e.fields?.nickname ?? ""}`), situacaoDaLinha: "ativos" as const, npc: true };
-  });
+    return { id: e.id, title: e.title, alcunha: e.fields?.nickname, subtitle: detalhe, category: "npc", body: "", entry: e, spec: npcSpec(e.id, e.title), rodape: "NPC · ficha de criatura", busca: normalizar(`${e.title} ${e.fields?.nickname ?? ""}`), situacaoDaLinha: "ativos" as const, npc: true };
+  }) };
 }
 
 /** Gerenciamento técnico das fichas: aventureiros e, para o mestre, os NPCs que têm ficha. A história de cada um fica no Compêndio. */
@@ -88,12 +89,12 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
   const [dados, setDados] = useState<ListaPersonagens | null>(null), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [aviso, setAviso] = useState<{ ok: boolean; t: string } | null>(null), [descartando, setDescartando] = useState<string | null>(null), [enviando, setEnviando] = useState<string | null>(null);
   const consultar = useAbrirConsulta(onOpenContent), jogador = useJogadoresCampanha(), ciclo = useCiclo();
-  const [situacao, setSituacao] = useState<Situacao>("todos"), [selecao, setSelecao] = useState<string[] | null>(null), [criandoNpc, setCriandoNpc] = useState(false);
+  const [situacao, setSituacao] = useState<Situacao>("todos"), [criandoNpc, setCriandoNpc] = useState(false);
   const cid = active?.campaign.id, userId = user?.id ?? null, mestre = active?.role === "mestre";
   const [pesquisa, setPesquisa] = useState(""), [ordem, setOrdem] = useState("nome"), [visao, setVisao] = useState<Visao>(() => lerVisao(userId));
   useEffect(() => { setVisao(lerVisao(userId)); }, [userId]);
   const trocarVisao = (nova: Visao) => { setVisao(nova); try { localStorage.setItem(chaveDaVisao(userId), nova); } catch { /* só não lembra */ } };
-  useEffect(() => { setDados(null); setErro(null); setAviso(null); setSituacao("todos"); setSelecao(null); setPesquisa(""); setCriandoNpc(false); }, [cid]);   // nada de uma campanha aparece em outra
+  useEffect(() => { setDados(null); setErro(null); setAviso(null); setSituacao("todos"); setPesquisa(""); setCriandoNpc(false); }, [cid]);   // nada de uma campanha aparece em outra
   useEffect(() => {
     if (!api || !cid) return; let vivo = true;
     listarPersonagens(cid, { registros: api, fichas, userId }).then(r => { if (!vivo) return; if (r.ok) { setDados(r.data); setErro(null); } else setErro(r.error); }, () => { if (vivo) setErro("Não foi possível carregar os personagens."); });
@@ -101,7 +102,8 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
   }, [api, fichas, cid, userId, v, tentativa]);
   const locais = useMemo<ResumoPersonagemGuiado[]>(() => { try { return userId && cid ? armazenamentoLocalExperimental(userId, cid).listar() : []; } catch { return []; } }, [userId, cid, v, tentativa]);
   useEffect(() => { locais.forEach(g => registrarTitulo(g.id, g.nome)); dados?.personagens.forEach(p => registrarTitulo(p.id, p.nome)); }, [locais, dados]);   // abas restauradas mostram o nome
-  const npcsDoCompendio = useNpcsComFicha(!!mestre && !somenteMeus);
+  const { linhas: npcsDoCompendio, carregando: carregandoNpcs } = useNpcsComFicha(!!mestre && !somenteMeus);
+  const selecaoDe = useSelecao(`${userId}:${cid}:${active?.role}`);
   const caminhos = useUrlsDosCaminhos(dados?.personagens ?? []);
   if (!active) return <div className="content"><h1>Personagens</h1><Aviso t="Os personagens pertencem a uma campanha. Escolha uma campanha ativa na barra lateral."/></div>;
   if (!api) return <div className="content"><h1>Personagens</h1><Aviso t="Conta necessária para usar os personagens."/></div>;
@@ -126,8 +128,6 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
 
   const comCiclo = ciclo.disponivel && !!dados?.ciclo;
   const todos = dados?.personagens ?? [];
-  const selecionados = (selecao ?? []).filter(id => todos.some(p => p.id === id));
-  const alternar = (id: string) => setSelecao(s => (s?.includes(id) ? s.filter(x => x !== id) : [...(s ?? []), id]));
   const abreFicha = (p: PersonagemCampanha) => p.situacao !== "compendio" && (p.meu || mestre);
   const linhaDe = (p: PersonagemCampanha): LinhaDePersonagem => {
     const npc = p.situacao === "npc";
@@ -136,7 +136,7 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     const rodape = [npc ? "NPC · ficha de personagem" : responsavel ? `Jogador: ${responsavel}` : null, !npc && p.situacao !== "ativo" ? ROTULO_SITUACAO[p.situacao] : null,
       p.pendenteDe ? `Transferência aguardando ${jogador(p.pendenteDe) ?? "aceite"}` : null, aviso].filter(Boolean).join(" · ");
     return { id: p.id, title: p.nome, category: npc ? "npc" : "character", body: "", image: p.retratoUrl ?? caminhos.get(p.id) ?? null,
-      subtitle: [p.alcunha, p.classe, p.nivel != null ? `nível ${p.nivel}` : null, p.meu ? (p.comFicha ? "sua ficha" : "seu") : null].filter(Boolean).join(" · "),
+      alcunha: p.alcunha, subtitle: [p.classe, p.nivel != null ? `nível ${p.nivel}` : null, p.meu ? (p.comFicha ? "sua ficha" : "seu") : null].filter(Boolean).join(" · "),
       rodape: rodape || "Aventureiro", spec: abreFicha(p) ? { kind: "ficha", ref: p.id, title: p.nome } : identidadeSpec(p.id, p.nome),
       busca: normalizar(`${p.nome} ${p.alcunha ?? ""} ${responsavel ?? ""}`), situacaoDaLinha: situacaoDe(p), npc, personagem: p };
   };
@@ -150,6 +150,9 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     .sort((a, b) => a.title.localeCompare(b.title, "pt-BR") * (ordem === "inverso" ? -1 : 1));
   const mostraSecoes = mestre && !somenteMeus;
   const vazio = !!dados && universo.length === 0;
+  // elegível: quem o usuário pode gerenciar E está visível com os filtros e a pesquisa atuais
+  const podeSelecionar = mestre && comCiclo && !somenteMeus;
+  const selecao = selecaoDe(podeSelecionar ? linhas.filter(l => l.personagem).map(l => l.id) : []);
 
   const extrasDe = (linha: LinhaCompendio) => {
     const l = linha as LinhaDePersonagem, p = l.personagem;
@@ -158,10 +161,10 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     if (mestre) return [{ rotulo: "Gerenciar personagem", icone: Settings2, acao: () => ciclo.gerenciar(p.id) }];
     return p.meu && p.comFicha ? [{ rotulo: "Excluir personagem", icone: Trash2, perigo: true, acao: () => ciclo.pedirRenuncia(p.id) }] : [];
   };
-  const marcacao = selecao ? { pode: (l: LinhaCompendio) => !!(l as LinhaDePersonagem).personagem, marcado: (l: LinhaCompendio) => selecionados.includes(l.id), alternar: (l: LinhaCompendio) => alternar(l.id) } : undefined;
+  const marcacao = selecao.ativa && podeSelecionar ? { pode: (l: LinhaCompendio) => !!(l as LinhaDePersonagem).personagem, marcado: (l: LinhaCompendio) => selecao.marcado(l.id), alternar: (l: LinhaCompendio) => selecao.alternar(l.id) } : undefined;
   // ficha própria ou do mestre abre direto; os demais consultam a apresentação na carta do Compêndio
   const abrir = (s: TabSpec) => (s.kind === "identidade" ? consultar(s) : onOpenContent(s));
-  const cartoes = (rows: LinhaDePersonagem[], rotulo: string) => <CartoesCategoria rows={rows} view={visao} onOpen={abrir} listLabel={rotulo} extrasDe={extrasDe} marcacao={marcacao}/>;
+  const cartoes = (rows: LinhaDePersonagem[], rotulo: string) => <CartoesCategoria rows={rows} view={visao} onOpen={abrir} listLabel={rotulo} extrasDe={extrasDe} marcacao={marcacao} enxuto/>;
   const criacao: OpcaoDeCriacao[] = [{ rotulo: "Criar aventureiro", icone: UserRound, acao: novo },
     ...(mestre && codex && !somenteMeus ? [{ rotulo: "Criar NPC", icone: Drama, acao: () => setCriandoNpc(true) }] : [])];
 
@@ -173,18 +176,21 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     {dados?.avisoFichas && <Aviso erro t={`${dados.avisoFichas} A lista pode estar incompleta.`} onRetry={() => setTentativa(n => n + 1)}/>}
     {!dados && !erro && <p className="muted" role="status">Carregando personagens…</p>}
     {ciclo.ofertas.map(o => <p key={o.id} className="notice" role="note">O mestre quer transferir <strong>{o.title}</strong> para você.{" "}<button type="button" className="btn-secondary" onClick={() => ciclo.abrirOferta(o)}>Responder</button></p>)}
-    <FerramentasCategoria searchLabel="Pesquisar por personagem ou jogador" placeholder="Pesquisar por personagem ou jogador…" query={pesquisa} onQuery={setPesquisa} view={visao} onView={trocarVisao} order={ordem} onOrder={setOrdem}
-      filters={mostraSecoes && comCiclo ? <div className="cd-filters" role="group" aria-label="Situação dos personagens">{SITUACOES.map(([id, rotulo]) => <button key={id} type="button" aria-pressed={situacao === id} onClick={() => setSituacao(id)}>{rotulo}</button>)}</div> : undefined}/>
-    {mestre && comCiclo && !somenteMeus && (!selecao ? <div className="personagens-selecao"><button type="button" className="btn-secondary" disabled={!todos.length} onClick={() => setSelecao([])}>Selecionar</button></div>
-      : <div className="personagens-selecao" role="group" aria-label="Seleção de personagens">
-        <button type="button" className="btn-secondary" onClick={() => setSelecao(todos.map(p => p.id))}>Selecionar todos da campanha ({todos.length})</button>
-        <button type="button" className="btn-secondary danger" disabled={!selecionados.length} onClick={() => ciclo.excluirVarios(selecionados)}>Excluir selecionados ({selecionados.length})</button>
-        <button type="button" className="btn-secondary" onClick={() => setSelecao(null)}>Cancelar seleção</button></div>)}
+    <FerramentasCategoria compacta searchLabel="Pesquisar por personagem ou jogador" placeholder="Pesquisar por personagem ou jogador…" query={pesquisa} onQuery={setPesquisa} view={visao} onView={trocarVisao} order={ordem} onOrder={setOrdem}
+      filters={mostraSecoes && comCiclo ? <>
+        <div className="cd-filters" role="group" aria-label="Situação dos personagens">{SITUACOES.map(([id, rotulo]) => <button key={id} type="button" aria-pressed={situacao === id} onClick={() => setSituacao(id)}>{rotulo}</button>)}</div>
+        <label className="cd-filtro-compacto"><span className="sr-only">Situação</span><select aria-label="Filtrar por situação" value={situacao} onChange={e => setSituacao(e.target.value as Situacao)}>{SITUACOES.map(([id, rotulo]) => <option key={id} value={id}>{rotulo}</option>)}</select></label>
+      </> : undefined}/>
+    {podeSelecionar && <BarraDeSelecao selecao={selecao} rotulo="Seleção de personagens" acoes={<button type="button" className="btn-secondary danger" onClick={() => ciclo.excluirVarios(selecao.marcados)}>Excluir selecionados ({selecao.marcados.length})</button>}/>}
     {vazio && !dados?.avisoFichas && <p className="muted" data-testid="personagens-vazio">Nenhum personagem ainda. Crie o primeiro.</p>}
     {!!dados && !vazio && !linhas.length && <p className="muted" role="status">{termos.length ? "Nenhum personagem encontrado nesta pesquisa." : "Nenhum personagem neste filtro."}</p>}
     <section className="personagens-lista" aria-label="Personagens da campanha">
-      {mostraSecoes ? [["Aventureiros", linhas.filter(l => !l.npc)] as const, ["NPCs", linhas.filter(l => l.npc)] as const].map(([titulo, rows]) => rows.length > 0 && <section key={titulo} aria-label={titulo}><h2 className="personagens-secao">{titulo}</h2>{cartoes(rows, titulo)}</section>)
-        : cartoes(linhas, somenteMeus ? "Meus personagens" : "Aventureiros")}
+      {mostraSecoes ? <>
+        {linhas.some(l => !l.npc) && <section aria-label="Aventureiros"><h2 className="personagens-secao">Aventureiros</h2>{cartoes(linhas.filter(l => !l.npc), "Aventureiros")}</section>}
+        {!!dados && !vazio && linhas.length > 0 && <section aria-label="NPCs"><h2 className="personagens-secao">NPCs</h2>
+          {linhas.some(l => l.npc) ? cartoes(linhas.filter(l => l.npc), "NPCs")
+            : !carregandoNpcs && <p className="muted personagens-sem-npc">{termos.length || situacao !== "todos" ? "Nenhum NPC com ficha neste filtro." : "Nenhum NPC com ficha. NPCs sem ficha ficam no Compêndio."}</p>}</section>}
+      </> : cartoes(linhas, somenteMeus ? "Meus personagens" : "Aventureiros")}
     </section>
     {fichas && locais.length > 0 && <div data-testid="rascunhos-locais"><h2>Rascunhos neste navegador <small className="muted">(experimental)</small></h2>
       <p className="muted">Criados antes do salvamento na campanha. Nada é enviado nem apagado sozinho: envie cada um quando quiser; a cópia local só é removida depois que o servidor confirmar.</p>

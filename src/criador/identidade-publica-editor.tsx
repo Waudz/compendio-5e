@@ -1,6 +1,7 @@
 // Identidade pública: só a APRESENTAÇÃO do personagem aos outros jogadores. Não é outra ficha. "Usar da ficha" acompanha a ficha;
 // o que é personalizado permanece como escrito; "Ocultar" não revela o valor verdadeiro. O retrato é o mesmo da ficha. Cada mudança
 // vale para a ficha em edição e é gravada pelo botão Salvar; não há caixa de publicação.
+import { NomeComAlcunha } from "../ui/NomeComAlcunha";
 import {useState} from 'react';
 import {defaultPublicIdentity,presentation,publicIdentityCard,type ChavePublica,type CampoPublico,type ModoPublico,type PublicIdentity,type SheetPublicSource} from '../rules/public-identity';
 import {RetratoQuadrado} from '../RetratoCombate';
@@ -39,8 +40,7 @@ export default function PublicIdentityEditor({source,initialIdentity,onChange,on
    <h3 className="identidade-previa-titulo">Prévia: como aparece no Início e em Personagens</h3>
    <div className="home-char">
     <RetratoQuadrado tipo="personagem" tamanho={72} src={retratoValido(card.imageUrl)?card.imageUrl:null}/>
-    <span><strong className="identidade-nome">{shown.nome}</strong>
-     {shown.alcunha&&<em className="home-char-alcunha identidade-alcunha">{shown.alcunha}</em>}
+    <span><NomeComAlcunha nome={shown.nome} alcunha={shown.alcunha} classeDoNome="identidade-nome"/>
      {(card.race||card.characterClass||card.level)&&<small>{[card.race,card.characterClass,card.level&&`Nível ${card.level}`].filter(Boolean).join(' · ')}</small>}</span>
    </div>
    {card.description&&<p className="identidade-texto">{card.description}</p>}
