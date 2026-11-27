@@ -25,11 +25,11 @@ export type EntradaDiario = {
   atualizadaEm: string;                // ISO; desempata a "mais recente"
   conteudo: BlocoTexto[];
 };
-export type Aventureiro = { /** Personagem de quem está olhando. */ meu?: boolean; descricao?:string; id: string; nome: string; classe: string; /** null em personagens guiados: o nível é privado (não consta da identidade pública). */ nivel: number | null; retratoUrl?: string | null; /** Aviso de privacidade, quando quem olha vê algo que a campanha não vê. */ nota?: string; /** Mostrada abaixo do nome, em itálico, quando nome e alcunha são exibidos. */ alcunha?: string };
+export type Aventureiro = { /** Ausente = ativo. */ situacao?: import("./cicloPersonagem").Situacao; /** Personagem de quem está olhando. */ meu?: boolean; descricao?:string; id: string; nome: string; classe: string; /** null em personagens guiados: o nível é privado (não consta da identidade pública). */ nivel: number | null; retratoUrl?: string | null; /** Aviso de privacidade, quando quem olha vê algo que a campanha não vê. */ nota?: string; /** Mostrada abaixo do nome, em itálico, quando nome e alcunha são exibidos. */ alcunha?: string };
 
 /** Fontes de dados do Início. Cada uma é opcional: sem fonte, o Início mostra "ainda não disponível" em vez de dados falsos. */
 export type FonteDiario = { maisRecente: (campanhaId: string, papel: Role) => Promise<Res<EntradaDiario | null>> };
-export type FonteAventureiros = { listar: (campanhaId: string) => Promise<Res<Aventureiro[]>> };
+export type FonteAventureiros = { /** Todos os que o Compêndio preserva, inclusive fora de jogo. */ listarTodos?: (campanhaId: string) => Promise<Res<Aventureiro[]>>; listar: (campanhaId: string) => Promise<Res<Aventureiro[]>> };
 
 const textoInline = (c: unknown): string => {
   if (typeof c === "string") return c;

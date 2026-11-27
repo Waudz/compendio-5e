@@ -2,6 +2,7 @@
 // Exige a migração `supabase/migrations/0008_character_sheets_persistencia.sql` (registrada no remoto em 21/11/2026; consulta de metadados em 22/11): sem ela as funções não existem e a
 // interface mostra a mensagem de "atualização do banco necessária" (ERRO_SCHEMA), sem perder o que foi digitado.
 // A autorização real é a RLS + as funções SECURITY INVOKER do banco; nada aqui concede acesso. Só a chave pública (anon) é usada no navegador.
+import { criarCicloApi, type CicloApi } from "./cicloPersonagem";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { erroCampanha, type Res } from "./campaigns";
 import type { CharacterDraft } from "./rules/character-domain";
@@ -22,6 +23,8 @@ export type FiltroAssinatura = { characterId: string } | { campaignId: string };
 
 export type FichasApi = {
   /** Fichas que o usuário pode LER (as próprias; todas as da campanha para o mestre). A RLS decide; nada aqui filtra por segurança. */
+  /** Ciclo de vida (0021): renúncia, arquivo, NPC, transferência e exclusão. */
+  ciclo?: CicloApi;
   listar: (campaignId: string) => Promise<Res<ResumoFicha[]>>;
   /** `null`: não existe ou sem permissão (indistinguíveis de propósito). `identidade` é null quando a linha pública não é legível (ex.: mestre). */
   carregar: (id: string) => Promise<Res<{ ficha: FichaServidor; identidade: IdentidadeGravada | null } | null>>;
@@ -145,6 +148,7 @@ export function createFichasApi(client: SupabaseClient): FichasApi {
     return r.data ? { data: ler(r.data as RespostaVital), error: null } : { data: null, error: { message: "ficha_nao_encontrada" } };
   });
   return {
+    ciclo: criarCicloApi(client),
     lerVitais: ids => run<LinhaVital[]>(async () => {
       const r = await client.from("character_sheets").select("character_id, revision, vitals_version, draft").in("character_id", ids);
       return r.error ? { data: null, error: r.error } : { data: (r.data as unknown as VitalRow[]).map(linhaVital), error: null };

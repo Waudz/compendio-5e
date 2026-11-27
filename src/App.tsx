@@ -1,3 +1,4 @@
+import { CICLO_ACESSO, type DetalheAcesso } from "./CicloPersonagens";
 import { GlobalMenu } from "./GlobalMenu";
 import {tituloCategoria} from "./Compendio";
 import { PageViewport } from "./PageViewport";
@@ -150,6 +151,21 @@ function Workspace({ userId }: { userId: string }) {
     const fechar = (e: Event) => { const id = (e as CustomEvent<string>).detail; if (!findTab(modelRef.current, id)) return; closeTab(modelRef.current, id); onModelChange(modelRef.current); };
     window.addEventListener(EVENTO_FECHAR_TELA, fechar); return () => window.removeEventListener(EVENTO_FECHAR_TELA, fechar);
   }, [onModelChange]);
+  // o ciclo de vida tirou o acesso: fecha as páginas daquele personagem, inclusive as guardadas para reabrir
+  useEffect(() => {
+    const perder = (event: Event) => {
+      const d = (event as CustomEvent<DetalheAcesso>).detail;
+      if (d.campaignId !== campaignId) return;
+      const alvo = (kind: string, ref: string) => (d.kinds as string[]).includes(kind) && (d.ids.includes(ref) || d.ids.includes(lerMapaAba(userId, d.campaignId, ref) ?? ""));
+      const fechar: string[] = [];
+      modelRef.current.visitNodes(n => { if (n instanceof TabNode) { const p = currentPage(n); if (alvo(p.kind, p.ref)) fechar.push(n.getId()); } });
+      closed.current = closed.current.filter(t => { const [kind, ref] = (t.id ?? "").split(":"); return !alvo(kind, ref ?? ""); });
+      if (!fechar.length) return;
+      fechar.forEach(id => { unsaved.api.register(id, null); closeTab(modelRef.current, id); });
+      onModelChange(modelRef.current);
+    };
+    window.addEventListener(CICLO_ACESSO, perder); return () => window.removeEventListener(CICLO_ACESSO, perder);
+  }, [userId, campaignId, onModelChange, unsaved.api]);
   // O histórico do navegador acompanha a seleção, não recria nem apaga abas.
   useEffect(() => {
     const selected = modelRef.current.getActiveTabset()?.getSelectedNode();
@@ -335,8 +351,8 @@ function Workspace({ userId }: { userId: string }) {
     aoLado,
     navegar: (s:TabSpec,origem?:string)=>visit(s,origem),
     abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem, true),
-    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
-      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } }] }),
+    mostrar: (x: number, y: number, s: TabSpec, origem?: string,extras:MenuItem[]=[]) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
+      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } },...extras] }),
   }), [openContentLink, mobile, model, visit, aoLado]);
 
   return <NotificacoesProvider><CatalogoDaCampanha/><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>

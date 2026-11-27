@@ -1,24 +1,68 @@
-# Próxima prioridade Alpha: exclusão e identidades ocultas
+# Ciclo de vida e visibilidade dos personagens (0021)
 
-Solicitação do responsável em 27/11/2026, após a correção do diagnóstico de acesso. Não é implementação concluída. Nenhuma leitura/escrita em produção nesta investigação.
+Especificação do responsável de 27/11/2026. **Substitui** a versão anterior deste documento (exclusão arquivada pelo jogador). Nada foi aplicado em produção; a proposta anterior de 0021 nunca foi aplicada e foi reescrita.
 
-## Evidência local
+## Como funciona
 
-- `private.notes_ficha_guard`, migrações 0008/0013, rejeita soft-delete com `personagem_guiado_nao_exclui`. `FichasApi` não oferece exclusão. Não basta mostrar a ação ou reutilizar a remoção genérica de notas.
-- Desde 0013, o guard recalcula o cartão público e fixa `visibility=campaign` ao salvar uma ficha. A alteração preserva as escolhas de campos da identidade. Não há backfill geral nessa função.
-- A lista usa `notes.visibility`, ou a ausência de nota legível para uma ficha autorizada, para indicar ocultação. `codex_node_open` (0017) distingue personagens sem `campaign_codex` das regras de descoberta; verificar classificações indevidas antes de alterar qualquer registro.
-- Não há evidência suficiente para afirmar quais registros de produção estão afetados nem se a ocultação global antiga foi intencional. A consulta agregada de proprietários da sessão anterior não responde essa pergunta e não deve ser repetida.
+Perder o controle é **trocar o dono para o mestre da campanha**. Ficha, vitais, status de combate, Realtime e definições de itens já são decididos por dono ou mestre, então o antigo dono deixa de ler e gravar sem política nova; a sessão aberta em outro aparelho recebe `ficha_nao_encontrada`. A troca só passa por funções do servidor, com uma marca por transação que a API não consegue criar.
 
-## Fatia de exclusão a implementar antes de foto/notas/PWA
+| Situação | Ficha | Registro no Compêndio e vínculos | Listas de ativos |
+|---|---|---|---|
+| ativo | do dono | sim | sim |
+| aguardando (renúncia) | preservada, com o mestre | sim | não |
+| arquivado | preservada, com o mestre | sim | não |
+| npc | preservada, com o mestre; mesmo registro, listado entre NPCs | sim | não |
+| compendio | **removida** | identidade pública e vínculos continuam | não |
+| excluido | **removida** | registro apagado logicamente; vínculos removidos | não |
 
-1. Confirmar contrato de soft-delete/arquivo com IDs preservados. Dono participante e mestre responsável da campanha podem excluir; outro jogador, outra campanha e não participante não podem. Validar isso na função e nas políticas.
-2. Preparar migração aditiva, preflight e rollback, com exclusão transacional/versionada e proteção contra repetição. Preservar histórico e dados dos demais personagens. Não usar exclusão física indiscriminada nem apagar arquivos compartilhados.
-3. Inventário pertence à ficha excluída; preservar no arquivo privado para recuperação operacional. Vínculos deixam de aparecer nas projeções dos dois sentidos; referências narrativas mantêm um destino removido identificável, sem expor informação privada. Criaturas no histórico de combate conservam nome/PV/condições históricos e deixam de executar operações sobre a ficha excluída. Inspecionar todos os contratos antes de codificar essa transição.
-4. Menu vermelho separado na ficha e no contexto da lista, confirmação com nome e consequências, atualização das listas e fechamento das abas relevantes em todos os grupos. No celular, retornar à lista sem estado inválido. Falha de rede/conflito não deve fechar nem simular exclusão.
-5. Testar matriz mestre/dono/outro participante/outra campanha, inventário, vínculos, texto narrativo, combate ativo/histórico, repetição, recarga e outra sessão em stack isolada. Só pedir autorização de produção após scripts e resultados concretos.
+- Ações: `character_lifecycle(campanha, ids, ação, operação, revisões, destino)`. Uma transação por chamada (lote é tudo ou nada), repetição inofensiva pelo identificador da operação, travas em ordem fixa. Renunciar, "só no Compêndio" e excluir exigem a revisão da ficha que a pessoa está vendo.
+- Só o próprio jogador renuncia ao seu personagem ativo; todo o resto é do mestre da campanha.
+- Transferência: o dono atual continua até o aceite; antes dele o destinatário recebe apenas o título público. Escolher o próprio mestre como destino não pede aceite. Outra decisão do mestre cancela a oferta pendente.
+- "Reativar" devolve o personagem a ativo **sob o controle do mestre**; devolver a um jogador é transferir.
+- Avisos em `character_notices` (renúncia ao mestre; oferta ao destinatário; resposta ao mestre), no mesmo sino, inclusive em "Marcar todas como lidas".
+- Combate e encontros mantêm nome, PV, iniciativa e condições; na remoção da ficha só a ligação viva é desfeita. Documentos, diário e referências `@` no texto continuam (o jogador lê o nome como texto simples quando o destino deixou de existir).
+- Portadores de itens e destino de transferência de itens ignoram quem está aguardando ou arquivado.
+- Imagens de retrato não são apagadas.
 
-## Fatia de visibilidade
+## Retenção (decisão do responsável, 27/11/2026)
 
-Investigar criação e atualização com duas contas isoladas. Identidade de aventureiros visível por padrão à campanha; ficha completa privada. Preservar integralmente a seleção de campos públicos. Aventureiros não herdam descoberta/ocultação de NPC/monstro.
+| Decisão do mestre | O que fica | Prazo |
+|---|---|---|
+| Arquivar | a ficha completa, nas próprias tabelas, e o Compêndio | sem expiração enquanto a campanha existir |
+| Manter apenas no Compêndio | cópia privada (ficha, itens já vistos, linha pública e referências de combate/encontro) em `private_ficha.ciclo_eventos`, sem acesso pela API | **30 dias**, depois é apagada |
+| Excluir definitivamente | **nenhuma cópia recuperável**; só registros históricos e narrativos | imediato |
 
-Preparar preflight de contagem de fichas com nota privada, notas ausentes/removidas e classificação indevida em campaign_codex, sem conteúdos pessoais. Não corrigir registros cuja intenção não possa ser determinada por um critério seguro. Validar reparo seletivo e idempotente antes de solicitar aplicação em produção. Não ocultar apenas o aviso visual para disfarçar um registro que continua inacessível aos demais.
+- **Exclusão definitiva:** a ficha não é copiada; cópias anteriores do mesmo personagem (por exemplo de um "só no Compêndio" ainda no prazo) são apagadas na mesma transação; itens já vistos, status de combate, vínculos e avisos do personagem saem; a linha excluída fica só como marcador, com o título, e sem o resumo público derivado da ficha. Permanecem: histórico do ciclo (quem, quando, o quê, título), combate e encontros (nome, PV, condições), documentos, diário e textos.
+- **Confirmação explícita:** além da janela (caixa de confirmação; no lote, digitar EXCLUIR), o banco recusa `excluir` sem `p_confirm = 'excluir-sem-recuperacao'`.
+- **Limpeza dos 30 dias:** `private_ficha.purgar_copias()`, agendada pela migração no `pg_cron` (todo dia às 03:17 UTC) e também executada no começo de cada operação do ciclo. Uma cópia vencida pode permanecer até a próxima limpeza (no máximo cerca de um dia com o agendador ativo). **Sem o agendador, o prazo não é garantido**: conferir com `supabase/preflight/0021_conferir_retencao.sql`.
+- **Recuperação** de uma cópia no prazo é manual, pelo responsável do sistema; o aplicativo não restaura e não há script pronto.
+- **Fora do alcance da exclusão:** backups técnicos do provedor (expiram conforme a retenção contratada); a imagem de retrato no armazenamento da campanha (não é apagada); e rascunhos de recuperação guardados no navegador de **outros** aparelhos do antigo dono (o aparelho que executa a operação limpa o seu). A exclusão também não apaga o que combate, diário e textos já registraram.
+
+## Limites
+
+- "Converter em NPC" mantém o registro de personagem e o classifica como NPC. Ele **não** ganha "Gerenciar conhecimento" por campo dos NPCs criados no Compêndio: isso exigiria converter o registro e quebraria as garantias da ficha guiada.
+- O mestre não edita as escolhas de identidade de um personagem de jogador. Ao assumir o controle (aguardando, arquivado, NPC) ele passa a poder editá-las.
+- Sem a 0021 no banco, o aplicativo não oferece nenhuma dessas ações (`character_states` ausente).
+
+## Aviso "oculto dos jogadores"
+
+O aviso vinha de um único ponto (`rotuloPrivacidade`), usado pelo Início, pela lista e pelo Compêndio. Duas origens, ambas reproduzidas em PostgreSQL isolado (`supabase/ciclo-personagens.test.ts`):
+
+1. **Ficha anterior à 0013 e nunca regravada.** A 0013 passou a tornar o personagem visível na gravação seguinte, sem preencher o passado. Desde então nenhuma gravação consegue ocultá-lo. Correção: `supabase/reparos/identidades_ocultas_antigas.sql` (idempotente, mantém campos ocultos/personalizados, não toca na ficha). **Não aplicado.** Não depende da 0021.
+2. **O jogador saiu da campanha.** A leitura da linha pública exige o autor presente; o mestre lia a ficha e não a linha. Ninguém ocultou nada. Com a 0021 o mestre vê "jogador saiu da campanha" e, ao gerenciar o personagem, o controle passa a ele e a identidade volta à campanha. Sem 0021, o aviso antigo continua.
+
+Não é possível saber em produção quantos registros há em cada caso sem rodar o preflight. A única ocultação que o reparo desfaz é a global antiga, que o produto não oferece mais; escolhas por campo permanecem. Nenhuma regra de RLS foi afrouxada.
+
+## Aplicação pelo responsável (não executada)
+
+1. Confirmar o projeto `gwcttjlxzelzjhbuitmi`, backup recuperável e que 0017–0020 constam no histórico.
+2. Rodar **somente leitura** `supabase/preflight/personagens_exclusao_visibilidade.sql` e guardar as contagens. Se `ocultas_recentes_a_investigar` for maior que zero, **não** rodar o reparo. `ciclo_ja_existe` e `avisos_ja_existem` devem ser falsos.
+3. Com autorização, aplicar o arquivo completo `supabase/migrations/0021_personagens_ciclo_de_vida.sql` (já tem `BEGIN/COMMIT`).
+4. Com autorização separada, executar `supabase/reparos/identidades_ocultas_antigas.sql` e repetir o preflight.
+4b. Rodar **somente leitura** `supabase/preflight/0021_conferir_retencao.sql`: o agendamento `compendio-purgar-copias-de-ficha` precisa existir e estar ativo. Se a consulta a `cron.job` falhar ou vier vazia, habilitar o `pg_cron` no projeto e executar `select cron.schedule('compendio-purgar-copias-de-ficha','17 3 * * *','select private_ficha.purgar_copias()');` (com autorização) antes de publicar.
+5. Testar com mestre, dois jogadores e outra campanha em dados temporários; só então publicar o aplicativo.
+6. Reversão: `supabase/rollback/0021_personagens_ciclo_de_vida_down.sql` funciona apenas **antes do primeiro uso**; depois ela se recusa, para não devolver acesso nem perder cópias.
+
+SHA-256 (fim de linha LF): migração `6d3f30a3c128178ff84f455361dcea3894e7cab278d711c8d85b2e0e59683016`; reparo `7816a708bfe28bf1c69973f77f3010707836122f5a9c1ed8e3568d280241a438`. Recalcular se mudarem.
+
+Nenhuma limpeza de personagens é automática. Os de teste podem ser removidos pelo mestre em Personagens → Selecionar → "Selecionar todos da campanha".

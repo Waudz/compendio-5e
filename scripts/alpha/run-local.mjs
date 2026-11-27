@@ -342,6 +342,43 @@ try {
     assert.equal(bad.ok, false, 'transfer to a character outside the campaign is refused');
     assert.equal((await sheetOf(p)).draft.inventory[0].quantity, 1);
   });
+  await check('character lifecycle (0021): release revokes the old session, transfer needs acceptance, definitive deletion is master-only', async () => {
+    const meta = {identidadePublica: {settings: {imageUrl: null, title: '', name: {mode: 'real'}, surname: {mode: 'real'}, race: {mode: 'hidden'}, characterClass: {mode: 'real'}, description: ''}, card: {imageUrl: null, title: '', name: 'x', surname: null, race: null, characterClass: null, description: ''}}};
+    const [hero] = await rpc('create_guided_character', p, {p_campaign_id: a, p_title: 'Lifecycle', p_meta: meta, p_publish: false, p_draft: {name: 'Lifecycle', level: 2, inventory: [{id: 'i1', itemId: 'longsword', quantity: 1, equipped: false, origin: 'acquired'}]}});
+    const id = hero.character_id, path = `/rest/v1/character_sheets?character_id=eq.${id}&select=owner_id,revision,draft`;
+    const sheet = async token => (await ok(path, {token}))[0];
+    const act = (token, p_action, extra = {}) => api('/rest/v1/rpc/character_lifecycle', {token, method: 'POST', body: {p_campaign: a, p_ids: [id], p_action, p_operation: randomUUID(), ...extra}});
+    const revision = async () => (await sheet(m)).revision;
+    const before = await sheet(p);
+    assert.equal((await act(secondPlayer.access_token, 'renunciar', {p_revisions: {[id]: before.revision}})).ok, false);
+    assert.equal((await act(o, 'excluir', {p_revisions: {[id]: before.revision}})).ok, false);
+    assert.ok((await act(p, 'renunciar', {p_revisions: {[id]: before.revision}})).ok);
+    assert.equal(await sheet(p), undefined);
+    assert.equal((await api('/rest/v1/rpc/save_guided_character', {token: p, method: 'POST', body: {p_id: id, p_expected_revision: before.revision + 1, p_draft: before.draft}})).ok, false, 'the old session cannot write');
+    assert.deepEqual((await sheet(m)).draft.inventory, before.draft.inventory);
+    assert.equal((await ok(`/rest/v1/notes?id=eq.${id}&select=visibility`, {token: secondPlayer.access_token}))[0].visibility, 'campaign');
+    const notices = async token => ok(`/rest/v1/character_notices?character_id=eq.${id}&select=id,kind`, {token});
+    assert.deepEqual((await notices(m)).map(n => n.kind), ['renuncia']);
+    assert.deepEqual(await notices(p), []);
+    assert.ok((await act(m, 'transferir', {p_target: secondPlayer.user.id})).ok);
+    assert.equal(await sheet(secondPlayer.access_token), undefined, 'nothing of the sheet before acceptance');
+    const offers = await rpc('character_offers', secondPlayer.access_token, {p_campaign: a});
+    const offer = offers.find(x => x.characterId === id);
+    assert.ok(offer && !JSON.stringify(offers).includes('longsword'));
+    assert.equal((await api('/rest/v1/rpc/character_offer_answer', {token: p, method: 'POST', body: {p_offer: offer.id, p_accept: true}})).ok, false);
+    await rpc('character_offer_answer', secondPlayer.access_token, {p_offer: offer.id, p_accept: true});
+    assert.equal((await sheet(secondPlayer.access_token)).owner_id, secondPlayer.user.id);
+    assert.equal(await sheet(p), undefined);
+    assert.equal((await act(secondPlayer.access_token, 'excluir', {p_revisions: {[id]: await revision()}})).ok, false);
+    assert.equal((await act(m, 'excluir', {p_revisions: {[id]: 1}})).ok, false, 'stale revision is refused');
+    assert.equal((await act(m, 'excluir', {p_revisions: {[id]: await revision()}})).ok, false, 'definitive deletion needs the explicit confirmation');
+    assert.ok((await act(m, 'excluir', {p_revisions: {[id]: await revision()}, p_confirm: 'excluir-sem-recuperacao'})).ok);
+    for (const token of [m, p, secondPlayer.access_token]) {
+      assert.equal(await sheet(token), undefined);
+      assert.deepEqual(await ok(`/rest/v1/notes?id=eq.${id}&deleted_at=is.null`, {token}), []);
+    }
+    assert.equal((await api('/rest/v1/rpc/character_states', {token: o, method: 'POST', body: {p_campaign: a}})).ok, false);
+  });
   await check('password recovery remains available with public signup', async () => {
     await ok('/auth/v1/recover', {method: 'POST', body: {email: player.email}});
   });

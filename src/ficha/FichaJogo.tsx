@@ -1,6 +1,7 @@
 // Ficha de jogo (D&D 5e 2014): cabeçalho compartilhado e exatamente três abas (Ficha, Habilidades, Inventário), iguais no computador e no
 // celular. Os cálculos vêm do motor `regras-2014`; o que muda durante o jogo é guardado no próprio rascunho (`estadoJogo`). A aba, a
 // rolagem de cada aba e a exibição do inventário são lembradas nesta sessão do navegador, por personagem.
+import {useCiclo} from "../CicloPersonagens";
 import './ficha.css';
 import { ChevronsUp, Coffee, Droplet, Flame, Image as ImageIcon, Minus, Moon, MoreHorizontal, Pencil, Plus, Shield, Skull, Snowflake, X, Zap, type LucideIcon } from "lucide-react";
 import { Indicador, IndicadorPV } from "../dnd/elementos";
@@ -68,6 +69,7 @@ export type FichaJogoProps = {
 };
 
 export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, campaignId, podeConceder, moedas, identidade }: FichaJogoProps) {
+  const ciclo=useCiclo();
   const catalogo = useVersaoCatalogo();
   const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft, catalogo]);
   const base = useMemo(() => statistics2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft, catalogo]);
@@ -133,7 +135,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
           <div className="ficha-acoes">
             <button type="button" className="ficha-botao" aria-label="Editar personagem" onClick={onEditar}><Pencil size={13} aria-hidden="true"/> Editar</button>
             <button type="button" className="ficha-botao" disabled={draft.level >= 20} onClick={onProgredir}><ChevronsUp size={13} aria-hidden="true"/> Subir de nível</button>
-            <MenuAcoes onRetrato={() => setEditandoRetrato(true)}/></div>
+            <MenuAcoes onRetrato={() => setEditandoRetrato(true)} ciclo={personagemId && ciclo.disponivel ? (podeConceder ? { rotulo: "Gerenciar personagem", acao: () => ciclo.gerenciar(personagemId) } : { rotulo: "Excluir personagem", perigo: true, acao: () => ciclo.pedirRenuncia(personagemId) }) : undefined}/></div>
         </div>
       </div>
       <div className="ficha-numeros">
@@ -204,14 +206,14 @@ function Condicoes({ draft, vital }: { draft: CharacterDraft; vital: (a: AcaoVit
 }
 
 /** Reticências do cabeçalho: ações que não precisam ficar à vista. */
-function MenuAcoes({ onRetrato }: { onRetrato: () => void }) {
+function MenuAcoes({ onRetrato, ciclo }: { onRetrato: () => void; ciclo?: { rotulo: string; perigo?: boolean; acao: () => void } }) {
   const [aberto, setAberto] = useState(false);
   const menu = useRef<HTMLDivElement>(null), gatilho = useRef<HTMLButtonElement>(null);
   useFecharMenu(aberto, menu, gatilho, () => setAberto(false));
   return <div className="ficha-menu">
     <button ref={gatilho} type="button" className="ficha-botao" aria-haspopup="true" aria-expanded={aberto} aria-label="Mais ações do personagem" title="Mais ações" onClick={() => setAberto(a => !a)}><MoreHorizontal size={15} aria-hidden="true"/></button>
     {aberto && <div ref={menu} className="barra-menu ficha-menu-lista" role="group" aria-label="Ações do personagem">
-      <button type="button" className="barra-item" onClick={() => { setAberto(false); onRetrato(); }}><ImageIcon size={14} aria-hidden="true"/> Alterar retrato</button>
+      <button type="button" className="barra-item" onClick={() => { setAberto(false); onRetrato(); }}><ImageIcon size={14} aria-hidden="true"/> Alterar retrato</button>{ciclo && <><hr/><button type="button" className={"barra-item" + (ciclo.perigo ? " danger" : "")} onClick={() => { setAberto(false); ciclo.acao(); }}>{ciclo.rotulo}</button></>}
     </div>}
   </div>;
 }

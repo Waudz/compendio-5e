@@ -2,6 +2,7 @@
 // Persistência do criador guiado com a API de fichas (modelo em memória que imita as regras da migração 0008; as políticas REAIS são validadas em
 // `supabase/character-sheets.test.ts`, em PostgreSQL isolado). Aqui: o caminho do usuário, o isolamento na interface, conflito de revisão, falhas de
 // rede e o envio explícito dos rascunhos do armazenamento local.
+import { fonteAventureirosDoInicio } from "../personagensCampanha";
 import type { User } from "@supabase/supabase-js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -383,12 +384,12 @@ describe("personagens guiados no Início e lista única", () => {
     await criarPersonagem("Thorin");
     cleanup(); await montar(me); await abrirPersonagens();
     const l = await lista(); await l.findByRole("button", { name: /^Thorin/ });
-    expect(l.getAllByRole("button")).toHaveLength(1);
-    expect(l.getByRole("button").textContent).toMatch(/sua ficha/); expect(l.getByRole("button").textContent).not.toMatch(/apresentado|publicado|veem/);
+    expect(l.getAllByRole("listitem")).toHaveLength(1);
+    expect(l.getByRole("button", { name: /^Thorin/ }).textContent).toMatch(/sua ficha/); expect(l.getByRole("button", { name: /^Thorin/ }).textContent).not.toMatch(/apresentado|publicado|veem/);
     expect(screen.queryByTestId("personagens-vazio")).toBeNull(); expect(screen.queryByText(/Nenhum personagem ainda/)).toBeNull();
     expect(registros.dados).toHaveLength(1); expect(banco.fichas).toHaveLength(1);
     cleanup(); await montar(mestreUser); await abrirPersonagens();
-    const m = await lista(); await m.findByRole("button", { name: /^Thorin/ }); expect(m.getAllByRole("button")).toHaveLength(1);
+    const m = await lista(); await m.findByRole("button", { name: /^Thorin/ }); expect(m.getAllByRole("listitem")).toHaveLength(1);
   });
 
   it("mestre abre pela lista a ficha publicada de um jogador (ficha, não só o cartão)", async () => {
@@ -478,4 +479,157 @@ describe("Personagens de outros jogadores",()=>{
   fireEvent.click(carta.getByRole("button",{name:"Fechar consulta"}));
   expect(screen.queryByRole("dialog")).toBeNull();expect(screen.getByRole("heading",{name:"Personagens"})).toBeTruthy();
  });
+});
+
+
+describe("ciclo de vida do personagem", () => {
+  const abrirAcoes = async (nome: string, item: string) => {
+    fireEvent.click(await screen.findByRole("button", { name: `Mais ações de ${nome}` }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: item }));
+  };
+  const janela = async (titulo: string) => within(await screen.findByRole("dialog", { name: titulo }));
+  const semJanela = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  const renunciar = async () => {
+    const d = await janela("Excluir personagem");
+    const confirmar = (await d.findByRole("button", { name: "Excluir personagem" })) as HTMLButtonElement;
+    expect(confirmar.disabled).toBe(true);
+    fireEvent.click(await d.findByRole("checkbox", { name: /Entendo que vou perder o controle/ }));
+    fireEvent.click(confirmar);
+  };
+  const decidir = async (opcao: RegExp, confirmar?: RegExp) => {
+    const d = await janela("Gerenciar personagem");
+    fireEvent.click(await d.findByRole("radio", { name: opcao }));
+    if (confirmar) fireEvent.click(d.getByRole("checkbox", { name: confirmar }));
+    return d;
+  };
+  const grupo = (nome: RegExp) => fireEvent.click(within(screen.getByRole("group", { name: "Situação dos personagens" })).getByRole("button", { name: nome }));
+  const sino = async () => { fireEvent.click(await screen.findByRole("button", { name: /^Notificações, \d+ não lidas$/ })); return janela("Notificações"); };
+
+  it.each(["ficha", "lista"])("jogador exclui pela %s: perde o controle, a ficha é preservada e o mestre é avisado", async caminho => {
+    await criarPersonagem("Thorin"); cleanup(); await montar(me); await abrirPersonagens();
+    if (caminho === "ficha") {
+      fireEvent.click(await screen.findByRole("button", { name: /^Thorin / })); await screen.findByTestId("ficha-guiada-leitura");
+      fireEvent.click(screen.getByRole("button", { name: "Mais ações do personagem" }));
+      expect(screen.queryByRole("button", { name: "Gerenciar personagem" })).toBeNull();
+      fireEvent.click(await screen.findByRole("button", { name: "Excluir personagem" }));
+    } else await abrirAcoes("Thorin", "Excluir personagem");
+    const inventario = structuredClone(banco.fichas[0].draft.inventory);
+    await renunciar(); await semJanela();
+    await waitFor(() => expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull());
+    expect(banco.fichas[0]).toMatchObject({ ownerId: mestreUser.id });
+    expect(banco.fichas[0].draft.inventory).toEqual(inventario);
+    await abrirPersonagens(); await screen.findByTestId("personagens-vazio");
+    expect(screen.getByRole("button", { name: /Criar personagem/ })).toBeTruthy();
+    // a sessão antiga não grava mais
+    expect(await fichasEmMemoria(me.id, banco).salvar(banco.fichas[0].id, banco.fichas[0].revision, banco.fichas[0].draft)).toMatchObject({ ok: false });
+    cleanup(); await montar(mestreUser);
+    const avisos = await sino();
+    fireEvent.click(await avisos.findByRole("button", { name: /O jogador deixou o personagem/ }));
+    const d = await janela("Gerenciar personagem");
+    expect(await d.findByText(/Aguardando decisão/)).toBeTruthy();
+    fireEvent.click(d.getByRole("button", { name: "Decidir depois" })); await semJanela();
+    await abrirPersonagens(); await screen.findByText("Nenhum personagem neste grupo.");
+    grupo(/^Aguardando decisão 1$/); expect(await screen.findByRole("button", { name: /^Thorin / })).toBeTruthy();
+  });
+
+  it("mestre arquiva e reativa pela lista; o jogador não recebe a gestão e o arquivado sai das listas de ativos", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await montar(other); await abrirPersonagens();
+    await screen.findByRole("button", { name: /^Thorin / }); expect(screen.queryByRole("button", { name: "Mais ações de Thorin" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Selecionar" })).toBeNull();
+    cleanup(); await montar(mestreUser); await abrirPersonagens(); await abrirAcoes("Thorin", "Gerenciar personagem");
+    let d = await decidir(/Arquivar personagem/); fireEvent.click(d.getByRole("button", { name: "Confirmar" })); await semJanela();
+    await screen.findByText("Nenhum personagem neste grupo.");
+    grupo(/^Arquivados 1$/); expect(await screen.findByRole("button", { name: /^Thorin / })).toBeTruthy();
+    const fonte = fonteAventureirosDoInicio(registrosEmMemoria("mestre", mestreUser.id, [], registros as never), null, fichasEmMemoria(mestreUser.id, banco), mestreUser.id, true);
+    expect(await fonte.listar("ca")).toMatchObject({ ok: true, data: [] });
+    expect(await fonte.listarTodos!("ca")).toMatchObject({ ok: true, data: [{ situacao: "arquivado" }] });
+    await abrirAcoes("Thorin", "Gerenciar personagem");
+    d = await decidir(/Reativar/); fireEvent.click(d.getByRole("button", { name: "Confirmar" })); await semJanela();
+    expect(await fonte.listar("ca")).toMatchObject({ ok: true, data: [expect.anything()] });
+  });
+
+  it("manter só no Compêndio e excluir pedem confirmação; falha de rede não fecha a janela nem simula", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await montar(mestreUser); await abrirPersonagens(); await abrirAcoes("Thorin", "Gerenciar personagem");
+    const d = await decidir(/Excluir definitivamente/);
+    const botao = d.getByRole("button", { name: "Excluir definitivamente" }) as HTMLButtonElement;
+    expect(botao.disabled).toBe(true);
+    fireEvent.click(d.getByRole("checkbox", { name: /Confirmo a exclusão definitiva de Thorin/ }));
+    banco.rede.caida = true; fireEvent.click(botao);
+    expect(await d.findByRole("alert")).toBeTruthy(); expect(banco.fichas).toHaveLength(1); expect(registros.dados).toHaveLength(1);
+    banco.rede.caida = false; fireEvent.click(botao); await semJanela();
+    expect(banco.fichas).toHaveLength(0); expect(registros.dados).toHaveLength(0);
+    await screen.findByTestId("personagens-vazio");
+  });
+
+  it("transferência: o destinatário aceita pelo aviso e passa a controlar a ficha", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await montar(mestreUser); await abrirPersonagens(); await abrirAcoes("Thorin", "Gerenciar personagem");
+    const d = await decidir(/Transferir para outro jogador/);
+    await waitFor(() => expect(within(d.getByLabelText("Novo jogador")).getAllByRole("option").length).toBeGreaterThan(1));
+    fireEvent.change(d.getByLabelText("Novo jogador"), { target: { value: other.id } });
+    fireEvent.click(d.getByRole("button", { name: "Confirmar" })); await semJanela();
+    expect(banco.fichas[0].ownerId).toBe(me.id);                       // nada muda antes do aceite
+    expect(await screen.findByText(/Transferência aguardando/)).toBeTruthy();
+    cleanup(); await montar(other);
+    const avisos = await sino();
+    fireEvent.click(await avisos.findByRole("button", { name: /Transferência para você/ }));
+    const oferta = await janela("Transferência de personagem");
+    fireEvent.click(oferta.getByRole("button", { name: "Aceitar personagem" })); await semJanela();
+    expect(banco.fichas[0].ownerId).toBe(other.id);
+    await abrirPersonagens(); expect((await screen.findByRole("button", { name: /^Thorin / })).textContent).toMatch(/sua ficha/);
+    cleanup(); await montar(me); await abrirPersonagens(); expect((await screen.findByRole("button", { name: /^Thorin / })).textContent).not.toMatch(/sua ficha/);
+  });
+
+  it("mestre seleciona todos da campanha e exclui de uma vez, digitando a confirmação", async () => {
+    await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
+    await montar(mestreUser); await abrirPersonagens();
+    fireEvent.click(await screen.findByRole("button", { name: "Selecionar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Selecionar todos da campanha (2)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir selecionados (2)" }));
+    const d = await janela("Excluir personagens");
+    const botao = (await d.findByRole("button", { name: "Excluir 2" })) as HTMLButtonElement;
+    await d.findByRole("list", { name: "Personagens a excluir" });
+    expect(botao.disabled).toBe(true);
+    fireEvent.change(d.getByLabelText("Digite EXCLUIR para confirmar"), { target: { value: "EXCLUIR" } });
+    fireEvent.click(botao); await semJanela();
+    expect(banco.fichas).toHaveLength(0); expect(registros.dados).toHaveLength(0);
+  });
+
+  it("no celular, o botão de ações da lista abre o menu (e não a ficha)", async () => {
+    await criarPersonagem("Thorin"); cleanup();
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("max-width"), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }));
+    await montar(me);
+    const barra = () => within(screen.getByRole("navigation", { name: "Navegação mobile" }));
+    await waitFor(() => expect(barra().getByRole("button", { name: "Menu" })).toBeTruthy());
+    fireEvent.click(barra().getByRole("button", { name: "Menu" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Meus personagens" }));
+    await abrirAcoes("Thorin", "Excluir personagem");
+    await renunciar(); await semJanela();
+    expect(banco.fichas[0].ownerId).toBe(mestreUser.id);
+    expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
+  });
+
+  it("Início, lista e Compêndio concordam: personagem ativo sem aviso de oculto; jogador que saiu tem o motivo certo", async () => {
+    await criarPersonagem("Thorin");
+    const lerTudo = async () => {
+      const fonte = fonteAventureirosDoInicio(registrosEmMemoria("mestre", mestreUser.id, [], registros as never), null, fichasEmMemoria(mestreUser.id, banco), mestreUser.id, true);
+      return Promise.all([fonte.listar("ca"), fonte.listarTodos!("ca")]);
+    };
+    for (const r of await lerTudo()) { expect(r.ok && r.data).toHaveLength(1); expect(r.ok && r.data[0].nota).toBeUndefined(); }
+    cleanup(); await montar(mestreUser); await abrirPersonagens();
+    await screen.findByRole("button", { name: /^Thorin / }); expect(screen.queryByText(/oculto/i)).toBeNull();
+    // o jogador sai: como no banco, a linha pública deixa de ser legível, mas a ficha continua com o mestre
+    banco.campanhas.ca.jogadores = banco.campanhas.ca.jogadores.filter(x => x !== me.id);
+    registros.dados.splice(0, registros.dados.length);
+    for (const r of await lerTudo()) expect(r.ok && r.data[0].nota).toBe("jogador saiu da campanha");
+  });
+
+  it("sem a atualização do banco, nenhuma ação do ciclo é oferecida", async () => {
+    await criarPersonagem("Thorin"); banco.semCiclo = true;
+    for (const quem of [me, mestreUser]) {
+      cleanup(); await montar(quem); await abrirPersonagens();
+      await screen.findByRole("button", { name: /^Thorin / });
+      expect(screen.queryByRole("button", { name: "Mais ações de Thorin" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Selecionar" })).toBeNull();
+    }
+  });
 });

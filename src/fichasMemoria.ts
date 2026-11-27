@@ -9,6 +9,7 @@ import { aplicarAcao, comVitais, vitaisDoDraft } from "./vitais/vitais";
 import { consumirItem, transferirEntre } from "./ficha/inventarioAcoes";
 import { defaultPublicIdentity, type PublicIdentity } from "./rules/public-identity";
 import type { Registro } from "./registros";
+import { cicloEmMemoria, type CicloEmMemoria } from "./cicloMemoria";
 
 type Linha = { id: string; campaignId: string; ownerId: string; revision: number; draft: CharacterDraft; updatedAt: string; vitalVersao?: number; operacoes?: string[] };
 export type BancoFichas = {
@@ -19,6 +20,10 @@ export type BancoFichas = {
   rede: { caida: boolean };
   /** "Tempo real" entre as APIs que usam o mesmo banco. */
   ouvintes?: Set<() => void>;
+  /** Ciclo de vida (0021): situação de quem não está ativo, ofertas, avisos e operações já aceitas. */
+  ciclo?: CicloEmMemoria;
+  /** Simula um banco sem a 0021. */
+  semCiclo?: boolean;
   /** Participação atual: mestre e jogadores por campanha (a RLS lê isto do banco, nunca do cliente). */
   campanhas: Record<string, { mestre: string; jogadores: string[] }>;
 };
@@ -92,6 +97,7 @@ export function fichasEmMemoria(uid: string, banco: BancoFichas): FichasApi & { 
       return { ok: true, data: itemDe(o) };
     },
     assinar: (_filtro, aoMudar) => { ouvintes.add(aoMudar); return () => { ouvintes.delete(aoMudar); }; },
+    ciclo: cicloEmMemoria(uid, banco, avisar),
     listar: async cid => banco.rede.caida ? semRede : { ok: true, data: banco.fichas.filter(f => f.campaignId === cid && le(f)).map(f => ({ id: f.id, ownerId: f.ownerId, nome: f.draft.name.trim() || "Sem nome", ...extrasDaFicha(f.draft), classId: f.draft.classId, nivel: f.draft.level, revision: f.revision, updatedAt: f.updatedAt })) },
     carregar: async id => {
       if (banco.rede.caida) return semRede;

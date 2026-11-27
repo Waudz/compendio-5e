@@ -6,7 +6,7 @@ import { fichasEmMemoria, novoBancoFichas, type BancoFichas } from "../fichasMem
 import type { Registro } from "../registros";
 
 const CHAVE = "demo:fichas:v1";
-type Guardado = { fichas: BancoFichas["fichas"] };
+type Guardado = { fichas: BancoFichas["fichas"]; ciclo?: BancoFichas["ciclo"] };
 
 export function fichasDemo(uid: string, campaignId: string, registros: { ler: () => Registro[]; gravar: (d: Registro[]) => void }): FichasApi {
   const ouvintes = new Set<() => void>();
@@ -14,7 +14,7 @@ export function fichasDemo(uid: string, campaignId: string, registros: { ler: ()
   const banco = (): BancoFichas => {
     const b = novoBancoFichas({ dados: registros.ler() });
     b.campanhas = { [campaignId]: { mestre: "demo-mestre", jogadores: ["demo-jogador"] } };
-    try { b.fichas = (JSON.parse(localStorage.getItem(CHAVE) ?? "null") as Guardado | null)?.fichas ?? []; } catch { b.fichas = []; }
+    try { const g = JSON.parse(localStorage.getItem(CHAVE) ?? "null") as Guardado | null; b.fichas = g?.fichas ?? []; b.ciclo = g?.ciclo; } catch { b.fichas = []; }
     b.ouvintes = ouvintes;
     return b;
   };
@@ -22,10 +22,10 @@ export function fichasDemo(uid: string, campaignId: string, registros: { ler: ()
    *  bloqueio de linha do banco): duas abas nunca leem e gravam ao mesmo tempo. */
   const chamar = async <T,>(fn: (api: FichasApi) => Promise<T>): Promise<T> => {
     const executar = async () => {
-      const b = banco(), antes = JSON.stringify([b.fichas, b.registros.dados]);
+      const b = banco(), antes = JSON.stringify([b.fichas, b.registros.dados, b.ciclo]);
       const r = await fn(fichasEmMemoria(uid, b));
-      if (JSON.stringify([b.fichas, b.registros.dados]) !== antes) {
-        localStorage.setItem(CHAVE, JSON.stringify({ fichas: b.fichas })); notas.dados = b.registros.dados;
+      if (JSON.stringify([b.fichas, b.registros.dados, b.ciclo]) !== antes) {
+        localStorage.setItem(CHAVE, JSON.stringify({ fichas: b.fichas, ciclo: b.ciclo })); notas.dados = b.registros.dados;
         // no Chrome, o localStorage chega às outras abas (outros processos) com um pequeno atraso: a trava só é solta depois disso,
         // senão a próxima aba leria o valor antigo e uma operação se perderia (no banco real, o bloqueio de linha resolve isso)
         await new Promise(r => setTimeout(r, 120));
@@ -35,6 +35,10 @@ export function fichasDemo(uid: string, campaignId: string, registros: { ler: ()
     return navigator.locks ? (await navigator.locks.request(CHAVE, executar)) as T : executar();
   };
   return {
+    ciclo: {
+      situacoes: c => chamar(a => a.ciclo!.situacoes(c)), agir: p => chamar(a => a.ciclo!.agir(p)), ofertas: c => chamar(a => a.ciclo!.ofertas(c)),
+      responder: (o, x) => chamar(a => a.ciclo!.responder(o, x)), avisos: c => chamar(a => a.ciclo!.avisos(c)), lerAvisos: ids => chamar(a => a.ciclo!.lerAvisos(ids)),
+    },
     listar: c => chamar(a => a.listar(c)),
     carregar: id => chamar(a => a.carregar(id)),
     criar: (c, d, i) => chamar(a => a.criar(c, d, i)),
