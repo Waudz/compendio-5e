@@ -251,6 +251,63 @@ describe("adicionar, trocar e remover a ficha (cópia privada de 30 dias)", () =
   });
 });
 
+describe("estado vital e PV persistentes", () => {
+  const vida = (quem: string | null, id: string, patch: unknown, x: { op?: string; v?: number | null; onde?: string } = {}) =>
+    como(quem, "select public.character_life_set($1,$2,$3::jsonb,$4::uuid,$5) as r", [x.onde ?? campanha, id, JSON.stringify(patch), x.op ?? crypto.randomUUID(), x.v ?? null]);
+  const linhas = async (quem: string, id: string) => (await como(quem, "select estado, pv, temp, condicoes, version from public.character_life where note_id=$1", [id])).rows;
+
+  it("o estado vital é do mestre, separado dos PV; o jogador só o vê quando revelado, inclusive 'desconhecido'", async () => {
+    const npc = await novoNpc("Sombra");
+    await revelar(npc, ["name"]);
+    expect(await projecao(mestre, npc)).toMatchObject({ vitalStatus: "vivo" });
+    for (const quem of [ana, fora, null]) expect((await vida(quem, npc, { estado: "morto" })).error).toBeDefined();
+    expect((await vida(mestre, npc, { estado: "zumbi" })).error).toBeDefined();
+    expect((await vida(mestre, npc, { pv: 3 }, { v: 0 })).error).toMatch(/estado_da_ficha/);   // sem ficha de criatura
+    expect((await vida(mestre, npc, { estado: "desconhecido" })).error).toBeUndefined();
+    expect(await projecao(ana, npc)).not.toHaveProperty("vitalStatus");
+    expect(await linhas(ana, npc)).toEqual([]);
+    await revelar(npc, ["name", "vitalStatus"]);
+    expect(await projecao(ana, npc)).toMatchObject({ vitalStatus: "desconhecido" });
+  });
+
+  it("NPC com ficha de criatura guarda PV, temporários e condições, com versão e sem repetir operação", async () => {
+    const npc = await novoNpc("Ogro");
+    expect((await definir(mestre, npc, criaturaDe(npc, "Ogro"))).error).toBeUndefined();
+    const op = crypto.randomUUID();
+    expect((await vida(mestre, npc, { pv: 20, temp: 3, condicoes: ["Caído"] }, { v: 0, op })).error).toBeUndefined();
+    expect((await vida(mestre, npc, { pv: 20, temp: 3, condicoes: ["Caído"] }, { v: 0, op })).error).toBeUndefined();
+    expect(await linhas(mestre, npc)).toEqual([{ estado: "vivo", pv: 20, temp: 3, condicoes: ["Caído"], version: 1 }]);
+    expect((await vida(mestre, npc, { pv: 1 }, { v: 0 })).error).toMatch(/conflito_de_versao/);
+    expect((await vida(mestre, npc, { pv: 0 }, { v: 1 })).error).toBeUndefined();
+    expect((await linhas(mestre, npc))[0]).toMatchObject({ estado: "vivo", pv: 0 });   // 0 PV não é morte
+    expect((await vida(mestre, npc, { estado: "morto" })).error).toBeUndefined();
+    // trocar a ficha zera PV e condições do corpo antigo e mantém o estado vital
+    expect((await definir(mestre, npc, null, { confirmacao: "remover-ficha" })).error).toBeUndefined();
+    expect((await linhas(mestre, npc))[0]).toMatchObject({ estado: "morto", pv: null, temp: 0, condicoes: [] });
+  });
+
+  it("aventureiro: o mestre marca; o dono lê o próprio estado; outro jogador não; PV continuam na ficha", async () => {
+    const heroi = await criar(ana, "Lira");
+    expect((await vida(ana, heroi, { estado: "morto" })).error).toMatch(/sem_permissao/);
+    expect((await vida(mestre, heroi, { pv: 1 }, { v: 0 })).error).toMatch(/estado_da_ficha/);
+    expect((await vida(mestre, heroi, { estado: "morto" })).error).toBeUndefined();
+    expect(await linhas(ana, heroi)).toHaveLength(1);
+    expect(await linhas(beto, heroi)).toEqual([]);
+    expect((await vida(mestre, heroi, { estado: "vivo" })).error).toBeUndefined();   // ressuscitar preserva tudo
+    expect(await lerFicha(ana, heroi)).toBeDefined();
+    for (const comando of ["insert into public.character_life(note_id,campaign_id) values ($1, '" + campanha + "')", "update public.character_life set estado='morto' where note_id=$1", "delete from public.character_life where note_id=$1"])
+      expect((await como(mestre, comando, [heroi])).error).toMatch(/permission denied/);
+  });
+
+  it("combate e encontros aceitam a referência a NPC e continuam recusando tipos desconhecidos", async () => {
+    const estadoDe = (tipo: string) => JSON.stringify({ combatentes: [{ id: "c1", nome: "Ogro", lado: "inimigo", iniciativa: 1, ref: { tipo, id: "x" } }], turno: "c1", rodada: 1 });
+    const valido = async (tipo: string) => (await admin("select private_combates.valid_campaign_combat_state($1::jsonb) as ok", [estadoDe(tipo)]))[0].ok;
+    expect(await valido("npc")).toBe(true);
+    expect(await valido("personagem")).toBe(true);
+    expect(await valido("outro")).toBe(false);
+  });
+});
+
 describe("aplicação e reversão da 0022", () => {
   const estado = async (banco: PGlite) => JSON.stringify([
     (await banco.query("select * from public.notes order by id")).rows,
