@@ -33,6 +33,8 @@
 .ficha-npc { display: flex; flex-direction: column; gap: 10px; }
 .ficha-npc p, .ficha-npc h3 { margin: 0; }
 .ficha-npc .row { flex-wrap: wrap; gap: 8px; }
+.ficha-npc label.ciclo-confirmo { display: flex; flex-direction: row; align-items: flex-start; gap: 8px; margin: 0; }
+.ficha-npc label.ciclo-confirmo input { width: auto; margin: 2px 0 0; flex: none; }
 .controle-vital { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
 .controle-vital label { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; margin: 0; }
 .controle-vital select { width: auto; padding: 5px 6px; }

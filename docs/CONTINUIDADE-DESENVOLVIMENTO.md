@@ -1010,3 +1010,11 @@ Base: `main` em `a664493` (#169 integrado; publicação e E2E da main aprovados;
 **Antes de mesclar:** autorização para aplicar a 0022 em produção (aplicar antes ou depois do merge é compatível).
 
 **Próximo — etapa 3:** ações "Adicionar ficha" (modelo do bestiário com cópia própria em `campaign_definitions`, criatura personalizada, personagem pelo criador via `criarDeNpc`), trocar com aviso e confirmação e remover a ficha sem apagar a identidade. Remover ficha de personagem precisa de operação no servidor (a API não tem DELETE) e de decisão de retenção: proposta, a mesma do "só no Compêndio" (cópia privada por 30 dias). As cópias próprias de criatura precisam ficar fora das listas do Bestiário.
+
+## RETOMAR AQUI — DEC-041, implementação integrada (PR #170, branch `feat/alpha-npc-fichas-etapa2`)
+
+Entregue: fichas de NPC (adicionar, editar, trocar, remover), PV/condições/estado vital em Personagens, sincronização com Iniciativa e Encontros, estado vital com divulgação. Detalhes na DEC-041. Módulos novos em `src/npc/`.
+
+**Falta para publicar:** autorização do responsável para aplicar a **0022** em produção. Roteiro: backup; rodar `supabase/preflight/0022_conferir.sql` (antes), aplicar `0022_npc_ficha_de_personagem.sql`, rodar o diagnóstico de novo (contagens iguais, versão 22) e conferir o agendamento com `preflight/0021_conferir_retencao.sql`. Só então mesclar o #170 (o código também é compatível com o banco 21). Reversão em `supabase/rollback/0022_npc_ficha_de_personagem_down.sql` (recusa se já houver uso).
+
+**Depois:** conferir em produção com uma conta de mestre e uma de jogador; retomar as demais pendências da Alpha (anotações do jogador, foto de perfil, criador/ficha/inventário, Compêndio restante, PWA, estabilização).
