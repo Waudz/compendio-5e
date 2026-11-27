@@ -1,15 +1,25 @@
 -- Somente com autorização e backup. Recusa quando já existe NPC com ficha de personagem: nenhuma ficha é apagada pela reversão.
 begin;
 do $$ begin
- if exists (select 1 from public.character_sheets s where private.npc_do_compendio(s.character_id)) then
-  raise exception 'reversao_0022_recusada: ha NPCs com ficha de personagem; preserve ou remova essas fichas antes';
+ if exists (select 1 from public.character_sheets s where private.npc_do_compendio(s.character_id))
+    or exists (select 1 from public.campaign_codex c where c.combat_definition_id like 'custom-npc-%')
+    or exists (select 1 from private_ficha.npc_ficha_eventos e where e.copia is not null) then
+  raise exception 'reversao_0022_recusada: ha fichas de NPC ou copias em retencao; preserve-as antes';
  end if;
 end $$;
-drop function public.codex_npc_sheet_create(uuid, uuid, int, jsonb);
+drop function public.codex_npc_sheet_set(uuid, uuid, int, jsonb, uuid, int, text);
 drop policy character_sheets_npc_mestre on public.character_sheets;
 drop policy character_combat_status_npc_mestre on public.character_combat_status;
 
 -- funções substituídas voltam ao texto anterior
+create or replace function private_ficha.purgar_copias() returns integer language plpgsql security definer set search_path = '' as $$
+declare n integer;
+begin
+  update private_ficha.ciclo_eventos set copia = null, copia_expira_em = null where copia is not null and copia_expira_em <= now();
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
 create or replace function private.nota_guiada_ativa(p_id uuid, p_campaign uuid, p_owner uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.notes n
@@ -114,6 +124,7 @@ begin
   'relatedTerms',(select jsonb_agg(x->>'title') from jsonb_array_elements(public.codex_links_projection(c.campaign_id,c.id,true)) x)));
 end $$;
 
+drop table private_ficha.npc_ficha_eventos;
 drop function private.npc_do_compendio(uuid);
 create or replace function public.codex_capabilities() returns integer language sql stable set search_path = '' as $$ select 21 $$;
 commit;

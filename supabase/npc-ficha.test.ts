@@ -67,7 +67,15 @@ const novoNpc = async (titulo: string) => {
 const versao = async (id: string) => (await admin("select version from public.campaign_codex where id=$1", [id]))[0].version as number;
 const fichaNpc = (id: string, nome: string) => ({ ...ficha(nome), id });
 const darFicha = async (quem: string | null, id: string, nome: string, v?: number, onde = campanha, draft: unknown = fichaNpc(id, nome)) =>
-  como(quem, "select public.codex_npc_sheet_create($1,$2,$3,$4::jsonb) as r", [onde, id, v ?? (await versao(id)), JSON.stringify(draft)]);
+  definir(quem, id, { tipo: "personagem", draft }, { v, onde });
+type Extra = { v?: number; onde?: string; op?: string; revisao?: number | null; confirmacao?: string | null };
+const definir = async (quem: string | null, id: string, nova: unknown, x: Extra = {}) =>
+  como(quem, "select public.codex_npc_sheet_set($1,$2,$3,$4::jsonb,$5::uuid,$6,$7) as r",
+    [x.onde ?? campanha, id, x.v ?? (await versao(id)), nova === null ? null : JSON.stringify(nova), x.op ?? crypto.randomUUID(), x.revisao ?? null, x.confirmacao ?? null]);
+const criaturaDe = (id: string, nome = "Capanga") => ({ tipo: "criatura", base: "bandit", definicao: { id: `custom-npc-${id}`, nome, marcador: `CRIATURA-${nome}` }, secoes: [] });
+const eventos = async (id: string) => (await admin("select removida, nova, copia, copia_expira_em from private_ficha.npc_ficha_eventos where entry_id=$1 order by id", [id])) as { removida: string | null; nova: string | null; copia: Row | null; copia_expira_em: Date | null }[];
+const combate = async (id: string) => (await admin("select combat_definition_id as d from public.campaign_codex where id=$1", [id]))[0].d as string | null;
+const definicoes = async (id: string) => (await admin("select data from public.campaign_definitions where definition_id=$1", [`custom-npc-${id}`])).length;
 const projecao = async (quem: string, id: string) => ((await chamar(quem, "codex_list", campanha)).rows[0].r as Row[]).find(e => e.id === id);
 const gravarFicha = (quem: string, id: string, rev: number, nome: string) => como(quem, "select * from public.save_guided_character($1,$2,$3::jsonb)", [id, rev, JSON.stringify({ ...fichaNpc(id, nome), _protocolo: 2 })]);
 const vital = (quem: string, id: string, a: unknown) => como(quem, "select public.alterar_vitais($1,$2::jsonb,$3::uuid) as r", [id, JSON.stringify(a), crypto.randomUUID()]);
@@ -93,7 +101,7 @@ describe("ficha de personagem em NPC do Compêndio", () => {
     expect(await lerFicha(mestre, edric)).toMatchObject({ owner_id: mestre, revision: 1 });
     expect(await projecao(mestre, edric)).toMatchObject({ characterSheet: true, secret: "SEGREDO-DO-NPC" });
     expect((await admin("select count(*)::int as n from public.notes where title=$1", ["Edric Voss"]))[0].n).toBe(1);
-    expect((await darFicha(mestre, edric, "Edric Voss")).error).toMatch(/npc_ja_tem_ficha/);
+    expect((await darFicha(mestre, edric, "Edric Voss")).error).toMatch(/confirmacao_exigida/);
   });
 
   it("o jogador não vê a ficha nem fica sabendo que ela existe, mesmo com a página revelada", async () => {
@@ -124,7 +132,6 @@ describe("ficha de personagem em NPC do Compêndio", () => {
     expect((await chamar(mestre, "codex_set_combat_sheet", campanha, edric, await versao(edric), "goblin")).error).toMatch(/npc_ja_tem_ficha/);
     const outro = await novoNpc("Bruto");
     expect((await chamar(mestre, "codex_set_combat_sheet", campanha, outro, await versao(outro), "goblin")).error).toBeUndefined();
-    expect((await darFicha(mestre, outro, "Bruto")).error).toMatch(/npc_ja_tem_ficha/);
     expect((await chamar(mestre, "codex_set_combat_sheet", campanha, outro, await versao(outro), null)).error).toBeUndefined();
     expect((await darFicha(mestre, outro, "Bruto")).error).toBeUndefined();
     const local = (await chamar(mestre, "codex_save", campanha, null, 0, JSON.stringify({ category: "location", title: "Porto", description: [], fields: {}, sheet: [] }))).rows[0].r as string;
@@ -160,6 +167,87 @@ describe("ficha de personagem em NPC do Compêndio", () => {
     await admin("update public.campaign_members set role='mestre' where campaign_id=$1 and user_id=$2", [campanha, mestre]);
     await db.exec("set session_replication_role = origin");
     expect(await lerFicha(mestre, edric)).toMatchObject({ revision: rev });
+  });
+});
+
+describe("adicionar, trocar e remover a ficha (cópia privada de 30 dias)", () => {
+  const CONFIRMA = "remover-ficha";
+  let npc: string;
+  const identidade = async () => ({ nota: await nota(npc), pagina: (await admin("select image_path, visible, revealed, registered from public.campaign_codex where id=$1", [npc]))[0], vinculos: await admin("select * from public.codex_links where $1 in (source_id, target_id) order by id", [npc]) });
+
+  it("criatura própria: cópia exclusiva do NPC, editável, fora do alcance de outros NPCs e dos jogadores", async () => {
+    npc = await novoNpc("Garra");
+    await revelar(npc, ["name"]);
+    for (const quem of [ana, fora, null]) expect((await definir(quem, npc, criaturaDe(npc))).error).toBeDefined();
+    expect((await definir(mestre, npc, { ...criaturaDe(npc), definicao: { id: "goblin", nome: "x" } })).error).toMatch(/dados_invalidos/);
+    expect((await definir(mestre, npc, { tipo: "modelo" })).error).toMatch(/dados_invalidos/);
+    expect((await definir(mestre, npc, null)).error).toMatch(/sem_ficha/);
+    expect((await definir(mestre, npc, criaturaDe(npc))).error).toBeUndefined();
+    expect(await combate(npc)).toBe(`custom-npc-${npc}`);
+    expect(await definicoes(npc)).toBe(1);
+    expect(await projecao(mestre, npc)).toMatchObject({ combatDefinitionId: `custom-npc-${npc}` });
+    expect(JSON.stringify([await projecao(ana, npc), (await chamar(ana, "codex_definitions_for", campanha)).rows[0].r])).not.toMatch(/custom-npc|CRIATURA-/);
+    const outroNpc = await novoNpc("Outro");
+    expect((await chamar(mestre, "codex_set_combat_sheet", campanha, outroNpc, await versao(outroNpc), `custom-npc-${npc}`)).error).toMatch(/definicao_inexistente/);
+    // o caminho antigo não descarta uma ficha própria sem cópia
+    expect((await chamar(mestre, "codex_set_combat_sheet", campanha, npc, await versao(npc), null)).error).toMatch(/ficha_propria_exige_substituicao/);
+    expect((await chamar(mestre, "codex_remove", campanha, npc, await versao(npc))).error).toMatch(/npc_com_ficha/);
+  });
+
+  it("substituir criatura por personagem guarda a cópia e não toca na identidade", async () => {
+    const antes = await identidade();
+    expect((await darFicha(mestre, npc, "Garra")).error).toMatch(/confirmacao_exigida/);
+    expect((await definir(mestre, npc, { tipo: "personagem", draft: fichaNpc(npc, "Garra") }, { confirmacao: CONFIRMA })).error).toBeUndefined();
+    expect(await identidade()).toEqual(antes);
+    expect(await combate(npc)).toBeNull();
+    expect(await definicoes(npc)).toBe(0);
+    expect(await lerFicha(mestre, npc)).toMatchObject({ revision: 1 });
+    const ultimo = (await eventos(npc)).at(-1)!;
+    expect(ultimo).toMatchObject({ removida: "criatura", nova: "personagem" });
+    expect(JSON.stringify(ultimo.copia)).toContain("CRIATURA-Capanga");
+    const dias = (new Date(ultimo.copia_expira_em!).getTime() - Date.now()) / 86400000;
+    expect(dias).toBeGreaterThan(29.9); expect(dias).toBeLessThanOrEqual(30);
+  });
+
+  it("remover a ficha de personagem exige confirmação e revisão atual, é idempotente e falha inteira", async () => {
+    expect((await definir(mestre, npc, null)).error).toMatch(/confirmacao_exigida/);
+    expect((await definir(mestre, npc, null, { confirmacao: CONFIRMA, revisao: 99 })).error).toMatch(/conflito_de_revisao/);
+    // substituição que falha não pode perder a ficha atual
+    expect((await definir(mestre, npc, { ...criaturaDe(npc), secoes: { invalidas: true } }, { confirmacao: CONFIRMA, revisao: 1 })).error).toBeDefined();
+    expect(await lerFicha(mestre, npc)).toBeDefined();
+    const antes = await identidade(), op = crypto.randomUUID(), v = await versao(npc);
+    expect((await definir(mestre, npc, null, { confirmacao: CONFIRMA, revisao: 1, op })).error).toBeUndefined();
+    expect((await definir(mestre, npc, null, { confirmacao: CONFIRMA, revisao: 1, op, v })).error).toBeUndefined();
+    expect((await eventos(npc)).filter(e => e.removida === "personagem")).toHaveLength(1);
+    expect(await versao(npc)).toBe(v + 1);
+    expect(await identidade()).toEqual(antes);
+    expect(await lerFicha(mestre, npc)).toBeUndefined();
+    expect(await projecao(mestre, npc)).not.toHaveProperty("characterSheet");
+    expect(JSON.stringify((await eventos(npc)).at(-1)!.copia)).toContain("Alcunha de Garra");
+  });
+
+  it("a cópia fica fora da API e é apagada depois do prazo; o histórico permanece", async () => {
+    for (const quem of [mestre, ana, null]) expect((await como(quem, "select * from private_ficha.npc_ficha_eventos")).error).toMatch(/permission denied/);
+    expect((await como(mestre, "select private_ficha.purgar_copias()")).error).toMatch(/permission denied/);
+    const total = (await eventos(npc)).length;
+    await admin("select private_ficha.purgar_copias()");
+    expect((await eventos(npc)).some(e => e.copia)).toBe(true);
+    await admin("update private_ficha.npc_ficha_eventos set copia_expira_em = now() - interval '1 minute' where copia is not null");
+    await admin("select private_ficha.purgar_copias()");
+    const depois = await eventos(npc);
+    expect(depois).toHaveLength(total);
+    expect(depois.some(e => e.copia)).toBe(false);
+    expect((await admin("select count(*)::int as n from private_ficha.npc_ficha_eventos x where x::text like '%CRIATURA-%' or x::text like '%Alcunha de Garra%'"))[0].n).toBe(0);
+    expect(await nota(npc)).toMatchObject({ title: "Garra", deleted_at: null });
+    // sem ficha, a página volta a poder ser removida
+    expect((await chamar(mestre, "codex_remove", campanha, npc, await versao(npc))).error).toBeUndefined();
+  });
+
+  it("trocar a referência compartilhada antiga não copia o catálogo", async () => {
+    const velho = await novoNpc("Velho");
+    expect((await chamar(mestre, "codex_set_combat_sheet", campanha, velho, await versao(velho), "goblin")).error).toBeUndefined();
+    expect((await definir(mestre, velho, criaturaDe(velho))).error).toBeUndefined();
+    expect((await eventos(velho)).at(-1)).toMatchObject({ removida: null, nova: "criatura", copia: null });
   });
 });
 

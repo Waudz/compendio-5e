@@ -99,31 +99,109 @@ begin
   return new;
 end $$;
 
--- Única porta de criação: o mestre dá uma ficha de personagem a um NPC sem ficha. A criação comum (create_guided_character) continua
--- criando aventureiros; a política de INSERT continua exigindo nota de personagem.
-create function public.codex_npc_sheet_create(p_campaign uuid, p_entry uuid, p_version int, p_draft jsonb) returns jsonb
-language plpgsql security definer set search_path = '' as $$
-declare c public.campaign_codex; n public.notes; s public.character_sheets; eu uuid := (select auth.uid());
+-- ------------------------------------------------------------------ histórico e retenção das fichas de NPC
+-- Uma linha por operação aceita (idempotência). `copia` guarda a ficha técnica removida ou substituída: fora da API, 30 dias.
+create table private_ficha.npc_ficha_eventos (
+  id bigint generated always as identity primary key,
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  entry_id uuid not null,
+  actor_id uuid not null,
+  operation_id uuid not null,
+  removida text check (removida in ('personagem', 'criatura')),
+  nova text check (nova in ('personagem', 'criatura')),
+  titulo text not null,
+  copia jsonb,
+  copia_expira_em timestamptz check (copia is null or copia_expira_em is not null),
+  em timestamptz not null default now(),
+  unique (entry_id, operation_id)
+);
+create index npc_ficha_eventos_expira on private_ficha.npc_ficha_eventos(copia_expira_em) where copia is not null;
+revoke all on private_ficha.npc_ficha_eventos from public, anon, authenticated;
+
+-- A limpeza diária já agendada pela 0021 passa a apagar também as cópias vencidas das fichas de NPC.
+create or replace function private_ficha.purgar_copias() returns integer language plpgsql security definer set search_path = '' as $$
+declare n integer; m integer;
 begin
-  if eu is null or not public.is_master(p_campaign) then raise exception 'sem_permissao' using errcode = '42501'; end if;
+  update private_ficha.ciclo_eventos set copia = null, copia_expira_em = null where copia is not null and copia_expira_em <= now();
+  get diagnostics n = row_count;
+  update private_ficha.npc_ficha_eventos set copia = null, copia_expira_em = null where copia is not null and copia_expira_em <= now();
+  get diagnostics m = row_count;
+  return n + m;
+end $$;
+
+-- Porta única da ficha técnica de um NPC: adicionar, substituir ou remover (p_nova nula), numa transação só.
+-- p_nova: {"tipo":"personagem","draft":{...}} ou {"tipo":"criatura","definicao":{...},"base":"goblin","secoes":[...]}.
+-- A identidade narrativa (título, texto, segredos, retrato, vínculos, divulgação) não é tocada.
+create function public.codex_npc_sheet_set(p_campaign uuid, p_entry uuid, p_version int, p_nova jsonb, p_operation uuid,
+                                           p_revision int default null, p_confirm text default null) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  c public.campaign_codex; n public.notes; s public.character_sheets; d public.campaign_definitions; eu uuid := (select auth.uid());
+  tipo text := p_nova ->> 'tipo'; propria text := 'custom-npc-' || p_entry::text;
+  removida text; copia jsonb; vistos jsonb; refs jsonb; feita record; revisao int; quando timestamptz;
+begin
+  if eu is null or p_operation is null or not public.is_master(p_campaign) then raise exception 'sem_permissao' using errcode = '42501'; end if;
   select * into c from public.campaign_codex x where x.id = p_entry and x.campaign_id = p_campaign and x.deleted_at is null for update;
-  if c.id is null or c.version is distinct from p_version then raise exception 'conflito_de_versao'; end if;
+  if c.id is null then raise exception 'conflito_de_versao'; end if;
+  select e.actor_id, e.nova into feita from private_ficha.npc_ficha_eventos e where e.entry_id = p_entry and e.operation_id = p_operation;
+  if found then
+    if feita.actor_id <> eu or feita.nova is distinct from tipo then raise exception 'operacao_invalida' using errcode = '23514'; end if;
+    select x.revision, x.updated_at into revisao, quando from public.character_sheets x where x.character_id = p_entry;
+    return jsonb_strip_nulls(jsonb_build_object('revision', revisao, 'updatedAt', quando));
+  end if;
+  if c.version is distinct from p_version then raise exception 'conflito_de_versao'; end if;
   select * into n from public.notes x where x.id = p_entry for update;
   if c.category <> 'npc' or n.kind <> 'npc' or n.deleted_at is not null or n.owner_id <> eu then
     raise exception 'npc_indisponivel' using errcode = 'P0002';
   end if;
-  if c.combat_definition_id is not null or exists (select 1 from public.character_sheets x where x.character_id = p_entry) then
-    raise exception 'npc_ja_tem_ficha' using errcode = '23514';
-  end if;
-  if p_draft is null or jsonb_typeof(p_draft) <> 'object' or p_draft ->> 'id' is distinct from p_entry::text then
+  if p_nova is not null and (jsonb_typeof(p_nova) <> 'object' or tipo is null or tipo not in ('personagem', 'criatura')) then
     raise exception 'dados_invalidos' using errcode = '23514';
   end if;
-  insert into public.character_sheets(character_id, campaign_id, owner_id, draft) values (p_entry, p_campaign, eu, p_draft) returning * into s;
+  if tipo = 'personagem' and (jsonb_typeof(p_nova -> 'draft') is distinct from 'object' or p_nova #>> '{draft,id}' is distinct from p_entry::text) then
+    raise exception 'dados_invalidos' using errcode = '23514';
+  end if;
+  if tipo = 'criatura' and (jsonb_typeof(p_nova -> 'definicao') is distinct from 'object' or p_nova #>> '{definicao,id}' is distinct from propria
+       or coalesce(btrim(p_nova #>> '{definicao,nome}'), '') = '' or octet_length((p_nova -> 'definicao')::text) > 140000) then
+    raise exception 'dados_invalidos' using errcode = '23514';
+  end if;
+  perform private_ficha.purgar_copias();
+  select * into s from public.character_sheets x where x.character_id = p_entry for update;
+  if s.character_id is not null then removida := 'personagem';
+  elsif c.combat_definition_id = propria then removida := 'criatura';
+  end if;
+  if p_nova is null and removida is null and c.combat_definition_id is null then raise exception 'sem_ficha' using errcode = 'P0002'; end if;
+  -- perder uma ficha própria exige intenção declarada; a de personagem, também a revisão que o mestre está vendo
+  if removida is not null and p_confirm is distinct from 'remover-ficha' then raise exception 'confirmacao_exigida' using errcode = '23514'; end if;
+  if removida = 'personagem' and p_revision is distinct from s.revision then raise exception 'conflito_de_revisao' using errcode = '40001'; end if;
+
+  if removida = 'personagem' then
+    select coalesce(jsonb_agg(v.item_id), '[]'::jsonb) into vistos from private_ficha.itens_vistos v where v.character_id = p_entry;
+    refs := private_ficha.desligar_referencias(p_campaign, p_entry);
+    copia := jsonb_build_object('ficha', to_jsonb(s), 'itens_vistos', vistos, 'referencias', refs);
+    delete from public.character_sheets x where x.character_id = p_entry;
+  end if;
+  update public.campaign_codex set combat_definition_id = null where id = p_entry;
+  select * into d from public.campaign_definitions x where x.campaign_id = p_campaign and x.kind = 'monster' and x.definition_id = propria for update;
+  if d.definition_id is not null then
+    if removida = 'criatura' then copia := jsonb_build_object('definicao', to_jsonb(d)); end if;
+    delete from public.campaign_definitions x where x.campaign_id = p_campaign and x.kind = 'monster' and x.definition_id = propria;
+  end if;
+
+  if tipo = 'personagem' then
+    insert into public.character_sheets(character_id, campaign_id, owner_id, draft) values (p_entry, p_campaign, eu, p_nova -> 'draft')
+      returning character_sheets.revision, character_sheets.updated_at into revisao, quando;
+  elsif tipo = 'criatura' then
+    perform public.codex_definition_save(p_campaign, 'monster', propria, 0, nullif(p_nova ->> 'base', ''),
+      jsonb_build_object('definition', p_nova -> 'definicao'), coalesce(p_nova -> 'secoes', '[]'::jsonb), null);
+    update public.campaign_codex set combat_definition_id = propria where id = p_entry;
+  end if;
   update public.campaign_codex set version = version + 1 where id = p_entry;
-  return jsonb_build_object('revision', s.revision, 'updatedAt', s.updated_at);
+  insert into private_ficha.npc_ficha_eventos(campaign_id, entry_id, actor_id, operation_id, removida, nova, titulo, copia, copia_expira_em)
+  values (p_campaign, p_entry, eu, p_operation, removida, tipo, n.title, copia, case when copia is not null then now() + interval '30 days' end);
+  return jsonb_strip_nulls(jsonb_build_object('revision', revisao, 'updatedAt', quando));
 end $$;
-revoke all on function public.codex_npc_sheet_create(uuid, uuid, int, jsonb) from public, anon;
-grant execute on function public.codex_npc_sheet_create(uuid, uuid, int, jsonb) to authenticated;
+revoke all on function public.codex_npc_sheet_set(uuid, uuid, int, jsonb, uuid, int, text) from public, anon;
+grant execute on function public.codex_npc_sheet_set(uuid, uuid, int, jsonb, uuid, int, text) to authenticated;
 
 create or replace function public.codex_set_combat_sheet(p_campaign uuid,p_entry uuid,p_version int,p_definition_id text) returns void
 language plpgsql security definer set search_path='' as $$
@@ -137,6 +215,12 @@ begin
  if p_definition_id is not null and exists(select 1 from public.character_sheets s where s.character_id=p_entry) then
   raise exception 'npc_ja_tem_ficha' using errcode='23514';
  end if;
+ if c.combat_definition_id like 'custom-npc-%' and c.combat_definition_id is distinct from p_definition_id then
+  raise exception 'ficha_propria_exige_substituicao' using errcode='23514';
+ end if;
+ if p_definition_id like 'custom-npc-%' and p_definition_id is distinct from 'custom-npc-'||p_entry::text then
+  raise exception 'definicao_inexistente' using errcode='P0002';
+ end if;
  update public.campaign_codex set combat_definition_id=p_definition_id,version=version+1 where id=p_entry;
 end $$;
 
@@ -145,7 +229,8 @@ create or replace function public.codex_remove(p_campaign uuid,p_entry uuid,p_ve
 language plpgsql security definer set search_path='' as $$
 begin
  if not public.is_master(p_campaign) then raise exception 'sem_permissao' using errcode='42501'; end if;
- if exists(select 1 from public.character_sheets s where s.character_id=p_entry and s.campaign_id=p_campaign) then
+ if exists(select 1 from public.character_sheets s where s.character_id=p_entry and s.campaign_id=p_campaign)
+    or exists(select 1 from public.campaign_codex c where c.id=p_entry and c.campaign_id=p_campaign and c.combat_definition_id like 'custom-npc-%') then
   raise exception 'npc_com_ficha' using errcode='23514';
  end if;
  update public.campaign_codex set deleted_at=now(),version=version+1 where id=p_entry and campaign_id=p_campaign and version=p_version and deleted_at is null;
