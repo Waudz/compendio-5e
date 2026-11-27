@@ -104,7 +104,8 @@ create function public.codex_node_open(p_campaign uuid,p_node uuid,p_player bool
 language sql stable security definer set search_path='' as $$
  select exists(select 1 from public.notes n left join public.campaign_codex c on c.id=n.id
  where n.id=p_node and n.campaign_id=p_campaign and n.deleted_at is null and (
-  (n.kind='character' and c.id is null and (n.visibility='campaign' or (not p_player and (public.is_master(p_campaign) or n.owner_id=auth.uid()))))
+  -- ficha pública da campanha, ou a própria; o mestre nunca alcança a nota privada de outro usuário
+  (n.kind='character' and c.id is null and (n.visibility='campaign' or (n.owner_id=auth.uid() and (not p_player or not public.is_master(p_campaign)))))
   or (c.id is not null and c.deleted_at is null and (not p_player or c.visible))))
 $$;
 revoke all on function public.codex_node_open(uuid,uuid,boolean) from public,anon,authenticated;
@@ -152,9 +153,10 @@ begin
    'secret',n.meta->>'secret','visible',c.visible,'revealed',to_jsonb(c.revealed),'registered',c.registered));
  end if;
  full_id:=c.definition_id is not null and public.codex_identified(c.revealed,sheet);
+ -- sem número de versão: ele contaria edições secretas
  return jsonb_strip_nulls(jsonb_build_object('id',c.id,
   'category',case when c.category='item' and not full_id then 'discovery' else c.category end,
-  'systemId',c.system_id,'version',c.version,'visible',true,
+  'systemId',c.system_id,'visible',true,
   'title',public.codex_public_title(c.id),
   'description',case when 'description'=any(c.revealed) then n.content end,
   'fields',(select jsonb_object_agg(f.key,f.value) from jsonb_each(case when jsonb_typeof(n.meta->'codex')='object' then n.meta->'codex' else '{}'::jsonb end) f where f.key=any(c.revealed)),

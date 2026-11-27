@@ -98,7 +98,7 @@ describe("Compêndio: conhecimento granular e isolamento", () => {
     const id = await save(master, null, 0, payload());
     expect(await seen(id)).toBeUndefined();
     await reveal(id, []);
-    expect(await seen(id)).toEqual({ id, category: "monster", systemId: "dnd5e-2014", version: 2, visible: true, title: "Criatura desconhecida" });
+    expect(await seen(id)).toEqual({ id, category: "monster", systemId: "dnd5e-2014", visible: true, title: "Criatura desconhecida" });
     await reveal(id, ["history"], { visible: false });
     expect(await seen(id)).toBeUndefined();
   });
@@ -320,6 +320,101 @@ describe("Compêndio: conhecimento granular e isolamento", () => {
     expect((await remove(master, "custom-abc", 1)).error).toMatch(/definicao_em_uso/);
     expect((await as(master, "select public.codex_definition_save($1,'item','custom-z',0,null,$2::jsonb,'[]'::jsonb)", [cid, def("outro-id", "Z")])).error).toMatch(/check constraint/);
   });
+  it("inventário: entrega do mestre, item não identificado sem vazamento em nenhuma resposta e identificação", async () => {
+    const uid4 = uid(4);
+    await db.query("insert into auth.users(id,email) values($1,'second@example.invalid')", [uid4]);
+    await call(uid4, "join_campaign", (await call(master, "create_invite", cid, 10, 7)).rows[0].r);
+    const hidden = { mode: "hidden" };
+    const meta = { identidadePublica: { settings: { imageUrl: null, title: "", name: { mode: "custom", customValue: "Heroína" }, surname: hidden, race: hidden, characterClass: hidden, level: hidden, description: "" },
+      card: { imageUrl: null, title: "", name: "x", surname: null, race: null, characterClass: null, level: null, description: "" } } };
+    const makeSheet = async (owner: string) => {
+      const r = await as(owner, "select * from public.create_guided_character($1,'x',$2::jsonb,false,$3::jsonb)", [cid, JSON.stringify(meta), JSON.stringify({ id: "provisorio", name: "PJ", level: 3, inventory: [], currentHp: 1 })]);
+      expect(r.error).toBeUndefined();
+      return r.rows[0].character_id as string;
+    };
+    const mine = await makeSheet(player), theirs = await makeSheet(uid4);
+    const def = (id: string, nome: string, extra: Row = {}) => JSON.stringify({ definition: { id, nome, ...extra }, descricao: "EFEITO-SECRETO", segredoExtra: "NAO-SAIR" });
+    const saveDef = (id: string, nome: string, extra: Row = {}) => as(master, "select public.codex_definition_save($1,'item',$2,0,null,$3::jsonb,'[]'::jsonb)", [cid, id, def(id, nome, extra)]);
+    expect((await saveDef("custom-chave", "CHAVE-VERDADEIRA")).error).toBeUndefined();
+    expect((await saveDef("custom-pocao", "Tônico da mesa", { categoria: "pocao", cura: "2d4+2" })).error).toBeUndefined();
+    const defs = async (user: string) => (await call(user, "codex_definitions_for", cid)).rows[0].r as Row[];
+    const ids = async (user: string) => (await defs(user)).map((d) => d.definitionId);
+    expect(await ids(player)).not.toContain("custom-chave");
+    expect((await call(other, "codex_definitions_for", cid)).error).toMatch(/sem_permissao/);
+    const grant = (user: string, character: string, id: string, mask: Row | null, op = crypto.randomUUID(), campaign = cid) =>
+      as(user, "select public.codex_grant_item($1,$2,$3,2,$4::jsonb,$5)", [campaign, character, id, mask ? JSON.stringify(mask) : null, op]);
+    expect((await grant(player, mine, "custom-chave", null)).error).toMatch(/sem_permissao/);
+    expect((await grant(other, mine, "custom-chave", null, undefined, otherCampaign)).error).toMatch(/destino_invalido|definicao_inexistente/);
+    expect((await grant(master, mine, "custom-nao-existe", null)).error).toMatch(/definicao_inexistente/);
+    const op = crypto.randomUUID();
+    expect((await grant(master, mine, "custom-chave", { nome: "Chave estranha", descricao: "Fria ao toque" }, op)).error).toBeUndefined();
+    expect((await grant(master, mine, "custom-chave", { nome: "Chave estranha" }, op)).error).toBeUndefined();
+    const sheetOf = async (user: string, id: string) => (await as(user, "select * from public.character_sheets where character_id=$1", [id])).rows[0] as Row & { draft: { inventory: { id: string; itemId: string; quantity: number }[] }; revision: number };
+    let sheet = await sheetOf(player, mine);
+    expect(sheet.draft.inventory).toHaveLength(1);
+    const token = sheet.draft.inventory[0].itemId;
+    expect(token).toMatch(/^unid-[0-9a-f]{32}$/);
+    const visibleToPlayer = JSON.stringify([sheet, await defs(player), (await call(player, "codex_list", cid)).rows]);
+    expect(visibleToPlayer).not.toMatch(/custom-chave|CHAVE-VERDADEIRA|EFEITO-SECRETO|NAO-SAIR|identifiesAs/);
+    expect(visibleToPlayer).toContain("Chave estranha");
+    expect((await defs(master)).find((d) => d.definitionId === token)!.identifiesAs).toBe("custom-chave");
+    expect(await ids(uid4)).not.toContain(token);
+    for (const table of ["mascaras", "itens_vistos"]) expect((await as(player, "select * from private_ficha." + table)).error).toMatch(/permission denied/);
+    // o jogador não forja o código nem a identidade verdadeira na própria ficha
+    const forge = async (itemId: string) => (await as(player, "select * from public.save_guided_character($1,$2,$3::jsonb)", [mine, sheet.revision, JSON.stringify({ ...sheet.draft, _protocolo: 2, inventory: [...sheet.draft.inventory, { id: "z", itemId, quantity: 1 }] })])).error;
+    expect(await forge("custom-chave")).toMatch(/item_nao_autorizado/);
+    expect(await forge("unid-" + "0".repeat(32))).toMatch(/item_nao_autorizado/);
+    expect((await as(player, "select public.usar_consumivel($1,$2,0,10,$3)", [mine, sheet.draft.inventory[0].id, crypto.randomUUID()])).error).toMatch(/operacao_invalida/);
+    // posse só aparece quando revelada, inclusive para item ainda sem identificação
+    const entry = await save(master, null, 0, { category: "item", systemId: "dnd5e-2014", definitionId: "custom-chave", title: "CHAVE-VERDADEIRA", fields: { nickname: "Chave estranha" } });
+    await reveal(entry, ["nickname"]);
+    expect((await call(player, "codex_holders", cid, entry)).rows[0].r).toEqual([]);
+    expect((await call(master, "codex_holders", cid, entry)).rows[0].r).toEqual([{ id: mine, title: "Heroína" }]);
+    expect(JSON.stringify((await call(player, "codex_list", cid)).rows)).not.toMatch(/custom-chave|CHAVE-VERDADEIRA/);
+    // transferência leva o código; quem recebe vê só a aparência
+    expect((await as(player, "select public.transferir_item($1,$2,$3,1,$4)", [mine, theirs, sheet.draft.inventory[0].id, crypto.randomUUID()])).error).toBeUndefined();
+    expect(await ids(uid4)).toContain(token);
+    expect(JSON.stringify([await sheetOf(uid4, theirs), await defs(uid4)])).not.toMatch(/custom-chave|CHAVE-VERDADEIRA/);
+    for (const user of [player, other]) expect((await call(user, "codex_identify_item", cid, token)).error).toMatch(/sem_permissao/);
+    expect((await call(master, "codex_identify_item", cid, token)).error).toBeUndefined();
+    expect((await call(master, "codex_identify_item", cid, token)).error).toBeUndefined();
+    for (const [user, id] of [[player, mine], [uid4, theirs]] as const) {
+      sheet = await sheetOf(user, id);
+      expect(sheet.draft.inventory.map((i) => i.itemId)).toEqual(["custom-chave"]);
+      expect(JSON.stringify(sheet.draft)).not.toContain(token);
+      expect(await ids(user)).toContain("custom-chave");
+      expect(await ids(user)).not.toContain(token);
+    }
+    expect(JSON.stringify(await defs(player))).not.toContain("NAO-SAIR");
+    // consumo de item da campanha respeita a fórmula da definição; o nome continua disponível depois de acabar
+    expect((await grant(master, mine, "custom-pocao", null)).error).toBeUndefined();
+    sheet = await sheetOf(player, mine);
+    const potion = sheet.draft.inventory.find((i) => i.itemId === "custom-pocao")!;
+    const use = (cura: number) => as(player, "select public.usar_consumivel($1,$2,$3,30,$4)", [mine, potion.id, cura, crypto.randomUUID()]);
+    expect((await use(11)).error).toMatch(/operacao_invalida/);
+    expect((await use(3)).error).toMatch(/operacao_invalida/);
+    expect((await use(7)).error).toBeUndefined();
+    expect((await use(7)).error).toBeUndefined();
+    expect((await sheetOf(player, mine)).draft.inventory.some((i) => i.itemId === "custom-pocao")).toBe(false);
+    expect(await ids(player)).toContain("custom-pocao");
+    expect(await ids(uid4)).not.toContain("custom-pocao");
+  });
+  it("item personalizado chega a quem não o possui somente com identificação completa; vínculo não expõe ficha privada alheia", async () => {
+    expect((await as(master, "select public.codex_definition_save($1,'item','custom-anel',0,null,$2::jsonb,$3::jsonb)", [cid, JSON.stringify({ definition: { id: "custom-anel", nome: "Anel" } }), JSON.stringify(SHEET)])).error).toBeUndefined();
+    const entry = await save(master, null, 0, { category: "item", systemId: "dnd5e-2014", definitionId: "custom-anel", title: "Anel", sheet: SHEET });
+    const has = async () => ((await call(player, "codex_definitions_for", cid)).rows[0].r as Row[]).some((d) => d.definitionId === "custom-anel");
+    await reveal(entry, ["name", "sheet:ac"]);
+    expect(await has()).toBe(false);
+    await reveal(entry, ["sheet"]);
+    expect(await has()).toBe(false);
+    await reveal(entry, ["name", "sheet"]);
+    expect(await has()).toBe(true);
+    await reveal(entry, ["name", "sheet"], { visible: false });
+    expect(await has()).toBe(false);
+    const note = await db.query<Row>("insert into public.notes(campaign_id,owner_id,kind,title,visibility) values($1,$2,'character','FICHA-PRIVADA','private') returning id", [cid, player]);
+    expect(note.rows).toHaveLength(1);
+    expect((await link(entry, note.rows[0].id as string)).error).toMatch(/sem_permissao/);
+  });
   it("ex-mestre perde acesso até ao notes de que continua dono", async () => {
     const id = await save(master, null, 0, payload());
     await db.exec("alter table public.campaign_members disable trigger user");
@@ -389,6 +484,8 @@ describe("0017 sobre dados existentes", () => {
     db = fresh;
     try {
       for (const f of readdirSync(join(__dirname, "migrations")).filter((x) => x.endsWith(".sql")).sort()) await db.exec(readFileSync(join(__dirname, "migrations", f), "utf8"));
+      await db.exec(readFileSync(join(__dirname, "rollback", "0019_compendio_inventario_campanha_down.sql"), "utf8"));
+      expect((await db.query<Row>("select public.codex_capabilities() r")).rows).toEqual([{ r: 18 }]);
       await db.exec(readFileSync(join(__dirname, "rollback", "0018_compendio_definicoes_campanha_down.sql"), "utf8"));
       expect((await db.query<Row>("select public.codex_capabilities() r")).rows).toEqual([{ r: 17 }]);
       expect((await db.query<Row>("select count(*)::int n from private_codex_archive.definition_snapshots")).rows).toEqual([{ n: 1 }]);

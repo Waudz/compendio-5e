@@ -229,7 +229,7 @@ describe("migração reversível e auditoria", () => {
     const t = new PGlite(); await t.exec(stub);
     const ms = migrations(); for (const m of ms) await t.exec(m);
     const down = readFileSync(join(__dirname, "rollback", "0004_notas_down.sql"), "utf8");
-    for (const f of ["0018_compendio_definicoes_campanha_down.sql", "0017_compendio_conhecimento_granular_down.sql", "0016_compendio_paginas_vinculos_down.sql", "0015_compendio_conhecimento_down.sql", "0014_vitais_inventario_atomicos_down.sql", "0011_character_combat_status_down.sql", "0010_campaign_encounters_down.sql", "0009_campaign_combats_down.sql"]) await t.exec(readFileSync(join(__dirname, "rollback", f), "utf8"));   // as migrações mais novas se revertem primeiro
+    for (const f of ["0019_compendio_inventario_campanha_down.sql", "0018_compendio_definicoes_campanha_down.sql", "0017_compendio_conhecimento_granular_down.sql", "0016_compendio_paginas_vinculos_down.sql", "0015_compendio_conhecimento_down.sql", "0014_vitais_inventario_atomicos_down.sql", "0011_character_combat_status_down.sql", "0010_campaign_encounters_down.sql", "0009_campaign_combats_down.sql"]) await t.exec(readFileSync(join(__dirname, "rollback", f), "utf8"));   // as migrações mais novas se revertem primeiro
     await t.exec(readFileSync(join(__dirname, "rollback", "0008_character_sheets_persistencia_down.sql"), "utf8"));   // 0008 e 0007 (fichas) dependem de notes.meta (0006)
     await t.exec(readFileSync(join(__dirname, "rollback", "0007_character_sheets_foundation_down.sql"), "utf8"));
     await t.exec(readFileSync(join(__dirname, "rollback", "0006_registros_capa_personagens_down.sql"), "utf8"));   // a 0006 depende da 0005: reverte-se primeiro
