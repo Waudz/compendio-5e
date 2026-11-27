@@ -859,3 +859,24 @@ Mesma branch `feat/compendio-conhecimento-granular`. **Sem merge/publicação; 0
 **Pendente:** anexos de mapas e documentos (etapa própria); sintonização e cargas (já pendentes na ficha); item não identificado não pode ser usado nem equipado com efeito até ser identificado. A demonstração não simula entrega/identificação (coberto por PGlite, teste de interface e script da stack real).
 
 **Validação local sobre `9057325` (Windows, demonstração e PGlite):** tipos do app e E2E; Vitest 1771/1771 em 147 arquivos; `local-only` 4/4; build oficial e `check-build-oficial`; Playwright Base 148 + 20 condicionais, Quality 88 + 32, Creator 140 + 4, zero falhas. `run-local.mjs` ganhou a verificação da 0019 com Auth/REST/JWT reais: confirmar no workflow Alpha Supabase isolado do último commit do PR. Não verificado: Supabase hospedado, conversão sobre cópia de produção, celular físico, envio de imagem pela interface.
+
+## RETOMAR AQUI — Cartas do Compêndio e bestiário narrativo (27/11/2026, branch `feat/compendio-cartas-bestiario`)
+
+**0017, 0018 e 0019 já foram aplicadas em produção** e o PR #163 integrado/publicado (informado pelo responsável). As seções anteriores que dizem o contrário são históricas. Base desta branch: `main` em `9ce404a`.
+
+**Estado:** em revisão; sem merge nem publicação. **0020 proposta, não aplicada**; aplicar junto com a publicação (o cliente exige capacidade 20). Detalhes em `COMPENDIO-CONHECIMENTO.md`; decisões em DEC-034. Capturas em `docs/evidencias/cartas-20261127/` (demonstração).
+
+**Concluído:** cartas de consulta (desktop) e páginas (celular) para todas as categorias; bestiário narrativo com bloqueio no servidor; conhecimento em três modos; citações `@`; campos vinculáveis; carta de identidade compartilhada com o Início; abas Identidade, ficha técnica de criatura e ficha de NPC; atalho "Ver ficha" no Bestiário; ficha do monstro no outro grupo pela Iniciativa.
+
+**Validação local (Windows, Chrome instalado sem vídeo, demonstração e PGlite):** tipos do app e E2E; Vitest 1785/1785 em 147 arquivos; `local-only` 4/4; build oficial e `check-build-oficial`; Playwright Base 148 + 20 condicionais, Quality 88 + 32, Creator 140 + 4, zero falhas (depois só mudou `compendio-paginas.spec.ts`, repetido: 12/12). Não verificado: Supabase hospedado, `run-local.mjs` com Auth/REST/JWT reais (ganhou a verificação da 0020; roda no workflow Alpha Supabase isolado do PR), conversão sobre cópia de produção, celular físico, envio de imagem pela interface, gesto lateral na ficha de criatura em navegador (usa o mesmo código da ficha de personagem).
+
+**Testar localmente:** `npm ci`, `npm run dev`; mestre em `http://localhost:5173/compendio-5e/?demo=mestre`, jogador em outra aba com `?demo=jogador` (mesmos dados no navegador; cada visita restaura as abas daquele papel). Para fichas de personagem, acrescentar `&fichas=1&nuvem=1`.
+1. Mestre: Compêndio → Personagens → Criar NPC (com `@` na descrição) → Conhecimento → revelar alguns campos → Cancelar (nada muda) → repetir e Salvar → Prévia.
+2. Jogador: abrir o mesmo NPC e comparar com a prévia; conferir o sino.
+3. Mestre: Bestiário → clique abre a carta narrativa; ícone "Ver ficha" abre a ficha; na aba Bestiário, registrar a criatura e revelar o nível 4. Jogador: nenhum número aparece.
+4. Mestre: NPC → ⋯ → Vincular ficha de combate → Ver ficha.
+5. Mestre: Iniciativa → adicionar o mesmo monstro duas vezes → clicar nos dois nomes (uma só ficha, no outro grupo).
+6. Com `&fichas=1&nuvem=1`: criar personagem como jogador, aba Identidade; clicar nele no Início (próprio abre a ficha; mestre vê a carta com "Ver ficha").
+
+**Pendências e limites:** "Abrir no Compêndio" a partir do inventário e os nomes em Encontros continuam navegando na aba (sem carta); algumas características de raças/classes seguem no idioma original (anterior a esta etapa); NPC com ficha não tem aba Inventário; nome secreto digitado fora de uma citação `@` não é detectado; registros de criatura antigos ficam com os novos campos narrativos vazios e ocultos até o mestre preencher; anexos de mapas e documentos continuam futuros.
+

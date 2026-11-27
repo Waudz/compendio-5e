@@ -22,7 +22,16 @@ test('largura do painel: duas áreas largas, abas em dois grupos e no celular',a
  await expect(root).toHaveAttribute('data-wide',String(width>=760));
  if(width>=760){const a=await page.getByRole('region',{name:'Campanha',exact:true}).boundingBox(),b=await page.getByRole('region',{name:'Regras',exact:true}).boundingBox();expect(a!.x).toBeLessThan(b!.x);expect(Math.abs(a!.y-b!.y)).toBeLessThan(2);}
  else {await page.getByRole('button',{name:'Regras',exact:true}).click();await expect(portal(page,'Magias')).toBeVisible();}
- if((page.viewportSize()?.width??0)>700){await page.locator('.flexlayout__tab_button_content').filter({hasText:/^Compêndio$/}).first().click({button:'right'});await page.getByRole('menuitem',{name:'Abrir em nova coluna à direita',exact:true}).click();await expect(page.locator('.flexlayout__tabset')).toHaveCount(2);await expect(root).toHaveAttribute('data-wide','false');await expect(page.getByRole('group',{name:'Áreas do Compêndio'})).toBeVisible();}
+ if((page.viewportSize()?.width??0)>700){await page.locator('.flexlayout__tab_button_content').filter({hasText:/^Compêndio$/}).first().click({button:'right'});await page.getByRole('menuitem',{name:'Abrir em nova coluna à direita',exact:true}).click();await expect(page.locator('.flexlayout__tabset')).toHaveCount(2);await expect(root).toHaveAttribute('data-wide','false');await expect(page.getByRole('group',{name:'Áreas do Compêndio'})).toBeVisible();
+  // com dois grupos, a carta fica centralizada e contida no grupo em que foi aberta; o outro continua utilizável
+  const grupo=page.locator('.carta-host').filter({has:page.getByRole('searchbox',{name:'Pesquisar em todo o Compêndio'})}).last();
+  await grupo.getByRole('searchbox',{name:'Pesquisar em todo o Compêndio'}).fill('rapieira');await grupo.locator('.cd-result').filter({hasText:'Rapieira'}).first().click();
+  const carta=grupo.getByRole('dialog',{name:'Consulta do Compêndio'});await expect(carta.getByRole('heading',{name:'Rapieira',exact:true})).toBeVisible();
+  const g=(await grupo.boundingBox())!,c=(await carta.boundingBox())!;
+  expect(c.x).toBeGreaterThanOrEqual(g.x);expect(c.x+c.width).toBeLessThanOrEqual(g.x+g.width+1);expect(c.y+c.height).toBeLessThanOrEqual(g.y+g.height+1);
+  expect(Math.abs((c.x-g.x)-(g.x+g.width-c.x-c.width))).toBeLessThan(3);expect(c.width).toBeLessThanOrEqual(622);
+  await expect(page.getByRole('dialog',{name:'Consulta do Compêndio'})).toHaveCount(1);
+  await carta.getByRole('button',{name:'Fechar consulta'}).click();await expect(carta).toBeHidden();await expect(grupo.getByRole('searchbox',{name:'Pesquisar em todo o Compêndio'})).toHaveValue('rapieira');}
  await expectNoHorizontalOverflow(page);await info.attach('home-por-painel',{body:await page.screenshot(),contentType:'image/png'});
 });
 
