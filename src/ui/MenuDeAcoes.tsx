@@ -10,6 +10,7 @@ export function MenuDeAcoes({ rotulo, acoes, titulo }: { rotulo: string; acoes: 
   const [aberto, setAberto] = useState(false);
   const menu = useRef<HTMLDivElement | null>(null), gatilho = useRef<HTMLButtonElement>(null);
   useFecharMenu(aberto, menu, gatilho, () => setAberto(false));
+  if (!acoes.length) return null;
   return <span className="menu-acoes">
     <button ref={gatilho} type="button" className="menu-acoes-gatilho" aria-label={rotulo} title={rotulo} aria-haspopup="menu" aria-expanded={aberto} onClick={() => setAberto(a => !a)}><MoreVertical size={16} aria-hidden="true"/></button>
     {aberto && <div ref={el => {

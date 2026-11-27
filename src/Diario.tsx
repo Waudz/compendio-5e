@@ -36,7 +36,6 @@ export function DiarioPanel({onOpenContent}: { onOpenContent: (s: TabSpec) => vo
     avisarRegistros(); onOpenContent({kind:"documento",ref:r.data.id,title:r.data.title});
   };
   return <div className="content diario">
-    <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>Diário</h1>{mestre && <button className="btn-primary" onClick={novo} disabled={busy}><Plus size={15} aria-hidden="true"/> Novo registro</button>}</div>
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
     {!lista && !erro && <p role="status" className="muted">Carregando o Diário…</p>}

@@ -1,3 +1,4 @@
+import {ListaCampanha} from "./compendio/ListaCampanha";
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
 import { CategoriaCompendio, MonstroPagina, NpcFichaPagina } from "./Compendio";
 import { BookOpen } from "lucide-react";
@@ -14,7 +15,8 @@ import { MagiaPagina } from "./compendio/MagiaPagina";
 import { CriadorGuiado } from "./criador/CriadorGuiado";
 import { EncontrosPanel, IniciativaPanel } from "./Iniciativa";
 import { desktopSections } from "./workspace";
-import { useCampaigns } from "./CampaignsContext";
+import {  useCampaigns } from "./CampaignsContext";
+import {useModoJogador} from "./modoJogador";
 import { type Kind, type TabSpec, defaultTitle } from "./workspace";
 
 /** Conteúdo provisório de uma aba. Os dados reais entram nas próximas etapas. */
@@ -23,6 +25,11 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   onOpen: (s: TabSpec, mode?: NavMode) => void;   // abertura administrativa/de menu (modo explícito; padrão: reutilizar a aba)
   onOpenContent: (s: TabSpec) => void;            // link interno: navega na página atual; nova aba/grupo é uma ação explícita
 }) {
+  const {ativa} = useModoJogador();
+  // A prévia representa um jogador genérico, sem ficha própria nem notas pessoais.
+  if (ativa && !['registro','identidade','categoria','regra','item','magia','campanha'].includes(kind) && !(kind === 'secao' && ['compendio','personagens','campanhas'].includes(id)))
+    return <div className="content"><h1>Visão de jogador</h1><p>Esta área é pessoal ou administrativa. Volte à visão de mestre pelo Menu para acessá-la.</p></div>;
+  if (ativa && ((kind === 'secao' && id === 'personagens') || kind === 'campanha')) return <ListaCampanha category="personagens" onBack={()=>{}} onOpenContent={onOpenContent}/>;
   if (kind === "categoria") return <CategoriaCompendio id={id} onOpenContent={onOpenContent}/>;
   if (kind === "nova") return <NovaAba onOpen={onOpenContent}/>;
   if (kind === "registro") return <RegistroCompendioPagina id={id} onOpenContent={onOpenContent}/>;
@@ -57,7 +64,8 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
 }
 
 export function Panel(props: Parameters<typeof ConteudoPanel>[0]) {
-  return <ConteudoPanel {...props}/>;
+  const {ativa}=useModoJogador();
+  return <>{ativa && <p className="previa-global-indicador" role="status">Visão de jogador · somente leitura</p>}<ConteudoPanel {...props}/></>;
 }
 
 function NovaAba({onOpen}:{onOpen:(s:TabSpec)=>void}) {

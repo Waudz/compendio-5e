@@ -197,3 +197,28 @@
 .cd-cards.enxuto.grade footer { box-sizing:border-box; min-height:48px; margin-top:auto; }
 .cd-cards.enxuto.lista > li { display:grid; min-height:66px; }
 @container (max-width:759px) { .cd-cards.enxuto.lista > li { min-height:98px; align-content:center; } }
+
+/* Grade narrativa compartilhada: imagem quadrada e identidade sobre degradê.
+   O estado operacional permanece fora da imagem; retratos individuais não mudam. */
+.cd-cards.grade, .cd-cards.enxuto.grade { grid-template-columns:repeat(auto-fill,minmax(min(180px,100%),1fr)); }
+.cd-cards.grade > li { padding-left:0; }
+.cd-cards.grade .cd-card-main { position:relative; aspect-ratio:1; overflow:hidden; isolation:isolate; flex:none; }
+.cd-cards.grade .cd-card-main > .retrato-q,
+.cd-cards.grade .cd-card-main .retrato-q { width:100% !important; height:100% !important; aspect-ratio:1; border-radius:9px; }
+.cd-cards.grade .cd-card-main > span:last-child,
+.cd-cards.enxuto.grade .cd-card-main > span:last-child { position:absolute; inset:auto 0 0; height:auto; min-height:72px; padding:30px 12px 12px; background:linear-gradient(transparent,rgba(0,0,0,.88)); color:#fff; gap:2px; }
+.cd-cards.grade .cd-card-main small { display:none; }
+.cd-cards.grade .nome-alcunha .nome-alcunha-apelido { display:block; color:#eee; }
+.cd-cards.grade footer { min-height:0; padding:8px 10px; gap:8px; }
+.cd-cards.grade footer > small:empty { display:none; }
+.cd-cards.grade .cd-card-estado { padding-top:8px; }
+.cd-cards.grade .cd-card-fim { margin-left:auto; display:flex; align-items:center; gap:8px; }
+.cd-relation-list { list-style:none; padding:0; display:grid; gap:6px; }
+.cd-relation-list .cd-relation { padding:8px; gap:10px; }
+.previa-global-indicador { margin:0; padding:5px 16px; color:var(--text-2); background:var(--panel); border-bottom:1px solid var(--line); font-size:12px; }
+@container (max-width:480px) { .cd-cards.grade,.cd-cards.enxuto.grade { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+.cd-cards.grade footer { position:absolute; top:8px; right:8px; padding:0; min-height:0; z-index:2; }
+.cd-cards.grade footer:has(>small) { position:static; padding:8px 10px; }
+.cd-cards.grade footer:empty { display:none; }
+.cd-cards.grade footer .carta-icone,.cd-cards.grade footer .menu-acoes-gatilho { background:var(--panel); }

@@ -11,19 +11,21 @@ export function Modal({ titulo, onFechar, children, acoes, ocupado = false, larg
   const id = useId(), caixa = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const antes = document.activeElement as HTMLElement | null;
-    (caixa.current?.querySelector<HTMLElement>("[data-foco], input:not([type=hidden]), select, textarea") ?? caixa.current)?.focus();
-    return () => antes?.focus?.();
+    // O diálogo é anunciado sem abrir o teclado virtual. Tab alcança os controles.
+    caixa.current?.focus({ preventScroll: true });
+    return () => { if (antes?.isConnected && !antes.matches("input, textarea, select, [contenteditable=true]")) antes.focus({ preventScroll: true }); };
   }, []);
   const tecla = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") { e.stopPropagation(); if (!ocupado) onFechar(); return; }
     if (e.key !== "Tab" || !caixa.current) return;
     const focaveis = [...caixa.current.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea, a[href], summary")];
     const primeiro = focaveis[0], ultimo = focaveis[focaveis.length - 1];
-    if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo?.focus(); }
+    if (document.activeElement === caixa.current) { e.preventDefault(); (e.shiftKey ? ultimo : primeiro)?.focus(); }
+    else if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo?.focus(); }
     else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro?.focus(); }
   };
   return createPortal(<div className={"modal-fundo" + (sistema ? ` ${sistema}` : "")} onKeyDown={tecla} onPointerDown={e => { if (e.target === e.currentTarget && !ocupado) onFechar(); }}>
-    <div ref={caixa} className="modal-caixa" role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} style={{ maxWidth: largura }}>
+    <div ref={caixa} className={"modal-caixa" + (largura >= 600 ? " modal-extensa" : "")} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} style={{ maxWidth: largura }}>
       <div className="modal-topo"><h2 id={id}>{titulo}</h2><button type="button" className="modal-fechar" aria-label="Fechar" onClick={onFechar} disabled={ocupado}><X size={16} aria-hidden="true"/></button></div>
       <div className="modal-corpo">{children}</div>
       {acoes && <div className="modal-acoes">{acoes}</div>}

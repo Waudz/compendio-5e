@@ -1,3 +1,4 @@
+import {PreviaJogadorContext as PreviaCtx} from "./modoJogador";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { createCampaignApi, type CampaignApi, type Membership } from "./campaigns";
@@ -73,4 +74,17 @@ export function CampaignsProvider({ children, apiFactory }: { children: ReactNod
 
   const value = useMemo(() => ({ api, memberships, loading, error, activeId, active, setActive, refresh }), [api, memberships, loading, error, activeId, active, setActive, refresh]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+/** Prévia de apresentação, nunca substitui autenticação/RLS. A leitura pública do
+ * Compêndio usa codex_preview; a sessão administrativa permanece inalterada. */
+export function ModoJogadorProvider({ children }: { children: ReactNode }) {
+  const real = useCampaigns();
+  const [campanha, setCampanha] = useState<string | null>(null);
+  const permitida = real.active?.role === "mestre";
+  const ativa = permitida && campanha === real.activeId;
+  const alternar = () => setCampanha(ativa ? null : real.activeId);
+  const value = useMemo(() => ativa ? { ...real, active: real.active ? { ...real.active, role: "jogador" as const } : null,
+    memberships: real.memberships.map(m => ({ ...m, role: "jogador" as const })), api: null } : real, [real, ativa]);
+  return <PreviaCtx.Provider value={{ ativa, permitida, alternar }}><Ctx.Provider value={value}>{children}</Ctx.Provider></PreviaCtx.Provider>;
 }

@@ -1,3 +1,5 @@
+> Atualização de 27/11/2026: PR #170 publicado e 0022 aplicada. Padronização global em desenvolvimento na branch `feat/interface-global-consistente`; [entrega, testes e pendências](INTERFACE-GLOBAL.md). A proposta 0023 **não foi aplicada**. Não tratar a solicitação inteira como concluída nem reaplicar 0022.
+
 # Continuidade do desenvolvimento — Compêndio 5e 2.0
 
 ## Atualização normativa — 22/11/2026

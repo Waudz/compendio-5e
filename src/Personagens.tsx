@@ -192,7 +192,6 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     ...(mestre && codex && !somenteMeus ? [{ rotulo: "Criar NPC", icone: Drama, acao: () => setCriandoNpc(true) }] : [])];
 
   return <div className="content personagens cd-page">
-    <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>{somenteMeus ? "Meus personagens" : "Personagens"}</h1><BotaoCriar opcoes={criacao}/></div>
     {aviso && <Aviso erro={!aviso.ok} t={aviso.t}/>}
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}

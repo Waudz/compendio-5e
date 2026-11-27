@@ -1,7 +1,8 @@
 import {useEffect, useRef, useState} from "react";
-import {Castle, Info, LogOut, Settings, Shield, UserRound, Users, BookMarked, X} from "lucide-react";
+import {Castle, Info, LogOut, Settings, Shield, Eye, UserRound, Users, BookMarked, X} from "lucide-react";
 import {useAuth} from "./AuthContext";
-import {useCampaigns} from "./CampaignsContext";
+import { useCampaigns} from "./CampaignsContext";
+import {useModoJogador} from "./modoJogador";
 import {useUnsaved} from "./unsaved";
 import {APP_PHASE, APP_VERSION} from "./version";
 import type {TabSpec} from "./workspace";
@@ -9,6 +10,7 @@ import type {TabSpec} from "./workspace";
 /** Mesmas ações e permissões em ambos os tamanhos de tela. */
 export function GlobalMenu({onNavigate, onClose}: {onNavigate: (s: TabSpec) => void; onClose: () => void}) {
   const {active} = useCampaigns(), {api} = useAuth(), unsaved = useUnsaved();
+  const previa = useModoJogador();
   const master = active?.role === "mestre";
   const dialog = useRef<HTMLDivElement>(null), close = useRef(onClose); close.current = onClose;
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export function GlobalMenu({onNavigate, onClose}: {onNavigate: (s: TabSpec) => v
   return <div className="global-menu-overlay mobile-menu-overlay" onClick={onClose}>
     <div className="global-menu-sheet mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Menu de navegação" ref={dialog} onClick={e => e.stopPropagation()}>
       <div className="mobile-menu-heading"><strong>Menu</strong><button aria-label="Fechar menu" onClick={onClose}><X size={20}/></button></div>
+      {previa.permitida && <section className="global-menu-group" aria-label="Visualização"><button onClick={async () => { if (await unsaved.confirmAll()) { previa.alternar(); onClose(); } }}><Eye size={18}/>{previa.ativa ? "Voltar à visão de mestre" : "Ver como jogador"}</button></section>}
       <section className="global-menu-group" aria-label="Campanha"><h2>Campanha</h2>
         <button onClick={() => go({kind:"secao", ref:"campanhas"})}><Castle size={18}/>{master ? "Gerenciar campanhas" : "Minhas campanhas"}</button>
         {active && <><button onClick={() => go({kind:"secao", ref:master ? "personagens" : "meus-personagens"})}><Users size={18}/>{master ? "Personagens" : "Meus personagens"}</button>

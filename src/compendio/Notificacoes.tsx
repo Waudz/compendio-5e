@@ -2,6 +2,7 @@ import {createContext,useContext,useEffect,useRef,useState,type ReactNode} from 
 import {Bell,CheckCheck} from 'lucide-react';
 import {useAuth} from '../AuthContext';
 import {useCampaigns} from '../CampaignsContext';
+import {useModoJogador} from '../modoJogador';
 import {Modal} from '../ui/Modal';
 import {CicloProvider,useCiclo} from '../CicloPersonagens';
 import type {AvisoPersonagem} from '../cicloPersonagem';
@@ -41,6 +42,7 @@ export function NotificacoesProvider({children}:{children:ReactNode}){
 }
 const TEXTO_AVISO:Record<AvisoPersonagem['kind'],string>={'renuncia':'O jogador deixou o personagem. Decida o destino','oferta':'Transferência para você aguardando resposta','oferta-aceita':'Transferência aceita','oferta-recusada':'Transferência recusada'};
 export function SinoNotificacoes({onOpenContent}:{onOpenContent:(s:TabSpec)=>void}){
+ const previa=useModoJogador().ativa;
  const data=useNotificacoes(),ciclo=useCiclo(),{active}=useCampaigns(),[open,setOpen]=useState(false),[error,setError]=useState('');
  const current=useRef(data.scope);current.current=data.scope;useEffect(()=>{setOpen(false);setError('');},[data.scope]);
  const pendentes=ciclo.avisos.filter(a=>!a.readAt),naoLidas=data.feed.unread+pendentes.length;
@@ -56,6 +58,7 @@ export function SinoNotificacoes({onOpenContent}:{onOpenContent:(s:TabSpec)=>voi
  // uma só lista, da mais recente para a mais antiga
  const itens=[...data.feed.items.map(n=>({quando:n.created_at,no:<article key={'c'+n.id}><button className="cd-notice-link" onClick={()=>{setOpen(false);onOpenContent(registroSpec(n.entry_id,n.title));void data.seen(n.id).catch(()=>setError('Não foi possível marcar como lida.'));}}><strong>{n.title}</strong><small>{n.read_at?'Lida':n.is_new?'Nova descoberta':'Novas informações'} · {new Date(n.created_at).toLocaleDateString('pt-BR')}</small></button>{!n.read_at&&<button className="btn-link" onClick={()=>void data.seen(n.id).catch(()=>setError('Não foi possível marcar como lida.'))}>Marcar como lida</button>}</article>})),
   ...ciclo.avisos.map(a=>({quando:a.createdAt,no:<article key={'p'+a.id}><button className="cd-notice-link" onClick={()=>abrirAviso(a)}><strong>{a.title}</strong><small>{a.readAt?'Lida · ':''}{TEXTO_AVISO[a.kind]} · {new Date(a.createdAt).toLocaleDateString('pt-BR')}</small></button>{!a.readAt&&<button className="btn-link" onClick={()=>ler(a.id)}>Marcar como lida</button>}</article>}))].sort((x,y)=>y.quando.localeCompare(x.quando));
+ if(previa)return null;
  return <><button className="cd-bell" aria-label={`Notificações${naoLidas?', '+naoLidas+' não lidas':''}`} aria-expanded={open} onClick={()=>{setOpen(true);data.refresh();}}><Bell size={18}/>{naoLidas>0&&<span className="cd-badge">{naoLidas>99?'99+':naoLidas}</span>}</button>
  {open&&<Modal titulo="Notificações" onFechar={()=>setOpen(false)} largura={480}><div className="cd-notifications">{naoLidas>0&&<div className="row"><button className="btn-link" disabled={data.busy} onClick={()=>void markAll()}><CheckCheck size={16} aria-hidden="true"/> {data.busy?"Marcando…":"Marcar todas como lidas"}</button></div>}{(data.error||error)&&<p role="alert">{error||data.error}</p>}{!data.error&&!itens.length&&<p>Nenhuma notificação.</p>}{itens.map(i=>i.no)}</div></Modal>}</>;
 }

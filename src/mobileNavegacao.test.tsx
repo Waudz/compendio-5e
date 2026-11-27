@@ -51,16 +51,16 @@ describe("celular: estrutura independente do FlexLayout", () => {
     expect(barraNomes()).toEqual(["Início", "Anotações", "Ficha", "Compêndio", "Menu"]);
     expect(barra().queryByRole("button", { name: "Iniciativa" })).toBeNull();
   });
-  it("histórico: navegar empilha, Voltar desempilha e o botão fica desabilitado na tela inicial", async () => {
+  it("histórico: navegar empilha, Voltar desempilha e o botão fica oculto na tela inicial", async () => {
     await montar(mestre);
     const voltar = () => screen.getByRole("button", { name: "Voltar" }) as HTMLButtonElement;
-    expect(voltar().disabled).toBe(true);
+    expect(screen.queryByRole("button",{name:"Voltar"})).toBeNull();
     fireEvent.click(barra().getByRole("button", { name: "Anotações" }));
     await waitFor(() => expect(titulo()).toBe("Anotações"));
     fireEvent.click(barra().getByRole("button", { name: "Compêndio" }));
     await waitFor(() => expect(titulo()).toBe("Compêndio"));
     fireEvent.click(voltar()); await waitFor(() => expect(titulo()).toBe("Anotações"));
-    fireEvent.click(voltar()); await waitFor(() => expect(voltar().disabled).toBe(true));
+    fireEvent.click(voltar()); await waitFor(() => expect(screen.queryByRole("button",{name:"Voltar"})).toBeNull());
   });
   it("gesto Voltar do Android retorna do atalho à campanha sem sair do aplicativo", async () => {
     await montar(mestre);

@@ -7,10 +7,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {apiDePrevia} from "./apiDePrevia";
 import {marcarLote} from "./notificacoesLote";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useAuth } from "../AuthContext";
-import { useCampaigns } from "../CampaignsContext";
+import {  useCampaigns } from "../CampaignsContext";
+import {useModoJogador} from "../modoJogador";
 import type { BlocoTexto } from "../inicio";
 import type { Secao } from "./ficha";
 import type { LinhaDefinicao, TipoDefinicao } from "./definicoes";
@@ -84,7 +86,10 @@ export type CodexLink = {
   revealed?: boolean;
 };
 export type NotificationFeed={items:(CodexAviso&{title:string;category:CodexCategoria})[];unread:number;discoveries:number};
+export type EdicaoVinculos = { remover: string[]; adicionar: { source: string | null; target: string | null; relation: NovoVinculo }[] };
 export interface CodexApi {
+  edicaoAtomica?(): Promise<boolean>;
+  salvarEdicao?(cid: string, id: string | null, version: number, data: EdicaoConhecimento, links: EdicaoVinculos): Promise<string>;
   links(cid: string, id: string): Promise<CodexLink[]>;
   link(cid: string, source: string, target: string, relation: NovoVinculo): Promise<string>;
   unlink(cid: string, id: string): Promise<void>;
@@ -152,6 +157,11 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
   let versao: Promise<number> | null = null;
   const capacidade = () => (versao ??= Promise.resolve(client.rpc("codex_capabilities")).then(r => (typeof r.data === "number" ? r.data : 0), () => { versao = null; return 0; }));
   return {
+    edicaoAtomica: async () => { const r=await client.rpc("codex_edit_capability"); return !r.error && r.data===true; },
+    salvarEdicao: async (cid,id,version,data,links) => {
+      if (!(await client.rpc("codex_edit_capability")).data) throw Error('Os vínculos aguardam a atualização 0023. Nada foi gravado.');
+      return conferir(await client.rpc('codex_save_edit', {p_campaign:cid,p_entry:id,p_version:version,p_data:data,p_links:links})) as string;
+    },
     definitions: async (cid) => conferir(await client.rpc("codex_definitions_for", { p_campaign: cid })) as LinhaDefinicao[],
     grantItem: async (cid, character, definition, quantity, mask, operation) =>
       semErro(await client.rpc("codex_grant_item", { p_campaign: cid, p_character: character, p_definition_id: definition, p_quantity: quantity, p_mask: mask, p_operation: operation })),
@@ -254,12 +264,9 @@ export function CodexProvider({
 export function useCodexApi() {
   const injected = useContext(Ctx),
     { client, status } = useAuth();
-  return useMemo(
-    () =>
-      injected ??
-      (client && status === "authenticated" ? createCodexApi(client) : null),
-    [injected, client, status],
-  );
+  const { ativa } = useModoJogador();
+  const real = useMemo(() => injected ?? (client && status === "authenticated" ? createCodexApi(client) : null), [injected, client, status]);
+  return useMemo(() => real && ativa ? apiDePrevia(real) : real, [real, ativa]);
 }
 const VAZIO: Conhecimento[] = [];
 export const EVENTO_CODEX = "compendio:conhecimento";

@@ -1,3 +1,4 @@
+import {useIdentidades} from "./compendio/consulta";
 import { CICLO_ACESSO, type DetalheAcesso } from "./CicloPersonagens";
 import { lerMapaAba } from "./criador/recuperacao";
 import { GlobalMenu } from "./GlobalMenu";
@@ -17,7 +18,8 @@ import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { ContextMenu, type MenuState } from "./ContextMenu";
 import { tabId, defaultTitle, type TabSpec } from "./workspace";
 import { useAuth } from "./AuthContext";
-import { useCampaigns } from "./CampaignsContext";
+import {  useCampaigns } from "./CampaignsContext";
+import {useModoJogador} from "./modoJogador";
 import { useRegistros } from "./RegistrosContext";
 import { useUnsaved } from "./unsaved";
 
@@ -53,6 +55,8 @@ type Props = {
 
 /** Navegação mobile independente das abas e colunas do FlexLayout do desktop. */
 export function Mobile(_props: Props) {
+  const previa=useModoJogador().ativa;
+  const {items:identidadesPublicas}=useIdentidades();
   const { active } = useCampaigns(), { user } = useAuth(), registros = useRegistros(), unsaved = useUnsaved();
   const home: TabSpec = active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: "campanhas" };
   const [screen, setScreen] = useState<TabSpec>(home);
@@ -65,7 +69,7 @@ export function Mobile(_props: Props) {
   useVersaoRegistros();
   const conhecidos=useConhecimento().items;
   // Título de registro vem somente da projeção autorizada, nunca de um nome guardado em memória.
-  const pageTitle=screen.kind==="registro"?conhecidos.find(x=>x.id===screen.ref)?.title??"Registro":screen.kind==="npc"?conhecidos.find(x=>x.id===screen.ref)?.title??"NPC":["documento","ficha","criador","monstro"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
+  const pageTitle=previa&&screen.kind==="identidade"?identidadesPublicas.find(p=>p.id===screen.ref)?.nome??"Personagem":previa&&["documento","ficha","criador","npc","monstro","identidade"].includes(screen.kind)?"Visão de jogador":screen.kind==="registro"?conhecidos.find(x=>x.id===screen.ref)?.title??"Registro":screen.kind==="npc"?conhecidos.find(x=>x.id===screen.ref)?.title??"NPC":["documento","ficha","criador","monstro"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
   const current = tabId(screen);
   const currentRef=useRef(current);currentRef.current=current;
   const menuRef=useRef(menuOpen);menuRef.current=menuOpen;
@@ -185,7 +189,7 @@ export function Mobile(_props: Props) {
   const meus = !isMaster && isPage("meus-personagens");
   return <AbrirEmAbaContext.Provider value={{navegar:s=>navigate(s),abrir:s=>navigate(s),mostrar:(x,y,s,_origem,extras)=>{if(extras?.length)setAcoes({x,y,items:[{label:"Abrir",onSelect:()=>navigate(s)},...extras]});else navigate(s);}}}><div className="mobile mobile-simple">
     {!fichaPropria && !meus && <header className="mobile-topbar">
-      <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
+      <button hidden={!history.length && current === tabId(home)} className="mobile-icon-btn" aria-label="Voltar" onClick={goBack}><ArrowLeft size={20}/></button>
       <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{pageTitle}</span></div>
       <SinoNotificacoes onOpenContent={navigate}/>
     </header>}

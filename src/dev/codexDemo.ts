@@ -80,7 +80,18 @@ export function codexDemo(master: boolean, campaign: string, fichasNpc?: FichaDe
     if (!e || (version !== undefined && e.version !== version)) throw Error("Conflito de versão.");
     return e;
   };
-  return {
+  const api:CodexApi = {
+    edicaoAtomica: async()=>true,
+    salvarEdicao: async(cid,id,version,data,changes)=>{
+      check();scope(cid);
+      const keys=[key,key+':links',key+':notices'];const before=keys.map(k=>localStorage.getItem(k));
+      try {
+        const nid=await api.save(cid,id,version,data);
+        for(const lid of changes.remover)await api.unlink(cid,lid);
+        for(const op of changes.adicionar)await api.link(cid,op.source??nid,op.target??nid,op.relation);
+        return nid;
+      }catch(e){keys.forEach((k,i)=>{if(before[i]===null)localStorage.removeItem(k);else localStorage.setItem(k,before[i]!);});throw e;}
+    },
     links: async (cid, id) => { scope(cid); if (!master && !read().some((x) => x.id === id && x.visible)) throw Error("Sem acesso."); return linksOf(id, !master); },
     link: async (cid, source, target, r) => {
       check(); scope(cid);
@@ -173,4 +184,5 @@ export function codexDemo(master: boolean, campaign: string, fichasNpc?: FichaDe
     seenAll: async (cid,through,signal) => { signal.throwIfAborted();scope(cid);if(!master){const visible=new Set(read().filter(e=>e.visible).map(e=>e.id));store(key+":notices",notices().map(n=>n.id<=through&&!n.read_at&&visible.has(n.entry_id)?{...n,read_at:new Date().toISOString()}:n));} },
     seen: async (id) => { if (!master) store(key + ":notices", notices().map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))); },
   };
+  return api;
 }

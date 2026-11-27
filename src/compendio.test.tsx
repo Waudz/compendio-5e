@@ -68,9 +68,9 @@ describe('Compêndio na navegação real', () => {
     await montar(); await abrirCompendio();
     const lista = screen.getByRole('list', { name: 'Resultados do Compêndio' });
     expect(lista.getAttribute('data-view')).toBe('lista');
-    fireEvent.click(screen.getByRole('button', { name: /Grade/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Visualizar em grade' }));
     expect(lista.getAttribute('data-view')).toBe('grade');
-    expect(screen.getByRole('button', { name: /Grade/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Visualizar em lista' })).toBeTruthy();
     expect(resultados()).toHaveLength(60);
   });
 
@@ -134,7 +134,7 @@ describe('Compêndio no celular', () => {
     pesquisar('escudo'); fireEvent.click(cartao('Escudo', 'Escudo'));
     expect(await screen.findByRole('article', { name: 'Detalhes de Escudo' })).toBeTruthy();
     expect(screen.queryByRole('tablist')).toBeNull();
-    fireEvent.click(document.querySelector<HTMLButtonElement>('.cd-page .cd-back')!);
+    fireEvent.click(screen.getByRole('button',{name:'Voltar'}));
     expect(screen.queryByRole('article', { name: 'Detalhes de Escudo' })).toBeNull();
     expect(await screen.findByLabelText('Pesquisar no Compêndio')).toBeTruthy();
   });

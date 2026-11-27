@@ -1,3 +1,4 @@
+import {useIdentidades} from "./compendio/consulta";
 import { CICLO_ACESSO, type DetalheAcesso } from "./CicloPersonagens";
 import { GlobalMenu } from "./GlobalMenu";
 import {tituloCategoria} from "./Compendio";
@@ -15,7 +16,8 @@ import { Action, Actions, Layout, DockLocation, type Model, TabNode, TabSetNode 
 import { Plus, RotateCcw, Maximize, ArrowLeft, ArrowRight, Castle, House as HomeIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
 import "flexlayout-react/style/dark.css";
 import { useAuth } from "./AuthContext";
-import { useCampaigns } from "./CampaignsContext";
+import { ModoJogadorProvider,  useCampaigns } from "./CampaignsContext";
+import {useModoJogador} from "./modoJogador";
 import { ContextMenu, type MenuItem, type MenuState } from "./ContextMenu";
 import { useChromeHidden } from "./chromeHide";
 import { Mobile } from "./Mobile";
@@ -62,7 +64,11 @@ export default function App() {
     if (error) return <CampaignLoadError/>;
     return <div role="status">Carregando suas campanhas…</div>;
   }
-  return <Workspace key={user.id} userId={user.id}/>;
+  return <ModoJogadorProvider key={user.id}><EspacoComPrevia userId={user.id}/></ModoJogadorProvider>;
+}
+
+function EspacoComPrevia({userId}:{userId:string}) {
+ return <Workspace userId={userId}/>;
 }
 
 function CampaignLoadError() {
@@ -73,6 +79,8 @@ function CampaignLoadError() {
 function Workspace({ userId }: { userId: string }) {
   // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
   const { status } = useAuth();
+  const previa = useModoJogador().ativa;
+  const {items:identidadesPublicas}=useIdentidades();
   const { active, activeId: campaignId, memberships, setActive } = useCampaigns();
   const {items: conhecidosCatalogo}=useConhecimento();
   const scope: Scope = { user: userId, campaign: campaignId ?? "nenhuma", device: "navegador" };
@@ -286,13 +294,15 @@ function Workspace({ userId }: { userId: string }) {
   },[model,mobile,step,reopen]);
   const factory = useCallback((node: TabNode) => {
     const c = currentPage(node), h=historyOf(node);
-    return <OrigemAbaContext.Provider value={node.getId()}><VoltarPaginaContext.Provider value={h.index>0?()=>step(node.getId(),h.index-1):undefined}><PageViewport key={tabId(c)} pageKey={`${scopeKey}:${node.getId()}:${tabId(c)}`} positions={positions.current}><CartaHost onOpenContent={s => visit(s, node.getId())} renderizar={(s, abrir) => <Panel kind={s.kind} entity={s.ref} onOpen={openMenu} onOpenContent={abrir}/>}><Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => visit(s, node.getId())}/></CartaHost></PageViewport></VoltarPaginaContext.Provider></OrigemAbaContext.Provider>;
-  }, [openMenu, visit, step, scopeKey]);
+    return <OrigemAbaContext.Provider value={node.getId()}><VoltarPaginaContext.Provider value={h.index>0?()=>step(node.getId(),h.index-1):undefined}><PageViewport key={tabId(c)+":"+previa} pageKey={`${scopeKey}:${node.getId()}:${tabId(c)}`} positions={positions.current}><CartaHost onOpenContent={s => visit(s, node.getId())} renderizar={(s, abrir) => <Panel kind={s.kind} entity={s.ref} onOpen={openMenu} onOpenContent={abrir}/>}><Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => visit(s, node.getId())}/></CartaHost></PageViewport></VoltarPaginaContext.Provider></OrigemAbaContext.Provider>;
+  }, [openMenu, visit, step, scopeKey, previa]);
 
   const versaoCatalogo = useVersaoCatalogo(), versaoPrevia = useVersaoTituloPrevia();
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
     const c = currentPage(n);
+    if(previa&&c.kind==="identidade")return identidadesPublicas.find(p=>p.id===c.ref)?.nome??"Personagem";
+    if(previa && ["documento","ficha","criador","npc","monstro","identidade"].includes(c.kind))return "Visão de jogador";
     const fallback = (n.getConfig() as {history?:unknown}).history ? defaultTitle(c) : n.getName();
     if(c.kind==="categoria")return tituloCategoria(c.ref);
     if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? fallback;
@@ -303,7 +313,7 @@ function Workspace({ userId }: { userId: string }) {
     if (c?.kind === "regra" && c.ref) return tituloDe(c.ref)??"Regra";
     if (c?.kind === "item" && c.ref) return active?.role === "mestre" || jogadorPodeAdicionar(c.ref) || itemConhecido(conhecidosCatalogo,c.ref) ? (active?.role === "mestre" ? tituloDe(c.ref) : undefined) ?? srdItem(c.ref)?.nome ?? fallback : "Item";
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? fallback : fallback;
-  }, [memberships, registrosV, active?.role, conhecidosCatalogo, versaoCatalogo, versaoPrevia]);
+  }, [memberships, registrosV, active?.role, conhecidosCatalogo, versaoCatalogo, versaoPrevia, previa, identidadesPublicas]);
   // FlexLayout usa o nome do modelo para ARIA e o conteúdo renderizado para a tela.
   // Manter ambos iguais em memória; minimalLayout continua removendo nomes ao persistir.
   useLayoutEffect(() => {
@@ -333,7 +343,7 @@ function Workspace({ userId }: { userId: string }) {
       v.buttons.push(<button key="new" className="grp-close" title="Nova aba" aria-label="Nova aba" onClick={()=>{model.doAction(Actions.setActiveTabset(node.getId()));openMenu({kind:"nova",ref:crypto.randomUUID(),title:"Nova aba"});}}><Plus size={14}/></button>);
     }
     if(node instanceof TabSetNode){const tab=node.getSelectedNode();if(tab instanceof TabNode){const h=historyOf(tab);
-      v.buttons.unshift(<span className="workspace-history" key="history"><button title="Voltar na aba" aria-label="Voltar na aba" disabled={h.index===0} onClick={()=>step(tab.getId(),h.index-1)}><ArrowLeft size={14}/></button><button title="Avançar na aba" aria-label="Avançar na aba" disabled={h.index===h.pages.length-1} onClick={()=>step(tab.getId(),h.index+1)}><ArrowRight size={14}/></button></span>);
+      v.buttons.unshift(<span className="workspace-history" key="history"><button title="Voltar na aba" aria-label="Voltar na aba" hidden={h.index===0} onClick={()=>step(tab.getId(),h.index-1)}><ArrowLeft size={14}/></button><button title="Avançar na aba" aria-label="Avançar na aba" disabled={h.index===h.pages.length-1} onClick={()=>step(tab.getId(),h.index+1)}><ArrowRight size={14}/></button></span>);
     }}
     if (node instanceof TabSetNode && groupCount(model) > 1)
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={guarded(node.getChildren().map(c => c.getId()), () => closeGroup(model, node.getId()))}><X size={14}/></button>);

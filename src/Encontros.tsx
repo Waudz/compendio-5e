@@ -30,7 +30,7 @@ export function useLojaEncontros(userId: string | null, campaignId: string | nul
 }
 
 export function EncontrosPanel() {
-  const { userId, campaignId, campanha, podeGerenciar } = useEscopo();
+  const { userId, campaignId, podeGerenciar } = useEscopo();
   const nuvem = useNuvem();
   const loja = useLojaEncontros(userId, campaignId, podeGerenciar, nuvem);
   const { estado, aplicar } = loja;
@@ -69,7 +69,7 @@ export function EncontrosPanel() {
   };
   const duplicarAtual = (enc: Encontro) => aplicar(l => { const i = l.findIndex(x => x.id === enc.id); return i < 0 ? l : [...l.slice(0, i + 1), duplicarEstadoAtual(enc), ...l.slice(i + 1)]; });
   return <div className="content iniciativa">
-    <div className="eyebrow">{(campanha ?? "").toLocaleUpperCase("pt-BR")} · PREPARAÇÃO</div><h1>Encontros</h1>
+    <div className="eyebrow">PREPARAÇÃO</div><h1>Encontros</h1>
     {estado.status === "carregando" && <div className="notice" role="status" aria-live="polite">Carregando os encontros…</div>}
     {estado.status === "erro" && (nuvem ? <Aviso erro t={estado.mensagem ?? "Não foi possível carregar os encontros no servidor."} onRetry={loja.tentar}/> : <ErroArmazenamento onTentar={loja.tentar} onDescartar={loja.descartar} o="os encontros"/>)}
     {aviso && <div className="notice" role="status">{aviso}</div>}

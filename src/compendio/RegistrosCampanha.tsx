@@ -26,6 +26,8 @@ import {
   type CodexApi,
   type CodexCategoria,
   type EdicaoConhecimento,
+  type EdicaoVinculos,
+  type CodexLink,
 } from "./conhecimento";
 
 export function ImagemConhecida({ path, framing, tamanho=160, ampliar }: { path: string; framing?:Enquadramento; tamanho?:number; ampliar?: string }) {
@@ -138,13 +140,15 @@ export function EditorConhecimento({
   // Naturalidade, residência, liderança e sede: texto livre ou um registro existente (o vínculo substitui o texto).
   const [ligacoes, setLigacoes] = useState<Record<string, string>>({});
   const vagas = (VAGAS[category] ?? []).filter((v) => CAMPOS[category]?.some((f) => f.id === v.campo && !f.long));
-  const vinculadosEm = (v: Vaga) => (entry ? vinculos.links.filter((l) => l.kind === v.kind && l.outgoing === v.outgoing) : []);
+  const [removidos,setRemovidos]=useState<string[]>([]);
+  const [adicionados,setAdicionados]=useState<(EdicaoVinculos['adicionar'][number]&{linha:CodexLink})[]>([]);
+  const linksDoRascunho=[...vinculos.links.filter(l=>!removidos.includes(l.id)),...adicionados.map(a=>a.linha)];
+  const vinculadosEm = (v: Vaga) => (entry ? linksDoRascunho.filter((l) => l.kind === v.kind && l.outgoing === v.outgoing) : []);
   const candidatos = (v: Vaga) => dados.rows.filter((r) => r.id !== entry?.id && (v.campo === "leadership" ? r.category === "npc" || r.category === "character" : r.category === "location"));
-  const [removendo, setRemovendo] = useState(false);
   const removerVinculo = (link: string, titulo: string) => {
-    if (!api || !active || !window.confirm(`Remover o vínculo com ${titulo}? Os registros são preservados.`)) return;
-    setRemovendo(true);
-    void api.unlink(active.campaign.id, link).then(() => { vinculos.reload(); avisarConhecimento(); }, () => setError("Não foi possível remover o vínculo.")).finally(() => setRemovendo(false));
+    if (!window.confirm(`Remover o vínculo com ${titulo} ao salvar? Os registros serão preservados.`)) return;
+    if(adicionados.some(a=>a.linha.id===link))setAdicionados(xs=>xs.filter(a=>a.linha.id!==link));
+    else setRemovidos(xs=>[...xs,link]);
   };
   const releaseGuard=useUnsavedGuard(
     origin ?? "secao:compendio",
@@ -152,13 +156,15 @@ export function EditorConhecimento({
       text !== deBlocos(entry?.description ?? []) ||
       secret !== (entry?.secret ?? "") ||
       !!file ||
-      removeImage || Object.values(ligacoes).some(Boolean) || JSON.stringify(fields)!==JSON.stringify(entry?.fields??{}) || JSON.stringify(framing)!==JSON.stringify(entry?.framing??ENQUADRAMENTO_PADRAO),
+      removeImage || removidos.length>0 || adicionados.length>0 || Object.values(ligacoes).some(Boolean) || JSON.stringify(fields)!==JSON.stringify(entry?.fields??{}) || JSON.stringify(framing)!==JSON.stringify(entry?.framing??ENQUADRAMENTO_PADRAO),
   );
   const save = async () => {
     if (!api || !active || busy) return;
     setBusy(true);
     setError("");
     try {
+      const alteraVinculos=removidos.length>0||adicionados.length>0||Object.values(ligacoes).some(Boolean);
+      if(alteraVinculos&&(!api.salvarEdicao||!await api.edicaoAtomica?.()))throw Error('Salvar vínculos junto da edição requer a atualização 0023, ainda não aplicada. Nada foi gravado; seu rascunho continua aberto.');
       if (file) validarImagemConhecimento(file);
       let id = entry?.id ?? created.current?.id ?? null;
       let version = entry?.version ?? created.current?.version ?? 0;
@@ -176,22 +182,18 @@ export function EditorConhecimento({
         registered: entry?.registered,
         imagePath: removeImage ? undefined : entry?.imagePath,
       };
-      // O Storage só aceita arquivo de registro existente. Registro novo nasce secreto.
-      if (file) {
-        if (!id) {
-          id = await api.save(active.campaign.id, null, 0, data);
-          version = 1;
-          created.current = { id, version };
-        }
-        const path = await api.upload(active.campaign.id, id, file);
-        await api.save(active.campaign.id, id, version, { ...data, imagePath: path });
-      } else id=await api.save(active.campaign.id, id, version, data);
-      // O vínculo nasce secreto: revelar continua sendo uma escolha em "Gerenciar conhecimento".
-      for (const v of vagas) {
-        const alvo = ligacoes[v.campo], r = RELACOES.find((x) => x.kind === v.kind)!;
-        if (alvo && id && !vinculos.links.some((l) => l.targetId === alvo && l.kind === v.kind))
-          await api.link(active.campaign.id, v.outgoing ? id : alvo, v.outgoing ? alvo : id, { kind: r.kind, label: r.a, inverse: r.b });
+      // Uploads são novos objetos imutáveis; nunca sobrescrevem a imagem anterior.
+      let imagePath=data.imagePath;
+      if(file){
+        if(!id){id=await api.save(active.campaign.id,null,0,data);version=1;created.current={id,version};}
+        imagePath=await api.upload(active.campaign.id,id,file);
       }
+      const novos:EdicaoVinculos['adicionar'] = adicionados.map(({source,target,relation})=>({source,target,relation}));
+      for(const v of vagas){
+        const alvo=ligacoes[v.campo],r=RELACOES.find(x=>x.kind===v.kind)!;
+        if(alvo&&!linksDoRascunho.some(l=>l.targetId===alvo&&l.kind===v.kind))novos.push({source:v.outgoing?null:alvo,target:v.outgoing?alvo:null,relation:{kind:r.kind,label:r.a,inverse:r.b}});
+      }
+      id=alteraVinculos?await api.salvarEdicao!(active.campaign.id,id,version,{...data,imagePath},{remover:removidos,adicionar:novos}):await api.save(active.campaign.id,id,version,{...data,imagePath});
       releaseGuard();
       avisarConhecimento();
       onDone(id??undefined);
@@ -215,7 +217,7 @@ export function EditorConhecimento({
             {candidatos(vaga).map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
           </select>
           {atuais.map((l) => <small key={l.id} className="muted">Vinculado: {l.title}{" "}
-            <button type="button" className="btn-link" disabled={removendo} aria-label={`Remover vínculo com ${l.title}`} onClick={() => removerVinculo(l.id, l.title)}>remover</button></small>)}
+            <button type="button" className="btn-link" disabled={busy} aria-label={`Remover vínculo com ${l.title}`} onClick={() => removerVinculo(l.id, l.title)}>remover</button></small>)}
         </div>
       );
     }
@@ -234,37 +236,36 @@ export function EditorConhecimento({
     );
   };
   const campos = CAMPOS[category] ?? [];
+  const acoes = <>
+      <div className="row">
+        <button className="btn-primary" disabled={busy || !title.trim()} onClick={() => void save()}>
+          {busy ? "Salvando…" : "Salvar"}
+        </button>
+        <button className="btn-secondary" disabled={busy} onClick={()=>onDone()}>
+          Cancelar
+        </button>
+        {entry && (
+          <button
+            className="btn-danger"
+            disabled={busy}
+            onClick={() => {
+              if (api && active && window.confirm("Remover este registro do Compêndio?")) {
+                setBusy(true);
+                void api.remove(active.campaign.id, entry.id, entry.version).then(
+                  () => onDone(),
+                  () => { setBusy(false); setError("Não foi possível remover. Recarregue para conferir a versão."); },
+                );
+              }
+            }}
+          >
+            <Trash2 size={15} /> Remover
+          </button>
+        )}
+      </div>
+  </>;
   return (
-    <Modal titulo={entry?"Editar registro":"Novo registro"} onFechar={()=>onDone()} ocupado={busy} largura={640}><section className="codex-editor cd-form" aria-label="Editar conhecimento">
+    <Modal titulo={entry?"Editar registro":"Novo registro"} onFechar={()=>onDone()} ocupado={busy} largura={640} acoes={acoes}><section className="codex-editor cd-form" aria-label="Editar conhecimento">
       <p className="muted">{entry ? "A visibilidade é controlada na página do registro." : "Somente o nome é obrigatório. O registro nasce secreto; revele na página dele."}</p>
-      <label>
-        Nome
-        <input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
-      </label>
-      {campos.filter((f) => !f.long).map(campo)}
-      <CampoNarrativo label="Descrição compartilhada" value={text} maxLength={10000} onChange={setText} rows={dados.rows.filter((r) => r.id !== entry?.id)} />
-      <p className="muted">Digite @ para citar um registro; o texto entre colchetes é o que aparece. Linha iniciada por ## vira subtítulo.</p>
-      {campos.some((f) => f.long) && <details open={campos.some((f) => f.long && !!entry?.fields?.[f.id])}><summary>História e detalhes opcionais</summary>{campos.filter((f) => f.long).map(campo)}</details>}
-      {entry && (
-        <section className="cd-relations" aria-label="Vínculos">
-          <h3>Vínculos</h3>
-          <p className="muted">Vínculos são gravados na hora, mesmo que você cancele o restante da edição.</p>
-          {vinculos.error && <Aviso erro t={vinculos.error} />}
-          {/* os que ocupam um campo próprio são removidos no próprio campo, acima */}
-          <ListaVinculos
-            links={vinculos.links.filter((l) => !vagas.some((v) => v.kind === l.kind && v.outgoing === l.outgoing))}
-            rows={dados.rows}
-            onOpenContent={() => {}}
-            semAbrir
-            controles={{ busy: removendo, onRemover: (l) => removerVinculo(l.id, l.title) }}
-          />
-          <NovoVinculoBotao id={entry.id} vinculos={vinculos} />
-        </section>
-      )}
-      <label>
-        Notas privadas do mestre
-        <textarea value={secret} maxLength={4000} onChange={(e) => setSecret(e.target.value)} />
-      </label>
       <div className="cd-arquivo">
         <label className="file-btn btn-secondary">
         <ImagePlus size={15} aria-hidden="true" /> Escolher imagem
@@ -296,32 +297,35 @@ export function EditorConhecimento({
           Remover imagem do registro
         </label>
       )}
+      <label>
+        Nome
+        <input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
+      </label>
+      {campos.filter((f) => !f.long).map(campo)}
+      <CampoNarrativo label="Descrição compartilhada" value={text} maxLength={10000} onChange={setText} rows={dados.rows.filter((r) => r.id !== entry?.id)} />
+      <p className="muted">Digite @ para citar um registro; o texto entre colchetes é o que aparece. Linha iniciada por ## vira subtítulo.</p>
+      {campos.some((f) => f.long) && <details open={campos.some((f) => f.long && !!entry?.fields?.[f.id])}><summary>História e detalhes opcionais</summary>{campos.filter((f) => f.long).map(campo)}</details>}
+      {entry && (
+        <section className="cd-relations" aria-label="Vínculos">
+          <h3>Vínculos</h3>
+          <p className="muted">Vínculos só serão gravados ao salvar esta edição. Cancelar preserva os vínculos existentes.</p>
+          {vinculos.error && <Aviso erro t={vinculos.error} />}
+          {/* os que ocupam um campo próprio são removidos no próprio campo, acima */}
+          <ListaVinculos
+            links={linksDoRascunho.filter((l) => !vagas.some((v) => v.kind === l.kind && v.outgoing === l.outgoing))}
+            rows={dados.rows}
+            onOpenContent={() => {}}
+            semAbrir
+            controles={{ busy, onRemover: (l) => removerVinculo(l.id, l.title) }}
+          />
+          <NovoVinculoBotao id={entry.id} vinculos={{...vinculos,links:linksDoRascunho}} onAdicionar={(source,target,relation,chosen)=>setAdicionados(xs=>[...xs,{source,target,relation,linha:{id:'draft:'+crypto.randomUUID(),targetId:chosen.id,title:chosen.title,category:chosen.category as CodexLink['category'],kind:relation.kind,relation:source===entry.id?relation.label:relation.inverse,outgoing:source===entry.id,revealed:relation.revealed}}])} />
+        </section>
+      )}
+      <label>
+        Notas privadas do mestre
+        <textarea value={secret} maxLength={4000} onChange={(e) => setSecret(e.target.value)} />
+      </label>
       {error && <Aviso erro t={error} />}
-      <div className="row">
-        <button className="btn-primary" disabled={busy || !title.trim()} onClick={() => void save()}>
-          {busy ? "Salvando…" : "Salvar"}
-        </button>
-        <button className="btn-secondary" disabled={busy} onClick={()=>onDone()}>
-          Cancelar
-        </button>
-        {entry && (
-          <button
-            className="btn-danger"
-            disabled={busy}
-            onClick={() => {
-              if (api && active && window.confirm("Remover este registro do Compêndio?")) {
-                setBusy(true);
-                void api.remove(active.campaign.id, entry.id, entry.version).then(
-                  () => onDone(),
-                  () => { setBusy(false); setError("Não foi possível remover. Recarregue para conferir a versão."); },
-                );
-              }
-            }}
-          >
-            <Trash2 size={15} /> Remover
-          </button>
-        )}
-      </div>
     </section></Modal>
   );
 }

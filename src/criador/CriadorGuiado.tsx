@@ -99,7 +99,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const nameRef = useRef<HTMLInputElement>(null);
   const previousVersion = useRef(draft.catalogueVersion);
   useEffect(() => {
-    if (previousVersion.current !== draft.catalogueVersion && modern2014(draft)) nameRef.current?.focus();
+    if (previousVersion.current !== draft.catalogueVersion && modern2014(draft) && !window.matchMedia("(max-width:700px)").matches) nameRef.current?.focus();
     previousVersion.current = draft.catalogueVersion;
   }, [draft.catalogueVersion]);
   // A apresentação pública é automática: segue a ficha, salvo o que o dono personalizar ou ocultar.
@@ -422,7 +422,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     <button type="button" className="btn-primary" onClick={() => void salvarEdicao()} disabled={salvando || (!base && !sujo && salvo !== null)}>{salvando ? "Salvando…" : "Salvar"}</button>
   </div>;
   return <div ref={raizEditor} className="content ficha auth wide criador sistema-dnd">
-    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · {base ? "EDITAR PERSONAGEM" : "CRIAR PERSONAGEM"} · D&amp;D 5e (2014)</div>
+    <div className="eyebrow">{base ? "EDITAR PERSONAGEM" : "CRIAR PERSONAGEM"} · D&amp;D 5e (2014)</div>
     <div className="criador-topo"><h1>{draft.name.trim() || "Novo personagem"}</h1>{botoes}</div>
     {saida && <div className="notice err criador-saida" role="alertdialog" aria-label="Alterações não salvas">
       <p>Há alterações nesta edição que ainda não foram salvas.</p>

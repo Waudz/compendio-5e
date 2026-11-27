@@ -500,7 +500,7 @@ describe("página Personagens", () => {
     expect(resultados("Aventureiros").getByRole("button", { name: /^Thorin / })).toBeTruthy();
     buscar("lyr"); expect(resultados("Aventureiros").getByRole("button", { name: /^Lyra / })).toBeTruthy();
     buscar("ninguém"); expect(screen.getByText("Nenhum personagem encontrado nesta pesquisa.")).toBeTruthy();
-    buscar(""); fireEvent.click(screen.getByRole("button", { name: "Grade" }));
+    buscar(""); fireEvent.click(screen.getByRole("button", { name: "Visualizar em grade" }));
     cleanup(); await montar(mestreUser); await abrirPersonagens();
     expect((await screen.findByRole("list", { name: "Aventureiros" })).getAttribute("data-view")).toBe("grade");
   });
@@ -611,7 +611,7 @@ describe("página Personagens", () => {
     await codex.setCombatSheet!("ca", await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "", fields: { nickname: "A Sombra", occupation: "Contrabandista" } }), 1, "goblin");
     await montar(mestreUser, true, codex); await abrirPersonagens(); await screen.findByRole("list", { name: "NPCs" });
     for (const visao of ["Lista", "Grade"]) {
-      fireEvent.click(screen.getByRole("button", { name: visao }));
+      const mudar=screen.queryByRole("button",{name:visao==="Lista"?"Visualizar em lista":"Visualizar em grade"}); if(mudar)fireEvent.click(mudar);
       for (const [nome, alcunha] of [["Thorin", "O Corvo"], ["Edric Voss", "A Sombra"]]) {
         const cartao = screen.getByRole("button", { name: new RegExp("^" + nome + " ") });
         expect(cartao.querySelector(".nome-alcunha > strong + em.nome-alcunha-apelido")?.textContent).toBe(alcunha);
@@ -640,7 +640,7 @@ describe("página Personagens", () => {
     buscar("thor");   // o que saiu do filtro não conta
     expect(barra().getByRole("status").textContent).toBe("1 selecionado");
     expect(screen.getByRole("button", { name: "Excluir selecionados (1)" })).toBeTruthy();
-    buscar(""); clicar("Grade");
+    buscar(""); clicar("Visualizar em grade");
     expect(screen.getByRole("list", { name: "Aventureiros" }).getAttribute("data-view")).toBe("grade");
     expect(screen.getAllByRole("checkbox", { name: /^Selecionar / })).toHaveLength(2);
     clicar("Cancelar");
