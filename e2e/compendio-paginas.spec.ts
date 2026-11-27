@@ -57,3 +57,20 @@ test('NPC narrativo, vínculos bidirecionais, segredo e notificações por usuá
  await create(page,'Descobertas','Carta de Dain');await reabrir(page,'jogador');await navigate(page,'Compêndio');await campaign(page);await expect(portal(page,'Descobertas').locator('.cd-badge')).toHaveText('1 novidade');await page.getByRole('button',{name:/^Notificações,/}).filter({visible:true}).click();const notices=page.getByRole('dialog',{name:'Notificações',exact:true});await notices.locator('.cd-notice-link').filter({hasText:'Carta de Dain'}).click();await expect(page.getByRole('heading',{name:'Carta de Dain',exact:true})).toBeVisible();await page.reload();await navigate(page,'Compêndio');await campaign(page);await expect(portal(page,'Descobertas').locator('.cd-badge')).toHaveCount(0);await expectNoHorizontalOverflow(page);
  const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations).toEqual([]);await info.attach('compendio-final',{body:await page.screenshot(),contentType:'image/png'});
 });
+
+
+test('marcar todas como lidas persiste após recarregar e atualiza Descobertas',async({page},info)=>{
+ await openDemo(page,'mestre');await create(page,'Descobertas','Carta um');await create(page,'Descobertas','Carta dois');
+ await reabrir(page,'jogador');await navigate(page,'Compêndio');await campaign(page);
+ await expect(portal(page,'Descobertas').locator('.cd-badge')).toHaveText('2 novidades');
+ await page.getByRole('button',{name:/^Notificações,/}).filter({visible:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Notificações',exact:true});
+ await dialog.getByRole('button',{name:'Marcar todas como lidas',exact:true}).click();
+ await expect(dialog.getByRole('button',{name:'Marcar todas como lidas',exact:true})).toHaveCount(0);
+ await expect(dialog.getByText(/^Lida ·/)).toHaveCount(2);
+ await info.attach('notificacoes-lidas',{body:await page.screenshot(),contentType:'image/png'});
+ await page.reload();await navigate(page,'Compêndio');await campaign(page);
+ await expect(portal(page,'Descobertas').locator('.cd-badge')).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Notificações',exact:true}).filter({visible:true})).toBeVisible();
+ await expectNoHorizontalOverflow(page);
+});

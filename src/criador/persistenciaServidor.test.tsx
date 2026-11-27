@@ -11,12 +11,13 @@ import { fichasEmMemoria, novoBancoFichas, type BancoFichas } from "../fichasMem
 import { registrosEmMemoria } from "../registrosMemoria";
 import { me, memoryStorage, other, renderApp } from "../testUtils";
 import { armazenamentoLocalExperimental } from "./armazenamento";
+import { storageKey } from "../persistence";
 import { defaultPublicIdentity } from "../rules/public-identity";
 
 const mestreUser = { id: "u9", email: "mestre@exemplo.com" } as User;
 const camp = { id: "ca", name: "Mesa dos Dragões", description: "Desc.", created_at: "" };
 const membership = (role: Role): Membership => ({ role, campaign: camp });
-const apiC = (role: Role) => ({ list: async () => ({ ok: true, data: [membership(role)] }) }) as unknown as CampaignApi;
+const apiC = (role: Role) => ({ list: async () => ({ ok: true, data: [membership(role)] }), members:async()=>({ok:true,data:[{user_id:me.id,display_name:"Jogador Um",role:"jogador",joined_at:""},{user_id:other.id,display_name:"Jogador Dois",role:"jogador",joined_at:""}]}) }) as unknown as CampaignApi;
 let banco: BancoFichas, registros: { dados: never[] };
 
 beforeEach(() => {
@@ -67,7 +68,8 @@ const papelDe = (u: User): Role => (u.id === mestreUser.id ? "mestre" : "jogador
 const montar = async (user: User = me, layoutNovo = true) => {
   if (layoutNovo) for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i)!; if (k.startsWith("compendio5e:workspace")) localStorage.removeItem(k); }
   localStorage.setItem(activeKey(user.id), "ca");
-  return renderApp({ user, api: apiC(papelDe(user)), registros: registrosEmMemoria(papelDe(user), user.id, [], registros as never), fichas: fichasEmMemoria(user.id, banco) });
+  const regs = registrosEmMemoria(papelDe(user), user.id, [], registros as never);
+  return renderApp({ user, api: apiC(papelDe(user)), registros: regs, fichas: fichasEmMemoria(user.id, banco) });
 };
 const abrirPersonagens = async () => { await waitFor(() => expect(menu().getByRole("button", { name: "Personagens" })).toBeTruthy()); fireEvent.click(menu().getByRole("button", { name: "Personagens" })); };
 const nomeInput = async () => {
@@ -171,10 +173,10 @@ describe("quem vê o quê", () => {
     cleanup(); await montar(other); await abrirPersonagens();
     expect(screen.queryByRole("button", { name: /sua ficha|ficha de outro participante/ })).toBeNull();            // não lê a ficha de ninguém
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin O Escudo/ }));
-    const cartao = await screen.findByTestId("cartao-publico");
+    const cartao = await screen.findByRole("dialog", { name:"Consulta do Compêndio" });
     expect(cartao.textContent).toMatch(/Thorin.*O Escudo/);
     expect(cartao.textContent).not.toMatch(/PV|Cota de malha|Guerreiro|Anão|atributo/i);
-    expect(cartao.textContent).toContain("Nível: 1");
+    expect(within(cartao).getByText("Nível").nextSibling?.textContent).toBe("1");
     // registro gravado antes da apresentação automática (ainda privado no banco): continua invisível até a próxima gravação
     banco.registros.dados[0].visibility = "private";
     cleanup(); await montar(other); await abrirPersonagens();
@@ -407,4 +409,73 @@ describe("personagens guiados no Início e lista única", () => {
     expect((await screen.findByRole("alert")).textContent).toMatch(/Sem conexão.*pode estar incompleta/);
     expect(screen.queryByTestId("personagens-vazio")).toBeNull();
   });
+});
+
+
+describe("Acesso autorizado: abas restauradas, sessão e dispositivo", () => {
+  it.each(["desktop", "mobile"] as const)("%s: dono e mestre veem a ficha; outro jogador só a identidade", async dispositivo => {
+    await criarPersonagem("Thorin");
+    const id = banco.fichas[0].id;
+    for (const user of [me, mestreUser, other]) {
+      cleanup();
+      vi.stubGlobal("matchMedia", (q: string) => ({ matches: dispositivo === "mobile" && q.includes("max-width"), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }));
+      const key = storageKey({ user: user.id, campaign: "ca", device: dispositivo === "mobile" ? "celular" : "navegador" });
+      localStorage.setItem(key, JSON.stringify({ version: 2, layout: { type: "row", children: [{ type: "tabset", id: "p0", active: true, selected: 0, children: [{ type: "tab", id: `ficha:${id}` }] }] } }));
+      await montar(user, false);
+      if (dispositivo === "mobile") {
+        // O histórico mobile é independente do layout desktop: dono abre pelo atalho Ficha.
+        const nav = within(await screen.findByRole("navigation", { name: "Navegação mobile" }));
+        if (user.id === me.id) fireEvent.click(nav.getByRole("button", { name: "Ficha" }));
+        else {
+          // Mesmo pedido de ficha, resolvido pelo contrato autorizado.
+          fireEvent.click(nav.getByRole("button", { name: "Compêndio" }));
+          fireEvent.click(await screen.findByRole("button", { name: /^Personagens / }));
+          fireEvent.click(await screen.findByRole("button", { name: /^(O Escudo|Thorin)( |$)/ }));
+          if (user.id === mestreUser.id) fireEvent.click(await screen.findByRole("button", { name: "Ver ficha" }));
+          else { expect(screen.queryByRole("button", { name: "Ver ficha" })).toBeNull(); continue; }
+        }
+      }
+      if (user.id === other.id) {
+        expect(await screen.findByTestId("cartao-publico")).toBeTruthy();
+        expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
+        expect(screen.queryByRole("region", { name: "Inventário do personagem" })).toBeNull();
+      } else {
+        expect(await screen.findByTestId("ficha-guiada-leitura")).toBeTruthy();
+        expect(screen.queryByTestId("cartao-publico")).toBeNull();
+      }
+    }
+  });
+});
+
+
+
+describe("Caminhos do dono no desktop",()=>{
+ it.each(["lista","início","compêndio"])("abre a ficha completa por %s",async caminho=>{
+  await criarPersonagem("Thorin");cleanup();await montar(me);
+  if(caminho==="lista")await abrirPersonagens();
+  if(caminho==="compêndio"){
+   fireEvent.click(menu().getByRole("button",{name:"Compêndio"}));
+   fireEvent.click(await screen.findByRole("button",{name:/^Personagens /}));
+   fireEvent.click(await screen.findByRole("button",{name:/^Thorin /}));
+   fireEvent.click(await screen.findByRole("button",{name:"Ver ficha"}));
+  }else fireEvent.click(await screen.findByRole("button",{name:/^Thorin /}));
+  expect(await screen.findByTestId("ficha-guiada-leitura")).toBeTruthy();
+  expect(screen.queryByTestId("cartao-publico")).toBeNull();
+ });
+});
+
+
+describe("Personagens de outros jogadores",()=>{
+ it("desktop: reutiliza a carta, mostra display_name e mantém a lista ao fechar",async()=>{
+  await criarPersonagem("Thorin");cleanup();await montar(other);await abrirPersonagens();
+  expect(await screen.findByText("Jogador: Jogador Um")).toBeTruthy();
+  fireEvent.click(await screen.findByRole("button",{name:/^Thorin /}));
+  const carta=within(await screen.findByRole("dialog",{name:"Consulta do Compêndio"}));
+  expect(await carta.findByText("Jogador: Jogador Um")).toBeTruthy();
+  expect(carta.queryByRole("button",{name:"Ver ficha"})).toBeNull();
+  expect(screen.queryByText("Os detalhes da ficha são privados do jogador e do mestre.")).toBeNull();
+  expect(screen.queryByText(me.email!)).toBeNull();
+  fireEvent.click(carta.getByRole("button",{name:"Fechar consulta"}));
+  expect(screen.queryByRole("dialog")).toBeNull();expect(screen.getByRole("heading",{name:"Personagens"})).toBeTruthy();
+ });
 });

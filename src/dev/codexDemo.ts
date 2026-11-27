@@ -140,6 +140,7 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
       else sync(id, sheet!, (old.data.definition as { nome: string }).nome, originalName!);
       store(key + ":definitions", all.filter((x) => x !== old));
     },
+    seenAll: async (cid,through,signal) => { signal.throwIfAborted();scope(cid);if(!master){const visible=new Set(read().filter(e=>e.visible).map(e=>e.id));store(key+":notices",notices().map(n=>n.id<=through&&!n.read_at&&visible.has(n.entry_id)?{...n,read_at:new Date().toISOString()}:n));} },
     seen: async (id) => { if (!master) store(key + ":notices", notices().map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))); },
   };
 }

@@ -320,11 +320,11 @@ describe("ficha de jogo", () => {
     await semear();
     await montar(other); await abrirLista();
     fireEvent.click(await screen.findByRole("button", { name: /^Thorin Escudo de Pedra/ }));
-    const cartao = await screen.findByTestId("cartao-publico");
+    const cartao = await screen.findByRole("dialog",{name:"Consulta do Compêndio"});
     expect(cartao.querySelector("img")?.getAttribute("src")).toBe(RETRATO);
     expect(cartao.textContent).toMatch(/Thorin.*Escudo de Pedra/);
     expect(cartao.textContent).not.toMatch(/PV \d|CA \d|Força|Cota de malha|Mochila/);
-    expect(cartao.textContent).toContain("Nível: 3");   // o nível faz parte da apresentação; o dono pode ocultá-lo
+    expect(within(cartao).getByText("Nível").nextSibling?.textContent).toBe("3");   // o nível faz parte da apresentação; o dono pode ocultá-lo
     expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
   });
 });

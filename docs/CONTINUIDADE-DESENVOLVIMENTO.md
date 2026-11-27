@@ -942,3 +942,16 @@ Nova prioridade: **P0 própria ficha no desktop**. Inspeção sem correção: fr
 0020 confirmada aplicada; nenhuma 0021 criada/aplicada aqui. Foto da conta, novas Anotações do jogador, #100 e demais critérios permanecem conforme tabela de classificação no relatório. Cadastro aberto permanece aprovado. Contas/dados externos preservados; nenhuma escrita em produção, merge, deploy ou exclusão nesta execução. Não alterar 1.0/Assimilação.
 
 Branch de documentação **docs/transferencia-codex-alpha-20261127**, baseada em #165; PR só documental dependente. Código e handoff enviados ao GitHub. Não há código desta sessão apenas local. Próxima IA deve usar clone/worktree limpo dos remotos e atualizar HEAD/PR antes de agir, sem repetir auditorias/testes já concluídos. Autorizações de publicação/migração continuam necessárias.
+
+
+## RETOMAR AQUI — Diagnóstico corrigido e notificações (27/11/2026)
+
+Base atualizada: `3226a7292ce7dafcb0a6ced1e5a5139079b0b32a`; #165 e #166 já integrados (confirmação Git/remoto e estado de #165). O responsável retirou expressamente o relato de inacessibilidade da própria ficha: o problema era a página pública inteira para **outro jogador** na lista Personagens. Não reabrir investigação P0 de proprietários/RLS por esse relato. Testes adicionados confirmam dono/mestre na ficha e privacidade do terceiro.
+
+Branch `codex/ficha-propria-desktop`: Personagens usa `identidadeSpec` + `useAbrirConsulta` para terceiros, mantendo `ficha` para dono/mestre e os mesmos gestos/contexto. Nome público do responsável via API `members`/`profiles.display_name` na lista e carta, sem e-mail. Hook `jogadoresCampanha.ts` isola respostas por usuário/campanha e atualiza após edição de perfil. `FichaJogo` usa um contêiner comum `ficha-largura`, incluindo abas, salvamento e conteúdo.
+
+Notificações: `CheckCheck`/Marcar todas como lidas no topo, oculto sem pendências; `notificacoesLote.ts` pagina os IDs autorizados além dos 50 do feed, congela a seleção e grava somente `read_at`. AbortSignal na troca de escopo; erro não simula sucesso; o feed real reconcilia sucessos parciais. Demonstração implementa o mesmo contrato; não comprova produção. **Nenhuma migração necessária ou aplicada.** Acrescentada regressão REST/JWT isolada no cenário existente para leitura persistente e proteção de outro destinatário.
+
+Validação intermediária: 54 testes direcionados de ficha/notificações, 1820 testes completos antes da correção adicional da listagem, 62 regressões atualizadas de ficha e 16 Playwright do Compêndio aprovados. Validação final e CI serão registrados no PR; não reutilizar o resultado anterior como aprovação de arquivos posteriores. Uma tentativa paralela local foi interrompida após queda do serviço esbuild/Vite; execução repetida com concorrência reduzida.
+
+Sem merge, deploy, consulta/escrita em produção ou mudança no legado. Foto da conta, Minhas anotações, contrato de criação sem escolhas prévias (#100) e demais itens da DEC-035 continuam planejados, não entregues por este PR. Próximo ciclo segue essa fila após a revisão desta correção; sem iniciar Encontros, Loot ou PWA.
