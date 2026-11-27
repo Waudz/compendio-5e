@@ -27,3 +27,8 @@ Preparar preflight de contagem de fichas com nota privada, notas ausentes/removi
 Preflight agregado preparado em `supabase/preflight/personagens_exclusao_visibilidade.sql`, ainda não executado em produção. Confere notas ocultas/removidas, formato de identidade, classificação no Codex, campos legitimamente ocultos e referências de combate/encontro sem imprimir conteúdos. Não substitui o teste da migração nem autoriza reparo indiscriminado.
 
 Direção técnica em análise: manter o ID canônico da nota como tombstone e arquivar a ficha/inventário com acesso bloqueado nas APIs normais; invalidar edições e sincronização após exclusão; preservar snapshots de combate e desativar seus vínculos vivos à ficha. Rollback não poderá tornar arquivos excluídos legíveis inadvertidamente. Nenhuma migração de exclusão ou reparo foi gerada nesta fatia de preparação.
+
+
+Validação do preflight: 23 testes SQL/PGlite de Compêndio aprovados, incluindo a execução somente leitura e igualdade das notas antes/depois. Não é consulta de produção. A primeira tentativa usou a fixture histórica até 0013 e falhou por ausência de campaign_codex; o teste foi movido para a fixture completa, sem modificar o esquema antigo.
+
+Dependências confirmadas: `private_ficha.itens_vistos` (0019) e status de combate da ficha (0011) referenciam character_sheets com ON DELETE CASCADE. Uma exclusão física apagaria histórico; **não usar DELETE físico da ficha como atalho para contornar notes_ficha_guard**. A futura migração precisa arquivar/desativar preservando esses fatos e fechar leituras/mutações de fichas arquivadas, inclusive RPCs SECURITY DEFINER, não apenas RLS/UI. Nenhum script de reparo de dados foi aplicado ou gerado por suposição.

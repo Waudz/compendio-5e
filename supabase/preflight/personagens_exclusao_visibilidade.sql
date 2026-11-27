@@ -12,7 +12,7 @@ from public.character_sheets s join public.notes n on n.id=s.character_id and n.
 -- Ocultação por campo é uma configuração legítima e deve permanecer intacta.
 select count(*) as fichas_com_campos_ocultos
 from public.character_sheets s join public.notes n on n.id=s.character_id
-where exists(select 1 from jsonb_each(coalesce(n.meta#>'{identidadePublica,settings}','{}'::jsonb)) f
+where exists(select 1 from jsonb_each(case when jsonb_typeof(n.meta#>'{identidadePublica,settings}')='object' then n.meta#>'{identidadePublica,settings}' else '{}'::jsonb end) f
  where f.value->>'mode'='hidden');
 
 -- Referências a aventureiros no combate e na configuração dos encontros: manter snapshots.

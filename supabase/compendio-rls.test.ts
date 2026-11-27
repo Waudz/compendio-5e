@@ -555,3 +555,10 @@ describe("0017 sobre dados existentes", () => {
     }
   }, 60000);
 });
+
+it("preflight de exclusão/visibilidade só agrega e não altera dados",async()=>{
+ const before=await db.query("select id,visibility,meta,deleted_at from public.notes order by id");
+ const result=await db.exec(readFileSync(join(__dirname,"preflight/personagens_exclusao_visibilidade.sql"),"utf8"));
+ expect(result.length).toBeGreaterThan(3);
+ expect((await db.query("select id,visibility,meta,deleted_at from public.notes order by id")).rows).toEqual(before.rows);
+});
