@@ -1,3 +1,5 @@
+import {PERSONAGEM_EXCLUIDO} from "./ExclusaoPersonagem";
+import {limparRecuperacao} from "./criador/recuperacao";
 import { GlobalMenu } from "./GlobalMenu";
 import {tituloCategoria} from "./Compendio";
 import { PageViewport } from "./PageViewport";
@@ -150,6 +152,18 @@ function Workspace({ userId }: { userId: string }) {
     const fechar = (e: Event) => { const id = (e as CustomEvent<string>).detail; if (!findTab(modelRef.current, id)) return; closeTab(modelRef.current, id); onModelChange(modelRef.current); };
     window.addEventListener(EVENTO_FECHAR_TELA, fechar); return () => window.removeEventListener(EVENTO_FECHAR_TELA, fechar);
   }, [onModelChange]);
+  useEffect(()=>{
+    const onDeleted=(event:Event)=>{
+      const value=(event as CustomEvent<{id:string;campaignId:string}>).detail;
+      if(value.campaignId!==campaignId)return;
+      const ids:string[]=[];
+      modelRef.current.visitNodes(n=>{if(n instanceof TabNode){const page=currentPage(n);if(["ficha","criador","identidade"].includes(page.kind)&&(page.ref===value.id||lerMapaAba(userId,campaignId,page.ref)===value.id)){ids.push(n.getId());limparRecuperacao(userId,campaignId,page.ref);}}});
+      ids.forEach(id=>{unsaved.api.register(id,null);closeTab(modelRef.current,id);});
+      closed.current=closed.current.filter(t=>![`ficha:${value.id}`,`identidade:${value.id}`,`criador:${value.id}`].includes(t.id??""));
+      onModelChange(modelRef.current);
+    };
+    window.addEventListener(PERSONAGEM_EXCLUIDO,onDeleted);return()=>window.removeEventListener(PERSONAGEM_EXCLUIDO,onDeleted);
+  },[userId,campaignId,onModelChange,unsaved.api]);
   // O histórico do navegador acompanha a seleção, não recria nem apaga abas.
   useEffect(() => {
     const selected = modelRef.current.getActiveTabset()?.getSelectedNode();
@@ -335,8 +349,8 @@ function Workspace({ userId }: { userId: string }) {
     aoLado,
     navegar: (s:TabSpec,origem?:string)=>visit(s,origem),
     abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem, true),
-    mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
-      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } }] }),
+    mostrar: (x: number, y: number, s: TabSpec, origem?: string,extras:MenuItem[]=[]) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
+      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } },...extras] }),
   }), [openContentLink, mobile, model, visit, aoLado]);
 
   return <NotificacoesProvider><CatalogoDaCampanha/><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>

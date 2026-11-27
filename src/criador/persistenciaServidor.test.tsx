@@ -479,3 +479,35 @@ describe("Personagens de outros jogadores",()=>{
   expect(screen.queryByRole("dialog")).toBeNull();expect(screen.getByRole("heading",{name:"Personagens"})).toBeTruthy();
  });
 });
+
+
+describe("exclusão de personagem",()=>{
+ const confirmar=async(nome:string)=>{
+  const dialog=within(await screen.findByRole("dialog",{name:"Excluir personagem"}));
+  expect((dialog.getByRole("button",{name:"Excluir personagem"}) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(dialog.getByLabelText("Digite o nome do personagem para confirmar"),{target:{value:nome}});
+  fireEvent.click(dialog.getByRole("button",{name:"Excluir personagem"}));
+ };
+ it.each(["ficha","lista"])("dono exclui por %s, fecha abas e persiste ao reabrir",async caminho=>{
+  await criarPersonagem("Thorin");cleanup();await montar(me);await abrirPersonagens();
+  if(caminho==="ficha"){
+   fireEvent.click(await screen.findByRole("button",{name:/^Thorin /}));await screen.findByTestId("ficha-guiada-leitura");
+   fireEvent.click(screen.getByRole("button",{name:"Mais ações do personagem"}));fireEvent.click(screen.getByRole("button",{name:"Excluir personagem"}));
+  }else{
+   fireEvent.click(await screen.findByRole("button",{name:"Mais ações de Thorin"}));fireEvent.click(await screen.findByRole("menuitem",{name:"Excluir personagem"}));
+  }
+  await confirmar("Thorin");await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());
+  expect(banco.fichas[0].draft.inventory.length).toBeGreaterThan(0);
+  expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
+  await abrirPersonagens();await screen.findByTestId("personagens-vazio");cleanup();await montar(me);await abrirPersonagens();await screen.findByTestId("personagens-vazio");
+ });
+ it("mestre exclui pelo contexto; outro jogador não recebe essa ação",async()=>{
+  await criarPersonagem("Thorin");cleanup();await montar(other);await abrirPersonagens();
+  await screen.findByRole("button",{name:/^Thorin /});expect(screen.queryByRole("button",{name:"Mais ações de Thorin"})).toBeNull();
+  cleanup();await montar(mestreUser);await abrirPersonagens();fireEvent.click(await screen.findByRole("button",{name:"Mais ações de Thorin"}));fireEvent.click(screen.getByRole("menuitem",{name:"Excluir personagem"}));await confirmar("Thorin");await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());await screen.findByTestId("personagens-vazio");
+ });
+ it("rede indisponível não fecha a confirmação nem simula exclusão",async()=>{
+  await criarPersonagem("Thorin");cleanup();await montar(me);await abrirPersonagens();fireEvent.click(await screen.findByRole("button",{name:"Mais ações de Thorin"}));fireEvent.click(screen.getByRole("menuitem",{name:"Excluir personagem"}));banco.rede.caida=true;
+  await confirmar("Thorin");expect(await screen.findByRole("alert")).toBeTruthy();expect(screen.getByRole("dialog")).toBeTruthy();expect(registros.dados.length).toBe(1);
+ });
+});

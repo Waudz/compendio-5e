@@ -35,6 +35,7 @@ export function fichasDemo(uid: string, campaignId: string, registros: { ler: ()
     return navigator.locks ? (await navigator.locks.request(CHAVE, executar)) as T : executar();
   };
   return {
+    excluir:(id,r,n,o)=>chamar(a=>a.excluir(id,r,n,o)),
     listar: c => chamar(a => a.listar(c)),
     carregar: id => chamar(a => a.carregar(id)),
     criar: (c, d, i) => chamar(a => a.criar(c, d, i)),

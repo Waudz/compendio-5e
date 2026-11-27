@@ -1150,3 +1150,6 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .global-menu-group h2{font-size:12px;font-weight:600;color:var(--text-2);margin:0;padding:4px 12px}
 .global-menu-group small{display:block;padding:6px 12px;color:var(--text-2)}
 @media(max-width:700px){.mobile-simple .global-menu-sheet{width:100%;border:0}.mobile-simple .global-menu-overlay{position:absolute;justify-content:stretch}.mobile-simple .global-menu-sheet .mobile-menu-heading{padding:0 4px}.mobile-simple .global-menu-sheet .global-menu-group{padding:6px 0}}
+
+.personagens .home-party>li{position:relative}.personagens .home-char{padding-right:44px}.personagem-menu{position:absolute;right:8px;top:50%;transform:translateY(-50%)}
+.ctx .danger,.barra-item.danger{color:var(--danger,#ed7777)}

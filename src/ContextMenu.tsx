@@ -1,6 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
-export type MenuItem = { label: string; onSelect: () => void; disabled?: boolean } | "-";
+export type MenuItem = { label: string; onSelect: () => void; disabled?: boolean; danger?:boolean } | "-";
 export type MenuState = { x: number; y: number; items: MenuItem[] };
 
 export function ContextMenu({ menu, onClose }: { menu: MenuState; onClose: () => void }) {
@@ -26,6 +26,6 @@ export function ContextMenu({ menu, onClose }: { menu: MenuState; onClose: () =>
   const x = Math.min(menu.x, window.innerWidth - 250), y = Math.min(menu.y, window.innerHeight - menu.items.length * 34 - 12);
   return <div className="ctx" role="menu" ref={ref} onKeyDown={keys} style={{ left: Math.max(4, x), top: Math.max(4, y) }} onContextMenu={e => e.preventDefault()}>
     {menu.items.map((it, i) => it === "-" ? <hr key={i}/> :
-      <button key={i} role="menuitem" disabled={it.disabled} onClick={() => { onClose(); it.onSelect(); }}>{it.label}</button>)}
+      <button key={i} role="menuitem" className={it.danger?"danger":undefined} disabled={it.disabled} onClick={() => { onClose(); it.onSelect(); }}>{it.label}</button>)}
   </div>;
 }

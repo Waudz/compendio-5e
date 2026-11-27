@@ -1,3 +1,5 @@
+import {PERSONAGEM_EXCLUIDO} from "./ExclusaoPersonagem";
+import {lerMapaAba,limparRecuperacao} from "./criador/recuperacao";
 import { GlobalMenu } from "./GlobalMenu";
 import {tituloDe,useVersaoRegistros} from "./registrosStore";
 import { useConhecimento } from "./compendio/conhecimento";
@@ -88,6 +90,17 @@ export function Mobile(_props: Props) {
       if (spec.kind === "ficha" && user && active) gravarFicha(chaveFicha(user.id, active.campaign.id), spec.ref);
     });
   };
+  useEffect(()=>{
+   const deleted=(event:Event)=>{
+    const value=(event as CustomEvent<{id:string;campaignId:string}>).detail;
+    if(value.campaignId!==active?.campaign.id||!user)return;
+    const matches=(s:TabSpec)=>["ficha","criador","identidade"].includes(s.kind)&&(s.ref===value.id||lerMapaAba(user.id,value.campaignId,s.ref)===value.id);
+    if(matches(screen)){unsaved.register(current,null);limparRecuperacao(user.id,value.campaignId,screen.ref);setScreen({kind:"secao",ref:"personagens"});}
+    setHistory(h=>h.filter(s=>!matches(s)));
+    snapshots.current.forEach((s,k)=>{if(matches(s.screen))snapshots.current.delete(k);else s.history=s.history.filter(p=>!matches(p));});
+   };
+   window.addEventListener(PERSONAGEM_EXCLUIDO,deleted);return()=>window.removeEventListener(PERSONAGEM_EXCLUIDO,deleted);
+  },[active?.campaign.id,user?.id,current,screen,unsaved]);
   const navigate = irPara;
   const goBack = () => {
     if (consumirVoltar()) return;

@@ -4,7 +4,9 @@ import {identidadeSpec} from "./compendio/navegacao";
 import { origemPublica, rotuloClasse, rotuloRaca } from './criador/rotulos';
 // Personagens da campanha: lista (retrato, nome, classe, nível) e perfil de cada um. Qualquer participante cria o seu; só o dono edita.
 // Ficha completa só para dono/mestre; os demais consultam a identidade pública na carta compartilhada.
-import { Plus, Trash2, UserRound } from "lucide-react";
+import {useExclusaoPersonagem} from "./ExclusaoPersonagem";
+import type {MenuItem} from "./ContextMenu";
+import { Plus, Trash2, UserRound,MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAbrirEmAba } from "./abrirEmAba";
 import { Aviso } from "./Diario";
@@ -53,10 +55,10 @@ function RetratoDaLista({ p }: { p: PersonagemCampanha }) {
 
 /** Uma lista só: cada personagem aparece uma vez, com a ficha e a identidade pública vinculadas pelo mesmo registro. */
 export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpenContent: (s: TabSpec) => void; somenteMeus?: boolean }) {
-  const api = useRegistros(), fichas = useFichas(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros(), { aoClicarDireito, aoClicar, aoBotaoDoMeio } = useAbrirEmAba();
+  const api = useRegistros(), fichas = useFichas(), { active } = useCampaigns(), { user } = useAuth(), v = useVersaoRegistros(), { aoClicarDireito, aoClicar, aoBotaoDoMeio,abrirMenuEm } = useAbrirEmAba();
   const [dados, setDados] = useState<ListaPersonagens | null>(null), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [aviso, setAviso] = useState<{ ok: boolean; t: string } | null>(null), [descartando, setDescartando] = useState<string | null>(null), [enviando, setEnviando] = useState<string | null>(null);
-  const consultar=useAbrirConsulta(onOpenContent),jogador=useJogadoresCampanha();
+  const consultar=useAbrirConsulta(onOpenContent),jogador=useJogadoresCampanha(),exclusao=useExclusaoPersonagem();
   const cid = active?.campaign.id, userId = user?.id ?? null;
   useEffect(() => { setDados(null); setErro(null); setAviso(null); }, [cid]);   // nada de uma campanha aparece em outra
   useEffect(() => {
@@ -86,13 +88,16 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
     finally { setEnviando(null); }
   };
   const descartar = (g: ResumoPersonagemGuiado) => { if (!userId) return; try { armazenamentoLocalExperimental(userId, campanhaId).excluir(g.id); } catch { /* ignora */ } setDescartando(null); avisarRegistros(); setTentativa(n => n + 1); setAviso({ ok: true, t: `Rascunho “${g.nome}” removido deste navegador.` }); };
-  const cartao = (chave: string, spec: TabSpec, dica: string, retrato: React.ReactNode, nome: string, alcunha: string | null, detalhe: string, notas: (string | null)[]) => <li key={chave}>
-    <button className="home-char" onClick={e => {if(!aoClicar(e,spec))consultar(spec);}} onAuxClick={e=>aoBotaoDoMeio(e,spec)} onMouseDown={e=>{if(e.button===1)e.preventDefault();}} onContextMenu={e => aoClicarDireito(e, spec)} title={dica}>{retrato}
-      <span><strong>{nome}</strong>{alcunha && <>{" "}<em className="home-char-alcunha">{alcunha}</em></>}{" "}<small>{detalhe}</small>{notas.filter(Boolean).map(n => <small key={n} className="home-char-nota">{n}</small>)}</span></button></li>;
+  const cartao = (chave: string, spec: TabSpec, dica: string, retrato: React.ReactNode, nome: string, alcunha: string | null, detalhe: string, notas: (string | null)[]) => {
+    const p=dados?.personagens.find(x=>x.id===chave);
+    const extras:MenuItem[]=p&&exclusao.disponivel&&(p.meu||active.role==="mestre")?["-",{label:"Excluir personagem",danger:true,onSelect:()=>exclusao.solicitar({id:p.id,nome:p.nome,revisao:p.revisao??null})}]:[];
+    return <li key={chave}>
+    <button className="home-char" onClick={e => {if(!aoClicar(e,spec))consultar(spec);}} onAuxClick={e=>aoBotaoDoMeio(e,spec)} onMouseDown={e=>{if(e.button===1)e.preventDefault();}} onContextMenu={e => aoClicarDireito(e, spec,extras)} title={dica}>{retrato}
+      <span><strong>{nome}</strong>{alcunha && <>{" "}<em className="home-char-alcunha">{alcunha}</em></>}{" "}<small>{detalhe}</small>{notas.filter(Boolean).map(n => <small key={n} className="home-char-nota">{n}</small>)}</span></button>{extras.length>0&&<button className="personagem-menu icon-btn" aria-label={`Mais ações de ${nome}`} onClick={e=>abrirMenuEm(e.currentTarget,spec,extras)}><MoreHorizontal size={16}/></button>}</li>;};
   const personagens = (dados?.personagens ?? []).filter(p => !somenteMeus || p.meu);
   const soLocais = fichas ? [] : locais;   // sem API de fichas, os guiados deste navegador fazem parte da própria lista
   const vazio = !!dados && personagens.length === 0 && soLocais.length === 0;
-  return <div className="content personagens">
+  return <div className="content personagens">{exclusao.dialog}
     <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <div className="row-between"><h1>{somenteMeus ? "Meus personagens" : "Personagens"}</h1><button className="btn-primary" onClick={novo}><Plus size={15} aria-hidden="true"/> Criar personagem</button></div>
     <p className="muted">Cada participante cria o próprio personagem. A ficha é privada (dono e mestre); os outros jogadores veem só a apresentação, sem o que o dono ocultar.{fichas ? "" : " Sem conta e API de fichas, os personagens guiados ficam só neste navegador (experimental)."}</p>
