@@ -562,3 +562,43 @@ it("preflight de exclusão/visibilidade só agrega e não altera dados",async()=
  expect(result.length).toBeGreaterThan(3);
  expect((await db.query("select id,visibility,meta,deleted_at from public.notes order by id")).rows).toEqual(before.rows);
 });
+
+
+it("exclusão arquiva, preserva inventário/histórico e rejeita terceiros no servidor",async()=>{
+ const hidden={mode:"hidden"};
+ const meta={identidadePublica:{settings:{imageUrl:null,title:"",name:{mode:"real"},surname:hidden,race:hidden,characterClass:hidden,level:hidden,description:""},card:{imageUrl:null,title:"",name:"PJ",surname:null,race:null,characterClass:null,level:null,description:""}}};
+ const third=uid(99);
+ await db.query("insert into auth.users(id,email) values($1,'third-delete@example.invalid')",[third]);
+ const invite=(await call(master,"create_invite",cid,10,7)).rows[0].r;
+ expect((await call(third,"join_campaign",invite)).error).toBeUndefined();
+ for(const actor of [player,master]){
+  const draft={id:"temporario",name:"Personagem de teste",level:3,inventory:[{id:"i1",itemId:"longsword",quantity:1,equipped:false,origin:"acquired"}],currentHp:13};
+  const made=await as(player,"select * from public.create_guided_character($1,'x',$2::jsonb,false,$3::jsonb)",[cid,JSON.stringify(meta),JSON.stringify(draft)]);
+  expect(made.error).toBeUndefined();const id=made.rows[0].character_id as string,op=crypto.randomUUID();
+  const remove=(who:string|null,revision=1,name=draft.name,operation=op)=>call(who,"delete_campaign_character",id,revision,name,operation);
+  expect((await remove(other)).error).toBeDefined();expect((await remove(third)).error).toBeDefined();expect((await remove(null)).error).toBeDefined();
+  expect((await remove(actor,0)).error).toContain("conflito_de_revisao");expect((await remove(actor,1,"nome errado")).error).toContain("confirmacao_invalida");
+  expect((await db.query("select visibility,meta from public.notes where id=$1",[id])).rows[0].visibility).toBe("campaign");
+  const target=await save(master,null,0,payload("Destino com vínculo"));
+  expect((await link(id,target)).error).toBeUndefined();
+  const before=(await db.query("select draft from public.character_sheets where character_id=$1",[id])).rows[0];
+  const fighter={id:"combatente-preservado",nome:"Personagem de teste",iniciativa:5,lado:"aliado",pv:9,pvMax:20,ref:{tipo:"personagem",id}};
+  await db.query("insert into public.campaign_combats as b(campaign_id,state) values($1,$2::jsonb) on conflict(campaign_id) do update set state=excluded.state,version=b.version+1",[cid,JSON.stringify({combatentes:[fighter],turno:fighter.id,rodada:2})]);
+  const encounter={id:"enc-teste",nome:"Encontro preservado",participantes:[{id:"part-1",nome:draft.name,quantidade:1,pv:13,ref:{tipo:"personagem",id}}]};
+  await db.query("insert into public.campaign_encounters as b(campaign_id,state) values($1,$2::jsonb) on conflict(campaign_id) do update set state=excluded.state,version=b.version+1",[cid,JSON.stringify({encontros:[encounter]})]);
+  expect((await remove(actor)).error).toBeUndefined();expect((await remove(actor)).error).toBeUndefined();
+  expect(await links(master,target)).toEqual([]);
+  const savedEncounter=(await db.query<{state:{encontros:{participantes:Record<string,unknown>[]}[]}}>("select state from public.campaign_encounters where campaign_id=$1",[cid])).rows[0].state.encontros[0];
+  expect(savedEncounter.participantes[0]).toEqual({id:"part-1",nome:draft.name,quantidade:1,pv:13});
+
+  expect((await as(player,"select * from public.character_sheets where character_id=$1",[id])).rows).toEqual([]);
+  expect((await as(master,"select * from public.character_sheets where character_id=$1",[id])).rows).toEqual([]);
+  expect((await as(player,"select * from private_ficha.personagens_excluidos")).error).toBeDefined();
+  expect((await db.query("select draft from public.character_sheets where character_id=$1",[id])).rows[0]).toEqual(before);
+  expect((await db.query("select count(*)::int as n from private_ficha.itens_vistos where character_id=$1",[id])).rows[0].n).toBe(1);
+  expect((await call(player,"alterar_vitais",id,JSON.stringify({tipo:"dano",valor:1}),crypto.randomUUID())).error).toBeDefined();
+  expect((await as(player,"update public.notes set deleted_at=null where id=$1",[id])).error).toBeDefined();
+  const state=(await db.query<{state:{combatentes:Record<string,unknown>[]}}>("select state from public.campaign_combats where campaign_id=$1",[cid])).rows[0].state;
+  expect(state.combatentes[0]).toEqual({id:fighter.id,nome:fighter.nome,iniciativa:5,lado:"aliado",pv:9,pvMax:20});
+ }
+});

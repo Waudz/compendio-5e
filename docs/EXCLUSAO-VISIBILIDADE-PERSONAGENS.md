@@ -32,3 +32,10 @@ Direção técnica em análise: manter o ID canônico da nota como tombstone e a
 Validação do preflight: 23 testes SQL/PGlite de Compêndio aprovados, incluindo a execução somente leitura e igualdade das notas antes/depois. Não é consulta de produção. A primeira tentativa usou a fixture histórica até 0013 e falhou por ausência de campaign_codex; o teste foi movido para a fixture completa, sem modificar o esquema antigo.
 
 Dependências confirmadas: `private_ficha.itens_vistos` (0019) e status de combate da ficha (0011) referenciam character_sheets com ON DELETE CASCADE. Uma exclusão física apagaria histórico; **não usar DELETE físico da ficha como atalho para contornar notes_ficha_guard**. A futura migração precisa arquivar/desativar preservando esses fatos e fechar leituras/mutações de fichas arquivadas, inclusive RPCs SECURITY DEFINER, não apenas RLS/UI. Nenhum script de reparo de dados foi aplicado ou gerado por suposição.
+
+
+## Proposta 0021 em desenvolvimento (não aplicar)
+
+Gerada com CLI 3.2.0 e renumerada pelo ledger. Usa **arquivo privado + soft-delete da nota**, sem DELETE físico da character_sheets: preserva FKs de vitais/itens conhecidos. Snapshot privado inclui nota, ficha, referências do combate e do encontro. Políticas restritivas escondem a ficha/status arquivados; guardas bloqueiam mutações e restauração pelo cliente, inclusive funções definer. RPC valida membro, dono/mestre, revisão, nome exato e chave de operação, em uma transação. Remove somente referências vivas de combatentes/participantes, preservando nomes, PV e estado; versões avançam para impedir sobrescrita silenciosa.
+
+Primeira validação: 91 testes direcionados de esquema/RLS/notas/ledger aprovados, incluindo dono/mestre, anônimo/outro mestre, conflito, confirmação, repetição, inventário e histórico preservados. Faltam UI, abas, sincronização entre sessões, encontros/vínculos e REST/JWT real do novo contrato. Rollback recusa execução se houve exclusões, exigindo recuperação seletiva autorizada; não apaga o arquivo nem torna fichas removidas legíveis por acidente. Não autoriza produção.
