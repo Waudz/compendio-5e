@@ -4,7 +4,7 @@ import type { Res } from "./campaigns";
 
 export type Situacao = "ativo" | "aguardando" | "arquivado" | "npc" | "compendio";
 export type AcaoCiclo = "renunciar" | "aguardar" | "arquivar" | "npc" | "reativar" | "transferir" | "cancelar-transferencia" | "compendio" | "excluir";
-export type SituacaoPersonagem = { id: string; state: Situacao; pendingTo?: string; previousOwner?: string };
+export type SituacaoPersonagem = { id: string; state: Situacao; pendingTo?: string; previousOwner?: string; /** Só para o mestre: o dono já não participa da campanha. */ ownerLeft?: boolean };
 export type OfertaPersonagem = { id: string; characterId: string; title: string; createdAt: string };
 export type TipoAviso = "renuncia" | "oferta" | "oferta-aceita" | "oferta-recusada";
 export type AvisoPersonagem = { id: number; characterId: string; kind: TipoAviso; title: string; readAt: string | null; createdAt: string };

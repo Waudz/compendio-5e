@@ -29,6 +29,11 @@ select count(*) filter(where n.updated_at < timestamptz '2026-11-26 02:01:19+00'
 from public.character_sheets s join public.notes n on n.id=s.character_id and n.campaign_id=s.campaign_id
 where n.visibility <> 'campaign' and n.deleted_at is null;
 
+-- Outra origem do mesmo aviso: fichas de quem já não participa da campanha (a leitura da linha pública exige o autor presente).
+-- O reparo não as altera; o mestre as resolve pelo próprio aplicativo (gerenciar o personagem), depois da 0021.
+select count(*) as fichas_sem_jogador_na_campanha
+from public.character_sheets s where not exists (select 1 from public.campaign_members m where m.campaign_id=s.campaign_id and m.user_id=s.owner_id);
+
 -- Pré-requisitos e colisões da 0021.
 select to_regprocedure('public.codex_definitions_for(uuid)') is not null as tem_0019_ou_0020,
  public.codex_capabilities() as capacidade_atual,

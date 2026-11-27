@@ -350,7 +350,8 @@ end $$;
 revoke all on function public.character_lifecycle(uuid, uuid[], text, uuid, jsonb, uuid) from public, anon;
 grant execute on function public.character_lifecycle(uuid, uuid[], text, uuid, jsonb, uuid) to authenticated;
 
--- Situação dos personagens (quem não aparece está ativo). O mestre recebe também a transferência pendente e o dono anterior.
+-- Situação dos personagens (quem não aparece está ativo). O mestre recebe também a transferência pendente, o dono anterior e quem
+-- ficou sem jogador na campanha (as regras de leitura escondem dos outros a linha pública de quem saiu).
 create function public.character_states(p_campaign uuid) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare master boolean;
@@ -359,13 +360,15 @@ begin
   master := public.is_master(p_campaign);
   return coalesce((
     select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('id', n.id, 'state', coalesce(c.state, 'ativo'),
-        'pendingTo', case when master then t.to_user end, 'previousOwner', case when master then c.previous_owner end)) order by n.id)
+        'pendingTo', case when master then t.to_user end, 'previousOwner', case when master then c.previous_owner end,
+        'ownerLeft', case when master and f.sem_jogador then true end)) order by n.id)
       from public.notes n
+      cross join lateral (select not exists (select 1 from public.campaign_members m where m.campaign_id = n.campaign_id and m.user_id = n.owner_id) as sem_jogador) f
       left join private_ficha.ciclo c on c.character_id = n.id
       left join private_ficha.transferencias t on t.character_id = n.id and t.status = 'pendente'
      where n.campaign_id = p_campaign and n.kind = 'character' and n.deleted_at is null
        and (master or n.visibility = 'campaign' or n.owner_id = (select auth.uid()))
-       and (c.state is not null or (master and t.id is not null))), '[]'::jsonb);
+       and (c.state is not null or (master and (t.id is not null or f.sem_jogador)))), '[]'::jsonb);
 end $$;
 
 -- Ofertas de transferência dirigidas a quem chama. Só o título público do personagem sai daqui.

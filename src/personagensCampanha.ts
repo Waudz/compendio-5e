@@ -14,7 +14,7 @@ import type { RegistrosApi } from "./registros";
 
 export type PersonagemCampanha = {
   id: string; ownerId?:string; revisao?:number;
-  /** Ciclo de vida: só `ativo` é um aventureiro em jogo. */ situacao: Situacao; /** Visível ao mestre: transferência aguardando aceite. */ pendenteDe?: string;
+  /** Ciclo de vida: só `ativo` é um aventureiro em jogo. */ situacao: Situacao; /** Visível ao mestre: transferência aguardando aceite. */ pendenteDe?: string; /** Visível ao mestre: o jogador saiu da campanha. */ semJogador?: boolean;
   nome: string; alcunha: string | null; classe: string; nivel: number | null;
   /** Imagem pública (https) de personagem guiado, ou caminho no armazenamento do retrato de um perfil simples. */
   retratoUrl: string | null; retratoCaminho: string | null;
@@ -33,7 +33,7 @@ export async function listarPersonagens(campaignId: string, de: { registros: Reg
   // sem saber quem saiu de jogo, não se mostra uma lista que pode estar errada
   if (c && !c.ok) return c;
   const situacoes = new Map((c?.data ?? []).map(s => [s.id, s]));
-  const doCiclo = (id: string) => { const s = situacoes.get(id); return { situacao: s?.state ?? "ativo" as const, ...(s?.pendingTo ? { pendenteDe: s.pendingTo } : {}) }; };
+  const doCiclo = (id: string) => { const s = situacoes.get(id); return { situacao: s?.state ?? "ativo" as const, ...(s?.pendingTo ? { pendenteDe: s.pendingTo } : {}), ...(s?.ownerLeft ? { semJogador: true } : {}) }; };
   const fichas = new Map<string, ResumoFicha>((f?.ok ? f.data : []).map(x => [x.id, x]));
   const classeDaFicha = (x: ResumoFicha) => (x.classId ? rotuloClasse(x.classId) : "Aventureiro");
   const saida: PersonagemCampanha[] = r.data.map(nota => {
@@ -58,7 +58,8 @@ export async function listarPersonagens(campaignId: string, de: { registros: Reg
 }
 
 /** Aviso para quem enxerga algo que os outros jogadores não veem, na perspectiva de quem está olhando. */
-export const rotuloPrivacidade = (p: PersonagemCampanha, souMestre: boolean) => (p.publicado ? null : souMestre ? "oculto dos jogadores" : p.meu ? "só você e o mestre veem" : "oculto dos jogadores");
+/** Ninguém ocultou quem ficou sem jogador: o motivo é dito como ele é. */
+export const rotuloPrivacidade = (p: PersonagemCampanha, souMestre: boolean) => (p.semJogador ? "jogador saiu da campanha" : p.publicado ? null : souMestre ? "oculto dos jogadores" : p.meu ? "só você e o mestre veem" : "oculto dos jogadores");
 
 /** Aventureiros do Início, sem limite: os publicados para a campanha e os guiados cuja ficha quem olha pode ler (o próprio; todos, para o mestre).
  *  Perfis simples continuam aparecendo só quando marcados como visíveis para a campanha (é o que essa opção significa). */

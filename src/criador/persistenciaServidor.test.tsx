@@ -608,6 +608,21 @@ describe("ciclo de vida do personagem", () => {
     expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
   });
 
+  it("Início, lista e Compêndio concordam: personagem ativo sem aviso de oculto; jogador que saiu tem o motivo certo", async () => {
+    await criarPersonagem("Thorin");
+    const lerTudo = async () => {
+      const fonte = fonteAventureirosDoInicio(registrosEmMemoria("mestre", mestreUser.id, [], registros as never), null, fichasEmMemoria(mestreUser.id, banco), mestreUser.id, true);
+      return Promise.all([fonte.listar("ca"), fonte.listarTodos!("ca")]);
+    };
+    for (const r of await lerTudo()) { expect(r.ok && r.data).toHaveLength(1); expect(r.ok && r.data[0].nota).toBeUndefined(); }
+    cleanup(); await montar(mestreUser); await abrirPersonagens();
+    await screen.findByRole("button", { name: /^Thorin / }); expect(screen.queryByText(/oculto/i)).toBeNull();
+    // o jogador sai: como no banco, a linha pública deixa de ser legível, mas a ficha continua com o mestre
+    banco.campanhas.ca.jogadores = banco.campanhas.ca.jogadores.filter(x => x !== me.id);
+    registros.dados.splice(0, registros.dados.length);
+    for (const r of await lerTudo()) expect(r.ok && r.data[0].nota).toBe("jogador saiu da campanha");
+  });
+
   it("sem a atualização do banco, nenhuma ação do ciclo é oferecida", async () => {
     await criarPersonagem("Thorin"); banco.semCiclo = true;
     for (const quem of [me, mestreUser]) {

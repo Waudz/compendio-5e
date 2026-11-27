@@ -62,11 +62,12 @@ export function cicloEmMemoria(uid: string, banco: BancoFichas, avisar: () => vo
       if (banco.semCiclo) return { ok: true, data: null };
       if (!membro(campaignId, uid)) return falha("sem_permissao");
       const mestre = mestreDe(campaignId) === uid;
-      const ids = new Set([...Object.entries(estado().situacoes).filter(([, s]) => s.campaignId === campaignId).map(([id]) => id),
+      const semJogador = mestre ? banco.fichas.filter(f => f.campaignId === campaignId && !membro(campaignId, f.ownerId)).map(f => f.id) : [];
+      const ids = new Set([...semJogador, ...Object.entries(estado().situacoes).filter(([, s]) => s.campaignId === campaignId).map(([id]) => id),
         ...(mestre ? estado().ofertas.filter(o => o.campaignId === campaignId && o.status === "pendente").map(o => o.characterId) : [])]);
       return { ok: true, data: [...ids].map(id => {
         const s = estado().situacoes[id], oferta = estado().ofertas.find(o => o.characterId === id && o.status === "pendente");
-        return { id, state: s?.state ?? "ativo", ...(mestre && oferta ? { pendingTo: oferta.para } : {}), ...(mestre && s?.previousOwner ? { previousOwner: s.previousOwner } : {}) };
+        return { id, state: s?.state ?? "ativo", ...(mestre && oferta ? { pendingTo: oferta.para } : {}), ...(mestre && s?.previousOwner ? { previousOwner: s.previousOwner } : {}), ...(semJogador.includes(id) ? { ownerLeft: true } : {}) };
       }) };
     },
     agir: async ({ campaignId, ids, acao, operacao, revisoes = {}, destino }) => {

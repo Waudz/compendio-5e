@@ -277,7 +277,7 @@ describe("capacidade e reversão", () => {
   });
 
   it("sem uso, a reversão volta à 0020 e a migração pode ser aplicada de novo", async () => {
-    const principal = db;
+    const principal = db, anteriores = [campanha, outra] as const;
     db = new PGlite();
     try {
       await preparar(db); await criarContas();
@@ -288,13 +288,32 @@ describe("capacidade e reversão", () => {
       expect((await como(ana, "delete from public.notes where id=$1", [id])).error).toBeDefined();   // guarda anterior de volta
       await db.exec(sql("migrations", "0021_personagens_ciclo_de_vida.sql"));
       expect((await chamar(mestre, "codex_capabilities")).rows[0].r).toBe(21);
-    } finally { await db.close(); db = principal; }
+    } finally { await db.close(); db = principal; [campanha, outra] = anteriores; }
   }, 60000);
 });
 
 describe("identidades ocultas de registros antigos", () => {
+  it("outra origem do mesmo aviso: o jogador saiu da campanha; o mestre é informado e pode devolver a identidade à campanha", async () => {
+    const sair = uid(5);
+    await db.query("insert into auth.users(id,email) values($1,'sai@example.invalid')", [sair]);
+    const convite = (await chamar(mestre, "create_invite", campanha, 10, 7)).rows[0].r;
+    expect((await chamar(sair, "join_campaign", convite)).error).toBeUndefined();
+    const id = await criar(sair, "Partiu");
+    expect((await como(mestre, "select id from public.notes where id=$1", [id])).rows).toHaveLength(1);
+    expect((await como(sair, "delete from public.campaign_members where campaign_id=$1 and user_id=$2 returning user_id", [campanha, sair])).rows).toHaveLength(1);
+    expect((await nota(id)).visibility).toBe("campaign");                                            // ninguém ocultou nada
+    expect((await como(mestre, "select id from public.notes where id=$1", [id])).rows).toEqual([]);   // mas a regra de leitura esconde
+    expect(await lerFicha(mestre, id)).toBeDefined();
+    expect(await situacoes(mestre)).toContainEqual({ id, state: "ativo", ownerLeft: true });
+    expect((await situacoes(beto)).some(x => x.id === id)).toBe(false);
+    expect((await acao(mestre, id, "transferir", { destino: mestre })).error).toBeUndefined();
+    for (const quem of [mestre, beto]) expect((await como(quem, "select id from public.notes where id=$1", [id])).rows).toHaveLength(1);
+    expect(await lerFicha(beto, id)).toBeUndefined();
+    expect((await situacoes(mestre)).some(x => x.id === id)).toBe(false);
+  });
+
   it("a origem é a ficha criada antes da 0013 e nunca regravada; o reparo mantém as escolhas por campo", async () => {
-    const principal = db;
+    const principal = db, anteriores = [campanha, outra] as const;
     db = new PGlite();
     try {
       await preparar(db, "0013"); await criarContas();
@@ -317,6 +336,6 @@ describe("identidades ocultas de registros antigos", () => {
       const versao = (await admin("select version from public.notes where id=$1", [antiga]))[0].version;
       await db.exec(sql("reparos", "identidades_ocultas_antigas.sql"));                 // idempotente
       expect((await admin("select version from public.notes where id=$1", [antiga]))[0].version).toBe(versao);
-    } finally { await db.close(); db = principal; }
+    } finally { await db.close(); db = principal; [campanha, outra] = anteriores; }
   }, 90000);
 });
