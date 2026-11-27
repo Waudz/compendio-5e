@@ -3,6 +3,7 @@
  * além da validação única no primeiro uso.
  */
 import dados from './data/srd-2014-items.json';
+import { itemDaCampanha } from './campanha';
 import { parseItemCatalogueFile, type ItemCatalogueFile, type SrdItem } from './item-schema';
 import type { ContentRef } from '../rules/content-registry';
 import { validateRulesCatalogue, type RulesCatalogue } from '../rules/rules-catalogue';
@@ -104,6 +105,10 @@ export const srdItemRef = (id: string): ContentRef => ({ sourceId: SRD_2014_SOUR
 
 /** Dados estruturados de um item pelo ID (aceita o alias legado, ex.: `potion-of-healing`). `undefined` se não existir. */
 export function srdItem(id: string): SrdItem | undefined {
+  return itemDaCampanha(id)?.item ?? srdItemPadrao(id);
+}
+/** Somente o catálogo global, sem as definições da campanha. */
+export function srdItemPadrao(id: string): SrdItem | undefined {
   srdItemsCatalogue();
   return porId!.get(aliases!.get(id) ?? id);
 }

@@ -64,3 +64,44 @@ A 0015 foi aplicada em produção e **não deve ser reaplicada**. A 0016 é adit
 **Aplicação (pelo responsável, não executada):** confirmar o projeto 2.0 e o backup; executar só leitura de `supabase/preflight/0016_compendio_paginas_vinculos.sql` e anotar as contagens; aplicar o arquivo completo `supabase/migrations/0016_compendio_paginas_vinculos.sql` (já contém `BEGIN/COMMIT`); repetir as contagens; testar mestre, jogador e usuário de outra campanha; só então publicar o aplicativo. Reversão, com aprovação e junto da versão anterior do aplicativo: `supabase/rollback/0016_compendio_paginas_vinculos_down.sql`, que arquiva vínculos e campos antes de removê-los.
 
 SHA-256 do arquivo revisado: `2a6b162c8a5c602ddaa74aadf4270f6931767d6f6bc3a109c5420485e867f857` (fim de linha LF, como no repositório) ou `ad1346ecfa61248118b3c0f46da309926c55c03b5a26fbc92c7ad45facb46b09` (CRLF, como na cópia local no Windows). Calcular novamente se o SQL mudar.
+
+
+## 0017 e 0018 — conhecimento granular, vínculos tipados, descobertas e personalização (propostas, não aplicadas)
+
+Requerem 0015 e 0016 (informadas como aplicadas). As seções acima sobre níveis 0–4 descrevem o estado anterior à 0017.
+
+**Modelo (0017).** `campaign_codex.visible` (existência) + `revealed text[]` (chaves: `name`, `nickname`, `description`, `image`, cada campo, `holders`, `sheet` ou `sheet:<seção>`). `codex_links` ganha `kind`, `inverse` e `revealed`; um vínculo só chega ao jogador se estiver revelado **e** as duas pontas forem visíveis. `codex_project` é a única projeção do jogador (lista e prévia). `codex_save` só grava conteúdo; `codex_reveal` grava a visibilidade, numa transação. Registro novo é secreto.
+
+- Título do jogador: nome revelado, senão alcunha/nome provisório revelado, senão título neutro. Vale para listas, vínculos, termos de pesquisa, notificações e abas.
+- ID de catálogo só sai com identificação completa (nome + ficha inteira); item não identificado aparece com categoria `discovery`. Imagem do catálogo só sai com imagem **e** nome revelados (a URL contém o ID).
+- `sheet` são seções derivadas da definição (CA, vulnerabilidades, dano, efeitos…) calculadas pelo aplicativo do mestre, porque o servidor não tem o catálogo. A definição continua sendo a fonte: a página do mestre regrava quando divergem, e a 0018 atualiza na mesma transação da edição.
+- Um aviso por operação quando algo ainda não anunciado fica visível; correção, ocultação e repetição não avisam. Com a ficha inteira revelada, ela conta como uma única informação.
+- Posse continua derivada dos inventários; o jogador só a vê com `holders` revelado. Registrar descoberta ou vincular item não concede nada. Item citado só por vínculo cria uma referência secreta (`registered=false`), fora de Descobertas até ser registrada ou publicada.
+
+**Conversão dos dados existentes.** Nível 0 continua secreto. Bestiário: 1 nome; 2 + descrição e campos; 3 + imagem; 4 + ficha. Demais tipos publicados: tudo o que o nível já entregava. Vínculos que o jogador via (pontas com nível 2+) nascem revelados; os outros, ocultos. Campos genéricos `identity`/`region`/`history` passam a `occupation`/`residence`/`inhabitants`/`type`/`context`. Nenhum aviso é gerado pela conversão. `meta.stats` (sem interface) permanece guardado e deixa de ser projetado.
+
+**Definições (0018).** `campaign_definitions` guarda só substituições (mesmo ID) e criações (`custom-…`) por campanha; leitura direta apenas do mestre, escrita só por `codex_definition_save`/`codex_definition_remove`. Restaurar apaga a substituição e devolve a ficha original à página. Criação com página ligada não é excluída. O catálogo global não muda; dado inválido é ignorado e o padrão volta a valer. Sem a 0018, o catálogo padrão segue funcionando.
+
+**Aplicação (pelo responsável; nada foi aplicado):** confirmar projeto 2.0 e backup; rodar `supabase/preflight/0017_0018_compendio_granular.sql`; aplicar os arquivos completos 0017 e depois 0018; repetir as contagens; publicar o aplicativo correspondente **na mesma janela** (o aplicativo anterior deixa de gravar registros após a 0017 e o novo exige capacidade 17). Testar mestre, jogador e outra campanha. A ficha dos registros antigos é preenchida quando o mestre abre a página (sem aviso novo); até lá, quem tinha acesso completo continua vendo a definição. Reversão, com aprovação: 0018_down e depois 0017_down, junto da versão anterior do aplicativo; a 0017_down falha para o lado fechado (só permanece visível o que estava totalmente revelado; vínculos ocultos/repetidos e avisos são removidos, com arquivo privado).
+
+SHA-256 (LF, vigentes): 0017 `09f74d0ac34ca7163982ed80fc20aaf1bdd45177254249c39f5beb3e0c7ef66c`; 0018 `18c9257486e2c8dbada8e73a35604dc6168bcbaac910693e6e3b70aa4cee57a9`; 0019 `450c5bf44a3c6a08015a5a87d747396e91b558f509fe68bbf551fe6d0bf4b0df`.
+
+
+## 0019 — catálogo da campanha no inventário e itens não identificados (proposta, não aplicada)
+
+Requer 0014, 0017 e 0018. Aplicar 0017 → 0018 → 0019 na mesma janela da publicação (reversão na ordem inversa).
+
+- `codex_definitions_for` é a única leitura de definições feita pelo aplicativo. Mestre: tudo, inclusive `identifiesAs`. Jogador: substituições/criações de itens que um personagem seu já teve, definições com identificação completa publicada e a aparência dos códigos que são seus.
+- Item não identificado: o inventário guarda só `unid-<32 hex>`; a definição verdadeira fica em `private_ficha.mascaras`, sem privilégio de API. Nome, propriedades, histórico, Realtime e transferências levam apenas o código. O jogador não cria nem troca códigos (guarda de entregas da 0013/0014).
+- `codex_grant_item` (mestre, idempotente) entrega identificado ou não; `codex_identify_item` troca o código pelo ID real em todos os inventários e históricos da campanha. Entregar não cria nem revela descoberta.
+- `private_ficha.itens_vistos` mantém o nome no histórico após consumo/perda; é preenchida por gatilho a partir de gravações já autorizadas e retroativamente na aplicação.
+- `usar_consumivel` passa a obedecer à fórmula/categoria da definição da campanha. Item não identificado não pode ser usado antes da identificação.
+- `codex_holders` considera também os itens não identificados (jogador só vê com `holders` revelado).
+- Substituição de um item comum (de livre adição) vale para a campanha: quem o tiver no inventário recebe a definição da mesa. Segredo deve usar criação própria ou item restrito.
+- Limites: a identificação protege dados do servidor; não esconde o que o próprio mestre escrever na aparência. Textos de histórico já gravados mantêm o nome aparente. Itens verdadeiros que já estavam nos inventários continuam identificados.
+
+### Revisão de segurança da 0017/0018 (26/11/2026)
+
+Corrigido na 0017 (ainda não aplicada; SHA alterado): (1) a regra de vínculos permitia ao mestre ligar a ficha privada de outro usuário e ler o título dela; voltou a valer só ficha publicada ou própria; (2) a projeção do jogador deixou de enviar `version`, que contava edições secretas. Conferidos sem alteração: RLS e privilégios das tabelas novas, funções auxiliares sem execução pela API, isolamento entre campanhas, Storage, notificações, conversão dos níveis e reversões. A 0018 não mudou.
+
+Conferência na aplicação da 0019: além do preflight da 0017/0018, comparar antes e depois a contagem de `character_sheets` e confirmar que `select count(*) from private_ficha.itens_vistos` cobre os inventários existentes.

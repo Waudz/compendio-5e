@@ -2,6 +2,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PesquisaCatalogo } from "./PesquisaCatalogo";
+import { itensDaCampanha, useVersaoCatalogo } from "./catalogue/campanha";
 import { srdItemFile, describeItem } from "./catalogue/srd-2014-items";
 import { novoId } from "./combate";
 import { ROTULO_MOEDA, itemLootValido, textoLoot, type ItemLoot, type Moeda } from "./loot";
@@ -14,12 +15,15 @@ export function LootEditor({ itens, onChange, rotulo }: { itens: readonly ItemLo
   const [aberto, setAberto] = useState(false);
   const dialogo = useRef<HTMLDialogElement>(null);
   useEffect(() => { if (aberto && !dialogo.current?.open) dialogo.current?.showModal(); }, [aberto]);
+  const catalogo = useVersaoCatalogo();
   const [tipo, setTipo] = useState<Tipo>("catalogo"), [busca, setBusca] = useState(""), [nome, setNome] = useState(""), [desc, setDesc] = useState(""), [qtd, setQtd] = useState("1"), [moeda, setMoeda] = useState<Moeda>("gp"), [erro, setErro] = useState(false);
   const achados = useMemo(() => {
     if (tipo !== "catalogo" || busca.trim().length < 2) return [];
     const q = sem(busca.trim());
-    return srdItemFile().items.filter(i => sem(i.nome).includes(q) || sem(i.en).includes(q)).slice(0, 8);
-  }, [tipo, busca]);
+    // Criações e substituições da campanha primeiro; itens não identificados não são entradas de catálogo.
+    const daMesa = itensDaCampanha().filter(x => !x.mascara).map(x => x.item);
+    return [...daMesa, ...srdItemFile().items.filter(i => !daMesa.some(m => m.id === i.id))].filter(i => sem(i.nome).includes(q) || sem(i.en).includes(q)).slice(0, 8);
+  }, [tipo, busca, catalogo]);
   const q = Number(qtd);
   const incluir = (i: Omit<ItemLoot, "id">) => {
     const v = itemLootValido({ id: novoId(), ...i });

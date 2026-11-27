@@ -5,6 +5,7 @@ import {carregarIndice} from '../catalogue/nucleo/registro';
 import type {CategoriaDef} from '../catalogue/nucleo/tipos';
 import {jogadorPodeAdicionar} from '../catalogue/disponibilidade';
 import {itemConhecido} from './conhecimento';
+import {aplicarDaCampanha,useDefinicoes} from './definicoes';
 import {pesquisarLinhas,useLinhasCampanha,type LinhaCompendio,nomesCategoria} from './consulta';
 import {regraSpec} from './navegacao';
 import type {TabSpec} from '../workspace';
@@ -13,7 +14,8 @@ type Loaded={cat:CategoriaDef<unknown>;items:readonly unknown[]}[];
 export function PesquisaGlobal({query,onQuery,onOpenContent}:{query:string;onQuery:(v:string)=>void;onOpenContent:(s:TabSpec)=>void}){
  const campaign=useLinhasCampanha(!!query.trim()),{active}=useCampaigns(),context=useAbrirEmAba();const [loaded,setLoaded]=useState<Loaded>([]),[error,setError]=useState(false);
  useEffect(()=>{let alive=true;if(!query.trim()||loaded.length)return;setError(false);void Promise.all((sistemaDnd5e2014.categorias as unknown as CategoriaDef<unknown>[]).filter(c=>c.id!=='monstros').map(async cat=>({cat,items:(await carregarIndice(cat)).itens}))).then(v=>{if(alive)setLoaded(v);},()=>{if(alive)setError(true);});return()=>{alive=false;};},[query]);
- const rules=useMemo(()=>loaded.flatMap(({cat,items})=>items.filter(x=>cat.id!=='itens'||active?.role==='mestre'||jogadorPodeAdicionar(cat.idDe(x))||itemConhecido(campaign.items,cat.idDe(x))).map(x=>({id:cat.id+'-'+cat.idDe(x),title:cat.nomeDe(x),subtitle:cat.subtituloDe(x),category:cat.rotulo,body:[cat.corpoDe?.(x),...(cat.nomesAlternativos?.(x)??[])].filter(Boolean).join(' '),spec:cat.id==='magias'?{kind:'magia' as const,ref:cat.idDe(x),title:cat.nomeDe(x)}:cat.id==='itens'?{kind:'item' as const,ref:cat.idDe(x),title:cat.nomeDe(x)}:regraSpec(cat.id,cat.idDe(x),cat.nomeDe(x))}))),[loaded,campaign.items,active?.role]);
+ const definicoes=useDefinicoes();
+ const rules=useMemo(()=>loaded.flatMap(({cat,items})=>(cat.id==='itens'?aplicarDaCampanha('item',items as {id:string}[],definicoes.lista) as unknown[]:items).filter(x=>cat.id!=='itens'||active?.role==='mestre'||jogadorPodeAdicionar(cat.idDe(x))||itemConhecido(campaign.items,cat.idDe(x))).map(x=>({id:cat.id+'-'+cat.idDe(x),title:cat.nomeDe(x),subtitle:cat.subtituloDe(x),category:cat.rotulo,body:[cat.corpoDe?.(x),...(cat.nomesAlternativos?.(x)??[])].filter(Boolean).join(' '),spec:cat.id==='magias'?{kind:'magia' as const,ref:cat.idDe(x),title:cat.nomeDe(x)}:cat.id==='itens'?{kind:'item' as const,ref:cat.idDe(x),title:cat.nomeDe(x)}:regraSpec(cat.id,cat.idDe(x),cat.nomeDe(x))}))),[loaded,campaign.items,active?.role,definicoes.lista]);
  const results=query.trim()?[
   ...pesquisarLinhas(campaign.rows,query).map(row=>({row,area:'Campanha',category:nomesCategoria[row.category]})),
   ...pesquisarLinhas(rules as LinhaCompendio[],query).map(row=>({row,area:'Regras',category:row.category})),

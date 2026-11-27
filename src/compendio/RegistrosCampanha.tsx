@@ -1,22 +1,17 @@
 import { Modal } from "../ui/Modal";
 import { EditorEnquadramento } from "../imagem/EditorEnquadramento";
 import { ENQUADRAMENTO_PADRAO, juntar, type Enquadramento } from "../imagem/enquadramento";
-import { CAMPOS } from "./campos";
+import { CAMPOS, type Campo } from "./campos";
 import { useUnsavedGuard } from "../unsaved";
-import { useContext } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { OrigemAbaContext } from "../abrirEmAba";
-import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
-import { useVersaoRegistros } from "../registrosStore";
+import { ImagePlus, ScrollText, ExternalLink, Trash2 } from "lucide-react";
 import { useCampaigns } from "../CampaignsContext";
 import { Aviso } from "../Diario";
 import { paraBlocos, deBlocos } from "../registros";
 import { RetratoQuadrado } from "../RetratoCombate";
-import { DetalheMonstro } from "./DetalheMonstro";
-import { DetalheItem } from "./DetalheItem";
-import { imagemDoItem, imagemDoMonstro } from "../ficha/imagensCatalogo";
-import { srdItem } from "../catalogue/srd-2014-items";
-import type { Monstro } from "../catalogue/sistemas/dnd5e-2014/esquemas";
+import { carregarDefinicao, secoesDaDefinicao, useDefinicao, useDefinicoes } from "./definicoes";
+import { registroSpec } from "./navegacao";
 import type { TabSpec } from "../workspace";
 import {
   validarImagemConhecimento,
@@ -24,9 +19,11 @@ import {
   useCodexApi,
   avisarConhecimento,
   type Conhecimento,
+  type CodexApi,
   type CodexCategoria,
   type EdicaoConhecimento,
 } from "./conhecimento";
+
 export function ImagemConhecida({ path, framing, tamanho=160 }: { path: string; framing?:Enquadramento; tamanho?:number }) {
   const api = useCodexApi();
   const [image, setImage] = useState<{ path: string; url: string }>();
@@ -54,131 +51,75 @@ export function ImagemConhecida({ path, framing, tamanho=160 }: { path: string; 
     />
   );
 }
-export function DetalheConhecido({
-  entry,
-  onOpenContent,
-}: {
-  entry: Conhecimento;
-  onOpenContent: (s: TabSpec) => void;
-}) {
-  const [monster, setMonster] = useState<{
-    id: string;
-    value: Monstro | undefined;
-  }>();
-  useEffect(() => {
-    let alive = true;
-    if (
-      entry.category === "monster" &&
-      entry.knowledge === 4 &&
-      entry.systemId === "dnd5e-2014" &&
-      entry.definitionId
-    )
-      void import("../catalogue/contratos")
-        .then((c) => c.todosOsMonstros())
-        .then((ms) => {
-          if (alive)
-            setMonster({
-              id: entry.id,
-              value: ms.find((m) => m.id === entry.definitionId),
-            });
-        });
-    return () => {
-      alive = false;
-    };
-  }, [entry.id, entry.knowledge, entry.definitionId]);
-  const api = useCodexApi(),
-    { active } = useCampaigns(),
-    registrosVersion = useVersaoRegistros();
-  const [holders, setHolders] = useState<{
-    scope: string;
-    data: { id: string; title: string }[];
-  }>();
-  const holderScope = `${active?.campaign.id}:${entry.id}`;
-  useEffect(() => {
-    let alive = true;
-    if (api && active && entry.category === "item")
-      void api.holders(active.campaign.id, entry.id).then(
-        (data) => {
-          if (alive) setHolders({ scope: holderScope, data });
-        },
-        () => {},
-      );
-    return () => {
-      alive = false;
-    };
-  }, [api, holderScope, entry, registrosVersion]);
-  const publicImage =
-    entry.imageDefinitionId && entry.systemId === "dnd5e-2014"
-      ? entry.category === "monster"
-        ? imagemDoMonstro(entry.imageDefinitionId)
-        : entry.category === "item"
-          ? imagemDoItem(entry.imageDefinitionId)
-          : null
-      : null;
-  const item =
-    entry.category === "item" &&
-    entry.systemId === "dnd5e-2014" &&
-    entry.definitionId
-      ? srdItem(entry.definitionId)
-      : undefined;
+
+/** Conteúdo atual de um registro, para regravar sem perder nada. */
+export const edicaoDe = (e: Conhecimento): EdicaoConhecimento => ({
+  category: e.category, systemId: e.systemId, definitionId: e.definitionId, instanceId: e.instanceId, title: e.title,
+  description: e.description ?? [], secret: e.secret, fields: e.fields ?? {}, sheet: e.sheet, framing: e.framing, imagePath: e.imagePath, registered: e.registered,
+});
+
+/** Página da campanha ligada a uma definição. Cria o registro SECRETO se preciso; não concede item nem revela nada. */
+export async function garantirRegistro(api: CodexApi, campaignId: string, items: readonly Conhecimento[], category: "monster" | "item", definitionId: string, registered = true): Promise<string> {
+  const entry = items.find((x) => x.category === category && x.systemId === "dnd5e-2014" && x.definitionId === definitionId);
+  if (entry) {
+    if (registered && entry.registered === false) await api.save(campaignId, entry.id, entry.version, { ...edicaoDe(entry), registered: true });
+    return entry.id;
+  }
+  // Falha aqui interrompe: sem as definições da campanha, a página poderia nascer com o conteúdo original.
+  const daMesa = (await api.definitions?.(campaignId)) ?? [];
+  const definition = await carregarDefinicao(category, definitionId, daMesa);
+  if (!definition) throw Error("Definição não encontrada nesta campanha.");
+  return api.save(campaignId, null, 0, {
+    category, systemId: "dnd5e-2014", definitionId, title: definition.nome.slice(0, 120), description: [], fields: {},
+    sheet: secoesDaDefinicao(definition), registered,
+  });
+}
+
+export function RegistrarDescoberta({ category, id, onOpenContent }: { category: "monster" | "item"; id: string; onOpenContent: (s: TabSpec) => void }) {
+  const { active } = useCampaigns(),
+    { api, items, error, loading, refresh } = useConhecimento();
+  const [busy, setBusy] = useState(false), [failure, setFailure] = useState("");
+  if (active?.role !== "mestre") return null;
+  const entry = items.find((x) => x.category === category && x.definitionId === id);
+  const registered = !!entry && entry.registered !== false;
+  const open = () => {
+    if (!api || busy) return;
+    if (registered) return onOpenContent(registroSpec(entry!.id, entry!.title));
+    setBusy(true);
+    setFailure("");
+    garantirRegistro(api, active.campaign.id, items, category, id).then(
+      (eid) => { setBusy(false); refresh(); onOpenContent(registroSpec(eid)); },
+      (e) => { setBusy(false); setFailure(e instanceof Error ? e.message : "Não foi possível registrar."); },
+    );
+  };
   return (
-    <>
-      <h3>{entry.title}</h3>
-      {entry.imagePath ? (
-        <ImagemConhecida path={entry.imagePath} framing={entry.framing}/>
-      ) : publicImage ? (
-        <RetratoQuadrado
-          src={publicImage}
-          tipo={entry.category === "monster" ? "monstro" : "avulso"}
-          tamanho={160}
-        />
-      ) : null}
-      {entry.description && (
-        <p style={{ whiteSpace: "pre-wrap" }}>{deBlocos(entry.description)}</p>
-      )}
-      {entry.category === "monster" &&
-        entry.knowledge === 4 &&
-        entry.systemId === "dnd5e-2014" &&
-        monster?.id === entry.id &&
-        monster.value && <DetalheMonstro monstro={monster.value} />}
-      {item && <DetalheItem item={item} onOpenContent={onOpenContent} />}
-      {holders?.scope === holderScope && holders.data.length > 0 && (
-        <p>Com: {holders.data.map((x) => x.title).join(", ")}</p>
-      )}
-      {entry.stats && (
-        <dl>
-          {Object.entries(entry.stats).map(([k, v]) => (
-            <div key={k}>
-              <dt>{k}</dt>
-              <dd>{String(v)}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </>
+    <div className="cd-registrar">
+      <button className="btn-secondary" disabled={!!error || loading || busy} title={error} onClick={open}>
+        {registered ? <ExternalLink size={15} aria-hidden="true" /> : <ScrollText size={15} aria-hidden="true" />}{" "}
+        {registered ? "Abrir registro da campanha" : category === "item" ? "Registrar como descoberta" : "Registrar na campanha"}
+      </button>
+      {failure && <Aviso erro t={failure} />}
+    </div>
   );
 }
+
 export function EditorConhecimento({
   entry,
   category,
-  reference,
   onDone,
 }: {
   entry: Conhecimento | null;
   category: CodexCategoria;
-  reference?: { id: string; nome: string };
   onDone: (id?:string) => void;
 }) {
   const { active } = useCampaigns(),
     api = useCodexApi();
-  const [title, setTitle] = useState(entry?.title ?? reference?.nome ?? ""),
+  const carregada = useDefinicao(category, entry?.definitionId, entry?.systemId), semDefinicoes = useDefinicoes().indisponivel;
+  const definition = semDefinicoes ? undefined : carregada;
+  const [title, setTitle] = useState(entry?.title ?? ""),
     [text, setText] = useState(deBlocos(entry?.description ?? [])),
     [secret, setSecret] = useState(entry?.secret ?? "");
-  const [definition, setDefinition] = useState(
-    entry?.definitionId ?? reference?.id ?? "",
-  );
-  const [level, setLevel] = useState(entry?.knowledge ?? 0),
-    [error, setError] = useState(""),
+  const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const created = useRef<{ id: string; version: number }>();
   const [file, setFile] = useState<File>(),
@@ -190,10 +131,9 @@ export function EditorConhecimento({
   const origin = useContext(OrigemAbaContext);
   const releaseGuard=useUnsavedGuard(
     origin ?? "secao:compendio",
-    title !== (entry?.title ?? reference?.nome ?? "") ||
+    title !== (entry?.title ?? "") ||
       text !== deBlocos(entry?.description ?? []) ||
       secret !== (entry?.secret ?? "") ||
-      level !== (entry?.knowledge ?? 0) ||
       !!file ||
       removeImage || JSON.stringify(fields)!==JSON.stringify(entry?.fields??{}) || JSON.stringify(framing)!==JSON.stringify(entry?.framing??ENQUADRAMENTO_PADRAO),
   );
@@ -208,31 +148,26 @@ export function EditorConhecimento({
       const data: EdicaoConhecimento = {
         category,
         systemId: entry?.systemId ?? "dnd5e-2014",
-        definitionId: definition || undefined,
+        definitionId: entry?.definitionId,
         instanceId: entry?.instanceId,
         title,
         description: paraBlocos(text),
         secret,
-        stats: entry?.stats, fields, framing,
-        knowledge: file ? 0 : level,
+        fields: Object.fromEntries(Object.entries(fields).filter(([, v]) => v.trim())),
+        framing,
+        sheet: definition ? secoesDaDefinicao(definition) : entry?.sheet,
+        registered: entry?.registered,
         imagePath: removeImage ? undefined : entry?.imagePath,
       };
-      // New records must exist before Storage accepts a file. Never reveal until the upload and pointer save succeed.
+      // O Storage só aceita arquivo de registro existente. Registro novo nasce secreto.
       if (file) {
         if (!id) {
-          id = await api.save(active.campaign.id, null, 0, {
-            ...data,
-            knowledge: 0,
-          });
+          id = await api.save(active.campaign.id, null, 0, data);
           version = 1;
           created.current = { id, version };
         }
         const path = await api.upload(active.campaign.id, id, file);
-        await api.save(active.campaign.id, id, version, {
-          ...data,
-          imagePath: path,
-          knowledge: level,
-        });
+        await api.save(active.campaign.id, id, version, { ...data, imagePath: path });
       } else id=await api.save(active.campaign.id, id, version, data);
       releaseGuard();
       avisarConhecimento();
@@ -243,67 +178,41 @@ export function EditorConhecimento({
       setBusy(false);
     }
   };
+  const campo = (f: Campo) => {
+    const value = fields[f.id] ?? "", set = (v: string) => setFields((x) => ({ ...x, [f.id]: v }));
+    return (
+      <label key={f.id}>
+        {f.label}
+        {f.opcoes ? (
+          <select value={value} onChange={(e) => set(e.target.value)}>
+            <option value="">Não definido</option>
+            {[...new Set([...f.opcoes, ...(value ? [value] : [])])].map((o) => <option key={o}>{o}</option>)}
+          </select>
+        ) : f.long ? (
+          <textarea value={value} maxLength={4000} onChange={(e) => set(e.target.value)} />
+        ) : (
+          <input value={value} maxLength={4000} onChange={(e) => set(e.target.value)} />
+        )}
+      </label>
+    );
+  };
+  const campos = CAMPOS[category] ?? [];
   return (
     <Modal titulo={entry?"Editar registro":"Novo registro"} onFechar={()=>onDone()} ocupado={busy} largura={640}><section className="codex-editor cd-form" aria-label="Editar conhecimento">
-
+      <p className="muted">{entry ? "A visibilidade é controlada na página do registro." : "Somente o nome é obrigatório. O registro nasce secreto; revele na página dele."}</p>
       <label>
         Nome
-        <input
-          value={title}
-          maxLength={120}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+        <input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
       </label>
-      {["monster", "item"].includes(category) && (
-        <label>
-          Identificador canônico
-          <input
-            value={definition}
-            readOnly={!!entry || !!reference}
-            onChange={(e) => setDefinition(e.target.value)}
-          />
-        </label>
-      )}
+      {campos.filter((f) => !f.long).map(campo)}
       <label>
         Descrição compartilhada
-        <textarea
-          value={text}
-          maxLength={10000}
-          onChange={(e) => setText(e.target.value)}
-        />
+        <textarea value={text} maxLength={10000} onChange={(e) => setText(e.target.value)} />
       </label>
-      {(CAMPOS[category]??[]).filter(f=>!f.long).map(f=><label key={f.id}>{f.label}<input value={fields[f.id]??''} maxLength={4000} onChange={e=>setFields(x=>({...x,[f.id]:e.target.value}))}/></label>)}
-      {(CAMPOS[category]??[]).some(f=>f.long)&&<details><summary>História e detalhes opcionais</summary>{(CAMPOS[category]??[]).filter(f=>f.long).map(f=><label key={f.id}>{f.label}<textarea value={fields[f.id]??''} maxLength={4000} onChange={e=>setFields(x=>({...x,[f.id]:e.target.value}))}/></label>)}</details>}
+      {campos.some((f) => f.long) && <details open={campos.some((f) => f.long && !!entry?.fields?.[f.id])}><summary>História e detalhes opcionais</summary>{campos.filter((f) => f.long).map(campo)}</details>}
       <label>
         Notas privadas do mestre
-        <textarea
-          value={secret}
-          maxLength={4000}
-          onChange={(e) => setSecret(e.target.value)}
-        />
-      </label>
-      <label>
-        Conhecimento
-        <select
-          value={level}
-          onChange={(e) => setLevel(Number(e.target.value))}
-        >
-          <option value={0}>Não revelado</option>
-          <>
-            {category === "monster" && (
-              <>
-                <option value={1}>1 · Nome</option>
-                <option value={2}>2 · Nome e descrição</option>
-                <option value={3}>3 · Nome, descrição e imagem</option>
-              </>
-            )}
-            <option value={4}>
-              {category === "monster"
-                ? "4 · Informações completas"
-                : "Publicado para a campanha"}
-            </option>
-          </>
-        </select>
+        <textarea value={secret} maxLength={4000} onChange={(e) => setSecret(e.target.value)} />
       </label>
       <div className="cd-arquivo">
         <label className="file-btn btn-secondary">
@@ -324,7 +233,7 @@ export function EditorConhecimento({
       {preview&&!removeImage&&<div className="cd-editor-portrait"><RetratoQuadrado src={juntar(preview,framing)} tamanho={100}/><button className="btn-secondary" onClick={()=>setCrop(true)}>Ajustar enquadramento</button></div>}
       {crop&&preview&&<EditorEnquadramento titulo="Enquadrar imagem" src={preview} inicial={framing} proporcao={1} onCancelar={()=>setCrop(false)} onConfirmar={value=>{setFraming(value);setCrop(false);}}/>}
       {entry?.imagePath && (
-        <label>
+        <label className="cd-check">
           <input
             type="checkbox"
             checked={removeImage}
@@ -338,15 +247,7 @@ export function EditorConhecimento({
       )}
       {error && <Aviso erro t={error} />}
       <div className="row">
-        <button
-          className="btn-primary"
-          disabled={
-            busy ||
-            !title.trim() ||
-            (["monster", "item"].includes(category) && !definition)
-          }
-          onClick={() => void save()}
-        >
+        <button className="btn-primary" disabled={busy || !title.trim()} onClick={() => void save()}>
           {busy ? "Salvando…" : "Salvar"}
         </button>
         <button className="btn-secondary" disabled={busy} onClick={()=>onDone()}>
@@ -357,20 +258,12 @@ export function EditorConhecimento({
             className="btn-danger"
             disabled={busy}
             onClick={() => {
-              if (
-                api &&
-                active &&
-                window.confirm("Remover este registro do Compêndio?")
-              ) {
+              if (api && active && window.confirm("Remover este registro do Compêndio?")) {
                 setBusy(true);
-                void api
-                  .remove(active.campaign.id, entry.id, entry.version)
-                  .then(()=>onDone(), () => {
-                    setBusy(false);
-                    setError(
-                      "Não foi possível remover. Recarregue para conferir a versão.",
-                    );
-                  });
+                void api.remove(active.campaign.id, entry.id, entry.version).then(
+                  () => onDone(),
+                  () => { setBusy(false); setError("Não foi possível remover. Recarregue para conferir a versão."); },
+                );
               }
             }}
           >
@@ -379,44 +272,5 @@ export function EditorConhecimento({
         )}
       </div>
     </section></Modal>
-  );
-}
-export function RevelarReferencia({
-  category,
-  id,
-  nome,
-}: {
-  category: "monster" | "item";
-  id: string;
-  nome: string;
-}) {
-  const { active } = useCampaigns(),
-    { items, error, loading } = useConhecimento();
-  const [open, setOpen] = useState(false);
-  if (active?.role !== "mestre") return null;
-  const entry =
-    items.find((x) => x.category === category && x.definitionId === id) ?? null;
-  return (
-    <>
-      <button
-        className="btn-secondary"
-        disabled={!!error || loading}
-        title={error}
-        onClick={() => setOpen(!open)}
-      >
-        {entry ? "Editar conhecimento da campanha" : "Revelar na campanha"}
-      </button>
-      {open && (
-        <EditorConhecimento
-          entry={entry}
-          category={category}
-          reference={{ id, nome }}
-          onDone={() => {
-            setOpen(false);
-            avisarConhecimento();
-          }}
-        />
-      )}
-    </>
   );
 }

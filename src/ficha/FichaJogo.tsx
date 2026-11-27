@@ -17,6 +17,7 @@ import { useFecharMenu } from "../useFecharMenu";
 import type { TabSpec } from "../workspace";
 import { AbaFicha } from "./AbaFicha";
 import { AbaHabilidades, type FiltroHab } from "./AbaHabilidades";
+import { useVersaoCatalogo } from "../catalogue/campanha";
 import { AbaInventario, type FiltroInv, type VistaInv } from "./AbaInventario";
 import { defesasDerivadas, descansoCurto, descansoLongo, lerEstadoJogo, ROTULO_DEFESA, somaTemporaria, type AlvoMod } from "./estadoJogo";
 import type { AcaoVital } from "../vitais/vitais";
@@ -75,8 +76,9 @@ export type FichaJogoProps = {
 };
 
 export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, campaignId, podeConceder, moedas }: FichaJogoProps) {
-  const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft]);
-  const base = useMemo(() => statistics2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft]);
+  const catalogo = useVersaoCatalogo();
+  const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft, catalogo]);
+  const base = useMemo(() => statistics2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft, catalogo]);
   const estado = lerEstadoJogo(draft);
   const chave = `compendio5e:ficha:${memoria}`;
   const [mem, setMem] = useState<Memoria>(() => lerMemoria(chave));

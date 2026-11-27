@@ -188,7 +188,7 @@ describe("segurança das funções e reversão", () => {
     await t.query("insert into auth.users (id, email) values ($1, 'a@x')", [U.ana]);
     const c = (await as(U.ana, "select public.create_campaign('M','') as r", [], t)).rows[0].r as string;
     await as(U.ana, "insert into public.notes (campaign_id, kind, title) values ($1, 'board', 'Q')", [c], t);
-    for (const f of ["0014_vitais_inventario_atomicos_down.sql", "0011_character_combat_status_down.sql", "0010_campaign_encounters_down.sql", "0009_campaign_combats_down.sql", "0008_character_sheets_persistencia_down.sql", "0007_character_sheets_foundation_down.sql"]) await t.exec(readFileSync(join(rollbackDir, f), "utf8"));   // fichas dependem de notes.meta
+    for (const f of ["0019_compendio_inventario_campanha_down.sql", "0014_vitais_inventario_atomicos_down.sql", "0011_character_combat_status_down.sql", "0010_campaign_encounters_down.sql", "0009_campaign_combats_down.sql", "0008_character_sheets_persistencia_down.sql", "0007_character_sheets_foundation_down.sql"]) await t.exec(readFileSync(join(rollbackDir, f), "utf8"));   // fichas dependem de notes.meta
     const down = readFileSync(join(rollbackDir, "0006_registros_capa_personagens_down.sql"), "utf8");
     await expect(t.exec(down)).rejects.toThrow(/rollback_0006_destrutivo/);
     await t.exec("set compendio.confirmar_rollback_0006 = 'sim'"); await t.exec(down);
