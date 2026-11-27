@@ -58,7 +58,7 @@ jobs:
         run: node scripts/alpha/run-local.mjs
       - name: Publicar somente relatório sem credenciais
         if: needs.impacto.outputs.nivel != 'quick' && needs.impacto.outputs.nivel != 'functional'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: alpha-local-report
           path: alpha-local-report.json

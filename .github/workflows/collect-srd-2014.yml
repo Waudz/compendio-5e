@@ -34,7 +34,7 @@ jobs:
           SRD_COLLECTION: ${{ inputs.collection }}
         run: node scripts/collect-srd-2014.mjs "$SRD_COLLECTION"
       - name: Anexar dados para revisão manual (sem publicação)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: srd-2014-${{ inputs.collection }}-unreviewed
           path: .srd-2014-staging/*.json
