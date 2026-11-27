@@ -10,14 +10,17 @@ import type {TabSpec} from "./workspace";
 export function GlobalMenu({onNavigate, onClose}: {onNavigate: (s: TabSpec) => void; onClose: () => void}) {
   const {active} = useCampaigns(), {api} = useAuth(), unsaved = useUnsaved();
   const master = active?.role === "mestre";
-  const dialog = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDivElement>(null), close = useRef(onClose); close.current = onClose;
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const buttons = () => [...(dialog.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [])];
     buttons()[0]?.focus();
     const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); }
+      // A confirmação de alterações não salvas fica acima do menu. Seu foco
+      // e Escape pertencem a ela até a pessoa decidir se deseja sair.
+      if (document.querySelector('[role="alertdialog"][aria-modal="true"]')) return;
+      if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close.current(); }
       if (event.key !== "Tab") return;
       const items = buttons(), first = items[0], last = items[items.length - 1];
       if (!dialog.current?.contains(document.activeElement) || document.activeElement === (event.shiftKey ? first : last)) {
@@ -26,14 +29,14 @@ export function GlobalMenu({onNavigate, onClose}: {onNavigate: (s: TabSpec) => v
     };
     document.addEventListener("keydown", key, true);
     return () => {document.removeEventListener("keydown", key, true); if (previous?.isConnected) previous.focus({preventScroll:true});};
-  }, [onClose]);
+  }, []);
   const go = (s: TabSpec) => {onClose(); onNavigate(s);};
   return <div className="global-menu-overlay mobile-menu-overlay" onClick={onClose}>
     <div className="global-menu-sheet mobile-menu-sheet" role="dialog" aria-modal="true" aria-label="Menu de navegação" ref={dialog} onClick={e => e.stopPropagation()}>
       <div className="mobile-menu-heading"><strong>Menu</strong><button aria-label="Fechar menu" onClick={onClose}><X size={20}/></button></div>
       <section className="global-menu-group" aria-label="Campanha"><h2>Campanha</h2>
         <button onClick={() => go({kind:"secao", ref:"campanhas"})}><Castle size={18}/>{master ? "Gerenciar campanhas" : "Minhas campanhas"}</button>
-        {active && <><button onClick={() => go({kind:"secao", ref:"personagens", ...(!master ? {title:"Meus personagens"} : {})})}><Users size={18}/>{master ? "Personagens" : "Meus personagens"}</button>
+        {active && <><button onClick={() => go({kind:"secao", ref:master ? "personagens" : "meus-personagens"})}><Users size={18}/>{master ? "Personagens" : "Meus personagens"}</button>
           <button onClick={() => go({kind:"secao", ref:"diario"})}><BookMarked size={18}/>Diário</button>
           {master && <button onClick={() => go({kind:"secao", ref:"encontros"})}><Shield size={18}/>Encontros</button>}</>}
       </section>

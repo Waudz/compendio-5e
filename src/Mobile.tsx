@@ -136,7 +136,7 @@ export function Mobile(_props: Props) {
   const abrirMinhaFicha = async () => {
     const pedido = atual.current;
     setMenuOpen(false);
-    const lista: TabSpec = { kind: "secao", ref: "personagens", title: "Meus personagens" };
+    const lista: TabSpec = { kind: "secao", ref: "meus-personagens" };
     if (!registros || !active || !user) { irPara(lista); return; }
     const r = await registros.list(active.campaign.id, "character");
     if (pedido !== atual.current) return;
@@ -152,7 +152,7 @@ export function Mobile(_props: Props) {
     { label: "Anotações", icon: NotebookPen, spec: { kind: "secao", ref: "planejamento" } as TabSpec, selected: isPage("planejamento") },
     isMaster
       ? { label: "Iniciativa", icon: Swords, spec: { kind: "secao", ref: "iniciativa" } as TabSpec, selected: isPage("iniciativa") }
-      : { label: "Ficha", icon: UserRound, spec: { kind: "secao", ref: "personagens" } as TabSpec, selected: isPage("personagens") || screen.kind === "ficha", onClick: abrirMinhaFicha },
+      : { label: "Ficha", icon: UserRound, spec: { kind: "secao", ref: "personagens" } as TabSpec, selected: (isPage("personagens") || isPage("meus-personagens")) || screen.kind === "ficha", onClick: abrirMinhaFicha },
     { label: "Compêndio", icon: ScrollText, spec: { kind: "secao", ref: "compendio" } as TabSpec, selected: isPage("compendio") },
   ];
   const [propriedade, setPropriedade] = useState<string | null>(null);
@@ -166,7 +166,7 @@ export function Mobile(_props: Props) {
     return () => { vivo = false; };
   }, [registros, escopoFicha]);
   const fichaPropria = !isMaster && screen.kind === "ficha" && !!user && !!active && propriedade === escopoFicha;
-  const meus = !isMaster && isPage("personagens") && screen.title === "Meus personagens";
+  const meus = !isMaster && isPage("meus-personagens");
   return <AbrirEmAbaContext.Provider value={{navegar:s=>navigate(s),abrir:s=>navigate(s),mostrar:(_x,_y,s)=>navigate(s)}}><div className="mobile mobile-simple">
     {!fichaPropria && !meus && <header className="mobile-topbar">
       <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
@@ -175,7 +175,7 @@ export function Mobile(_props: Props) {
     </header>}
     <div className="mobile-screen" ref={scroll}>
       <VoltarPaginaContext.Provider value={goBack}><OrigemAbaContext.Provider value={current}>
-        {(fichaPropria||meus)&&<div className="cd-own-header">{fichaPropria && <button type="button" className="btn-link mobile-meus-personagens" onClick={() => navigate({ kind: "secao", ref: "personagens", title: "Meus personagens" })}><ArrowLeft size={16}/> Meus personagens</button>}<SinoNotificacoes onOpenContent={navigate}/></div>}
+        {(fichaPropria||meus)&&<div className="cd-own-header">{fichaPropria && <button type="button" className="btn-link mobile-meus-personagens" onClick={() => navigate({ kind: "secao", ref: "meus-personagens" })}><ArrowLeft size={16}/> Meus personagens</button>}<SinoNotificacoes onOpenContent={navigate}/></div>}
         {meus ? <PersonagensPanel key={current} somenteMeus onOpenContent={navigate}/> : <Panel key={current} kind={screen.kind} entity={screen.ref} onOpen={navigate} onOpenContent={navigate}/>}
       </OrigemAbaContext.Provider></VoltarPaginaContext.Provider>
     </div>

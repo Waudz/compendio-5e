@@ -43,6 +43,7 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "magia") return <MagiaPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "criador") return <CriadorGuiado id={id} onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "compendio") return <CompendioPanel onOpenContent={onOpenContent}/>;
+  if (kind === "secao" && id === "meus-personagens") return <PersonagensPanel somenteMeus onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "personagens") return <PersonagensPanel onOpenContent={onOpenContent}/>;
   if (kind === "secao" && id === "iniciativa") return <IniciativaPanel/>;
   if (kind === "secao" && id === "encontros") return <EncontrosPanel/>;

@@ -913,3 +913,11 @@ Branch `fix/alpha-jogadores-primeiro-acesso`, base `d0569111051b515d5cc3c16ea93b
 5. Pendências da retomada após #164 continuam válidas. Não iniciar Encontros/Loot antes dos bloqueadores atuais.
 
 Prazo 12/12/2026 mantido como objetivo. Alpha **não certificada** para todos os critérios: foto, novas Anotações, contrato incompleto do criador, validação manual e problemas após #164 permanecem. Roteiro informa essas limitações aos jogadores; nenhum sistema de feedback foi criado.
+
+### Validação e refinamento do PR #165 (mesma execução)
+
+Primeiro commit remoto `a79971f3059ae1996aa1081007ecb084c34fe973`: workflow Validar projeto aprovado (150 arquivos Vitest); Preview aprovado; Alpha Supabase isolado aprovado com **19 verificações reais**, incluindo as novas de cadastro/perfil e os cenários de Auth/REST/JWT/RLS/Storage/concorrência/expiração. Evidência: runs 45994936817, 45994936808 e 45994936814. Não são testes em produção. E2E Quality aprovado nesse commit; Base/Creator ainda estavam executando quando os refinamentos abaixo foram preparados.
+
+Refinamentos de conclusão: menu não captura Tab/Escape de uma confirmação de alterações não salvas aberta acima dele, e não reinicia o foco a cada render do pai; mensagem do convite agora orienta criar conta; “Meus personagens” usa rota própria estável `secao:meus-personagens`, com filtro do dono também no desktop (não apenas um título especial no celular). Adaptado helper E2E do criador para o título correto no celular e adicionado `e2e/menu-global.spec.ts` para ambos os papéis, ordem de ações, versão, foco, tema e Sobre. Testes locais: regressões mobile/criador/workspace/menu 55/55; menu final 5/5; build novamente aprovado após refinamentos; tipos E2E finais aprovados. Confirmar todos os workflows do novo HEAD; não reutilizar o resultado do commit anterior como aprovação do novo.
+
+PR: https://github.com/Waudz/compendio-5e/pull/165. Todos os arquivos de código e documentação enviados pela branch; dependência local node_modules é apenas ligação para executar testes, não é código do projeto.

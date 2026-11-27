@@ -31,3 +31,27 @@ it("desktop usa o mesmo menu e devolve foco ao fechar", async () => {
   expect(within(screen.getByRole("dialog",{name:"Menu de navegação"})).getByRole("button",{name:"Configurações"})).toBeTruthy();
   fireEvent.click(screen.getByRole("button",{name:"Fechar menu"})); expect(document.activeElement).toBe(trigger);
 });
+it("a confirmação de alterações não salvas recebe teclado acima do menu", async () => {
+  await renderApp(); fireEvent.click(within(screen.getByRole("navigation",{name:"Navegação mobile"})).getByRole("button",{name:"Menu"}));
+  const confirmation = document.createElement("div"); confirmation.setAttribute("role","alertdialog"); confirmation.setAttribute("aria-modal","true");
+  const cancel = document.createElement("button"); cancel.textContent = "Cancelar saída"; confirmation.append(cancel); document.body.append(confirmation);
+  try {
+    cancel.focus();
+    const tab = new KeyboardEvent("keydown",{key:"Tab",bubbles:true,cancelable:true});
+    expect(document.dispatchEvent(tab)).toBe(true);
+    fireEvent.keyDown(cancel,{key:"Escape"});
+    expect(screen.getByRole("dialog",{name:"Menu de navegação"})).toBeTruthy(); expect(document.activeElement).toBe(cancel);
+  } finally {confirmation.remove();}
+});
+it("configurações preservam o tema salvo e Sobre usa a versão do menu", async () => {
+  localStorage.setItem("compendio5e:preferencia-tema","claro"); await renderApp();
+  const open = () => fireEvent.click(within(screen.getByRole("navigation",{name:"Navegação mobile"})).getByRole("button",{name:"Menu"}));
+  open(); const version = screen.getByText(/^Compêndio [0-9].*Alpha$/).textContent;
+  fireEvent.click(screen.getByRole("button",{name:"Configurações"}));
+  const select = await screen.findByLabelText("Tema neste aparelho"); expect((select as HTMLSelectElement).value).toBe("claro");
+  fireEvent.change(select,{target:{value:"escuro"}}); expect(localStorage.getItem("compendio5e:preferencia-tema")).toBe("escuro");
+  open(); expect(screen.getByText(/^Compêndio [0-9].*Alpha$/).textContent).toBe(version);
+  fireEvent.click(screen.getByRole("button",{name:"Sobre o Compêndio"}));
+  expect(await screen.findByRole("heading",{name:"Sobre o Compêndio"})).toBeTruthy();
+  expect(screen.getByRole("link",{name:"Repositório e documentação do projeto"}).getAttribute("href")).toBe("https://github.com/Waudz/compendio-5e");
+});
