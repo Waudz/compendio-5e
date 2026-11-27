@@ -12,6 +12,7 @@ import {registrarTitulo} from '../registrosStore';
 import {avisarConhecimento,type Conhecimento,type Divulgacao,type Previa} from './conhecimento';
 import {EditorConhecimento} from './RegistrosCampanha';
 import {VisaoRegistro} from './VisaoRegistro';
+import {EntregarItem} from './EntregarItem';
 import {ListaVinculos,NovoVinculoBotao,useVinculos,type ControlesVinculo} from './Vinculos';
 import {alternarChaves,presetBestiario,todasAsChaves,PRESETS_BESTIARIO} from './chaves';
 import {secoesDaDefinicao,useDefinicao,useDefinicoes} from './definicoes';
@@ -84,6 +85,7 @@ export function RegistroCompendioPagina({id,onOpenContent}:{id:string;onOpenCont
    controles={master?{busy:acoes.busy,alternar:(chaves,on)=>acoes.revelar(entry,{revealed:alternarChaves(reveladas,chaves,on,atual),...extra})}:undefined}
    controlesVinculo={master?acoes.controlesVinculo(entry,extra.sheet):undefined}
    rodapeVinculos={master?<NovoVinculoBotao id={id} vinculos={vinculos}/>:undefined}/>}
+ {master&&!asPlayer&&entry.category==='item'&&entry.definitionId&&<div className="cd-registrar"><EntregarItem definitionId={entry.definitionId} nome={entry.title} nomeAparente={entry.fields?.nickname}/></div>}
  {master&&!asPlayer&&entry.definitionId&&(entry.category==='monster'||entry.category==='item')&&<button type="button" className="btn-link" onClick={()=>onOpenContent(entry.category==='monster'?monstroSpec(entry.definitionId!):{kind:'item',ref:entry.definitionId!})}><ExternalLink size={15}/> Consultar definição original</button>}
  {master&&!asPlayer&&<section className="cd-private"><h2>Notas privadas do mestre</h2><p style={{whiteSpace:'pre-wrap'}}>{entry.secret||'Nenhuma nota privada.'}</p><small>Nunca são enviadas aos jogadores.</small></section>}
  {edit&&<EditorConhecimento entry={entry} category={entry.category} onDone={()=>{setEdit(false);data.refresh();}}/>}</div>;

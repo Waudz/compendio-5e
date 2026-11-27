@@ -2,8 +2,12 @@
 // ação principal discreta e reticências) ou em lista; histórico recolhido. Armas equipadas geram ataques em Habilidades e armaduras e
 // escudos entram na CA pelo motor 2014: nada aqui soma bônus por conta própria. O que o jogador pode adicionar segue
 // `catalogue/disponibilidade` (o banco aplica a mesma lista).
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Backpack, Check, ChevronDown, Dices, FlaskConical, Hash, History, Info, LayoutGrid, Link2, List, Plus, RefreshCw, Shield, ShieldCheck, ShieldOff, Sparkles, Swords, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { ScanSearch, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Backpack, Check, ChevronDown, Dices, FlaskConical, Hash, History, Info, LayoutGrid, Link2, List, Plus, RefreshCw, Shield, ShieldCheck, ShieldOff, Sparkles, Swords, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { itemDaCampanha, itensDaCampanha, useVersaoCatalogo } from "../catalogue/campanha";
+import { normalizar } from "../catalogue/nucleo/busca";
+import { avisarConhecimento, useCodexApi } from "../compendio/conhecimento";
+import { avisarRegistros } from "../registrosStore";
 import { jogadorPodeAdicionar } from "../catalogue/disponibilidade";
 import { raridadeRotulo, srdItem } from "../catalogue/srd-2014-items";
 import { searchCompendium } from "../rules/compendium-query";
@@ -39,12 +43,28 @@ type Janela = { tipo: "detalhes" | "usar" | "transferir" | "quantidade" | "exclu
 export function AbaInventario({ draft, sheet, stats, estado, onChange, onOpenContent, vista, onVista, filtro: filtroGuardado, onFiltro, moedas = TODAS_AS_MOEDAS, mestre = false, usarItem, transferir, personagemId, campaignId }: Props) {
   const [texto, setTexto] = useState(""), [novo, setNovo] = useState(""), [adicionando, setAdicionando] = useState(false), [janela, setJanela] = useState<Janela>(null), [moedasAbertas, setMoedasAbertas] = useState(false);
   const filtro: FiltroInv = FILTROS.some(([v]) => v === filtroGuardado) ? filtroGuardado : "todos";   // preferência antiga não vale mais
+  const codex = useCodexApi(), [falha, setFalha] = useState("");
+  useVersaoCatalogo();
   const peso = pesoCarregado(draft), capacidade = capacidadeDeCarga(sheet.abilities.str);
   const termo = texto.trim().toLocaleLowerCase("pt-BR");
   const itens = sheet.inventory.filter(i => (!termo || nome(i).toLocaleLowerCase("pt-BR").includes(termo)) && (filtro === "todos" || (filtro === "magicos" ? magico(i.itemId) : categoriaDoItem(i.itemId) === filtro)));
   const comSintonia = sheet.inventory.filter(i => srdItem(i.itemId)?.sintonia);
   const permitido = (id: string) => mestre || jogadorPodeAdicionar(id);
-  const sugestoes = novo.trim().length >= 2 ? searchCompendium(criadorRules, { kind: "item", text: novo }).filter(l => permitido(l.ref.id)).slice(0, 12) : [];
+  // A pesquisa soma as definições da campanha: substituições com o nome da mesa e criações (que só o mestre adiciona).
+  const termoNovo = normalizar(novo);
+  const daMesa = itensDaCampanha().filter(x => !x.mascara);
+  const sugestoes = termoNovo.length >= 2 ? [
+    ...daMesa.filter(x => permitido(x.item.id) && normalizar(x.item.nome).includes(termoNovo)).map(x => ({ id: x.item.id, nome: x.item.nome })),
+    ...searchCompendium(criadorRules, { kind: "item", text: novo }).filter(l => permitido(l.ref.id) && !daMesa.some(x => x.item.id === l.ref.id)).map(l => ({ id: l.ref.id, nome: l.name })),
+  ].slice(0, 12) : [];
+  const identificar = (i: InventoryEntry) => {
+    if (!codex?.identifyItem || !campaignId || !window.confirm(`Identificar "${nome(i)}"? Os personagens com este item passarão a ver o nome e as propriedades verdadeiros.`)) return;
+    setFalha("");
+    codex.identifyItem(campaignId, i.itemId).then(() => { avisarConhecimento(); avisarRegistros(); }, e => setFalha(e instanceof Error ? e.message : "Não foi possível identificar o item."));
+  };
+  // Item que ainda não chegou na sobreposição (recebido agora): busca de novo uma vez.
+  const semDefinicao = sheet.inventory.filter(i => !srdItem(i.itemId)).map(i => i.itemId).join();
+  useEffect(() => { if (semDefinicao) avisarConhecimento(); }, [semDefinicao]);
 
   const definirQuantidade = (i: InventoryEntry, n: number) => onChange(registrarMovimento(changeInventoryInstanceQuantity(draft, i.id, n - i.quantity), `${nome(i)}: quantidade de ${i.quantity} para ${n}`));
   const excluir = (i: InventoryEntry) => onChange(registrarMovimento(changeInventoryInstanceQuantity(draft, i.id, -i.quantity), `Removido: ${i.quantity > 1 ? `${i.quantity}× ` : ""}${nome(i)}`));
@@ -53,6 +73,7 @@ export function AbaInventario({ draft, sheet, stats, estado, onChange, onOpenCon
 
   const acoes = (i: InventoryEntry): AcaoDeMenu[] => [
     { rotulo: "Ver detalhes", icone: Info, acao: () => setJanela({ tipo: "detalhes", item: i }) },
+    ...(mestre && itemDaCampanha(i.itemId)?.identificaComo ? [{ rotulo: "Identificar item", icone: ScanSearch, acao: () => identificar(i) }] : []),
     ...(podeEquipar(i.itemId) ? [{ rotulo: i.equipped ? "Desequipar" : "Equipar", icone: i.equipped ? ShieldOff : ShieldCheck, acao: () => equipar(i, !i.equipped) }] : []),
     ...(podeUsar(i.itemId) ? [{ rotulo: "Usar", icone: Sparkles, acao: () => setJanela({ tipo: "usar", item: i }) }] : []),
     ...(temCargas(i.itemId) ? [{ rotulo: "Recuperar cargas", icone: RefreshCw, acao: () => setJanela({ tipo: "cargas", item: i }) }] : []),
@@ -65,6 +86,7 @@ export function AbaInventario({ draft, sheet, stats, estado, onChange, onOpenCon
   const doDialogo = janela ? sheet.inventory.find(i => i.id === janela.item.id) ?? janela.item : null;
 
   return <div className="ficha-pilha">
+    {falha && <p role="alert" className="notice err">{falha}</p>}
     <section className="ficha-bloco ficha-moedas-carga" aria-label="Moedas e carga">
       <div className="ficha-moedas-area" role="region" aria-label="Moedas">
         <div className="ficha-titulo"><h2>Moedas</h2>
@@ -99,7 +121,7 @@ export function AbaInventario({ draft, sheet, stats, estado, onChange, onOpenCon
         <p className="muted">{mestre ? "Como mestre, você pode entregar qualquer item do catálogo." : "Você adiciona itens comuns e as poções comuns. Itens mágicos e raros são entregues pelo mestre."}</p>
         {novo.trim().length >= 2 && <ul className="ficha-linhas" aria-label="Resultados da pesquisa de itens">
           {sugestoes.length === 0 && <li className="muted">Nenhum item disponível com esse nome.</li>}
-          {sugestoes.map(l => <li key={l.key}><span>{l.name} <small className="muted">{infoDoItem(l.ref.id)[0]}</small></span><button type="button" className="btn-secondary" aria-label={`Adicionar ${l.name}`} onClick={() => adicionar(l.ref.id, l.name)}><Plus size={14} aria-hidden="true"/> Adicionar</button></li>)}
+          {sugestoes.map(l => <li key={l.id}><span>{l.nome} <small className="muted">{infoDoItem(l.id)[0]}</small></span><button type="button" className="btn-secondary" aria-label={`Adicionar ${l.nome}`} onClick={() => adicionar(l.id, l.nome)}><Plus size={14} aria-hidden="true"/> Adicionar</button></li>)}
         </ul>}
       </div>}
       <input type="search" className="ficha-busca" aria-label="Buscar no inventário" placeholder="Buscar no inventário..." value={texto} onChange={e => setTexto(e.target.value)}/>

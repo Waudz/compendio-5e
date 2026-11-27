@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { itemSchema, categoriasDeItem } from '../catalogue/item-schema';
 import { monstroSchema } from '../catalogue/sistemas/dnd5e-2014/esquemas';
-import { srdItem, srdItemFile } from '../catalogue/srd-2014-items';
+import { srdItem, srdItemFile, srdItemPadrao } from '../catalogue/srd-2014-items';
+import { definirCatalogoDaCampanha, nomeIndisponivel } from '../catalogue/campanha';
+import { jogadorPodeAdicionar } from '../catalogue/disponibilidade';
+import { monstrosPadrao, todosOsMonstros } from '../catalogue/contratos';
 import { aplicarDaCampanha, carregarDefinicao, daCampanha, secoesDaDefinicao, type LinhaDefinicao } from './definicoes';
-import { comCategoria, definicaoEmBranco } from './EditorDefinicao';
+import { comCategoria, comValor, definicaoEmBranco } from './EditorDefinicao';
 
 describe('definições da campanha', () => {
   it('modelos em branco nomeados são válidos, inclusive ao trocar a categoria do item', () => {
@@ -29,5 +32,41 @@ describe('definições da campanha', () => {
     const ruim: LinhaDefinicao = { kind: 'item', definitionId: 'longsword', version: 1, data: { definition: { id: 'longsword', nome: 'quebrado' } } };
     expect(daCampanha(ruim)).toBeUndefined();
     expect((await carregarDefinicao('item', 'longsword', [ruim]))!.campanha).toBeUndefined();
+  });
+});
+
+describe('catálogo da campanha no inventário e no editor', () => {
+  it('a sobreposição vale para o catálogo consultado pela ficha, sem alterar o global, e é esvaziada', async () => {
+    definirCatalogoDaCampanha([
+      { item: { id: 'custom-a', en: 'Custom', nome: 'Lâmina da mesa', categoria: 'arma', raridade: 'mundano', arma: { categoria: 'simple', alcance: 'melee', propriedades: [], dano: { dado: '1d6', tipo: 'slashing' } } } },
+      { item: { id: 'unid-0', en: 'Unidentified', nome: 'Chave estranha', categoria: 'equipamento', raridade: 'mundano' }, mascara: true },
+    ], []);
+    expect(srdItem('custom-a')!.nome).toBe('Lâmina da mesa');
+    expect(srdItemPadrao('custom-a')).toBeUndefined();
+    expect(jogadorPodeAdicionar('custom-a')).toBe(false);
+    expect(jogadorPodeAdicionar('unid-0')).toBe(false);
+    definirCatalogoDaCampanha([], []);
+    expect(srdItem('custom-a')).toBeUndefined();
+    expect(nomeIndisponivel('unid-0')).toBe('Item não identificado');
+    const goblin = (await todosOsMonstros()).find(m => m.id === 'goblin')!;
+    definirCatalogoDaCampanha([], [{ ...goblin, nome: 'Goblin da mesa' }]);
+    expect((await todosOsMonstros()).find(m => m.id === 'goblin')!.nome).toBe('Goblin da mesa');
+    expect((await monstrosPadrao()).find(m => m.id === 'goblin')!.nome).toBe(goblin.nome);
+    definirCatalogoDaCampanha([], []);
+  });
+  it('máscaras nunca entram nas listas do catálogo', () => {
+    const mascara: LinhaDefinicao = { kind: 'item', definitionId: 'unid-1', version: 1, mask: true, data: { definition: { id: 'unid-1', en: 'Unidentified', nome: 'X', categoria: 'equipamento', raridade: 'mundano' } } };
+    expect(aplicarDaCampanha('item', srdItemFile().items, [mascara])).toHaveLength(srdItemFile().items.length);
+  });
+  it('perícias, salvaguardas e sentidos editados continuam válidos e aparecem na ficha revelável', () => {
+    const d = definicaoEmBranco('monster');
+    if (d.kind !== 'monster') throw Error('tipo');
+    const monstro = { ...d.monstro, nome: 'Vigia', salvaguardas: comValor(undefined, 'dex', '4'), pericias: comValor(undefined, 'sleight_of_hand', '6'), sentidos: comValor({}, 'visaoNoEscuro', '60')! };
+    expect(monstroSchema.safeParse(monstro).success).toBe(true);
+    const secoes = secoesDaDefinicao({ ...d, monstro });
+    expect(secoes.find(s => s.k === 'saves')!.v).toContain('+4');
+    expect(secoes.find(s => s.k === 'skills')!.v).toContain('+6');
+    expect(secoes.find(s => s.k === 'senses')!.v).toContain('18 m');
+    expect(comValor(monstro.salvaguardas, 'dex', '')).toBeUndefined();
   });
 });

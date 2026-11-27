@@ -6,6 +6,7 @@
  */
 import type { ContentRef } from '../rules/content-registry';
 import { carregarIndice } from './nucleo/registro';
+import { monstrosComCampanha } from './campanha';
 import { categoriaMagias, categoriaMonstros, DND5E_2014 } from './sistemas/dnd5e-2014';
 import type { Magia, Monstro } from './sistemas/dnd5e-2014/esquemas';
 import { classesConjuradoras } from './sistemas/dnd5e-2014/esquemas';
@@ -40,7 +41,9 @@ export async function magiasInexistentes(ids: readonly string[]): Promise<string
   return ids.filter(id => !conhecidas.has(id));
 }
 
-export async function todosOsMonstros(): Promise<readonly Monstro[]> { return (await carregarIndice(categoriaMonstros)).itens; }
+/** Monstros como a campanha ativa os vê (substituições e criações aplicadas). */
+export async function todosOsMonstros(): Promise<readonly Monstro[]> { return monstrosComCampanha(await monstrosPadrao()); }
+export async function monstrosPadrao(): Promise<readonly Monstro[]> { return (await carregarIndice(categoriaMonstros)).itens; }
 /** Resolve um id de monstro, inclusive ids ANTIGOS (duplicatas removidas e ids renomeados, em `idsAnteriores`): `monstroPorId('succubusincubus')` devolve `succubus-incubus`. */
 export async function monstroPorId(id: string): Promise<Monstro | undefined> { const todos = await todosOsMonstros(); return todos.find(m => m.id === id) ?? todos.find(m => m.idsAnteriores?.includes(id)); }
 /** Id canônico atual para um id (atual ou antigo); `undefined` se não existe. Use para migrar referências salvas em fichas, encontros, anotações e iniciativa. */

@@ -13,6 +13,7 @@ import type { CampaignApi, Membership } from "../campaigns";
 import { storageKey } from "../persistence";
 import { jogadorPodeAdicionar } from "../catalogue/disponibilidade";
 import { codexDemo } from "../dev/codexDemo";
+import type { FonteAventureiros } from "../inicio";
 import {
   avisarConhecimento,
   type CodexApi,
@@ -40,10 +41,11 @@ const api = (items: Conhecimento[] = []): CodexApi => ({
   preview: vi.fn(async () => ({ entry: null, links: [] })),
   seen: vi.fn(async () => {}),
 });
-async function mount(role: "mestre" | "jogador", codex = api()) {
+async function mount(role: "mestre" | "jogador", codex: CodexApi = api(), aventureiros?: FonteAventureiros) {
   const membership: Membership = { role, campaign };
   await renderApp({
     codex,
+    aventureiros,
     api: {
       list: async () => ({ ok: true, data: [membership] }),
     } as CampaignApi,
@@ -279,6 +281,37 @@ describe("Compêndio unificado", () => {
     const [registro] = await codex.list("ca");
     expect(registro).toMatchObject({ category: "item", definitionId: definicao.definitionId, visible: false });
     expect(registro.sheet!.at(-1)).toMatchObject({ k: "effects", v: "Abre o entreposto" });
+  });
+  it("item personalizado identificado aparece ao jogador em Regras → Itens; o não revelado e o não identificado ficam fora", async () => {
+    const definicao = (id: string, nome: string, mask?: boolean) => ({ kind: "item" as const, definitionId: id, version: 1, mask, data: { definition: { id, en: "Custom", nome, categoria: "equipamento", raridade: "mundano" } } });
+    const codex = { ...api([row({ category: "item", definitionId: "custom-revelado", title: "Chave revelada" })]),
+      definitions: vi.fn(async () => [definicao("custom-revelado", "Chave revelada"), definicao("custom-possuido", "Chave apenas possuida"), definicao("unid-abc", "Chave estranha", true)]) };
+    await mount("jogador", codex);
+    fireEvent.click(screen.getByRole("button", { name: "Regras" }));
+    fireEvent.click(portal("Itens"));
+    fireEvent.change(screen.getByLabelText("Pesquisar no Compêndio"), { target: { value: "chave" } });
+    expect(await screen.findByRole("button", { name: /^Chave revelada / })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Chave apenas possuida/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Chave estranha/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Criar item" })).toBeNull();
+  });
+  it("mestre entrega um item como não identificado com a aparência escolhida", async () => {
+    const codex = { ...api(), definitions: vi.fn(async () => []), grantItem: vi.fn(async () => {}) };
+    const fonte = { listar: vi.fn(async () => ({ ok: true as const, data: [{ id: "pj1", nome: "Lyra", classe: "Ladina", nivel: 3, alcunha: null, descricao: null, retratoUrl: null }] })) };
+    await mount("mestre", codex, fonte as unknown as FonteAventureiros);
+    fireEvent.click(screen.getByRole("button", { name: "Regras" }));
+    fireEvent.click(portal("Itens"));
+    fireEvent.change(screen.getByLabelText("Pesquisar no Compêndio"), { target: { value: "espada longa" } });
+    fireEvent.click((await screen.findAllByRole("button", { name: /^Espada longa / }))[0]);
+    fireEvent.click(await screen.findByRole("button", { name: "Entregar a um personagem" }));
+    const janela = screen.getByRole("dialog", { name: /^Entregar / });
+    await within(janela).findByRole("option", { name: "Lyra" });
+    fireEvent.change(within(janela).getByLabelText("Personagem"), { target: { value: "pj1" } });
+    fireEvent.click(within(janela).getByLabelText("Entregar como não identificado"));
+    fireEvent.change(within(janela).getByLabelText("Nome aparente"), { target: { value: "Lâmina antiga" } });
+    fireEvent.click(within(janela).getByRole("button", { name: "Entregar" }));
+    expect(await within(janela).findByText("Entregue a Lyra.")).toBeTruthy();
+    expect(codex.grantItem).toHaveBeenCalledWith("ca", "pj1", "longsword", 1, { nome: "Lâmina antiga", descricao: "" }, expect.any(String));
   });
 });
 

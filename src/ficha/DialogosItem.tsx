@@ -2,6 +2,7 @@
 // consumo e transferência são operações atômicas (o resultado vem do servidor), sem criar itens nem repetir o efeito.
 import { useEffect, useState } from "react";
 import { categoriaDoItemRotulo, raridadeRotulo, srdItem } from "../catalogue/srd-2014-items";
+import { itemDaCampanha, nomeIndisponivel } from "../catalogue/campanha";
 import { itemSpec } from "../compendio/DetalheItem";
 import { ehGuiado } from "../fichas";
 import { useRegistros } from "../RegistrosContext";
@@ -13,7 +14,7 @@ import { lerEstadoJogo } from "./estadoJogo";
 import { imagemDoItem } from "./imagensCatalogo";
 import { MOEDAS, type Carteira, type ChaveMoeda } from "../moedas/moedas";
 
-export const nomeDaInstancia = (i: InventoryEntry) => (typeof i.customName === "string" && i.customName ? i.customName : srdItem(i.itemId)?.nome ?? i.itemId);
+export const nomeDaInstancia = (i: InventoryEntry) => (typeof i.customName === "string" && i.customName ? i.customName : srdItem(i.itemId)?.nome ?? nomeIndisponivel(i.itemId));
 export const kg = (n: number) => `${n.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`;
 
 /** Itens mundanos que se gastam ao usar (sem efeito automatizado no catálogo). */
@@ -33,17 +34,19 @@ export function faixaDaFormula(formula: string): { min: number; max: number } | 
 type Comum = { item: InventoryEntry; onFechar: () => void };
 
 export function DetalhesItem({ item, draft, onFechar, onOpenContent }: Comum & { draft: CharacterDraft; onOpenContent: (s: TabSpec) => void }) {
-  const d = srdItem(item.itemId), nome = nomeDaInstancia(item);
+  const d = srdItem(item.itemId), nome = nomeDaInstancia(item), daMesa = itemDaCampanha(item.itemId), oculto = !!daMesa?.mascara;
   const concessoes = lerEstadoJogo(draft).concedidos.filter(c => c.itemInstancia === item.id);
   return <Modal titulo={nome} onFechar={onFechar} sistema="sistema-dnd"
-    acoes={d && <button type="button" className="btn-secondary" aria-label={`Abrir no Compêndio: ${nome}`} onClick={() => { onOpenContent(itemSpec(item.itemId, nome)); onFechar(); }}>Abrir no Compêndio</button>}>
-    {d && <p>{[categoriaDoItemRotulo(d.categoria), d.raridade !== "mundano" ? raridadeRotulo(d.raridade) : null, d.sintonia ? "requer sintonização" : null].filter(Boolean).join(" · ")}</p>}
+    acoes={d && !oculto && <button type="button" className="btn-secondary" aria-label={`Abrir no Compêndio: ${nome}`} onClick={() => { onOpenContent(itemSpec(item.itemId, nome)); onFechar(); }}>Abrir no Compêndio</button>}>
+    {oculto && <p>Item não identificado</p>}
+    {d && !oculto && <p>{[categoriaDoItemRotulo(d.categoria), d.raridade !== "mundano" ? raridadeRotulo(d.raridade) : null, d.sintonia ? "requer sintonização" : null].filter(Boolean).join(" · ")}</p>}
     <dl className="ficha-dados">
       <dt>Quantidade</dt><dd>{item.quantity}</dd>
       {d?.peso != null && <><dt>Peso</dt><dd>{kg(d.peso)} cada · {kg(d.peso * item.quantity)} no total</dd></>}
       <dt>Situação</dt><dd>{item.equipped ? "Equipado" : "Guardado"}</dd>
     </dl>
-    {infoDoItem(item.itemId).map(x => <p key={x}>{x}</p>)}
+    {!oculto && infoDoItem(item.itemId).map(x => <p key={x}>{x}</p>)}
+    {daMesa?.descricao && <p style={{ whiteSpace: "pre-wrap" }}>{daMesa.descricao}</p>}
     {concessoes.length > 0 && <p>Concede enquanto estiver no inventário: {concessoes.map(c => c.nome).join(", ")}.</p>}
   </Modal>;
 }

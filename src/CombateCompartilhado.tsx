@@ -1,3 +1,4 @@
+import { useVersaoCatalogo } from "./catalogue/campanha";
 import { imagemDoMonstro } from "./ficha/imagensCatalogo";
 import { PesquisaCatalogo } from "./PesquisaCatalogo";
 import { RetratoQuadrado } from "./RetratoCombate";
@@ -122,8 +123,9 @@ export function SeletorMonstro({ rotulo, onEscolher, buscaControlada, ocultarVaz
   const [buscaLocal, setBusca] = useState("");
   const busca = buscaControlada ?? buscaLocal;
   const [dados, setDados] = useState<{ status: "carregando" } | { status: "erro" } | { status: "pronto"; lista: readonly Monstro[] }>({ status: "carregando" });
-  const carregar = useCallback(() => { setDados({ status: "carregando" }); import("./catalogue/contratos").then(c => c.todosOsMonstros()).then(lista => setDados({ status: "pronto", lista }), () => setDados({ status: "erro" })); }, []);
-  useEffect(() => { carregar(); }, [carregar]);
+  const carregar = useCallback(() => { setDados(d => d.status === "pronto" ? d : { status: "carregando" }); import("./catalogue/contratos").then(c => c.todosOsMonstros()).then(lista => setDados({ status: "pronto", lista }), () => setDados({ status: "erro" })); }, []);
+  const catalogo = useVersaoCatalogo();
+  useEffect(() => { carregar(); }, [carregar, catalogo]);
   const achados = useMemo(() => {
     if (dados.status !== "pronto" || (buscaControlada === undefined && busca.trim().length < 2)) return [];
     const q = sem(busca.trim());

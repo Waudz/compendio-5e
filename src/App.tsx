@@ -4,6 +4,8 @@ import logo from "../compendio-logo.svg";
 import { VoltarPaginaContext } from "./voltarPagina";
 import { currentPage, historyOf, visitPage, stepHistory } from "./tabHistory";
 import { NotificacoesProvider, SinoNotificacoes } from "./compendio/Notificacoes";
+import { CatalogoDaCampanha } from "./compendio/CatalogoDaCampanha";
+import { useVersaoCatalogo } from "./catalogue/campanha";
 import { useConhecimento, itemConhecido } from "./compendio/conhecimento";
 import { jogadorPodeAdicionar } from "./catalogue/disponibilidade";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -267,6 +269,7 @@ function Workspace({ userId }: { userId: string }) {
     return <OrigemAbaContext.Provider value={node.getId()}><VoltarPaginaContext.Provider value={h.index>0?()=>step(node.getId(),h.index-1):undefined}><PageViewport key={tabId(c)} pageKey={`${scopeKey}:${node.getId()}:${tabId(c)}`} positions={positions.current}><Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => visit(s, node.getId())}/></PageViewport></VoltarPaginaContext.Provider></OrigemAbaContext.Provider>;
   }, [openMenu, visit, step, scopeKey]);
 
+  const versaoCatalogo = useVersaoCatalogo();
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
     const c = currentPage(n);
@@ -279,7 +282,7 @@ function Workspace({ userId }: { userId: string }) {
     if (c?.kind === "regra" && c.ref) return tituloDe(c.ref)??"Regra";
     if (c?.kind === "item" && c.ref) return active?.role === "mestre" || jogadorPodeAdicionar(c.ref) || itemConhecido(conhecidosCatalogo,c.ref) ? (active?.role === "mestre" ? tituloDe(c.ref) : undefined) ?? srdItem(c.ref)?.nome ?? fallback : "Item";
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? fallback : fallback;
-  }, [memberships, registrosV, active?.role, conhecidosCatalogo]);
+  }, [memberships, registrosV, active?.role, conhecidosCatalogo, versaoCatalogo]);
   // FlexLayout usa o nome do modelo para ARIA e o conteúdo renderizado para a tela.
   // Manter ambos iguais em memória; minimalLayout continua removendo nomes ao persistir.
   useLayoutEffect(() => {
@@ -324,7 +327,7 @@ function Workspace({ userId }: { userId: string }) {
       ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } }] }),
   }), [openContentLink, mobile, model, visit]);
 
-  return <NotificacoesProvider><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
+  return <NotificacoesProvider><CatalogoDaCampanha/><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><img src={logo} width={24} height={24} alt=""/>{!collapsed && <strong>Compêndio <span>5e</span></strong>}<SinoNotificacoes onOpenContent={s => { const origem = model.getActiveTabset()?.getSelectedNode()?.getId(); if (!mobile && origem) visit(s,origem); else openContentLink(s, origem, true); }}/></div>
       <div className="campaign">

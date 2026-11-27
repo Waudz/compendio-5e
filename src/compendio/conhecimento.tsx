@@ -92,6 +92,9 @@ export interface CodexApi {
   seen(id: number): Promise<void>;
   /** Personalização do catálogo (0018), somente do mestre. */
   definitions?(cid: string): Promise<LinhaDefinicao[]>;
+  /** Entrega e identificação de itens (0019), somente do mestre. */
+  grantItem?(cid: string, characterId: string, definitionId: string, quantity: number, mask: { nome: string; descricao?: string } | null, operation: string): Promise<void>;
+  identifyItem?(cid: string, token: string): Promise<void>;
   saveDefinition?(cid: string, d: LinhaDefinicao, sheet: Secao[], baseName?: string): Promise<number>;
   removeDefinition?(cid: string, kind: TipoDefinicao, id: string, version: number, sheet?: Secao[], originalName?: string): Promise<void>;
 }
@@ -128,9 +131,10 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
       throw Error(`Atualização do banco necessária: migração 00${VERSAO_BANCO_CODEX}. Nada foi gravado.`);
   };
   return {
-    definitions: async (cid) =>
-      (conferir(await client.from("campaign_definitions").select("kind,definition_id,base_id,version,data").eq("campaign_id", cid).order("updated_at")) as { kind: TipoDefinicao; definition_id: string; base_id: string | null; version: number; data: LinhaDefinicao["data"] }[])
-        .map((r) => ({ kind: r.kind, definitionId: r.definition_id, baseId: r.base_id ?? undefined, version: r.version, data: r.data })),
+    definitions: async (cid) => conferir(await client.rpc("codex_definitions_for", { p_campaign: cid })) as LinhaDefinicao[],
+    grantItem: async (cid, character, definition, quantity, mask, operation) =>
+      semErro(await client.rpc("codex_grant_item", { p_campaign: cid, p_character: character, p_definition_id: definition, p_quantity: quantity, p_mask: mask, p_operation: operation })),
+    identifyItem: async (cid, token) => semErro(await client.rpc("codex_identify_item", { p_campaign: cid, p_token: token })),
     saveDefinition: async (cid, d, sheet, baseName) =>
       conferir(await client.rpc("codex_definition_save", { p_campaign: cid, p_kind: d.kind, p_definition_id: d.definitionId, p_version: d.version, p_base_id: d.baseId ?? null, p_data: d.data, p_sheet: sheet, p_base_name: baseName ?? null })) as number,
     removeDefinition: async (cid, kind, id, version, sheet, originalName) => {

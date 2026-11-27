@@ -6,6 +6,7 @@ import { VoltarCompendio } from "./compendio/Paginas";
 import { RegistrarDescoberta } from "./compendio/RegistrosCampanha";
 import { VisaoRegistro } from "./compendio/VisaoRegistro";
 import { AcoesDefinicao } from "./compendio/EditorDefinicao";
+import { EntregarItem } from "./compendio/EntregarItem";
 import { carregarDefinicao, useDefinicao, useDefinicoes, type Definicao } from "./compendio/definicoes";
 import { PesquisaGlobal } from "./compendio/PesquisaGlobal";
 import { ListaCampanha } from "./compendio/ListaCampanha";
@@ -283,6 +284,7 @@ export function ItemPagina({
       <p className="muted">{item.en}</p>
       <RegistrarDescoberta category="item" id={id} onOpenContent={onOpenContent}/>
       {efetiva && <AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}
+      <EntregarItem definitionId={id} nome={item.nome}/>
       <DetalheItem item={item} descricao={efetiva?.descricao} personalizado={!!efetiva?.campanha} onOpenContent={onOpenContent} /></article>
     </div>
   );

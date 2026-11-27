@@ -6,7 +6,7 @@ import { useCampaigns } from '../CampaignsContext';
 import { Aviso } from '../Diario';
 import { Modal } from '../ui/Modal';
 import { monstroSchema, tamanhos, tiposDeCriatura, type Monstro } from '../catalogue/sistemas/dnd5e-2014/esquemas';
-import { rotuloGrupoAcao, rotuloTamanho, rotuloTipoCriatura, siglaAtributo } from '../catalogue/sistemas/dnd5e-2014/rotulos';
+import { rotuloGrupoAcao, rotuloPericia, rotuloSentido, rotuloTamanho, rotuloTipoCriatura, siglaAtributo } from '../catalogue/sistemas/dnd5e-2014/rotulos';
 import { categoriasDeItem, itemSchema, raridades, type SrdItem } from '../catalogue/item-schema';
 import { categoriaDoItemRotulo, raridadeRotulo } from '../catalogue/srd-2014-items';
 import { avisarConhecimento, useCodexApi, useConhecimento } from './conhecimento';
@@ -19,6 +19,14 @@ const ATRIBUTOS = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
 const GRUPOS = ['ACTION', 'BONUS_ACTION', 'REACTION', 'LEGENDARY_ACTION', 'LAIR_ACTION'] as const;
 const DESLOCAMENTOS = [['walk', 'Caminhada'], ['fly', 'Voo'], ['swim', 'Natação'], ['climb', 'Escalada'], ['burrow', 'Escavação']] as const;
 const DEFESAS = [['vulnerabilidadesTexto', 'Vulnerabilidades'], ['resistenciasTexto', 'Resistências'], ['imunidadesTexto', 'Imunidades a dano'], ['condicoesTexto', 'Imunidades a condições']] as const;
+const SENTIDOS = ['visaoNoEscuro', 'percepcaoAsCegas', 'sentidoSismico', 'visaoVerdadeira'] as const;
+const PERICIAS = ['acrobatics', 'animal_handling', 'arcana', 'athletics', 'deception', 'history', 'insight', 'intimidation', 'investigation', 'medicine', 'nature', 'perception', 'performance', 'persuasion', 'religion', 'sleight_of_hand', 'stealth', 'survival'] as const;
+/** Define ou remove uma entrada numérica; registro vazio deixa de existir. */
+export function comValor(registro: Partial<Record<string, number>> | undefined, chave: string, valor: string): Record<string, number> | undefined {
+  const novo = { ...(registro as Record<string, number> | undefined) };
+  if (valor === '') delete novo[chave]; else novo[chave] = Number(valor);
+  return Object.keys(novo).length ? novo : undefined;
+}
 const MAGICOS: readonly string[] = ['magico', 'pocao', 'pergaminho'];
 const metros = (pes: number | undefined) => (pes ? String(Math.round(pes * 3) / 10) : '');
 const pes = (m: string) => Math.round(Number(m.replace(',', '.')) / 0.3);
@@ -108,6 +116,16 @@ export function EditorDefinicao({ inicial, titulo, baseId, onFechar, onSalvo }: 
         {DESLOCAMENTOS.map(([k, r]) => <label key={k}>{r} (m)<input inputMode="decimal" defaultValue={metros(monstro.deslocamento[k])} onChange={e => { const v = pes(e.target.value); m({ deslocamento: { ...monstro.deslocamento, [k]: v > 0 ? v : undefined } }); }}/></label>)}
         {ATRIBUTOS.map(a => <label key={a}>{siglaAtributo(a)}<input type="number" value={Number.isNaN(monstro.atributos[a]) ? '' : monstro.atributos[a]} onChange={e => m({ atributos: { ...monstro.atributos, [a]: e.target.value === '' ? NaN : Number(e.target.value) } })}/></label>)}
       </div>
+      <fieldset className="cd-lista-editor"><legend>Testes de resistência (vazio = sem proficiência)</legend><div className="cd-grade-campos">
+        {ATRIBUTOS.map(a => <label key={a}>Resistência {siglaAtributo(a)}<input type="number" value={monstro.salvaguardas?.[a] ?? ''} onChange={e => m({ salvaguardas: comValor(monstro.salvaguardas, a, e.target.value) })}/></label>)}
+      </div></fieldset>
+      <fieldset className="cd-lista-editor"><legend>Perícias</legend>
+        <div className="cd-grade-campos">{Object.entries(monstro.pericias ?? {}).map(([id, v]) => <label key={id}>{rotuloPericia(id)}<span className="cd-linha-olho"><input type="number" aria-label={`Bônus de ${rotuloPericia(id)}`} value={Number.isNaN(v) ? '' : v} onChange={e => m({ pericias: { ...monstro.pericias, [id]: e.target.value === '' ? NaN : Number(e.target.value) } })}/><button type="button" className="cd-icon" aria-label={`Remover perícia ${rotuloPericia(id)}`} onClick={() => m({ pericias: comValor(monstro.pericias, id, '') })}><Trash2 size={14}/></button></span></label>)}</div>
+        <label>Adicionar perícia<select value="" onChange={e => { if (e.target.value) m({ pericias: { ...monstro.pericias, [e.target.value]: 0 } }); }}><option value="">Escolher…</option>{PERICIAS.filter(p => monstro.pericias?.[p] === undefined).map(p => <option key={p} value={p}>{rotuloPericia(p)}</option>)}</select></label>
+      </fieldset>
+      <fieldset className="cd-lista-editor"><legend>Sentidos (metros)</legend><div className="cd-grade-campos">
+        {SENTIDOS.map(k => <label key={k}>{rotuloSentido(k)}<input inputMode="decimal" defaultValue={metros(monstro.sentidos[k])} onChange={e => { const v = pes(e.target.value); m({ sentidos: comValor(monstro.sentidos, k, v > 0 ? String(v) : '') ?? {} }); }}/></label>)}
+      </div></fieldset>
       {DEFESAS.map(([k, r]) => <div key={k}>{texto(r, monstro.defesas[k], v => m({ defesas: { ...monstro.defesas, [k]: v } }), 500)}</div>)}
       {texto('Idiomas', monstro.idiomas, v => m({ idiomas: v }), 300)}
       {lista('Características', 'tracos')}

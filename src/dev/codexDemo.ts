@@ -104,7 +104,11 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
     upload: async () => { throw Error("Upload exige Storage privado. A demonstração não envia arquivos."); },
     image: async () => { throw Error("Imagem indisponível."); },
     holders: async () => [],
-    definitions: async (cid) => { check(); scope(cid); return parse<LinhaDefinicao>(key + ":definitions"); },
+    definitions: async (cid) => {
+      scope(cid);
+      const all = parse<LinhaDefinicao>(key + ":definitions");
+      return master ? all : all.filter((d) => read().some((e) => e.visible && e.definitionId === d.definitionId && e.category === d.kind && identified(e)));
+    },
     saveDefinition: async (cid, d, sheet, baseName) => {
       check(); scope(cid);
       const all = parse<LinhaDefinicao>(key + ":definitions"), same = (x: LinhaDefinicao) => x.kind === d.kind && x.definitionId === d.definitionId, old = all.find(same);

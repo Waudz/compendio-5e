@@ -146,6 +146,23 @@ try {
   });
   const draft = {nome: 'Fixture', inventario: [{id: 'fixture-item', quantidade: 2}]};
   const [character] = await rpc('create_guided_character', p, {p_campaign_id: a, p_title: 'Fixture', p_meta: {}, p_publish: false, p_draft: draft});
+  await check('campaign items: grant, unidentified token without true identity over REST/JWT, identify', async () => {
+    await rpc('codex_definition_save',m,{p_campaign:a,p_kind:'item',p_definition_id:'custom-secret-key',p_version:0,p_base_id:null,p_data:{definition:{id:'custom-secret-key',nome:'TRUE-NAME'},descricao:'TRUE-EFFECT'},p_sheet:[]});
+    const [hero] = await rpc('create_guided_character', p, {p_campaign_id: a, p_title: 'Items', p_meta: {}, p_publish: false, p_draft: {name: 'Items', level: 1, inventory: []}});
+    const grant = {p_campaign:a,p_character:hero.character_id,p_definition_id:'custom-secret-key',p_quantity:1,p_mask:{nome:'Odd key'},p_operation:randomUUID()};
+    for (const token of [p, o]) assert.equal((await api('/rest/v1/rpc/codex_grant_item',{token,method:'POST',body:grant})).ok,false);
+    await rpc('codex_grant_item', m, grant);
+    const view = async () => [await ok(`/rest/v1/character_sheets?character_id=eq.${hero.character_id}`,{token:p}), await rpc('codex_definitions_for',p,{p_campaign:a}), await rpc('codex_list',p,{p_campaign:a})];
+    const before = await view(), unid = before[0][0].draft.inventory[0].itemId;
+    assert.match(unid, /^unid-[0-9a-f]{32}$/);
+    assert.equal(/custom-secret-key|TRUE-NAME|TRUE-EFFECT|identifiesAs/.test(JSON.stringify(before)), false);
+    assert.equal((await api('/rest/v1/rpc/codex_definitions_for',{token:o,method:'POST',body:{p_campaign:a}})).ok,false);
+    assert.equal((await api('/rest/v1/rpc/codex_identify_item',{token:p,method:'POST',body:{p_campaign:a,p_token:unid}})).ok,false);
+    await rpc('codex_identify_item', m, {p_campaign:a,p_token:unid});
+    const after = await view();
+    assert.equal(after[0][0].draft.inventory[0].itemId, 'custom-secret-key');
+    assert.ok(after[1].some(d => d.definitionId === 'custom-secret-key'));
+  });
   await check('character and inventory survive remote reload; second session cannot overwrite stale revision', async () => {
     checkpoint = 'second session login';
     const second = await ok('/auth/v1/token?grant_type=password', {method: 'POST', body: {email: player.email, password}});
