@@ -70,6 +70,15 @@ describe('campos, relações e ficha herdada', () => {
 
 describe('adaptador de demonstração segue a mesma fronteira', () => {
   beforeEach(() => vi.stubGlobal('localStorage', memoryStorage()));
+  it('citação a registro secreto chega à prévia e ao jogador só como texto, como no servidor', async () => {
+    const mestre = codexDemo(true, 'c'), jogador = codexDemo(false, 'c');
+    const secreto = await mestre.save('c', null, 0, { category: 'location', systemId: 'dnd5e-2014', title: 'Covil' });
+    const id = await mestre.save('c', null, 0, { category: 'npc', systemId: 'dnd5e-2014', title: 'Varyn', fields: { history: `Vai ao @[porão](${secreto}) e ao @[Covil](${secreto}).` } });
+    await mestre.reveal('c', id, 1, { visible: true, revealed: ['name', 'history'] });
+    const [visto] = await jogador.list('c');
+    expect(visto.fields!.history).toBe('Vai ao porão e ao Local desconhecido.');
+    expect((await mestre.preview('c', id)).entry).toEqual(visto);
+  });
   it('prévia, vínculo oculto nos dois sentidos e um aviso por operação', async () => {
     const mestre = codexDemo(true, 'c'), jogador = codexDemo(false, 'c');
     const dados = (title: string) => ({ category: 'npc' as const, systemId: 'dnd5e-2014', title, fields: { nickname: 'Alcunha ' + title.slice(-1) }, secret: 'S' });

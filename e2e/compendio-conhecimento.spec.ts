@@ -18,9 +18,9 @@ async function area(page: Page, nome: "Campanha" | "Regras") {
 }
 /** Do catálogo (ou de uma página aberta por ele) de volta à página inicial do Compêndio. */
 async function inicio(page: Page) {
-  // no celular a página aberta ocupa a tela: primeiro volta para a lista
+  // no celular a página aberta ocupa a tela; no computador a carta fecha sobre a lista
   if (celular(page)) await page.getByRole("button", { name: "Voltar", exact: true }).click();
-  else await page.getByRole("button", {name:"Voltar na aba",exact:true}).click();
+  else await page.getByRole("button", { name: "Fechar consulta", exact: true }).click();
   await page.locator(".compendio.cat .cd-back").filter({ visible: true }).click();
 }
 
@@ -101,16 +101,20 @@ test("Compêndio: mestre cria local e revela somente a descrição autorizada ao
   await editor.getByRole("button", { name: "Salvar", exact: true }).click();
   await expect(editor).toBeHidden();
   await expect(page.getByRole("heading", { name: "Porto E2E", exact: true })).toBeVisible();
-  // nasce secreto; a prévia confirma; "Revelar tudo" publica sem as notas privadas
-  const share = page.getByRole("region", { name: "Visibilidade para os jogadores" });
-  await expect(share).toContainText("Registro secreto");
-  await share.getByRole("button", { name: "Revelar tudo", exact: true }).click();
-  await expect(share).toContainText("Publicado");
-  await share.getByRole("button", { name: "Ver como jogador", exact: true }).click();
+  // consulta limpa; o registro nasce secreto; "Revelar tudo" + salvar publica sem as notas privadas
+  await expect(page.locator(".cd-record-page .cd-eye")).toHaveCount(0);
+  await page.getByRole("button", { name: "Gerenciar conhecimento", exact: true }).click();
+  await expect(page.getByRole("switch", { name: "Registro conhecido" })).not.toBeChecked();
+  await page.getByRole("button", { name: "Revelar tudo", exact: true }).click();
+  await expectNoHorizontalOverflow(page);
+  const manageAxe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+  expect(manageAxe.violations).toEqual([]);
+  await page.getByRole("button", { name: "Salvar conhecimento", exact: true }).click();
+  await page.getByRole("button", { name: "Ver como jogador", exact: true }).click();
   const preview = page.getByRole("region", { name: "Prévia do jogador" });
   await expect(preview).toContainText("Um porto autorizado.");
   await expect(preview).not.toContainText("SEGREDO NÃO PUBLICÁVEL");
-  await share.getByRole("button", { name: "Voltar à visão do mestre", exact: true }).click();
+  await preview.getByRole("button", { name: "Mestre", exact: true }).click();
   await expectNoHorizontalOverflow(page);
   const masterAxe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(masterAxe.violations).toEqual([]);

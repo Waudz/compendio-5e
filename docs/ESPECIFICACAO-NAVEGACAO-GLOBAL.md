@@ -14,3 +14,7 @@ Decisão do usuário de 26/11/2026. Substitui regras anteriores de abertura auto
 - Títulos sempre em uma linha, sem quebra de palavras; reticências quando necessário, nome completo em tooltip. Rolagem horizontal para excesso de abas.
 - Redesenhar também a página de nova aba, mantendo acesso rápido às seções.
 - Ctrl+clique e botão do meio abrem nova aba; voltar/avançar por aba; recuperar aba fechada; manter arrastar e fixar. Tela cheia opcional, mesma interface em F11, sem barra adicional volumosa.
+
+## Atualização de 27/11/2026 (DEC-034)
+- Clique normal em registro do Compêndio, no desktop, abre a carta de consulta sobre a página atual (sem navegar). "Expandir" navega na própria aba para a apresentação completa; "Ver ficha" fecha a carta e abre a ficha na aba atual. No celular é sempre página.
+- Nome de monstro na Iniciativa: ficha no outro grupo, criado se preciso; no celular, na própria tela com retorno.

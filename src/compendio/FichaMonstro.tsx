@@ -34,16 +34,15 @@ export function FichaMonstro({ monstro: m, nome, retrato, personalizado, memoria
         <div className="ficha-nomes"><h1>{titulo}</h1>
           {titulo !== m.nome && <p className="identidade-alcunha"><em>{m.nome}</em></p>}
           <p className="ficha-linha-origem">{linhaDeTipo(m)}</p>
-          <p className="ficha-linha-nivel">ND {formatarND(m.nd)} · {formatarXP(m.xp)} XP</p>
         </div>
       </div>
       <div className="ficha-numeros">
         <Indicador tipo="ca" rotulo="CA" valor={m.ca}/>
         <Indicador tipo="pv" rotulo="PV máximos" valor={m.pv} extra={<small className="muted">{m.dadosVida}</small>}/>
-        <Indicador tipo="deslocamento" rotulo="Deslocamento" valor={m.deslocamento.walk ? metros(m.deslocamento.walk) : "—"} extra={<small className="muted">{formatarDeslocamento(m.deslocamento, m.planar)}</small>}/>
+        <Indicador tipo="deslocamento" rotulo="Deslocamento" valor={m.deslocamento.walk ? metros(m.deslocamento.walk) : "—"} extra={formatarDeslocamento(m.deslocamento, m.planar) !== (m.deslocamento.walk ? metros(m.deslocamento.walk) : "—") ? <small className="muted">{formatarDeslocamento(m.deslocamento, m.planar)}</small> : undefined}/>
         <Indicador tipo="iniciativa" rotulo="Iniciativa" valor={formatarModificador(modificadorDe(m.atributos.dex))}/>
         <Indicador tipo="percepcao" rotulo="Percepção passiva" valor={m.percepcaoPassiva}/>
-        <Indicador tipo="proficiencia" rotulo="Nível de desafio" valor={formatarND(m.nd)}/>
+        <Indicador tipo="proficiencia" rotulo="Nível de desafio" valor={formatarND(m.nd)} extra={<small className="muted">{formatarXP(m.xp)} XP</small>}/>
       </div>
     </section>
     <nav className="ficha-subnav" aria-label="Seções da ficha">{abas.map(([a, rotulo]) => <button key={a} type="button" className={aba === a ? "active" : ""} aria-current={aba === a ? "true" : undefined} onClick={() => trocar(a)}>{rotulo}</button>)}</nav>

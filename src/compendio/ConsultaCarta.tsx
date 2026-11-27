@@ -2,6 +2,7 @@
  *  montada, então filtros e rolagem ficam como estavam. No celular não há hospedeiro: o mesmo conteúdo abre como página. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { TabSpec } from '../workspace';
+import { estaVisivel, registrarVoltar } from '../voltarInterno';
 import './carta.css';
 
 export type NaCarta = { fechar: () => void; expandir: () => void; voltar?: () => void };
@@ -40,6 +41,16 @@ export function CartaHost({ children, onOpenContent, renderizar }: {
   }, [onOpenContent]);
   const aberta = !!topo, chave = topo ? `${topo.kind}:${topo.ref}` : '';
   useEffect(() => { if (chave) { caixa.current?.focus(); if (caixa.current) caixa.current.scrollTop = 0; } }, [chave]);
+  // Voltar do navegador com a carta aberta só fecha a carta: a página de baixo fica onde estava.
+  useEffect(() => {
+    if (!aberta) return;
+    return registrarVoltar(() => {
+      if (!estaVisivel(caixa.current)) return false;
+      setPilha([]);
+      setTimeout(() => window.history.go(1), 0);
+      return true;
+    });
+  }, [aberta]);
   const estava = useRef(false);
   useEffect(() => { if (estava.current && !aberta) origem.current?.focus?.({ preventScroll: true }); estava.current = aberta; }, [aberta]);
   const controles = useMemo<NaCarta | null>(() => topo ? {

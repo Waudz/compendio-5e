@@ -50,6 +50,10 @@ Campanha reúne aventureiros/NPCs, Bestiário conhecido, Locais, Organizações 
 
 **Requer migração 0015, proposta e não aplicada**, além das anteriores. A publicação permanece bloqueada para revisão. Fontes, limitações, notificações, Storage privado e procedimento exato em [Compêndio e conhecimento](docs/COMPENDIO-CONHECIMENTO.md). A interface não é uma barreira para o SRD público empacotado; a segurança protege os dados privados da campanha. Sem identificação/sintonização nova, galeria global, PWA ou publicação nesta etapa.
 
+## Cartas do Compêndio e bestiário narrativo (27/11/2026, em revisão)
+
+Consulta em cartas, bestiário somente narrativo e fichas com abas (DEC-034). **Publicação depende da migração 0020** (proposta, não aplicada). 0017–0019 já estão em produção. Para testar sem Supabase: `npm run dev` e abra `http://localhost:5173/compendio-5e/?demo=mestre` e, em outra aba, `?demo=jogador` (os dois compartilham os dados do navegador). Roteiro em `docs/CONTINUIDADE-DESENVOLVIMENTO.md`.
+
 ## Validação no GitHub Actions e previews
 
 Cada pull request é classificado por `scripts/ci-impact.mjs` (usa a versão da `main`; na dúvida, completo):

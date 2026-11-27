@@ -30,3 +30,6 @@ Internas primeiro, sem push obrigatório. Sino/indicador discreto no Compêndio;
 2. Corrigir combate ativo vazio que não permite finalizar; manter finalizar acessível, desabilitar somente ações dependentes de turno. Corrigir perda de PV de personagem removido imediatamente após alteração; persistir na ficha, reentrada usa PV atual, tratar corridas/falhas. Corrigir oscilação das barras mobile em rolagem rápida e conteúdo encoberto no fim.
 3. Personagens/fichas, inventário; depois encontros/loot conforme PR #147 e esta especificação de Compêndio. Dice Box futuro.
 Separar PRs pequenos, testes regressivos e CI verde; não alterar produção para testar. Não criar dados fictícios reais nem redesenhar áreas já aprovadas. 
+
+## Atualização de 27/11/2026 (DEC-034)
+O nível "completo" do Bestiário deixa de incluir estatísticas: o conhecimento do jogador sobre criaturas é exclusivamente narrativo.

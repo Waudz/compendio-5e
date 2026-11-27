@@ -50,7 +50,10 @@
 /* Gerenciar conhecimento: lista compacta feita dos próprios campos da carta. */
 .conhecimento-existencia { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .conhecimento-existencia small { display: block; color: var(--text-2); }
-.conhecimento-existencia input { width: 36px !important; height: 20px; accent-color: var(--accent); flex: none; }
+.cd-page .conhecimento-existencia input, .conhecimento-existencia input { appearance: none; position: relative; width: 36px !important; height: 20px; margin: 0; padding: 0; flex: none; border: 1px solid var(--line); border-radius: 20px; background: var(--bg); cursor: pointer; }
+.conhecimento-existencia input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-2); transition: left .15s; }
+.cd-page .conhecimento-existencia input:checked, .conhecimento-existencia input:checked { background: var(--accent); border-color: var(--accent); }
+.conhecimento-existencia input:checked::after { left: 18px; background: #fff; }
 .conhecimento-resumo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 0 6px; font-size: 12.5px; color: var(--text-2); }
 .conhecimento-resumo > span { margin-right: auto; }
 .conhecimento-niveis { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
@@ -92,3 +95,7 @@
 .ficha-embutida .cd-back { display: none; }
 .ficha-embutida .carta h1.carta-nome { font-size: 19px; }
 .ficha-identidade-publica .carta { background: var(--panel); border-radius: 10px; }
+/* contraste AA dos links de texto sobre o fundo da carta */
+.carta .btn-link { color: var(--accent-text); }
+/* no celular a barra superior já tem o Voltar */
+.mobile .ficha-criatura > .cd-back { display: none; }

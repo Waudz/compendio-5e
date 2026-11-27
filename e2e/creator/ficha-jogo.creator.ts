@@ -18,14 +18,14 @@ async function arrastar(page: Page, dx: number) {
   }, dx);
 }
 
-test('ficha de jogo: três abas, inventário na CA, sem estouro horizontal e com nomes acessíveis', async ({ page }, info) => {
+test('ficha de jogo: quatro abas, inventário na CA, sem estouro horizontal e com nomes acessíveis', async ({ page }, info) => {
   await abrirFichaDeJogo(page);
-  await expect(abas(page).getByRole('button')).toHaveText(['Ficha', 'Habilidades', 'Inventário']);
+  await expect(abas(page).getByRole('button')).toHaveText(['Ficha', 'Habilidades', 'Inventário', 'Identidade']);
   const topo = page.getByRole('region', { name: 'Resumo do personagem' });
   await expect(topo).toContainText('Escudo de Pedra');
   await expect(page.getByTestId('ficha-pv')).toContainText('/');
   const violacoes: unknown[] = [];
-  for (const nome of ['Ficha', 'Habilidades', 'Inventário']) {
+  for (const nome of ['Ficha', 'Habilidades', 'Inventário', 'Identidade']) {
     await aba(page, nome).click();
     await expect(aba(page, nome)).toHaveAttribute('aria-current', 'true');
     await expectNoHorizontalOverflow(page); await expectSingleScroll(page);
