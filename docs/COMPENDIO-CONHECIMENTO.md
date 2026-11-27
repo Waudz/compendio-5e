@@ -64,3 +64,24 @@ A 0015 foi aplicada em produção e **não deve ser reaplicada**. A 0016 é adit
 **Aplicação (pelo responsável, não executada):** confirmar o projeto 2.0 e o backup; executar só leitura de `supabase/preflight/0016_compendio_paginas_vinculos.sql` e anotar as contagens; aplicar o arquivo completo `supabase/migrations/0016_compendio_paginas_vinculos.sql` (já contém `BEGIN/COMMIT`); repetir as contagens; testar mestre, jogador e usuário de outra campanha; só então publicar o aplicativo. Reversão, com aprovação e junto da versão anterior do aplicativo: `supabase/rollback/0016_compendio_paginas_vinculos_down.sql`, que arquiva vínculos e campos antes de removê-los.
 
 SHA-256 do arquivo revisado: `2a6b162c8a5c602ddaa74aadf4270f6931767d6f6bc3a109c5420485e867f857` (fim de linha LF, como no repositório) ou `ad1346ecfa61248118b3c0f46da309926c55c03b5a26fbc92c7ad45facb46b09` (CRLF, como na cópia local no Windows). Calcular novamente se o SQL mudar.
+
+
+## 0017 e 0018 — conhecimento granular, vínculos tipados, descobertas e personalização (propostas, não aplicadas)
+
+Requerem 0015 e 0016 (informadas como aplicadas). As seções acima sobre níveis 0–4 descrevem o estado anterior à 0017.
+
+**Modelo (0017).** `campaign_codex.visible` (existência) + `revealed text[]` (chaves: `name`, `nickname`, `description`, `image`, cada campo, `holders`, `sheet` ou `sheet:<seção>`). `codex_links` ganha `kind`, `inverse` e `revealed`; um vínculo só chega ao jogador se estiver revelado **e** as duas pontas forem visíveis. `codex_project` é a única projeção do jogador (lista e prévia). `codex_save` só grava conteúdo; `codex_reveal` grava a visibilidade, numa transação. Registro novo é secreto.
+
+- Título do jogador: nome revelado, senão alcunha/nome provisório revelado, senão título neutro. Vale para listas, vínculos, termos de pesquisa, notificações e abas.
+- ID de catálogo só sai com identificação completa (nome + ficha inteira); item não identificado aparece com categoria `discovery`. Imagem do catálogo só sai com imagem **e** nome revelados (a URL contém o ID).
+- `sheet` são seções derivadas da definição (CA, vulnerabilidades, dano, efeitos…) calculadas pelo aplicativo do mestre, porque o servidor não tem o catálogo. A definição continua sendo a fonte: a página do mestre regrava quando divergem, e a 0018 atualiza na mesma transação da edição.
+- Um aviso por operação quando algo ainda não anunciado fica visível; correção, ocultação e repetição não avisam. Com a ficha inteira revelada, ela conta como uma única informação.
+- Posse continua derivada dos inventários; o jogador só a vê com `holders` revelado. Registrar descoberta ou vincular item não concede nada. Item citado só por vínculo cria uma referência secreta (`registered=false`), fora de Descobertas até ser registrada ou publicada.
+
+**Conversão dos dados existentes.** Nível 0 continua secreto. Bestiário: 1 nome; 2 + descrição e campos; 3 + imagem; 4 + ficha. Demais tipos publicados: tudo o que o nível já entregava. Vínculos que o jogador via (pontas com nível 2+) nascem revelados; os outros, ocultos. Campos genéricos `identity`/`region`/`history` passam a `occupation`/`residence`/`inhabitants`/`type`/`context`. Nenhum aviso é gerado pela conversão. `meta.stats` (sem interface) permanece guardado e deixa de ser projetado.
+
+**Definições (0018).** `campaign_definitions` guarda só substituições (mesmo ID) e criações (`custom-…`) por campanha; leitura direta apenas do mestre, escrita só por `codex_definition_save`/`codex_definition_remove`. Restaurar apaga a substituição e devolve a ficha original à página. Criação com página ligada não é excluída. O catálogo global não muda; dado inválido é ignorado e o padrão volta a valer. Sem a 0018, o catálogo padrão segue funcionando.
+
+**Aplicação (pelo responsável; nada foi aplicado):** confirmar projeto 2.0 e backup; rodar `supabase/preflight/0017_0018_compendio_granular.sql`; aplicar os arquivos completos 0017 e depois 0018; repetir as contagens; publicar o aplicativo correspondente **na mesma janela** (o aplicativo anterior deixa de gravar registros após a 0017 e o novo exige capacidade 17). Testar mestre, jogador e outra campanha. A ficha dos registros antigos é preenchida quando o mestre abre a página (sem aviso novo); até lá, quem tinha acesso completo continua vendo a definição. Reversão, com aprovação: 0018_down e depois 0017_down, junto da versão anterior do aplicativo; a 0017_down falha para o lado fechado (só permanece visível o que estava totalmente revelado; vínculos ocultos/repetidos e avisos são removidos, com arquivo privado).
+
+SHA-256 (LF): 0017 `21fc1cce0f6ff52be847c263826700d070facad7f795580500d3e17f74644e78`; 0018 `18c9257486e2c8dbada8e73a35604dc6168bcbaac910693e6e3b70aa4cee57a9`.

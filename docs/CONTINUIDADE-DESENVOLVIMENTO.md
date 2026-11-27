@@ -826,3 +826,26 @@ As duas entregas tiveram CI completo verde antes do ajuste final de instâncias:
 #161 em `ba73257` e #162 em `d8607a6`. A cópia conjunta com a restauração de instâncias
 10/19/100 passou em build/tipos e **1750 testes/145 arquivos**. Cabeças finais devem
 confirmar novamente o CI; nenhum merge, deploy ou SQL de produção foi executado.
+
+## RETOMAR AQUI — Compêndio: conhecimento granular, vínculos, descobertas e personalização (26/11/2026)
+
+Branch `feat/compendio-conhecimento-granular`, a partir de `eed389f` (#161 e #162 integrados). **Sem merge e sem publicação; 0017 e 0018 propostas, não aplicadas.** Produção e Compêndio 1.0 não foram acessados. Revisão, banco, integração e publicação: ChatGPT. Modelo, conversão, ordem de aplicação, reversão e SHA em `COMPENDIO-CONHECIMENTO.md` (seção 0017/0018). A navegação (#161) e a pesquisa de vínculos (#162) não foram refatoradas.
+
+**Entregue**
+- Conhecimento coletivo por campanha: existência, cada campo, imagem, seção da ficha/propriedade, posse e cada vínculo, com olho na página, por seção e tudo; "Ver como jogador" usa a mesma projeção do servidor; quatro níveis do bestiário como atalhos ajustáveis; imagem desconhecida com interrogação; um aviso por operação.
+- Campos aprovados de NPC, local, organização e descoberta; relações predefinidas e personalizadas com leitura inversa, agrupadas, com miniaturas; Habitantes em seção própria; vínculos com itens do catálogo por referência secreta.
+- Descobertas: "Registrar como descoberta" na página do item e ao criar item; "Registrar item" na categoria; ficha herdada da definição; descobertas avulsas e filtros Todos/Itens/Mapas/Documentos/Informações/Outras; conhecimento independente do inventário.
+- Monstros e itens por campanha: criar, editar, duplicar, restaurar padrão e excluir criação, nas listas, páginas e vínculos.
+- Correção: o cabeçalho do celular mostrava o identificador interno do registro.
+
+**Validação local (Windows, demonstração e PGlite):** tipos do app e E2E; Vitest 1764/1764 em 147 arquivos; `local-only` 4/4; build oficial e `check-build-oficial`; Playwright (Chrome instalado, sem vídeo) Base 148 + 20 condicionais, Quality 88 + 32, Creator 140 + 4, zero falhas. Depois do Playwright mudaram apenas SQL da conversão, preflight e documentação; a Vitest completa foi repetida e passou.
+
+**Não verificado:** Supabase hospedado; Auth/REST/JWT/Storage reais (`scripts/alpha/run-local.mjs` foi atualizado e só foi conferida a sintaxe; roda no workflow Alpha Supabase isolado do PR); conversão sobre cópia dos dados de produção; celular físico; envio de imagem na interface (a demonstração não envia arquivos).
+
+**Pendências e limites**
+- Definições personalizadas valem no Compêndio. Inventário, ficha, encontros e iniciativa ainda usam o catálogo padrão; item criado pela campanha não pode ser concedido ao inventário.
+- Identificação de itens dentro do inventário (nome verdadeiro oculto para quem possui) continua pendente na ficha: o inventário ainda mostra o nome do catálogo.
+- Item personalizado identificado aparece ao jogador em Descobertas, não na lista Regras → Itens. A edição de monstros não cobre perícias, salvaguardas e sentidos (são preservados da base).
+- Mapas e documentos anexados como arquivo continuam futuros (referência em texto, descrição e imagem).
+
+**Ordem obrigatória:** aplicar 0017 e 0018 na mesma janela da publicação do aplicativo.
