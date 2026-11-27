@@ -62,7 +62,7 @@ export function fonteAventureirosDoInicio(registros: RegistrosApi, capa: CapaApi
         let retratoUrl = p.retratoUrl;
         if (!retratoUrl && p.retratoCaminho && capa) { const { base, enquadramento } = separar(p.retratoCaminho), u = await capa.urlDe(base); if (u.ok) retratoUrl = juntar(u.data, enquadramento); }
         const nota = rotuloPrivacidade(p, souMestre);
-        return { id: p.id, nome: p.nome, ...(p.alcunha ? { alcunha: p.alcunha } : {}), classe: p.classe, nivel: p.nivel, retratoUrl, ...(nota ? { nota } : {}) };
+        return { id: p.id, nome: p.nome, ...(p.meu ? { meu: true } : {}), ...(p.alcunha ? { alcunha: p.alcunha } : {}), classe: p.classe, nivel: p.nivel, retratoUrl, ...(nota ? { nota } : {}) };
       }));
       return { ok: true, data: lista };
     },

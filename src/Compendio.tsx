@@ -1,10 +1,13 @@
 import {VoltarPaginaContext} from "./voltarPagina";
 import { RetratoQuadrado } from "./RetratoCombate";
-import { imagemDoMonstro } from "./ficha/imagensCatalogo";
 import { registrarTitulo } from "./registrosStore";
-import { VoltarCompendio } from "./compendio/Paginas";
+import { VoltarCompendio, RegistroCompendioPagina } from "./compendio/Paginas";
 import { RegistrarDescoberta } from "./compendio/RegistrosCampanha";
-import { VisaoRegistro } from "./compendio/VisaoRegistro";
+import { Carta } from "./compendio/Carta";
+import { FichaMonstro, type AbaExtra } from "./compendio/FichaMonstro";
+import { imagemDoItem } from "./ficha/imagensCatalogo";
+import type { ReactNode } from "react";
+import { VisaoRegistro, ImagemRegistro } from "./compendio/VisaoRegistro";
 import { AcoesDefinicao } from "./compendio/EditorDefinicao";
 import { EntregarItem } from "./compendio/EntregarItem";
 import { carregarDefinicao, useDefinicao, useDefinicoes, type Definicao } from "./compendio/definicoes";
@@ -28,9 +31,9 @@ import {
   Wand,
   ChevronRight,
   Swords,
+  ArrowLeft,
 } from "lucide-react";
 import "./compendio/compendio-categorias.css";
-import { DetalheMonstro } from "./compendio/DetalheMonstro";
 // Compêndio: ponto de entrada da seção (painel do catálogo) e da página de item (aba `item:<id>`, aberta pelo inventário do criador e pelos pacotes).
 // O painel é o catálogo genérico de `src/compendio/` (itens, magias e monstros de D&D 5e 2014); a página de item reutiliza o mesmo detalhe.
 import { Aviso } from "./Diario";
@@ -278,26 +281,48 @@ export function ItemPagina({
       </div>
     );
   return (
-    <div className="content cd-page item-pagina"><VoltarCompendio onOpenContent={onOpenContent}/><article aria-label={`Detalhes de ${item.nome}`}>
-      <div className="eyebrow">COMPÊNDIO · ITEM</div>
-      <h1>{item.nome}</h1>
-      <p className="muted">{item.en}</p>
-      <RegistrarDescoberta category="item" id={id} onOpenContent={onOpenContent}/>
-      {efetiva && <AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}
-      <EntregarItem definitionId={id} nome={item.nome}/>
-      <DetalheItem item={item} descricao={efetiva?.descricao} personalizado={!!efetiva?.campanha} onOpenContent={onOpenContent} /></article>
+    <div className="content cd-page item-pagina"><VoltarCompendio onOpenContent={onOpenContent}/>
+      <Carta trilha="Regras / Item" nome={item.nome} linha={item.en} rotulo={`Detalhes de ${item.nome}`}
+        imagem={imagemDoItem(id) ? <RetratoQuadrado src={imagemDoItem(id)} tipo="avulso" tamanho={200} ampliar={item.nome}/> : undefined}
+        acoes={active?.role === "mestre" ? <><RegistrarDescoberta category="item" id={id} onOpenContent={onOpenContent}/><EntregarItem definitionId={id} nome={item.nome}/></> : undefined}>
+        <DetalheItem item={item} descricao={efetiva?.descricao} personalizado={!!efetiva?.campanha} onOpenContent={onOpenContent} mostrarImagem={false}/>
+        {efetiva && <AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}
+      </Carta>
     </div>
   );
 }
 
+/** Ficha técnica de uma criatura: exclusiva do mestre. Os jogadores conhecem criaturas somente pela carta narrativa. */
 export function MonstroPagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
- const {active}=useCampaigns(),knowledge=useConhecimento();const allowed=active?.role==='mestre'||knowledge.items.some(x=>x.systemId==='dnd5e-2014'&&x.category==='monster'&&x.definitionId===id);
- const definicoes=useDefinicoes();
+ const {active}=useCampaigns(),knowledge=useConhecimento();const master=active?.role==='mestre';
+ const registro=knowledge.items.find(x=>x.systemId==='dnd5e-2014'&&x.category==='monster'&&x.definitionId===id&&x.registered!==false);
+ return <PaginaFichaTecnica definitionId={master?id:undefined} memoria={`${active?.campaign.id}:${id}`} onOpenContent={onOpenContent}
+  terceira={{id:'bestiario',rotulo:'Bestiário',conteudo:registro
+    ?<div className="ficha-embutida"><RegistroCompendioPagina id={registro.id} onOpenContent={onOpenContent} semFicha/></div>
+    :<section className="ficha-bloco"><p className="muted">Esta criatura ainda não tem história registrada na campanha.</p><RegistrarDescoberta category="monster" id={id} onOpenContent={onOpenContent}/></section>}}/>;
+}
+
+/** Ficha de combate de um NPC: o mesmo modelo de criatura, com a identidade narrativa do próprio NPC. */
+export function NpcFichaPagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
+ const {active}=useCampaigns(),knowledge=useConhecimento();const master=active?.role==='mestre';
+ const npc=knowledge.items.find(x=>x.id===id&&x.category==='npc');
+ if(master&&!knowledge.loading&&!npc?.combatDefinitionId)return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t="Este NPC não tem ficha de combate vinculada."/></div>;
+ return <PaginaFichaTecnica definitionId={master?npc?.combatDefinitionId:undefined} nome={npc?.title} retrato={npc?<ImagemRegistro entry={npc} tamanho={104} ampliar/>:undefined} carregando={knowledge.loading}
+  memoria={`${active?.campaign.id}:npc:${id}`} onOpenContent={onOpenContent} semAcoes
+  terceira={{id:'identidade',rotulo:'Identidade',conteudo:<div className="ficha-embutida"><RegistroCompendioPagina id={id} onOpenContent={onOpenContent} semFicha/></div>}}/>;
+}
+
+function PaginaFichaTecnica({definitionId,nome,retrato,memoria,terceira,carregando=false,semAcoes=false,onOpenContent}:{definitionId?:string;nome?:string;retrato?:ReactNode;memoria:string;terceira:AbaExtra;carregando?:boolean;semAcoes?:boolean;onOpenContent:(s:TabSpec)=>void}){
+ const {active}=useCampaigns(),voltar=useContext(VoltarPaginaContext),definicoes=useDefinicoes();
  const [data,setData]=useState<{id:string;definicao?:Definicao;error?:string}>();
- useEffect(()=>{let alive=true;if(allowed&&!definicoes.carregando)void carregarDefinicao('monster',id,definicoes.lista).then(definicao=>{if(alive){setData({id,definicao});if(definicao)registrarTitulo(id,definicao.nome);}},()=>{if(alive)setData({id,error:'Não foi possível carregar a criatura.'});});return()=>{alive=false;};},[id,allowed,definicoes.lista,definicoes.carregando]);
- if(!allowed)return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t={knowledge.loading?'Verificando conhecimento…':'Criatura não revelada com informações completas nesta campanha.'}/></div>;
- const efetiva=data?.id===id&&data.definicao?.kind==='monster'?data.definicao:undefined,m=efetiva?.monstro;
- return <div className="content cd-page cd-monster-page"><VoltarCompendio onOpenContent={onOpenContent}/>{m?<><header className="cd-identity"><RetratoQuadrado src={imagemDoMonstro(id)} tipo="monstro" tamanho={120}/><div><h1>{m.nome}</h1><p className="muted">{m.en}</p><RegistrarDescoberta category="monster" id={id} onOpenContent={onOpenContent}/></div></header>{efetiva&&<AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}<article aria-label={`Detalhes de ${m.nome}`}><DetalheMonstro monstro={m} personalizado={!!efetiva?.campanha} mostrarImagem={false} onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/></article></>:data?.id===id?<Aviso erro t={data.error??'Criatura não encontrada.'}/>:<p role="status">Carregando criatura…</p>}</div>;
+ useEffect(()=>{let alive=true;if(definitionId&&!definicoes.carregando)void carregarDefinicao('monster',definitionId,definicoes.lista).then(definicao=>{if(alive){setData({id:definitionId,definicao});if(definicao&&!nome)registrarTitulo(definitionId,definicao.nome);}},()=>{if(alive)setData({id:definitionId,error:'Não foi possível carregar a criatura.'});});return()=>{alive=false;};},[definitionId,definicoes.lista,definicoes.carregando]);
+ if(active&&active.role!=='mestre')return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t="A ficha técnica é exclusiva do mestre. Consulte o que seu grupo conhece em Bestiário."/></div>;
+ const atual=data&&data.id===definitionId?data:undefined,efetiva=atual?.definicao?.kind==='monster'?atual.definicao:undefined;
+ if(!efetiva)return <div className="content cd-page">{voltar&&<VoltarCompendio onOpenContent={onOpenContent} label="Voltar"/>}{atual?<Aviso erro t={atual.error??'Criatura não encontrada.'}/>:<p role="status">{carregando?'Carregando registro…':'Carregando criatura…'}</p>}</div>;
+ return <FichaMonstro key={memoria} monstro={efetiva.monstro} nome={nome} retrato={retrato} personalizado={!!efetiva.campanha} memoria={memoria} terceira={terceira}
+  voltar={voltar?<button type="button" className="cd-back" onClick={voltar}><ArrowLeft size={16}/> Voltar</button>:undefined}
+  acoes={semAcoes?undefined:<AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}
+  onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/>;
 }
 
 /** Categorias são destinos do mesmo histórico, não páginas escondidas dentro do índice. */

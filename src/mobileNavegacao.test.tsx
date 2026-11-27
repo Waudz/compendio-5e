@@ -159,13 +159,15 @@ describe("celular: Inventário dentro da Ficha", () => {
     deslizar(document.querySelector(".ficha")!, -80, 160);
     expect(screen.queryByRole("heading", { name: "Inventário" })).toBeNull();
   });
-  it("sem permissão de edição (ficha de outro jogador): só leitura, sem campos de adicionar nem remover", async () => {
+  it("ficha de outro jogador: o Início mostra só a identidade pública", async () => {
     await montar(jogador, [pc("p3", other.id, "Alheio", "2026-04-01T00:00:00Z", "campaign", { classe: "Mago", nivel: 2, inventario: ["Grimório"] })]);
     fireEvent.click(barra().getByRole("button", { name: "Início" }));
     fireEvent.click(await screen.findByRole("button", { name: "Alheio Mago · nível 2" }));
-    await screen.findByRole("heading", { name: "Alheio" });
-    deslizar(document.querySelector(".ficha")!, -140);
-    expect(await screen.findByText("Grimório")).toBeTruthy();
+    // outro jogador recebe somente a identidade pública: nada de ficha nem inventário
+    expect(await screen.findByRole("article", { name: "Identidade pública de Alheio" })).toBeTruthy();
+    expect(screen.queryByText("Grimório")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ver ficha" })).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByLabelText("Nome do item")).toBeNull();
     expect(screen.queryByRole("button", { name: "Remover" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();

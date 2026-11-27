@@ -17,6 +17,7 @@ import { useFecharMenu } from "../useFecharMenu";
 import type { TabSpec } from "../workspace";
 import { AbaFicha } from "./AbaFicha";
 import { AbaHabilidades, type FiltroHab } from "./AbaHabilidades";
+import { abaVizinha, useGestoAbas } from "./gestoAbas";
 import { useVersaoCatalogo } from "../catalogue/campanha";
 import { AbaInventario, type FiltroInv, type VistaInv } from "./AbaInventario";
 import { defesasDerivadas, descansoCurto, descansoLongo, lerEstadoJogo, ROTULO_DEFESA, somaTemporaria, type AlvoMod } from "./estadoJogo";
@@ -24,8 +25,8 @@ import type { AcaoVital } from "../vitais/vitais";
 import { metros, sinal } from "./tipos";
 import type { ChaveMoeda } from "../moedas/moedas";
 
-export type AbaId = "ficha" | "habilidades" | "inventario";
-const ABAS: [AbaId, string][] = [["ficha", "Ficha"], ["habilidades", "Habilidades"], ["inventario", "Inventário"]];
+export type AbaId = "ficha" | "habilidades" | "inventario" | "identidade";
+const ABAS: [AbaId, string][] = [["ficha", "Ficha"], ["habilidades", "Habilidades"], ["inventario", "Inventário"], ["identidade", "Identidade"]];
 type Memoria = { aba: AbaId; rolagem: Partial<Record<AbaId, number>>; vista: VistaInv; filtro: FiltroInv; filtroHab: FiltroHab };
 const PADRAO: Memoria = { aba: "ficha", rolagem: {}, vista: "lista", filtro: "todos", filtroHab: "todas" };
 const lerMemoria = (chave: string): Memoria => {
@@ -37,20 +38,9 @@ function quemRola(el: HTMLElement): Element {
   for (let n: HTMLElement | null = el; n; n = n.parentElement) { const o = getComputedStyle(n).overflowY; if (o === "auto" || o === "scroll") return n; }
   return document.scrollingElement ?? document.documentElement;
 }
-/** Margem das bordas reservada ao gesto de voltar do celular. */
-const BORDA = 28;
-/** O toque começou num controle, ou numa área com rolagem lateral própria: não é gesto de troca de aba. */
-function toqueEmControle(alvo: EventTarget | null, limite: Element) {
-  if (!(alvo instanceof Element)) return true;
-  if (alvo.closest("input,textarea,select,button,a,summary,label,[contenteditable],[role=menu],.sem-gesto")) return true;
-  for (let n: Element | null = alvo; n && n !== limite; n = n.parentElement) if (n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return true;
-  return false;
-}
-/** Para qual aba um arrasto leva (ou `null` se não for um gesto horizontal claro). Sem volta ao início: as pontas param. */
+/** Para qual aba um arrasto leva (ou `null` se não for um gesto horizontal claro). */
 export function abaDoGesto(atual: AbaId, dx: number, dy: number): AbaId | null {
-  if (Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy) * 1.6) return null;
-  const i = ABAS.findIndex(([a]) => a === atual) + (dx < 0 ? 1 : -1);
-  return ABAS[i]?.[0] ?? null;
+  return abaVizinha(ABAS.map(([id]) => id), atual, dx, dy);
 }
 
 export type FichaJogoProps = {
@@ -65,6 +55,8 @@ export type FichaJogoProps = {
   podeConceder?: boolean;
   /** Estado do salvamento e avisos (conflito, recuperação, sincronização). */
   salvamento?: ReactNode; avisos?: ReactNode;
+  /** Conteúdo da aba Identidade (a projeção pública do mesmo personagem). */
+  identidade?: ReactNode;
   /** PV, temporários, condições e salvaguardas contra a morte: operações aplicadas na fonte única. */
   vital: (acao: AcaoVital) => void;
   /** Usa uma unidade de um item, com a cura informada. Devolve a mensagem de erro, ou `null`. */
@@ -75,7 +67,7 @@ export type FichaJogoProps = {
   personagemId?: string; campaignId?: string;
 };
 
-export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, campaignId, podeConceder, moedas }: FichaJogoProps) {
+export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, campaignId, podeConceder, moedas, identidade }: FichaJogoProps) {
   const catalogo = useVersaoCatalogo();
   const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft, catalogo]);
   const base = useMemo(() => statistics2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft, catalogo]);
@@ -110,20 +102,9 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
     mudarMemoria({ aba, rolagem: { ...guardada.current.rolagem, [mem.aba]: atual, [aba]: guardada.current.rolagem[aba] ?? Math.min(atual, abas?.offsetTop ?? 0) } });
   };
 
-  const toque = useRef<{ x: number; y: number } | null>(null);
-  const gesto = {
-    onTouchStart: (e: React.TouchEvent) => {
-      const t = e.touches[0];
-      toque.current = e.touches.length !== 1 || t.clientX < BORDA || t.clientX > window.innerWidth - BORDA || toqueEmControle(e.target, e.currentTarget) ? null : { x: t.clientX, y: t.clientY };
-    },
-    onTouchEnd: (e: React.TouchEvent) => {
-      const inicio = toque.current; toque.current = null;
-      if (!inicio || window.matchMedia?.("(min-width:701px)").matches) return;
-      const t = e.changedTouches[0], aba = abaDoGesto(mem.aba, t.clientX - inicio.x, t.clientY - inicio.y);
-      if (aba) trocarAba(aba);
-    },
-    onTouchCancel: () => { toque.current = null; },
-  };
+  const abas = identidade ? ABAS : ABAS.filter(([id]) => id !== "identidade");
+  const aba: AbaId = abas.some(([id]) => id === mem.aba) ? mem.aba : "ficha";
+  const gesto = useGestoAbas(abas.map(([id]) => id), aba, trocarAba);
 
   const temp = (a: AlvoMod) => somaTemporaria(estado, a);
   // os modificadores temporários entram só no que é exibido; a construção do personagem não muda
@@ -140,7 +121,11 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
     <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
     <section className="ficha-cabecalho" aria-label="Resumo do personagem">
       <div className="ficha-identidade">
-        <button type="button" className="ficha-retrato" aria-label="Alterar retrato" title="Alterar retrato" onClick={() => setEditandoRetrato(true)}><RetratoQuadrado tipo="personagem" tamanho={104} src={retratoValido(draft.portrait) ? draft.portrait : null}/></button>
+        {retratoValido(draft.portrait)
+          // com imagem: tocar nela só amplia; trocar ou enquadrar é o botão separado
+          ? <span className="ficha-retrato-caixa"><RetratoQuadrado tipo="personagem" tamanho={104} src={draft.portrait} ampliar={nomeExibido}/>
+            <button type="button" className="ficha-retrato-editar" aria-label="Alterar retrato" title="Alterar retrato e enquadramento" onClick={() => setEditandoRetrato(true)}><Pencil size={12} aria-hidden="true"/></button></span>
+          : <button type="button" className="ficha-retrato" aria-label="Alterar retrato" title="Alterar retrato" onClick={() => setEditandoRetrato(true)}><RetratoQuadrado tipo="personagem" tamanho={104} src={null}/></button>}
         <div className="ficha-nomes"><h1>{nomeExibido}</h1>
           {draft.nickname?.trim() && <p className="identidade-alcunha"><em>{draft.nickname.trim()}</em></p>}
           <p className="ficha-linha-origem">{[raca, label2014(draft.classId) + (subclasse ? ` (${label2014(subclasse)})` : ""), origem].join(" · ")}</p>
@@ -168,17 +153,18 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
         <Descansos draft={draft} maximo={sheet.maxHp} onChange={onChange} vital={vital}/>
       </div>
     </section>
-    <nav className="ficha-subnav" aria-label="Seções da ficha">{ABAS.map(([id, rotulo]) => <button key={id} type="button" className={mem.aba === id ? "active" : ""} aria-current={mem.aba === id ? "true" : undefined} onClick={() => trocarAba(id)}>{rotulo}</button>)}</nav>
+    <nav className="ficha-subnav" aria-label="Seções da ficha">{abas.map(([id, rotulo]) => <button key={id} type="button" className={aba === id ? "active" : ""} aria-current={aba === id ? "true" : undefined} onClick={() => trocarAba(id)}>{rotulo}</button>)}</nav>
     {salvamento}
     {avisos}
     {sheet.pending.length > 0 && <p className="notice" role="note">Ficha com escolhas pendentes. Use Editar personagem para concluir.</p>}
     {editandoRetrato && <Modal titulo={`Retrato de ${nomeExibido}`} onFechar={() => setEditandoRetrato(false)} sistema="sistema-dnd" largura={520}>
       <div className="criador"><CampoRetrato valor={draft.portrait ?? ""} campaignId={campaignId ?? ""} onChange={portrait => onChange({ ...draft, portrait })}/></div>
     </Modal>}
-    <div className="ficha-conteudo" data-aba={mem.aba}>
-      {mem.aba === "ficha" && <AbaFicha {...propsAba}/>}
-      {mem.aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder} filtro={mem.filtroHab} onFiltro={filtroHab => mudarMemoria({ filtroHab })}/>}
-      {mem.aba === "inventario" && <AbaInventario {...propsAba} usarItem={usarItem} transferir={transferir} personagemId={personagemId} campaignId={campaignId} moedas={moedas} mestre={podeConceder} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
+    <div className="ficha-conteudo" data-aba={aba}>
+      {aba === "ficha" && <AbaFicha {...propsAba}/>}
+      {aba === "habilidades" && <AbaHabilidades {...propsAba} podeConceder={podeConceder} filtro={mem.filtroHab} onFiltro={filtroHab => mudarMemoria({ filtroHab })}/>}
+      {aba === "inventario" && <AbaInventario {...propsAba} usarItem={usarItem} transferir={transferir} personagemId={personagemId} campaignId={campaignId} moedas={moedas} mestre={podeConceder} vista={mem.vista} onVista={vista => mudarMemoria({ vista })} filtro={mem.filtro} onFiltro={filtro => mudarMemoria({ filtro })}/>}
+      {aba === "identidade" && identidade}
     </div>
     <p className="muted ficha-dado">Cálculos das regras SRD 5.1 (2014).</p>
   </div>;

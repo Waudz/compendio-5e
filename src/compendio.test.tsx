@@ -84,7 +84,11 @@ describe('Compêndio na navegação real', () => {
     expect(fatos.getByText('Peso').nextSibling?.textContent).toBe('1,5 kg');
     expect(within(detalhe).getByText(/Atribuição/)).toBeTruthy();
     expect(await screen.findByRole('heading', { name: 'Espada longa', level: 1 })).toBeTruthy();
-    expect(abas()).toEqual(['Mesa dos Dragões', 'Espada longa']);
+    // a carta não troca de página; Expandir leva à apresentação completa na mesma aba
+    expect(abas()).toEqual(['Mesa dos Dragões', 'Itens']);
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Consulta do Compêndio' })).getByRole('button', { name: 'Expandir para página completa' }));
+    await waitFor(() => expect(abas()).toEqual(['Mesa dos Dragões', 'Espada longa']));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('pacote lista os componentes como links para os itens; clicar abre o item', async () => {
@@ -95,7 +99,11 @@ describe('Compêndio na navegação real', () => {
     expect(pacote.getAllByRole('listitem').filter(l => l.textContent?.startsWith('10 ×'))).toHaveLength(2);   // 10 tochas e 10 rações
     fireEvent.click(pacote.getByRole('button', { name: 'Mochila' }));
     expect(await screen.findByRole('heading', { name: 'Mochila' })).toBeTruthy();
-    expect(abas()).toContain('Mochila');
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar à carta anterior' }));
+    expect(await screen.findByRole('region', { name: 'Conteúdo do pacote' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar consulta' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('pacote de explorador');
   });
 
   it('abas restauradas: item existente ganha o nome certo e item inexistente mostra erro claro (sem quebrar)', async () => {

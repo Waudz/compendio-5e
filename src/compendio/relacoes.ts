@@ -39,3 +39,23 @@ export function agruparVinculos<T extends { relation: string; title: string }>(l
   return [...grupos].sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
     .map(([k, v]) => [k, [...v].sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'))]);
 }
+
+export type Vaga = { campo: string; rotulo: string; kind: string; outgoing: boolean };
+/** Campos da carta que podem ser preenchidos por um vínculo tipado (`outgoing`: a página atual é a origem). */
+export const VAGAS: Record<string, Vaga[]> = {
+  npc: [
+    { campo: 'birthplace', rotulo: 'Naturalidade', kind: 'originates', outgoing: true },
+    { campo: 'residence', rotulo: 'Residência', kind: 'resident', outgoing: true },
+  ],
+  location: [{ campo: 'inhabitants', rotulo: 'Habitantes', kind: 'resident', outgoing: false }],
+  organization: [
+    { campo: 'leadership', rotulo: 'Liderança', kind: 'leader', outgoing: false },
+    { campo: 'headquarters', rotulo: 'Sede', kind: 'headquarters', outgoing: false },
+    { campo: 'members', rotulo: 'Membros', kind: 'member', outgoing: false },
+  ],
+};
+export function separarVinculos<T extends { kind: string; outgoing: boolean }>(categoria: string, links: readonly T[]) {
+  const vagas = (VAGAS[categoria] ?? []).map(v => ({ ...v, links: links.filter(l => l.kind === v.kind && l.outgoing === v.outgoing) })).filter(v => v.links.length);
+  const usados = new Set(vagas.flatMap(v => v.links));
+  return { vagas, demais: links.filter(l => !usados.has(l)) };
+}

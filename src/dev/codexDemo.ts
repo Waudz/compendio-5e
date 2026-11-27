@@ -26,20 +26,30 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
       return [{ id: l.id, targetId: other.id, kind: l.kind, title: asPlayer ? publicTitle(other) : other.title, category: asPlayer ? publicCategory(other) : other.category, relation: l.source === id ? l.label : l.inverse, outgoing: l.source === id, ...(asPlayer ? {} : { revealed: l.revealed }) }];
     });
   };
+  /** Mesma regra de citações da 0020: destino fechado chega só como texto; nome verdadeiro oculto vira o título público. */
+  const sanear = <T,>(valor: T): T => {
+    if (valor === undefined) return valor;
+    return JSON.parse(JSON.stringify(valor), (_k, v: unknown) => typeof v !== "string" ? v : v.replace(/@\[([^\]\n]{1,120})\]\(([0-9a-fA-F-]{36})\)/g,(_m: string, texto: string, id: string) => {
+      const alvo = read().find((x) => x.id === id);
+      const nomeOculto = !!alvo && !alvo.revealed.includes("name") && texto.trim().toLowerCase() === alvo.title.trim().toLowerCase();
+      const exibido = nomeOculto ? publicTitle(alvo) : texto;
+      return alvo?.visible ? `@[${exibido}](${id})` : exibido;
+    })) as T;
+  };
   const project = (e: Salvo): Conhecimento => {
     const has = (k: string) => e.revealed.includes(k);
     const fields = Object.fromEntries(Object.entries(e.fields ?? {}).filter(([k]) => has(k)));
-    const sheet = (e.sheet ?? []).filter((s) => has("sheet") || has("sheet:" + s.k));
+    const sheet = e.category === "monster" ? [] : (e.sheet ?? []).filter((s) => has("sheet") || has("sheet:" + s.k));
     const related = linksOf(e.id, true).map((l) => l.title);
     // Chaves ocultas ficam ausentes da resposta, como na projeção do servidor.
     return JSON.parse(JSON.stringify({
       id: e.id, systemId: e.systemId, version: e.version, visible: true, category: publicCategory(e), title: publicTitle(e),
-      description: has("description") ? e.description : undefined,
-      fields: Object.keys(fields).length ? fields : undefined,
+      description: has("description") ? sanear(e.description) : undefined,
+      fields: Object.keys(fields).length ? sanear(fields) : undefined,
       sheet: sheet.length ? sheet : undefined,
       imagePath: has("image") ? e.imagePath : undefined, framing: has("image") ? e.framing : undefined,
       imageDefinitionId: has("image") && has("name") ? e.definitionId : undefined,
-      definitionId: identified(e) ? e.definitionId : undefined,
+      definitionId: e.category !== "monster" && identified(e) ? e.definitionId : undefined,
       relatedTerms: related.length ? related : undefined,
     })) as Conhecimento;
   };
@@ -107,7 +117,12 @@ export function codexDemo(master: boolean, campaign: string): CodexApi {
     definitions: async (cid) => {
       scope(cid);
       const all = parse<LinhaDefinicao>(key + ":definitions");
-      return master ? all : all.filter((d) => read().some((e) => e.visible && e.definitionId === d.definitionId && e.category === d.kind && identified(e)));
+      return master ? all : all.filter((d) => d.kind === "item" && read().some((e) => e.visible && e.definitionId === d.definitionId && e.category === d.kind && identified(e)));
+    },
+    setCombatSheet: async (cid, id, version, definitionId) => {
+      check(); scope(cid);
+      const old = find(id, version);
+      store(key, read().map((x) => (x.id === id ? { ...old, combatDefinitionId: definitionId ?? undefined, version: version + 1 } : x)));
     },
     saveDefinition: async (cid, d, sheet, baseName) => {
       check(); scope(cid);

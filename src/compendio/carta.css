@@ -1,0 +1,118 @@
+/* Cartas do Compêndio: identidade atual (azul e tipografia do aplicativo), leitura contínua e sem blocos soltos. */
+.carta-host { position: relative; height: 100%; min-height: 0; }
+.carta-fundo-conteudo { height: 100%; min-height: 0; }
+.carta-camada { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgb(5 10 18 / .62); }
+.carta-janela { width: min(620px, 100%); max-height: 100%; overflow: auto; overscroll-behavior: contain; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 18px 48px rgb(0 0 0 / .45); }
+.carta-janela:focus { outline: none; }
+.carta-janela .content { height: auto; overflow: visible; padding: 0 !important; }
+.carta-janela .cd-back { display: none; }
+
+.carta { width: 100%; max-width: 620px; margin-inline: auto; padding: 12px 18px 20px; box-sizing: border-box; min-width: 0; overflow-wrap: anywhere; }
+.content .carta { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.carta-janela .content .carta { border: 0; border-radius: 0; }
+.carta-topo { display: flex; align-items: center; gap: 6px; min-height: 30px; }
+.carta-trilha { margin-right: auto; font-size: 12px; color: var(--text-2); }
+.carta-icone { display: inline-grid; place-items: center; width: 28px; height: 28px; flex: none; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--text-2); cursor: pointer; }
+.carta-icone:hover { background: var(--hover); color: var(--text); }
+.carta-imagem { display: flex; justify-content: center; margin: 10px 0 8px; }
+.carta-imagem .retrato-q { width: min(200px, 64%) !important; height: auto !important; aspect-ratio: 1; border-radius: 10px; }
+.carta-imagem[data-formato=panorama] .retrato-q { width: 100% !important; aspect-ratio: 16 / 7; }
+.carta-imagem[data-formato=simbolo] .retrato-q { width: min(140px, 46%) !important; border-radius: 50%; }
+.carta-imagem .retrato-q img { width: 100%; height: 100%; object-fit: cover; }
+.content .carta h1.carta-nome { text-align: center; font-size: 21px; margin: 6px 0 2px; }
+.content .carta .carta-alcunha { text-align: center; font-style: italic; margin: 0 0 2px; }
+.content .carta .carta-linha { text-align: center; font-size: 13px; margin: 0; }
+.carta-acoes { display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.carta-acoes button, .carta-acoes .btn-secondary, .carta-acoes .menu-acoes-gatilho { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 5px 10px; font-size: 12.5px; border-radius: 7px; margin: 0; }
+.carta-acoes .cd-registrar { margin: 0; }
+.carta-corpo { margin-top: 14px; border-top: 1px solid var(--line); }
+.carta-fatos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin: 0; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.carta-fatos dt { font-size: 12px; color: var(--text-2); }
+.carta-fatos dd { margin: 2px 0 0; font-size: 14px; white-space: pre-wrap; }
+@container (max-width: 340px) { .carta-fatos { grid-template-columns: minmax(0, 1fr); } }
+.carta-corpo h2 { font-size: 15px; margin: 18px 0 6px; }
+.carta-corpo h3 { font-size: 14px; margin: 14px 0 4px; }
+.content .carta-corpo p { line-height: 1.65; margin: 10px 0; }
+.carta-corpo .cd-texto { white-space: pre-wrap; }
+.carta-corpo .item-fatos { margin-block: 12px; }
+.carta-corpo .cat-etiquetas { justify-content: center; }
+.carta-ref { display: inline; padding: 0; border: 0; background: none; font: inherit; color: var(--link, #7fb0ff); cursor: pointer; text-align: left; }
+.carta-ref:hover { text-decoration: underline; }
+.carta-valores { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.carta-corpo .cd-relations h2 { margin-top: 18px; }
+.carta-corpo .cd-relation { padding: 8px 10px; background: var(--bg); }
+
+/* Seletor Mestre/Jogador */
+.carta-papel { display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--bg); }
+.carta-papel button { border: 0; background: none; color: var(--text-2); font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+.carta-papel button[aria-pressed=true] { background: var(--active, #24364e); color: var(--text); }
+
+/* Gerenciar conhecimento: lista compacta feita dos próprios campos da carta. */
+.conhecimento-existencia { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.conhecimento-existencia small { display: block; color: var(--text-2); }
+.cd-page .conhecimento-existencia input, .conhecimento-existencia input { appearance: none; position: relative; width: 36px !important; height: 20px; margin: 0; padding: 0; flex: none; border: 1px solid var(--line); border-radius: 20px; background: var(--bg); cursor: pointer; }
+.conhecimento-existencia input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-2); transition: left .15s; }
+.cd-page .conhecimento-existencia input:checked, .conhecimento-existencia input:checked { background: var(--accent); border-color: var(--accent); }
+.conhecimento-existencia input:checked::after { left: 18px; background: #fff; }
+.conhecimento-resumo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 0 6px; font-size: 12.5px; color: var(--text-2); }
+.conhecimento-resumo > span { margin-right: auto; }
+.conhecimento-niveis { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
+.conhecimento-niveis button { font-size: 12px; padding: 4px 8px; }
+.conhecimento-grupo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 4px; font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
+.conhecimento-grupo button { text-transform: none; letter-spacing: 0; }
+.conhecimento-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.conhecimento-lista li { display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 10px; border-radius: 7px; background: var(--bg); }
+.conhecimento-lista li > span { display: grid; min-width: 0; margin-right: auto; }
+.conhecimento-lista li strong { font-size: 12px; font-weight: 500; color: var(--text-2); }
+.conhecimento-lista li em { font-style: normal; font-size: 13.5px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.conhecimento-lista li[data-revelado=false] em { color: var(--text-2); }
+.conhecimento-lista .retrato-q { flex: none; }
+.conhecimento-rodape { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 12px 0 4px; margin-top: 10px; border-top: 1px solid var(--line); background: var(--panel); }
+.conhecimento-rodape .btn-primary { flex: 1; }
+
+/* Citações com @ no editor */
+.ref-campo { position: relative; }
+.ref-sugestoes { list-style: none; margin: 4px 0 0; padding: 4px; display: grid; gap: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); max-height: 220px; overflow: auto; }
+.ref-sugestoes button { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; border: 0; background: none; color: var(--text); padding: 6px 8px; border-radius: 6px; font: inherit; font-size: 13px; }
+.ref-sugestoes button:hover, .ref-sugestoes button:focus-visible { background: var(--hover); }
+.ref-sugestoes small { color: var(--text-2); }
+.codex-editor .vinculo-campo { display: grid; gap: 4px; margin-block: 12px; }
+.codex-editor .vinculo-campo label { margin: 0; }
+
+@media (max-width: 700px) {
+  .carta { padding-inline: 12px; }
+  .content .carta { background: none; border: 0; padding-inline: 0; }
+  .carta-acoes button, .carta-acoes .btn-secondary, .carta-acoes .menu-acoes-gatilho { min-height: 40px; }
+}
+
+.cd-card-fim { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+
+/* Ficha de criatura: mesma família da ficha de personagem. A carta narrativa entra como aba interna. */
+.ficha-criatura .ficha-retrato { line-height: 0; }
+.ficha-criatura .ficha-numeros small { font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; }
+.ficha-tabela { overflow-x: auto; }
+.ficha-embutida .content { height: auto; overflow: visible; padding: 0 !important; }
+.ficha-embutida .cd-back { display: none; }
+.ficha-embutida .carta h1.carta-nome { font-size: 19px; }
+.ficha-identidade-publica .carta { background: var(--panel); border-radius: 10px; }
+/* contraste AA dos links de texto sobre o fundo da carta */
+.carta .btn-link { color: var(--accent-text); }
+/* no celular a barra superior já tem o Voltar */
+.mobile .ficha-criatura > .cd-back { display: none; }
+
+/* retrato em destaque nas cartas de personagens e criaturas (o das fichas técnicas continua compacto) */
+.carta-imagem .retrato-ampliar { width: min(200px, 64%); }
+.carta-imagem .retrato-ampliar .retrato-q { width: 100% !important; }
+.carta-imagem[data-grande] > .retrato-q, .carta-imagem[data-grande] > .retrato-ampliar { width: min(300px, 100%) !important; }
+.carta-imagem[data-formato=panorama] > .retrato-ampliar { width: 100%; }
+.carta-imagem[data-formato=simbolo] > .retrato-ampliar { width: min(140px, 46%); border-radius: 50%; }
+.conhecimento-aviso { margin: 0 0 6px !important; padding: 6px 10px; border-left: 3px solid #d9a441; border-radius: 4px; background: var(--bg); font-size: 12.5px; }
+@media (max-width: 700px) {
+  .carta-imagem[data-grande] > .retrato-q, .carta-imagem[data-grande] > .retrato-ampliar { width: min(260px, 100%) !important; }
+  /* menos vazio acima do retrato: a barra do aplicativo já dá o contexto */
+  .mobile .content.cd-page { padding-top: 4px !important; }
+  .mobile .cd-page > .cd-back { margin: 0; padding: 4px 0; }
+  .mobile .carta { padding-top: 0; }
+  .mobile .carta-topo { min-height: 0; }
+  .mobile .carta-imagem { margin-top: 4px; }
+}

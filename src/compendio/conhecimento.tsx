@@ -39,6 +39,8 @@ export type Conhecimento = {
   imagePath?: string;
   imageDefinitionId?: string;
   secret?: string;
+  /** Ficha de combate de um NPC (definição de criatura); só o mestre recebe. */
+  combatDefinitionId?: string;
   fields?: Record<string, string>;
   sheet?: Secao[];
   relatedTerms?: string[];
@@ -95,6 +97,7 @@ export interface CodexApi {
   /** Entrega e identificação de itens (0019), somente do mestre. */
   grantItem?(cid: string, characterId: string, definitionId: string, quantity: number, mask: { nome: string; descricao?: string } | null, operation: string): Promise<void>;
   identifyItem?(cid: string, token: string): Promise<void>;
+  setCombatSheet?(cid: string, id: string, version: number, definitionId: string | null): Promise<void>;
   saveDefinition?(cid: string, d: LinhaDefinicao, sheet: Secao[], baseName?: string): Promise<number>;
   removeDefinition?(cid: string, kind: TipoDefinicao, id: string, version: number, sheet?: Secao[], originalName?: string): Promise<void>;
 }
@@ -115,7 +118,7 @@ function semErro(r: { error: unknown }): void {
     throw Error("Outra sessão alterou este registro. Recarregue antes de salvar.");
   if (r.error) throw Error(ERRO_CODEX);
 }
-export const VERSAO_BANCO_CODEX = 17;
+export const VERSAO_BANCO_CODEX = 20;
 export function validarImagemConhecimento(file: File): void {
   if (
     !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
@@ -142,6 +145,10 @@ export function createCodexApi(client: SupabaseClient): CodexApi {
       if ((r.error as { message?: string } | null)?.message?.includes("definicao_em_uso"))
         throw Error("Há uma página da campanha ligada a esta criação. Remova a página antes de excluir.");
       semErro(r);
+    },
+    setCombatSheet: async (cid, id, version, definitionId) => {
+      await exigirBanco();
+      semErro(await client.rpc("codex_set_combat_sheet", { p_campaign: cid, p_entry: id, p_version: version, p_definition_id: definitionId }));
     },
     links: async (cid, id) => conferir(await client.rpc("codex_links_for", { p_campaign: cid, p_entry: id })) as CodexLink[],
     link: async (cid, source, target, r) => conferir(await client.rpc("codex_link", { p_campaign: cid, p_source: source, p_target: target, p_kind: r.kind, p_relation: r.label, p_inverse: r.inverse, p_revealed: !!r.revealed })) as string,

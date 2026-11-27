@@ -18,7 +18,7 @@ import { ContextMenu, type MenuItem, type MenuState } from "./ContextMenu";
 import { useChromeHidden } from "./chromeHide";
 import { Mobile } from "./Mobile";
 import { NavItem } from "./NavItem";
-import { closeTabs, isPinned, navigate, openContentLink as openContent, otherNormalTabs, setPinned, type NavMode } from "./navigation";
+import { closeTabs, isPinned, navigate, openAoLado, openContentLink as openContent, otherNormalTabs, setPinned, type NavMode } from "./navigation";
 import { UnsavedContext, useUnsavedRegistry } from "./unsaved";
 import { findTab } from "./workspace";
 import { consumirVoltar, EVENTO_FECHAR_TELA, pedirFicha, registrarAliasPersonagem } from "./voltarInterno";
@@ -26,6 +26,8 @@ import { lerMapaAba } from "./criador/recuperacao";
 import { tituloDe, useVersaoRegistros } from "./registrosStore";
 import { Panel } from "./Panel";
 import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
+import { CartaHost } from "./compendio/ConsultaCarta";
+import { tituloPrevia, useVersaoTituloPrevia } from "./compendio/tituloPrevia";
 import { hasSavedLayout, loadLayout, saveLayout, type Scope } from "./persistence";
 import { srdItem } from "./catalogue/srd-2014-items";
 import { defaultTitle, closeGroup, campaignsHub, desktopSections, firstVisitModel, tabId, canMoveToNewColumn, closeTab, createModel, groupCount, groups, isColumnsOnly, moveToGroup, moveToNewColumn, normalizeEmptyPanels, prepareMove, visibleSections, type TabSpec } from "./workspace";
@@ -266,10 +268,10 @@ function Workspace({ userId }: { userId: string }) {
   },[model,mobile,step,reopen]);
   const factory = useCallback((node: TabNode) => {
     const c = currentPage(node), h=historyOf(node);
-    return <OrigemAbaContext.Provider value={node.getId()}><VoltarPaginaContext.Provider value={h.index>0?()=>step(node.getId(),h.index-1):undefined}><PageViewport key={tabId(c)} pageKey={`${scopeKey}:${node.getId()}:${tabId(c)}`} positions={positions.current}><Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => visit(s, node.getId())}/></PageViewport></VoltarPaginaContext.Provider></OrigemAbaContext.Provider>;
+    return <OrigemAbaContext.Provider value={node.getId()}><VoltarPaginaContext.Provider value={h.index>0?()=>step(node.getId(),h.index-1):undefined}><PageViewport key={tabId(c)} pageKey={`${scopeKey}:${node.getId()}:${tabId(c)}`} positions={positions.current}><CartaHost onOpenContent={s => visit(s, node.getId())} renderizar={(s, abrir) => <Panel kind={s.kind} entity={s.ref} onOpen={openMenu} onOpenContent={abrir}/>}><Panel kind={c.kind} entity={c.ref} onOpen={openMenu} onOpenContent={s => visit(s, node.getId())}/></CartaHost></PageViewport></VoltarPaginaContext.Provider></OrigemAbaContext.Provider>;
   }, [openMenu, visit, step, scopeKey]);
 
-  const versaoCatalogo = useVersaoCatalogo();
+  const versaoCatalogo = useVersaoCatalogo(), versaoPrevia = useVersaoTituloPrevia();
   // Títulos nunca são persistidos: o nome da campanha vem da lista carregada (ou do rótulo genérico).
   const titleOf = useCallback((n: TabNode) => {
     const c = currentPage(n);
@@ -277,12 +279,13 @@ function Workspace({ userId }: { userId: string }) {
     if(c.kind==="categoria")return tituloCategoria(c.ref);
     if ((c?.kind === "documento" || c?.kind === "ficha" || c?.kind === "magia") && c.ref) return tituloDe(c.ref) ?? fallback;
     if (c?.kind === "criador" && c.ref) return tituloDe(c.ref) ?? "Personagem guiado";   // o título não é persistido no layout
-    if (c?.kind === "registro" && c.ref) return conhecidosCatalogo.find(x=>x.id===c.ref)?.title??"Registro";
+    if (c?.kind === "registro" && c.ref) return tituloPrevia(c.ref)??conhecidosCatalogo.find(x=>x.id===c.ref)?.title??"Registro";
+    if (c?.kind === "npc" && c.ref) return conhecidosCatalogo.find(x=>x.id===c.ref)?.title??"NPC";
     if (c?.kind === "monstro" && c.ref) return active?.role === "mestre" ? tituloDe(c.ref)??"Criatura" : conhecidosCatalogo.find(x=>x.category==="monster"&&x.definitionId===c.ref)?.title??"Criatura";
     if (c?.kind === "regra" && c.ref) return tituloDe(c.ref)??"Regra";
     if (c?.kind === "item" && c.ref) return active?.role === "mestre" || jogadorPodeAdicionar(c.ref) || itemConhecido(conhecidosCatalogo,c.ref) ? (active?.role === "mestre" ? tituloDe(c.ref) : undefined) ?? srdItem(c.ref)?.nome ?? fallback : "Item";
     return c?.kind === "campanha" ? memberships.find(m => m.campaign.id === c.ref)?.campaign.name ?? fallback : fallback;
-  }, [memberships, registrosV, active?.role, conhecidosCatalogo, versaoCatalogo]);
+  }, [memberships, registrosV, active?.role, conhecidosCatalogo, versaoCatalogo, versaoPrevia]);
   // FlexLayout usa o nome do modelo para ARIA e o conteúdo renderizado para a tela.
   // Manter ambos iguais em memória; minimalLayout continua removendo nomes ao persistir.
   useLayoutEffect(() => {
@@ -302,7 +305,7 @@ function Workspace({ userId }: { userId: string }) {
   const activeTab = model.getActiveTabset()?.getSelectedNode();
   const activePage=activeTab instanceof TabNode?currentPage(activeTab):null;
   const activeId=activePage?tabId(activePage):"";
-  const sectionId=activePage&&["categoria","registro","identidade","monstro","regra","item","magia"].includes(activePage.kind)?"secao:compendio"
+  const sectionId=activePage&&["categoria","registro","identidade","monstro","npc","regra","item","magia"].includes(activePage.kind)?"secao:compendio"
     :activePage&&["ficha","criador"].includes(activePage.kind)?"secao:personagens":activeId;
   // Painel vazio (criado por divisão): clicar nele o torna o painel ativo, para onde vai a próxima seção aberta pelo menu.
   const placeholder = useCallback((g: TabSetNode) => <div className="empty" onPointerDown={() => { model.doAction(Actions.setActiveTabset(g.getId())); refresh(); }}>
@@ -320,12 +323,19 @@ function Workspace({ userId }: { userId: string }) {
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={guarded(node.getChildren().map(c => c.getId()), () => closeGroup(model, node.getId()))}><X size={14}/></button>);
   }, [model, onModelChange, unsaved.api, step, reopen, openMenu]);
 
+  // Ficha de monstro pela Iniciativa: outro grupo no computador; no celular, na própria aba, para Voltar devolver ao combate.
+  const aoLado = useCallback((s: TabSpec, origem?: string) => {
+    const id = origem ?? model.getActiveTabset()?.getSelectedNode()?.getId();
+    if (!mobile) { abrindo(s); openAoLado(model, s, id); onModelChange(model); return; }
+    if (id) unsaved.api.guard([id], () => { abrindo(s); visitPage(model, id, s); onModelChange(model); });
+  }, [model, mobile, abrindo, onModelChange, unsaved.api]);
   const abrirEmAba = useMemo(() => ({
+    aoLado,
     navegar: (s:TabSpec,origem?:string)=>visit(s,origem),
     abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem, true),
     mostrar: (x: number, y: number, s: TabSpec, origem?: string) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
       ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } }] }),
-  }), [openContentLink, mobile, model, visit]);
+  }), [openContentLink, mobile, model, visit, aoLado]);
 
   return <NotificacoesProvider><CatalogoDaCampanha/><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>

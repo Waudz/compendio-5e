@@ -56,7 +56,7 @@ try {
   const reveal = async (id, revealed, visible = true, links = {}) =>
     api('/rest/v1/rpc/codex_reveal',{token:m,method:'POST',body:{p_campaign:a,p_entry:id,p_version:await codexVersion(id),p_visible:visible,p_revealed:revealed,p_links:links}});
   await check('codex: REST/JWT field projection, links, mutation denial, private notes and notifications', async () => {
-    const data = {category:'monster',systemId:'dnd5e-2014',definitionId:'goblin',title:'Goblin de teste',
+    const data = {category:'item',systemId:'dnd5e-2014',definitionId:'dagger',title:'Goblin de teste',
       description:[{type:'paragraph',content:[{type:'text',text:'Texto autorizado'}]}],secret:'DO NOT PROJECT',fields:{nickname:'Alcunha'},
       sheet:[{k:'ac',l:'CA',v:'15'},{k:'vulnerabilities',l:'Vulnerabilidades',v:'fogo'}]};
     const id = await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:data});
@@ -97,6 +97,23 @@ try {
     await rpc('codex_remove',m,{p_campaign:a,p_entry:id,p_version:await codexVersion(id)});
     assert.equal((await list()).some(x=>x.id===id),false);
     assert.deepEqual(await notices(),[]);
+  });
+  await check('codex bestiary (0020): no creature statistics or definition reach the player at any level; NPC sheet link is master-only', async () => {
+    const definitionId = 'custom-creature-' + randomUUID();
+    await rpc('codex_definition_save',m,{p_campaign:a,p_kind:'monster',p_definition_id:definitionId,p_version:0,p_base_id:null,p_data:{definition:{id:definitionId,nome:'TRUE-CREATURE'}},p_sheet:[]});
+    const data = {category:'monster',systemId:'dnd5e-2014',definitionId,title:'Troll',fields:{habitat:'Swamps'},sheet:[{k:'hp',l:'PV',v:'STAT-VALUE'}]};
+    const id = await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:data});
+    assert.equal((await reveal(id,['name','habitat','sheet','sheet:hp'])).ok,true);
+    const views = [await rpc('codex_list',p,{p_campaign:a}), await rpc('codex_definitions_for',p,{p_campaign:a})];
+    assert.equal(/STAT-VALUE|TRUE-CREATURE|custom-creature/.test(JSON.stringify(views)),false);
+    assert.equal(views[0].find(x=>x.id===id).fields.habitat,'Swamps');
+    const npc = await rpc('codex_save',m,{p_campaign:a,p_entry:null,p_version:0,p_data:{category:'npc',title:'Guard'}});
+    const body = {p_campaign:a,p_entry:npc,p_version:1,p_definition_id:definitionId};
+    for (const token of [p,o]) assert.equal((await api('/rest/v1/rpc/codex_set_combat_sheet',{token,method:'POST',body})).ok,false);
+    assert.equal((await api('/rest/v1/rpc/codex_set_combat_sheet',{token:m,method:'POST',body})).ok,true);
+    assert.equal((await reveal(npc,['name'])).ok,true);
+    assert.equal(JSON.stringify(await rpc('codex_list',p,{p_campaign:a})).includes('custom-creature'),false);
+    for (const entry of [id,npc]) await rpc('codex_remove',m,{p_campaign:a,p_entry:entry,p_version:await codexVersion(entry)});
   });
   await check('codex Storage: real upload, replacement, read boundary and denied writes',async()=>{
     const data={category:'monster',systemId:'dnd5e-2014',definitionId:'storage-test',title:'Storage isolado'};

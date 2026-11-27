@@ -1,6 +1,6 @@
-/** Página de um registro. A mesma composição serve ao jogador, à prévia e ao mestre; só o mestre recebe `controles`,
- *  e a visão do jogador exibe exclusivamente o que veio na projeção do servidor. */
-import { useEffect, useState } from 'react';
+/** Carta narrativa de um registro. A mesma composição serve ao mestre, ao jogador e à prévia; o jogador e a prévia
+ *  exibem exclusivamente o que veio na projeção do servidor. Criaturas nunca mostram estatísticas aqui. */
+import { useEffect, useState, type ReactNode } from 'react';
 import { CircleHelp, Eye, EyeOff } from 'lucide-react';
 import { useCampaigns } from '../CampaignsContext';
 import { useVersaoRegistros } from '../registrosStore';
@@ -8,27 +8,24 @@ import { RetratoQuadrado } from '../RetratoCombate';
 import { deBlocos } from '../registros';
 import { imagemDoItem, imagemDoMonstro } from '../ficha/imagensCatalogo';
 import { CAMPOS, type Campo } from './campos';
-import { estaRevelada, gruposDeChaves, type GrupoChaves } from './chaves';
 import { useCodexApi, type CodexLink, type Conhecimento } from './conhecimento';
 import { ImagemConhecida } from './RegistrosCampanha';
-import { ListaVinculos, type ControlesVinculo } from './Vinculos';
-import { DetalheMonstro } from './DetalheMonstro';
+import { ListaVinculos } from './Vinculos';
 import { DetalheItem } from './DetalheItem';
 import { secoesDaDefinicao, useDefinicao } from './definicoes';
 import { mesmasSecoes } from './ficha';
 import { nomesRegistro, type LinhaCompendio } from './consulta';
+import { Carta, FatosCarta, type Fato } from './Carta';
+import { separarVinculos } from './relacoes';
+import { BotaoReferencia, TextoNarrativo } from './referencias';
+import { registroSpec, identidadeSpec } from './navegacao';
 import type { TabSpec } from '../workspace';
-
-export type ControlesRegistro = {
-  busy: boolean;
-  alternar: (chaves: string[], revelar: boolean) => void;
-};
 
 export function BotaoOlho({ on, rotulo, onClick, disabled }: { on: boolean; rotulo: string; onClick: () => void; disabled?: boolean }) {
   return <button type="button" className="cd-eye" aria-pressed={on} disabled={disabled} aria-label={`${on ? 'Ocultar' : 'Revelar'} ${rotulo}`} title={on ? 'Visível aos jogadores' : 'Oculto dos jogadores'} onClick={onClick}>{on ? <Eye size={15}/> : <EyeOff size={15}/>}</button>;
 }
 
-function Posse({ id, versao }: { id: string; versao: unknown }) {
+function Posse({ id, versao, children }: { id: string; versao: unknown; children: (nomes: string) => ReactNode }) {
   const api = useCodexApi(), { active } = useCampaigns(), registros = useVersaoRegistros();
   const scope = `${active?.campaign.id}:${id}`;
   const [state, setState] = useState<{ scope: string; data: { id: string; title: string }[] }>();
@@ -38,88 +35,82 @@ function Posse({ id, versao }: { id: string; versao: unknown }) {
     return () => { alive = false; };
   }, [api, scope, versao, registros]);
   const data = state?.scope === scope ? state.data : [];
-  return data.length ? <p>Com: {data.map(x => x.title).join(', ')}</p> : null;
+  return data.length ? <>{children(data.map(x => x.title).join(', '))}</> : null;
 }
 
-export function ImagemRegistro({ entry, tamanho }: { entry: Conhecimento; tamanho: number }) {
-  if (entry.imagePath) return <ImagemConhecida path={entry.imagePath} framing={entry.framing} tamanho={tamanho}/>;
+export function ImagemRegistro({ entry, tamanho, ampliar }: { entry: Conhecimento; tamanho: number; ampliar?: boolean }) {
+  // o título vem da mesma projeção da imagem: na prévia e para o jogador é o nome público
+  const titulo = ampliar ? entry.title : undefined;
+  if (entry.imagePath) return <ImagemConhecida path={entry.imagePath} framing={entry.framing} tamanho={tamanho} ampliar={titulo}/>;
   const catalogo = !entry.imageDefinitionId || entry.systemId !== 'dnd5e-2014' ? null
     : entry.category === 'monster' ? imagemDoMonstro(entry.imageDefinitionId) : entry.category === 'item' ? imagemDoItem(entry.imageDefinitionId) : null;
-  return <RetratoQuadrado src={catalogo} icone={catalogo ? undefined : CircleHelp} tamanho={tamanho}/>;
+  return <RetratoQuadrado src={catalogo} icone={catalogo ? undefined : CircleHelp} tamanho={tamanho} ampliar={titulo}/>;
 }
 
-export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links, rows, controles, controlesVinculo, rodapeVinculos, onOpenContent }: {
+/** Campos curtos que formam a linha abaixo do nome. */
+const LINHA: Record<string, string[]> = { npc: ['race', 'age'], monster: ['classification'], location: ['type', 'region'], organization: ['type'], discovery: ['type'], item: ['type'] };
+
+export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links, rows, trilha, topo, acoes, privado, onOpenContent }: {
   entry: Conhecimento;
   versaoPosse?: unknown;
   mostrarPosse: boolean;
   links: CodexLink[];
   rows: readonly LinhaCompendio[];
-  controles?: ControlesRegistro;
-  controlesVinculo?: ControlesVinculo;
-  rodapeVinculos?: React.ReactNode;
+  trilha?: string; topo?: ReactNode; acoes?: ReactNode;
+  /** Visão do mestre: acrescenta as notas privadas e as propriedades completas da definição. */
+  privado?: boolean;
   onOpenContent: (s: TabSpec) => void;
 }) {
-  const reveladas = entry.revealed ?? [];
-  const grupos = controles ? gruposDeChaves(entry) : [];
-  const grupo = (id: GrupoChaves['id']) => grupos.find(g => g.id === id);
-  const olho = (k: string, rotulo: string) => controles && grupos.some(g => g.chaves.some(c => c.k === k))
-    ? <BotaoOlho on={estaRevelada(reveladas, k)} rotulo={rotulo} disabled={controles.busy} onClick={() => controles.alternar([k], !estaRevelada(reveladas, k))}/> : null;
-  const olhoSecao = (id: GrupoChaves['id']) => {
-    const g = grupo(id);
-    if (!controles || !g) return null;
-    const todas = g.chaves.every(c => estaRevelada(reveladas, c.k));
-    return <BotaoOlho on={todas} rotulo={`seção ${g.titulo}`} disabled={controles.busy} onClick={() => controles.alternar(g.chaves.map(c => c.k), !todas)}/>;
-  };
   const campos: Campo[] = CAMPOS[entry.category] ?? [];
-  const preenchido = (f: Campo) => !!entry.fields?.[f.id]?.trim();
-  const curtos = campos.filter(f => !f.long && f.id !== 'nickname' && preenchido(f));
-  const longos = campos.filter(f => f.long && preenchido(f));
+  const campo = (id: string) => campos.find(f => f.id === id);
+  const valor = (id: string) => (campo(id) ? entry.fields?.[id]?.trim() : '') || '';
+  const { vagas, demais } = separarVinculos(entry.category, links);
+  const noLinha = LINHA[entry.category] ?? [];
+  const linha = noLinha.map(valor).filter(Boolean).join(' · ');
+  const apelido = valor('nickname');
+  const vinculo = (l: CodexLink) => <BotaoReferencia key={l.id} spec={l.category === 'character' ? identidadeSpec(l.targetId, l.title) : registroSpec(l.targetId, l.title)} onAbrir={onOpenContent}>{l.title}</BotaoReferencia>;
+  const curtos = campos.filter(f => !f.long && f.id !== 'nickname' && !noLinha.includes(f.id));
+  const fatos: Fato[] = [];
+  for (const f of curtos) {
+    const vaga = vagas.find(v => v.campo === f.id);
+    if (vaga) fatos.push({ k: f.id, rotulo: vaga.rotulo, valor: <span className="carta-valores">{vaga.links.map(vinculo)}</span> });
+    else if (valor(f.id)) fatos.push({ k: f.id, rotulo: f.label, valor: valor(f.id) });
+  }
+  for (const v of vagas) if (v.campo !== 'inhabitants' && !curtos.some(f => f.id === v.campo)) fatos.push({ k: v.campo, rotulo: v.rotulo, valor: <span className="carta-valores">{v.links.map(vinculo)}</span> });
   const descricao = deBlocos(entry.description ?? []).trim();
-  const apelido = campos.find(f => f.id === 'nickname');
-  const habitantes = entry.category === 'location' ? links.filter(l => l.relation === 'Habitante') : [];
-  const demais = habitantes.length ? links.filter(l => l.relation !== 'Habitante') : links;
-  const textoHabitantes = entry.category === 'location' ? longos.find(f => f.id === 'inhabitants') : undefined;
-  // O jogador com identificação completa recebe o ID e vê o mesmo componente da definição.
-  const carregada = useDefinicao(entry.category, controles ? undefined : entry.definitionId, entry.systemId);
+  const longos = campos.filter(f => f.long && f.id !== 'inhabitants' && valor(f.id));
+  const habitantes = vagas.find(v => v.campo === 'inhabitants'), textoHabitantes = valor('inhabitants');
+  const criatura = entry.category === 'monster';
+  // O jogador com identificação completa de um item recebe o ID e vê o mesmo componente da definição.
+  const carregada = useDefinicao(entry.category, privado || criatura ? undefined : entry.definitionId, entry.systemId);
   // Se a campanha personalizou a definição, vale a ficha liberada pelo servidor, nunca o original do catálogo.
-  const definicao = carregada && (!entry.sheet?.length || mesmasSecoes(secoesDaDefinicao(carregada), entry.sheet)) ? carregada : undefined;
-  const campoLongo = (f: Campo) => <section key={f.id}><h2>{f.label} {olho(f.id, f.label)}</h2><p className="cd-texto">{entry.fields?.[f.id]}</p></section>;
-  return <>
-    <div className="cd-identity">
-      <div className="cd-identity-image"><ImagemRegistro entry={entry} tamanho={100}/>{olho('image', 'Imagem')}</div>
-      <div>
-        <h1>{entry.title}</h1>
-        {controles && <p className="cd-linha-olho"><small className="muted">Nome verdadeiro</small> {olho('name', 'Nome')}</p>}
-        {apelido && preenchido(apelido) && entry.fields!.nickname !== entry.title && <p className="muted cd-linha-olho"><em>{entry.fields!.nickname}</em> {olho('nickname', apelido.label)}</p>}
-        <p>{nomesRegistro[entry.category]}</p>
-        {mostrarPosse && entry.category === 'item' && <div className="cd-linha-olho"><Posse id={entry.id} versao={versaoPosse}/>{olho('holders', 'Quem está com o item')}</div>}
-      </div>
-    </div>
-    {(descricao || curtos.length > 0) && <section className="cd-description">
-      <h2>Descrição {olhoSecao('descricao')}</h2>
-      {curtos.length > 0 && <dl className="cd-campos">{curtos.map(f => <div key={f.id}><dt>{f.label} {olho(f.id, f.label)}</dt><dd>{entry.fields?.[f.id]}</dd></div>)}</dl>}
-      {descricao && <><div className="cd-linha-olho">{controles && <small className="muted">Texto da descrição</small>}{olho('description', 'Descrição')}</div><p className="cd-texto">{descricao}</p></>}
-    </section>}
-    {longos.some(f => f !== textoHabitantes) && <div className="cd-detalhes">{controles && <div className="cd-linha-olho"><small className="muted">Detalhes</small>{olhoSecao('detalhes')}</div>}{longos.filter(f => f !== textoHabitantes).map(campoLongo)}</div>}
-    {(textoHabitantes || habitantes.length > 0) && <section className="cd-relations" aria-label="Habitantes">
-      <h2>Habitantes</h2>
-      {textoHabitantes && <><div className="cd-linha-olho">{olho(textoHabitantes.id, textoHabitantes.label)}</div><p className="cd-texto">{entry.fields?.inhabitants}</p></>}
-      {habitantes.length > 0 && <ListaVinculos links={habitantes} rows={rows} controles={controlesVinculo} onOpenContent={onOpenContent}/>}
-    </section>}
-    {controles && !!entry.sheet?.length && <section className="cd-sheet" aria-label={entry.category === 'monster' ? 'Ficha da criatura' : 'Propriedades'}>
-      <h2>{entry.category === 'monster' ? 'Ficha da criatura' : 'Propriedades'} {olhoSecao('ficha')}</h2>
-      <dl className="cd-campos">{entry.sheet.map(s => <div key={s.k}><dt>{s.l} {olho('sheet:' + s.k, s.l)}</dt><dd>{s.v}</dd></div>)}</dl>
-    </section>}
-    {!controles && (definicao
-      ? <div className="cd-definition">{definicao.kind === 'monster'
-        ? <DetalheMonstro monstro={definicao.monstro} mostrarImagem={false} personalizado={!!definicao.campanha} onAbrirMagia={ref => onOpenContent({ kind: 'magia', ref })}/>
-        : <DetalheItem item={definicao.item} descricao={definicao.descricao} personalizado={!!definicao.campanha} onOpenContent={onOpenContent} mostrarImagem={false}/>}</div>
-      : !!entry.sheet?.length && <section className="cd-sheet" aria-label="Informações conhecidas"><h2>Informações conhecidas</h2><dl className="cd-campos">{entry.sheet.map(s => <div key={s.k}><dt>{s.l}</dt><dd>{s.v}</dd></div>)}</dl></section>)}
-    {(demais.length > 0 || controles) && <section className="cd-relations" aria-label="Registros relacionados">
-      <h2>Registros relacionados</h2>
-      {!links.length && <p className="muted">Nenhum registro relacionado.</p>}
-      <ListaVinculos links={demais} rows={rows} controles={controlesVinculo} onOpenContent={onOpenContent}/>
-      {rodapeVinculos}
-    </section>}
-  </>;
+  const definicao = carregada?.kind === 'item' && (!entry.sheet?.length || mesmasSecoes(secoesDaDefinicao(carregada), entry.sheet)) ? carregada : undefined;
+  const secoes = criatura ? [] : entry.sheet ?? [];
+  const texto = (t: string) => <TextoNarrativo texto={t} rows={rows} onAbrir={onOpenContent}/>;
+  const mostrar = !!(fatos.length || descricao || longos.length || habitantes || textoHabitantes || secoes.length || definicao || demais.length || (privado && entry.secret?.trim()) || (mostrarPosse && entry.category === 'item'));
+  return <Carta trilha={trilha ?? nomesRegistro[entry.category]} topo={topo} acoes={acoes} nome={entry.title}
+    alcunha={apelido && apelido !== entry.title ? apelido : null} linha={linha || (criatura ? null : entry.category === 'npc' ? null : nomesRegistro[entry.category])}
+    formato={entry.category === 'location' ? 'panorama' : entry.category === 'organization' ? 'simbolo' : 'retrato'}
+    retratoGrande={entry.category === 'npc' || criatura}
+    imagem={<ImagemRegistro entry={entry} tamanho={entry.category === 'npc' || criatura ? 300 : 200} ampliar/>}>
+    {mostrar && <>
+      <FatosCarta fatos={fatos}/>
+      {mostrarPosse && entry.category === 'item' && <Posse id={entry.id} versao={versaoPosse}>{nomes => <p>Com: {nomes}</p>}</Posse>}
+      {descricao && texto(descricao)}
+      {longos.map(f => <section key={f.id}><h2>{f.label}</h2>{texto(valor(f.id))}</section>)}
+      {(textoHabitantes || habitantes) && <section aria-label="Habitantes">
+        <h2>Habitantes</h2>
+        {textoHabitantes && texto(textoHabitantes)}
+        {habitantes && <p className="carta-valores">{habitantes.links.map(vinculo)}</p>}
+      </section>}
+      {definicao
+        ? <div className="cd-definition"><DetalheItem item={definicao.item} descricao={definicao.descricao} personalizado={!!definicao.campanha} onOpenContent={onOpenContent} mostrarImagem={false}/></div>
+        : secoes.length > 0 && <section aria-label={privado ? 'Propriedades' : 'Informações conhecidas'}><h2>{privado ? 'Propriedades' : 'Informações conhecidas'}</h2><dl className="cd-campos">{secoes.map(s => <div key={s.k}><dt>{s.l}</dt><dd>{s.v}</dd></div>)}</dl></section>}
+      {demais.length > 0 && <section className="cd-relations" aria-label="Registros relacionados">
+        <h2>Registros relacionados</h2>
+        <ListaVinculos links={demais} rows={rows} onOpenContent={onOpenContent}/>
+      </section>}
+      {privado && !!entry.secret?.trim() && <section className="cd-private"><h2>Notas privadas do mestre</h2><p className="cd-texto">{entry.secret}</p></section>}
+    </>}
+  </Carta>;
 }

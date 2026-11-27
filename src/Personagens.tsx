@@ -36,6 +36,12 @@ function Retrato({ caminho, nome, tamanho = 44 }: { caminho: string | null; nome
   return url ? <span className="retrato retrato-enquadrado" style={{ width: tamanho, height: tamanho }}><img src={url} alt="" style={estiloEnquadramento(separar(caminho!).enquadramento)}/></span> : <span className="retrato retrato-inicial" style={{ width: tamanho, height: tamanho }} aria-hidden="true">{nome.slice(0, 1).toLocaleUpperCase("pt-BR") || <UserRound size={18}/>}</span>;
 }
 
+/** Retrato somente leitura do perfil simples, ampliável. */
+function RetratoDaFicha({ caminho, nome, tamanho }: { caminho: string | null; nome: string; tamanho: number }) {
+  const url = useUrlDoCaminho(caminho);
+  return url ? <RetratoQuadrado src={juntar(url, separar(caminho!).enquadramento)} tipo="personagem" tamanho={tamanho} ampliar={nome}/> : <Retrato caminho={null} nome={nome} tamanho={tamanho}/>;
+}
+
 /** Retrato de um cartão da lista: imagem pública (guiado), retrato do perfil simples, ou o espaço padrão. */
 function RetratoDaLista({ p }: { p: PersonagemCampanha }) {
   const url = useUrlDoCaminho(p.retratoCaminho);
@@ -115,7 +121,7 @@ function CartaoPublicoGuiado({ reg }: { reg: Registro }) {
   if (!c) return <div className="content"><h1>{reg.title}</h1><Aviso t="Apresentação indisponível."/></div>;
   const visto = presentation(c);
   return <div className="content ficha" data-testid="cartao-publico"><div className="eyebrow">PERSONAGEM</div>
-    <div className="ficha-topo"><RetratoQuadrado tipo="personagem" src={c.imageUrl} tamanho={96}/><div><h1>{visto.nome}</h1>{visto.alcunha && <p className="identidade-alcunha"><em>{visto.alcunha}</em></p>}</div></div>
+    <div className="ficha-topo"><RetratoQuadrado tipo="personagem" src={c.imageUrl} tamanho={96} ampliar={visto.nome}/><div><h1>{visto.nome}</h1>{visto.alcunha && <p className="identidade-alcunha"><em>{visto.alcunha}</em></p>}</div></div>
     {c.race && <p>Raça: {c.race}</p>}{c.characterClass && <p>Classe: {c.characterClass}</p>}{c.level && <p>Nível: {c.level}</p>}{c.description && <p>{c.description}</p>}
     <p className="muted">Os detalhes da ficha são privados do jogador e do mestre.</p></div>;
 }
@@ -168,7 +174,7 @@ export function FichaPagina({ id, onOpenContent }: { id: string; onOpenContent?:
   if (!dono) {
     const p = lerPerfil(reg.meta);
     return <div className="content ficha" {...gesto}><div className="eyebrow">PERSONAGEM</div>
-      <div className="ficha-topo"><Retrato caminho={p.retrato} nome={reg.title} tamanho={72}/><div><h1>{reg.title}</h1><p>{p.classe || "Sem classe"} · nível {p.nivel}</p></div></div>{secoes}{subsecao === "inventario" && <ul>{inventario.map((item, i) => <li key={i}>{item}</li>)}</ul>}</div>;
+      <div className="ficha-topo"><RetratoDaFicha caminho={p.retrato} nome={reg.title} tamanho={72}/><div><h1>{reg.title}</h1><p>{p.classe || "Sem classe"} · nível {p.nivel}</p></div></div>{secoes}{subsecao === "inventario" && <ul>{inventario.map((item, i) => <li key={i}>{item}</li>)}</ul>}</div>;
   }
   const salvar = async (): Promise<boolean> => {
     const n = Number(nivel); const bad = validarPerfil(nome, classe, n); if (bad) { setMsg({ ok: false, t: bad }); return false; }

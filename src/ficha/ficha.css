@@ -68,7 +68,7 @@
 .ficha-jogo .ficha-descansos > p { flex: 1 1 100%; margin: 0; font-size: 12px; text-align: center; }
 
 /* ---------------------------------------------------------------- abas */
-.ficha-jogo .ficha-subnav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; border: 0; margin-top: 8px; margin-bottom: 10px; max-width: 1080px; }
+.ficha-jogo .ficha-subnav { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; border: 0; margin-top: 8px; margin-bottom: 10px; max-width: 1080px; }
 .ficha.ficha-jogo .ficha-subnav button { width: 100%; min-width: 0; margin: 0; padding: 8px 4px; border: 0; border-radius: 999px; background: var(--panel); color: var(--text-2); font: inherit; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; cursor: pointer; }
 .ficha.ficha-jogo .ficha-subnav button.active { background: var(--accent); color: var(--on-accent); }
 
@@ -310,3 +310,7 @@
 }
 @container (max-width: 330px) { .ficha-retrato .retrato-q { width: 72px !important; height: 72px !important; } .ficha.ficha-jogo .ficha-acoes button.ficha-botao { padding: 4px 6px; font-size: 11px; } }
 @media (max-width: 480px) { .menu-acoes-titulo { max-width: none; } }
+
+.ficha-retrato-caixa { position: relative; display: inline-block; line-height: 0; }
+.ficha.ficha-jogo button.ficha-retrato-editar { position: absolute; right: -4px; bottom: -4px; width: 28px; height: 28px; min-height: 0; margin: 0; padding: 0; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--text); cursor: pointer; }
+.ficha.ficha-jogo .ficha-retrato-caixa button.retrato-ampliar { width: auto; }

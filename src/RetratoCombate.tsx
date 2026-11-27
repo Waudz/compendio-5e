@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAventureiros } from "./AventureirosContext";
 import { useCapa, useFichas } from "./RegistrosContext";
 import { estiloEnquadramento, juntar, separar } from "./imagem/enquadramento";
+import { VisualizadorImagem } from "./imagem/VisualizadorImagem";
 
 export type TipoRetrato = "personagem" | "monstro" | "avulso";
 
@@ -25,15 +26,23 @@ export function useEnderecoDaImagem(src: string | null | undefined): string | nu
 }
 
 /** Decorativo (o nome já aparece em texto ao lado): `alt` vazio. Se a imagem falhar ao carregar, cai no placeholder. */
-export function RetratoQuadrado({ src, tipo = "avulso", tamanho = 44, icone }: { src?: string | null; tipo?: TipoRetrato; tamanho?: number; /** Substitui o ícone padrão quando não há imagem. */ icone?: LucideIcon }) {
-  const [falhou, setFalhou] = useState(false);
+export function RetratoQuadrado({ src, tipo = "avulso", tamanho = 44, icone, ampliar }: { src?: string | null; tipo?: TipoRetrato; tamanho?: number; /** Substitui o ícone padrão quando não há imagem. */ icone?: LucideIcon; /** Nome exibido: torna a imagem clicável para ver a original em tela cheia. */ ampliar?: string }) {
+  const [falhou, setFalhou] = useState(false), [aberta, setAberta] = useState(false);
   const referencia = useEnderecoDaImagem(src);
   const { base: endereco, enquadramento } = referencia ? separar(referencia) : { base: null, enquadramento: null };
   useEffect(() => setFalhou(false), [endereco]);
   const Icone = icone ?? (tipo === "monstro" ? Skull : tipo === "personagem" ? UserRound : Swords);
-  return <span className="retrato-q" data-tipo={tipo} style={{ width: tamanho, height: tamanho }}>
-    {endereco && !falhou ? <img src={endereco} alt="" loading="lazy" style={estiloEnquadramento(enquadramento!)} onError={() => setFalhou(true)}/> : <span className="retrato-q-vazio" aria-hidden="true" data-testid="retrato-placeholder"><Icone size={Math.round(tamanho * 0.5)}/></span>}
+  const visivel = !!endereco && !falhou;
+  // sem imagem (ou sem acesso a ela) o visualizador fecha: nunca reaparece sozinho com outra
+  useEffect(() => { if (!visivel) setAberta(false); }, [visivel]);
+  const retrato = <span className="retrato-q" data-tipo={tipo} style={{ width: tamanho, height: tamanho }}>
+    {visivel ? <img src={endereco} alt="" loading="lazy" style={estiloEnquadramento(enquadramento!)} onError={() => setFalhou(true)}/> : <span className="retrato-q-vazio" aria-hidden="true" data-testid="retrato-placeholder"><Icone size={Math.round(tamanho * 0.5)}/></span>}
   </span>;
+  if (!ampliar || !visivel) return retrato;
+  return <>
+    <button type="button" className="retrato-ampliar" aria-label={`Ampliar imagem de ${ampliar}`} title="Ver imagem em tela cheia" onClick={() => setAberta(true)}>{retrato}</button>
+    {aberta && <VisualizadorImagem src={endereco} titulo={ampliar} onFechar={() => setAberta(false)}/>}
+  </>;
 }
 
 /** Retratos dos personagens da campanha, por id estável: a MESMA imagem da ficha (para quem pode lê-la) e, para os demais, a da

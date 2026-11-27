@@ -424,3 +424,17 @@ grupos, nenhum split implícito; mobile permanece sem grupos. Abas compactas em 
 faixa, trilho lateral recolhido de 48 px e logotipo oficial. Requisitos completos em
 `docs/ESPECIFICACAO-NAVEGACAO-GLOBAL.md`; implementação e validação são registradas
 separadamente, sem tratar a decisão como funcionalidade publicada.
+
+### DEC-034 — Cartas de consulta, bestiário narrativo e fichas com abas (27/11/2026)
+
+**Decisão do responsável.** Prevalece sobre DEC-031/032 e especificações anteriores no que conflitar.
+- Consulta do Compêndio em **carta**: janela centralizada no grupo ativo (desktop) ou a mesma composição em página completa (celular e "Expandir"). Fechar não navega, então filtros e rolagem permanecem. Botão direito, Ctrl+clique e clique central não mudaram. Um componente (`Carta`) e um hospedeiro (`CartaHost`) para todas as categorias.
+- **Bestiário é só narrativo.** Estatísticas ficam na ficha técnica, exclusiva do mestre; a barreira é o servidor (0020), não o React.
+- Conhecimento em três modos: consulta limpa; "Gerenciar conhecimento" (rascunho com um olho por campo/vínculo, salvar = uma operação, cancelar = nada gravado); "Ver como jogador" (seletor Mestre/Jogador sobre `codex_preview`; o título da aba também usa a projeção).
+- Fichas com abas: aventureiro Ficha/Habilidades/Inventário/**Identidade**; monstro Ficha/Habilidades/Bestiário; NPC com ficha Ficha/Habilidades/Identidade (sem Inventário: o modelo de criatura não tem). NPC só tem ficha se o mestre vincular uma criatura; nada é criado automaticamente.
+- Nome de monstro na Iniciativa abre a ficha no outro grupo (uma ficha por definição; PV e condições continuam no combate). No celular, abre na própria tela e Voltar retorna ao combate.
+- Início e Compêndio usam a mesma carta de identidade pública, que mostra a projeção publicada inclusive ao mestre. O próprio jogador abre a ficha.
+- Citações `@` usam marcação `@[texto](id)` no texto simples existente, sem novo editor rico.
+- Naturalidade, residência, liderança e sede aceitam texto livre ou vínculo tipado; o vínculo ocupa o campo e não se repete em "Registros relacionados". Vínculo novo nasce secreto.
+- Sem novo sistema de navegação, abas temporárias ou retrocompatibilidade extra.
+- Refinamentos (27/11/2026): retratos de personagens e criaturas nas cartas com cerca de 300 px (260 px no celular), compactos nas fichas; visualizador único em tela cheia da imagem original, somente leitura (o enquadramento continua sendo ação separada), usando apenas o endereço já autorizado da tela; ficha técnica sem repetir o que está no cabeçalho; "Vincular registro" no modo de edição; aviso ao mestre, em "Gerenciar conhecimento", quando o texto revelado cita o próprio nome oculto, sem alterar o texto.

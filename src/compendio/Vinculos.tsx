@@ -1,6 +1,6 @@
 /** Vínculos de um registro: seleção com miniaturas, relações tipadas e inversas, divulgação por vínculo. */
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useCampaigns } from '../CampaignsContext';
 import { Aviso } from '../Diario';
 import { Modal } from '../ui/Modal';
@@ -42,10 +42,11 @@ export function useVinculos(id: string, data: ReturnType<typeof useLinhasCampanh
   return { data, links: atual?.items ?? [], loaded: !!atual, error: atual?.error, reload: () => setRevision(v => v + 1) };
 }
 
-export type ControlesVinculo = { busy: boolean; onRevelar: (link: CodexLink, revelar: boolean) => void; onRemover: (link: CodexLink) => void };
+/** A divulgação de cada vínculo é feita em "Gerenciar conhecimento"; aqui só a remoção. */
+export type ControlesVinculo = { busy: boolean; onRemover: (link: CodexLink) => void };
 
 /** Mesma lista para mestre, jogador e prévia. Sem `controles`, mostra somente o que foi recebido. */
-export function ListaVinculos({ links, rows, controles, onOpenContent }: { links: CodexLink[]; rows: readonly LinhaCompendio[]; controles?: ControlesVinculo; onOpenContent: (s: TabSpec) => void }) {
+export function ListaVinculos({ links, rows, controles, onOpenContent, semAbrir = false }: { links: CodexLink[]; rows: readonly LinhaCompendio[]; controles?: ControlesVinculo; onOpenContent: (s: TabSpec) => void; /** No editor, o vínculo é só identificado: abrir descartaria o que está sendo editado. */ semAbrir?: boolean }) {
   const context = useAbrirEmAba();
   return <>{agruparVinculos(links).map(([relacao, grupo]) => <div className="cd-relation-group" key={relacao}>
     <h3>{relacao}</h3>
@@ -54,14 +55,11 @@ export function ListaVinculos({ links, rows, controles, onOpenContent }: { links
       // A miniatura vem da mesma linha autorizada das listas; a prévia usa o título devolvido pelo servidor.
       const row = rows.find(r => r.id === link.targetId) ?? { id: link.targetId, title: link.title, category: link.category, subtitle: '', body: '', spec };
       return <li key={link.id}>
-        <button className="cd-relation" onClick={e => { if (!context.aoClicar(e, spec)) onOpenContent(spec); }} onAuxClick={e => context.aoBotaoDoMeio(e, spec)} onMouseDown={e => { if (e.button === 1) e.preventDefault(); }} onContextMenu={e => context.aoClicarDireito(e, spec)}>
-          <ImagemLinha row={controles ? row : { ...row, entry: undefined, image: row.category === 'character' ? row.image : null }} size={40}/>
+        <button type="button" className="cd-relation" disabled={semAbrir} onClick={e => { if (!context.aoClicar(e, spec)) onOpenContent(spec); }} onAuxClick={e => context.aoBotaoDoMeio(e, spec)} onMouseDown={e => { if (e.button === 1) e.preventDefault(); }} onContextMenu={e => context.aoClicarDireito(e, spec)}>
+          <ImagemLinha row={rows.length ? row : { ...row, entry: undefined, image: row.category === 'character' ? row.image : null }} size={40}/>
           <span><strong>{link.title}</strong><small>{nomesCategoria[link.category]}</small></span>
         </button>
-        {controles && <>
-          <button className="cd-eye" aria-pressed={!!link.revealed} disabled={controles.busy} aria-label={`${link.revealed ? 'Ocultar' : 'Revelar'} vínculo com ${link.title}`} onClick={() => controles.onRevelar(link, !link.revealed)}>{link.revealed ? <Eye size={16}/> : <EyeOff size={16}/>}</button>
-          <button className="cd-icon" disabled={controles.busy} aria-label={`Remover vínculo com ${link.title}`} onClick={() => controles.onRemover(link)}><Trash2 size={15}/></button>
-        </>}
+        {controles && <button className="cd-icon" disabled={controles.busy} aria-label={`Remover vínculo com ${link.title}`} onClick={() => controles.onRemover(link)}><Trash2 size={15}/></button>}
       </li>;
     })}</ul>
   </div>)}</>;

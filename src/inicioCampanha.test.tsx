@@ -132,14 +132,20 @@ describe("Início: Aventureiros", () => {
     await montarHome(mestre(), { aventureiros: { listar: async () => ({ ok: true as const, data: [] }) } });
     expect(await screen.findByTestId("aventureiros-vazio")).toBeTruthy();
   });
-  it("com dados: nome, classe, nível, retrato e abre a ficha", async () => {
+  it("com dados: nome, classe, nível e retrato; outro jogador abre a identidade pública", async () => {
     const listar = vi.fn(async () => ({ ok: true as const, data: [heroi, { id: "p2", nome: "Toran", classe: "Guerreiro", nivel: 4, retratoUrl: "https://x/t.png" }] }));
     const { onOpenContent } = await montarHome(jogador(), { aventureiros: { listar } });
     const b = await screen.findByRole("button", { name: "Lydia Clériga · nível 5" });
     expect(within(b).getByText("Clériga · nível 5")).toBeTruthy();
     expect(document.querySelector("img")?.getAttribute("src")).toBe("https://x/t.png");
-    fireEvent.click(b); expect(onOpenContent).toHaveBeenCalledWith({ kind: "ficha", ref: "p1", title: "Ficha: Lydia" });
+    fireEvent.click(b); expect(onOpenContent).toHaveBeenCalledWith({ kind: "identidade", ref: "p1", title: "Lydia" });
     expect(listar).toHaveBeenCalledWith("cb");
+  });
+  it("o jogador clica no próprio personagem e abre a ficha", async () => {
+    const listar = vi.fn(async () => ({ ok: true as const, data: [{ ...heroi, meu: true }] }));
+    const { onOpenContent } = await montarHome(jogador(), { aventureiros: { listar } });
+    fireEvent.click(await screen.findByRole("button", { name: "Lydia Clériga · nível 5" }));
+    expect(onOpenContent).toHaveBeenCalledWith({ kind: "ficha", ref: "p1", title: "Ficha: Lydia" });
   });
 });
 

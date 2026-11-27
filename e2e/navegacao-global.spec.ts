@@ -12,7 +12,13 @@ const adaga=(page:Page)=>page.locator('.cd-card-main').filter({hasText:/^Adaga/}
 test('consulta normal preserva grupo e retorna à pesquisa pelo navegador',async({page})=>{
  await itens(page);
  await adaga(page).click();await expect(page.getByRole('heading',{name:'Adaga',exact:true})).toBeVisible();
- if(desktop(page))await expect(page.locator('.flexlayout__tabset')).toHaveCount(1);
+ if(desktop(page)){
+  await expect(page.locator('.flexlayout__tabset')).toHaveCount(1);
+  // a carta abre sobre a lista: Voltar do navegador só a fecha; Expandir é navegação na própria aba
+  const carta=page.getByRole('dialog',{name:'Consulta do Compêndio'});await expect(carta).toBeVisible();
+  await page.goBack();await expect(carta).toBeHidden();await expect(page.getByRole('searchbox',{name:'Pesquisar no Compêndio'})).toHaveValue('adaga');
+  await adaga(page).click();await carta.getByRole('button',{name:'Expandir para página completa'}).click();await expect(carta).toBeHidden();await expect(page.getByRole('heading',{name:'Adaga',exact:true})).toBeVisible();
+ }
  await page.goBack();await expect(page.getByRole('searchbox',{name:'Pesquisar no Compêndio'})).toHaveValue('adaga');
  await page.goBack();await expect(page.getByRole('heading',{name:'Compêndio',exact:true})).toBeVisible();
  await page.goForward();await expect(page.getByRole('searchbox',{name:'Pesquisar no Compêndio'})).toHaveValue('adaga');

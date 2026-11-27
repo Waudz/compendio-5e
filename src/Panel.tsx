@@ -1,5 +1,5 @@
 import { RegistroCompendioPagina, IdentidadePagina, RegraPagina } from "./compendio/Paginas";
-import { CategoriaCompendio, MonstroPagina } from "./Compendio";
+import { CategoriaCompendio, MonstroPagina, NpcFichaPagina } from "./Compendio";
 import { BookOpen } from "lucide-react";
 import { AccountPanel } from "./AccountPanel";
 import type { NavMode } from "./navigation";
@@ -28,6 +28,7 @@ function ConteudoPanel({ kind, entity: id, onOpen, onOpenContent }: {
   if (kind === "registro") return <RegistroCompendioPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "identidade") return <IdentidadePagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "monstro") return <MonstroPagina id={id} onOpenContent={onOpenContent}/>;
+  if (kind === "npc") return <NpcFichaPagina id={id} onOpenContent={onOpenContent}/>;
   if (kind === "regra") return <RegraPagina refId={id} onOpenContent={onOpenContent}/>;
   if (kind === "conta") return <div className="content"><AccountPanel/></div>;
   if (kind === "campanha") return <div className="content"><CampaignHome id={id} onOpen={onOpen} onOpenContent={onOpenContent}/></div>;

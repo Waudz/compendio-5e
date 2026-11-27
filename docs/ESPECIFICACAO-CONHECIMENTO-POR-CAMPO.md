@@ -19,3 +19,7 @@ Decisão aprovada em 26/11/2026 após teste do PR #160. Requisitos obrigatórios
 
 ## Validação
 Testar mestre/jogador com nome oculto e alcunha visível, imagem privada, vínculo oculto em ambas direções, pesquisa por segredo sem resultados, item associado sem concessão, notificações sem vazamento, navegação em um/dois grupos e mobile, e preservação de dados existentes. Validar Auth/REST/JWT/RLS/Storage reais em ambiente isolado antes de produção. Migração de produção exige autorização e verificação de integridade. Não alterar Compêndio 1.0.
+
+## Atualização de 27/11/2026 (DEC-034) — prevalece sobre o texto acima
+- Controles de olho **não** ficam na página: aparecem só em "Gerenciar conhecimento" (rascunho com salvar/cancelar).
+- Bestiário: níveis passam a Identificado, Conhecido, Estudado e Compreendido, somente com campos narrativos. Nenhum nível entrega estatísticas, definição ou ficha técnica ao jogador.

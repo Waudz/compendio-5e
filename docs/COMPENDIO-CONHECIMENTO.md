@@ -105,3 +105,25 @@ Requer 0014, 0017 e 0018. Aplicar 0017 → 0018 → 0019 na mesma janela da publ
 Corrigido na 0017 (ainda não aplicada; SHA alterado): (1) a regra de vínculos permitia ao mestre ligar a ficha privada de outro usuário e ler o título dela; voltou a valer só ficha publicada ou própria; (2) a projeção do jogador deixou de enviar `version`, que contava edições secretas. Conferidos sem alteração: RLS e privilégios das tabelas novas, funções auxiliares sem execução pela API, isolamento entre campanhas, Storage, notificações, conversão dos níveis e reversões. A 0018 não mudou.
 
 Conferência na aplicação da 0019: além do preflight da 0017/0018, comparar antes e depois a contagem de `character_sheets` e confirmar que `select count(*) from private_ficha.itens_vistos` cobre os inventários existentes.
+
+## Estado em 27/11/2026
+
+0017, 0018 e 0019 **aplicadas em produção** pelo ChatGPT e PR #163 integrado/publicado (informado pelo responsável; não conferido neste repositório). Não reaplicar. As seções acima que as chamam de "propostas" são registro histórico.
+
+## 0020 — cartas e bestiário narrativo (proposta, não aplicada)
+
+Requer 0017–0019. **Aplicar junto com a publicação do aplicativo** (o cliente exige capacidade 20 para salvar e revelar). SHA-256 (LF): `8a2a26a33dc9198b1a0757df404e81bd4b1fb2bce9d5c4aae781fa2a217d342d`.
+
+**Por que o servidor mudou:** até a 0019, "revelar tudo" em uma criatura entregava ao jogador as seções técnicas (`sheet`), o `definitionId` e, para criações/substituições, a definição inteira por `codex_definitions_for`.
+
+- `codex_project` (usada por `codex_list` e `codex_preview`): criatura nunca leva `sheet` nem `definitionId`, em nenhum nível. `imageDefinitionId` continua (só com nome e imagem revelados; aponta para arte pública).
+- `codex_reveal` descarta chaves `sheet`/`sheet:*` de criatura; `codex_announce` não avisa sobre ficha técnica (editar a definição não notifica).
+- `codex_definitions_for`: jogador não recebe definição de criatura. Itens inalterados.
+- Chaves já gravadas em criaturas continuam em `revealed` e são ignoradas; nenhum registro é convertido ou apagado.
+- Novos campos: `classLevel`, `leadership`, `headquarters`, `classification`, `appearance`, `habitat`, `behavior`, `diet`, `capabilities`, `weaknesses`, `defenses`, `strategies`, `sightings`.
+- Citações `@[texto](id)`: `codex_refs_text/json` (sem execução pela API) saneiam descrição e campos na projeção. Destino fechado vira texto sem ID; se o texto for o nome verdadeiro ainda oculto, vira o título público. **Limite:** texto personalizado é do mestre e aparece como escrito; nome secreto digitado fora de uma citação não é detectado.
+- Ficha de combate de NPC: coluna `combat_definition_id` + `codex_set_combat_sheet` (só mestre, versão otimista). Nunca é projetada ao jogador; criação em uso não é excluída.
+- Reversão `rollback/0020_compendio_cartas_bestiario_down.sql`: restaura as funções anteriores, **voltando a expor** fichas de criatura marcadas como reveladas, e descarta os vínculos de ficha de NPC. Preflight: `preflight/0020_compendio_cartas_bestiario.sql`.
+- O SRD distribuído com o aplicativo (dados e imagens) é público por natureza e não é segredo protegido. A proteção vale para definições e dados da campanha.
+
+**Níveis do bestiário (atalhos cumulativos, ajustáveis campo a campo):** 1 Identificado (nome); 2 Conhecido (imagem, aparência, descrição, alcunha, classificação); 3 Estudado (habitat, comportamento, alimentação, capacidades, avistamentos, história); 4 Compreendido (fraquezas, resistências e imunidades, estratégias). Nenhum nível libera estatística.

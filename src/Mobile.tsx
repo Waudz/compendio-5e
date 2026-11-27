@@ -79,7 +79,7 @@ export function Mobile(_props: Props) {
   useVersaoRegistros();
   const conhecidos=useConhecimento().items;
   // Título de registro vem somente da projeção autorizada, nunca de um nome guardado em memória.
-  const pageTitle=screen.kind==="registro"?conhecidos.find(x=>x.id===screen.ref)?.title??"Registro":["documento","ficha","criador"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
+  const pageTitle=screen.kind==="registro"?conhecidos.find(x=>x.id===screen.ref)?.title??"Registro":screen.kind==="npc"?conhecidos.find(x=>x.id===screen.ref)?.title??"NPC":["documento","ficha","criador","monstro"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
   const current = tabId(screen);
   const currentRef=useRef(current);currentRef.current=current;
   const menuRef=useRef(menuOpen);menuRef.current=menuOpen;

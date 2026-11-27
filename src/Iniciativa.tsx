@@ -177,7 +177,7 @@ function Linha({ c, atual, aplicar, naFicha, aguardandoFicha, aoRemover, bonus, 
   const rolar = () => { const r = rolarD20(bonus); aoRolar(r); aplicar(e => definirIniciativa(e, c.id, r.total)); };
   const pct = c.pvMax ? Math.max(0, Math.min(100, (c.pv ?? 0) / c.pvMax * 100)) : 0;
   return <li className={`ini-item lado-${c.lado}${c.pvMax && c.pv === 0 ? " derrotado" : ""}${atual ? " atual" : ""}`} aria-current={atual ? "true" : undefined}>
-    <CriaturaIdentidade nome={c.nome} tipo={c.ref?.tipo ?? "avulso"} retrato={retrato} referencia={c.ref} detalhes={<>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}{c.ca ? ` · CA ${c.ca}` : ""}</>}/>
+    <CriaturaIdentidade monstroAoLado nome={c.nome} tipo={c.ref?.tipo ?? "avulso"} retrato={retrato} referencia={c.ref} detalhes={<>{rotuloLado[c.lado]}{c.ref ? (c.ref.tipo === "monstro" ? " · Bestiário" : " · personagem") : ""}{atual ? " · turno atual" : ""}{c.ca ? ` · CA ${c.ca}` : ""}</>}/>
     {c.notas && <small className="ini-notas muted">{c.notas}</small>}
     <div className="ini-ini">
       <label className="ini-valor">Iniciativa<input aria-label={`Iniciativa de ${c.nome}`} inputMode="decimal" defaultValue={c.iniciativa} key={c.iniciativa}
