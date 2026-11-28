@@ -85,7 +85,7 @@ test('iniciativa permanece utilizável com o painel dividido e abre ficha comple
   await page.getByRole('menuitem',{name:'Abrir em nova coluna à direita',exact:true}).click();
   // A consulta usa nova aba no mesmo grupo por ação contextual explícita.
   await page.getByRole('button', { name: 'Abrir ficha completa de Goblin', exact: true }).click({button:'right'});
-  await page.getByRole('menuitem',{name:'Abrir em novo grupo',exact:true}).click();
+  await page.getByRole('menuitem',{name:'Abrir em outro grupo',exact:true}).click();
   await expect(page.getByRole('heading', { name: 'Goblin', exact: true })).toBeVisible();
   await expect(page.getByRole('tabpanel')).toHaveCount(2);
   await expectFaixaGeometry(page); await expectTurnControls(page);

@@ -116,3 +116,10 @@
   .mobile .carta-topo { min-height: 0; }
   .mobile .carta-imagem { margin-top: 4px; }
 }
+/* ficha de criatura no pop-up: janela maior, barra e abas fixas, conteúdo com rolagem */
+.carta-janela.carta-janela-ficha { width: min(980px, 100%); height: 100%; }
+.carta-barra { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 6px; min-height: 42px; padding: 4px 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.carta-barra-titulo { margin-right: auto; font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carta-janela-ficha .content { padding: 10px 14px 18px !important; }
+.carta-janela-ficha .ficha-subnav { position: sticky; top: 42px; z-index: 2; background: var(--panel); padding-block: 4px; }
+

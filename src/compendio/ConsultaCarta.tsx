@@ -2,6 +2,7 @@
  *  montada, então filtros e rolagem ficam como estavam. No celular não há hospedeiro: o mesmo conteúdo abre como página. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { TabSpec } from '../workspace';
+import { ArrowLeft, Maximize2, X } from 'lucide-react';
 import { estaVisivel, registrarVoltar } from '../voltarInterno';
 import './carta.css';
 
@@ -10,8 +11,10 @@ export const NaCartaContext = createContext<NaCarta | null>(null);
 export const AbrirCartaContext = createContext<((s: TabSpec) => void) | null>(null);
 export const useNaCarta = () => useContext(NaCartaContext);
 
-/** Destinos que são apresentação narrativa. Fichas, categorias e editores continuam sendo navegação. */
-export const ehConsulta = (s: TabSpec) => ['registro', 'identidade', 'magia', 'regra'].includes(s.kind) || (s.kind === 'item' && !s.ref.startsWith('monstro:'));
+/** Ficha de criatura (do Bestiário ou de um NPC): ocupa a janela de consulta com barra própria. */
+export const ehFichaDeCriatura = (s: TabSpec) => s.kind === 'npc' || s.kind === 'monstro' || (s.kind === 'item' && s.ref.startsWith('monstro:'));
+/** Destinos de consulta: abrem no pop-up. A própria ficha de personagem, categorias e editores continuam sendo navegação. */
+export const ehConsulta = (s: TabSpec) => ['registro', 'identidade', 'magia', 'regra', 'npc', 'monstro', 'item'].includes(s.kind);
 
 /** Clique normal em um registro: abre a carta quando há hospedeiro; senão navega na própria aba. */
 export function useAbrirConsulta(onOpenContent: (s: TabSpec) => void) {
@@ -63,9 +66,16 @@ export function CartaHost({ children, onOpenContent, renderizar }: {
       <div className="carta-fundo-conteudo" {...(aberta ? ({ inert: "" } as object) : {})}>{children}</div>
     </AbrirCartaContext.Provider>
     {topo && <div className="carta-camada" onPointerDown={e => { if (e.target === e.currentTarget) fechar(); }}>
-      <div ref={caixa} className="carta-janela" role="dialog" aria-label="Consulta do Compêndio" tabIndex={-1}
+      <div ref={caixa} className={ehFichaDeCriatura(topo) ? 'carta-janela carta-janela-ficha' : 'carta-janela'} role="dialog" aria-label="Consulta do Compêndio" tabIndex={-1}
         onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); fechar(); } }}>
-        <NaCartaContext.Provider value={controles}>
+        {ehFichaDeCriatura(topo) && controles && <div className="carta-barra">
+          {controles.voltar && <button type="button" className="carta-icone" aria-label="Voltar à consulta anterior" title="Voltar" onClick={controles.voltar}><ArrowLeft size={16}/></button>}
+          <span className="carta-barra-titulo">{topo.title}</span>
+          <button type="button" className="carta-icone" aria-label="Maximizar" title="Abrir como página" onClick={controles.expandir}><Maximize2 size={15}/></button>
+          <button type="button" className="carta-icone" aria-label="Fechar consulta" title="Fechar" onClick={controles.fechar}><X size={16}/></button>
+        </div>}
+        {/* a ficha usa só a barra acima: a carta narrativa dentro dela não repete os controles */}
+        <NaCartaContext.Provider value={ehFichaDeCriatura(topo) ? null : controles}>
           <AbrirCartaContext.Provider value={navegar}>
             <div key={chave}>{renderizar(topo, navegar)}</div>
           </AbrirCartaContext.Provider>

@@ -38,8 +38,8 @@ const categoria = (nome: string) => {
 const abas = () => [...document.querySelectorAll('.flexlayout__tabset_tabbar_inner .flexlayout__tab_button_content')].map(e => e.textContent?.replace(/\s*\(fixada\)$/, ''));
 const pesquisar = (t: string) => fireEvent.change(screen.getByLabelText('Pesquisar no Compêndio'), { target: { value: t } });
 const resultados = () => within(screen.getByRole('list', { name: 'Resultados do Compêndio' })).queryAllByRole('listitem');
-/** Ação discreta da lista do mestre: abre a ficha técnica sem passar pela carta. */
-const verFicha = (nome: string) => fireEvent.click(screen.getByRole('button', { name: `Ver ficha de ${nome}` }));
+/** O clique no cartão abre a ficha da criatura no pop-up (mestre). */
+const verFicha = (nome: string) => fireEvent.click(cartao(nome));
 const abaDaFicha = (nome: string) => fireEvent.click(within(screen.getByRole('navigation', { name: 'Seções da ficha' })).getByRole('button', { name: nome }));
 /** Cartão pelo texto visível (nome + subtítulo). Sem subtítulo, o nome precisa ser seguido de espaço ou fim (cuidado com nomes que são prefixo de outros). */
 const cartao = (nome: string, subtitulo?: string) => screen.getByRole('button', { name: n => (subtitulo ? n.startsWith(`${nome} ${subtitulo}`) : n === nome || n.startsWith(nome + ' ')) });
@@ -153,7 +153,7 @@ describe('monstros', () => {
     expect(resumo.textContent).toContain('18.000 XP');
     expect(resumo.textContent).toContain('12 m, voo 24 m, escalada 12 m');
     abaDaFicha('Habilidades'); expect(det.getByRole('region', { name: 'Ações lendárias' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', {name:'Voltar na aba'}));
+    fireEvent.click(screen.getByRole('button', {name:'Fechar consulta'}));
     pesquisar(''); filtro('tipo', 'dragon'); expect(contagem()).toBe('43'); marcar('Tem ações lendárias'); filtro('nível de desafio', 'nd17+'); expect(Number(contagem())).toBeGreaterThan(5);
     fireEvent.click(screen.getByRole('button', { name: 'Limpar filtros' })); expect(contagem()).toBe('323');
   });
@@ -220,7 +220,7 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
   it('cartões não têm aria-label (o nome acessível é o texto visível) e nenhum botão do painel diverge do texto visível', async () => {
     await montar(); await abrirCompendio();
     for (const c of ['Itens', 'Magias', 'Monstros']) { categoria(c); await waitFor(() => expect(resultados().length).toBeGreaterThan(0)); expect(resultados()[0].querySelector('button')?.hasAttribute('aria-label')).toBe(false); }
-    const abrirPrimeiro = async () => { fireEvent.click(resultados()[0].querySelector('button')!); const carta = await screen.findByRole('dialog'); await waitFor(() => expect(within(carta).getByRole('article')).toBeTruthy()); return carta; };
+    const abrirPrimeiro = async () => { fireEvent.click(resultados()[0].querySelector('button')!); const carta = await screen.findByRole('dialog'); await waitFor(() => expect(within(carta).queryByRole('article') ?? within(carta).queryByRole('region', { name: 'Resumo da criatura' })).toBeTruthy()); return carta; };
     expect(divergentes(await abrirPrimeiro())).toEqual([]);
     fireEvent.click(screen.getByRole('button', { name: 'Fechar consulta' }));
     expect(divergentes(document.body.querySelector('.compendio.cat') as HTMLElement)).toEqual([]);
@@ -247,8 +247,13 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
   it('monstro -> magia: o nome da magia na conjuração abre a página da magia e a ficha da criatura continua aberta', async () => {
     await montar(); await abrirCompendio(); categoria('Monstros'); await waitFor(() => expect(contagem()).toBe('323'));
     pesquisar('arquimago'); verFicha('Arquimago');
-    const ficha = await screen.findByRole('region', { name: 'Detalhes de Arquimago' });
+    await screen.findByRole('region', { name: 'Detalhes de Arquimago' });
     abaDaFicha('Habilidades');
+    // maximizar vira página e mantém a aba interna escolhida
+    fireEvent.click(screen.getByRole('button', { name: 'Maximizar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Consulta do Compêndio' })).toBeNull());
+    const ficha = await screen.findByRole('region', { name: 'Detalhes de Arquimago' });
+    expect(ficha.getAttribute('data-aba')).toBe('habilidades');
     fireEvent.click(within(ficha).getByRole('button', { name: 'Abrir a magia parar o tempo' }));
     expect(await screen.findByRole('article', { name: 'Detalhes de Parar o Tempo' })).toBeTruthy();
     await waitFor(() => expect(abas()).toContain('Parar o Tempo'));

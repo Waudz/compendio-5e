@@ -4,6 +4,7 @@ import { deBlocos } from '../registros';
 import {useContext,useEffect,useMemo,useState} from 'react';
 import {useAuth} from '../AuthContext';
 import {useCampaigns} from '../CampaignsContext';
+import {useModoJogador} from '../modoJogador';
 import {Aviso} from '../Diario';
 import {consultar,type Consulta,type Indice} from '../catalogue/nucleo/busca';
 import {carregarIndice,indiceDisponivel} from '../catalogue/nucleo/registro';
@@ -30,7 +31,7 @@ const PAGINA=60;garantirSistemaDnd5e2014();const categorias=sistemaDnd5e2014.cat
 type Preference={cat:string;query:string;filters:Record<string,string|boolean>;order:string;view:'lista'|'grade';limit:number};
 const sessions=new WeakMap<object,Map<string,Preference>>();
 export function CompendioCatalogo({onOpenContent,categoriaInicial='itens',onVoltar}:{onOpenContent:(s:TabSpec)=>void;categoriaInicial?:string;onVoltar?:()=>void}){
- const {user,client}=useAuth(),{active}=useCampaigns(),knowledge=useConhecimento();
+ const {user,client}=useAuth(),{active}=useCampaigns(),knowledge=useConhecimento(),previa=useModoJogador().ativa;
  const origin=useContext(OrigemAbaContext),abrirConsulta=useAbrirConsulta(onOpenContent);
  const cache=useMemo(()=>{if(!client)return new Map<string,Preference>();let c=sessions.get(client);if(!c){c=new Map();sessions.set(client,c);}return c;},[client]);const key=`${user?.id}:${active?.campaign.id}:${origin}:${categoriaInicial}`,pref=cache.get(key);
  const [catId,setCatId]=useState(pref?.cat??categoriaInicial),[query,setQuery]=useState(pref?.query??''),[filters,setFilters]=useState<Record<string,string|boolean>>(pref?.filters??{}),[order,setOrder]=useState(pref?.order??''),[view,setView]=useState<'lista'|'grade'>(pref?.view??'lista'),[limit,setLimit]=useState(pref?.limit??PAGINA),[retry,setRetry]=useState(0);
@@ -42,7 +43,7 @@ export function CompendioCatalogo({onOpenContent,categoriaInicial='itens',onVolt
  const definicoes=useDefinicoes(),tipo=cat.id==='itens'?'item' as const:cat.id==='monstros'?'monster' as const:undefined;
  const index=useMemo(()=>padrao&&tipo&&definicoes.lista.some(d=>d.kind===tipo)?indexar(cat,aplicarDaCampanha(tipo,padrao.itens as {id:string}[],definicoes.lista)):padrao,[padrao,tipo,definicoes.lista]);
  const results=useMemo(()=>index?consultar(index,{texto:query,filtros:filters,ordenar:order||undefined} as Consulta).filter(x=>cat.id==='monstros'?active?.role==='mestre':cat.id!=='itens'||active?.role==='mestre'||jogadorPodeAdicionar(cat.idDe(x))||itemConhecido(knowledge.items,cat.idDe(x))):[],[index,query,filters,order,cat,knowledge.items,active?.role]);
- const rowsBase=results.map(item=>{const id=cat.idDe(item),title=cat.nomeDe(item);const entry=cat.id==='monstros'?knowledge.items.find(e=>e.category==='monster'&&e.systemId==='dnd5e-2014'&&e.definitionId===id):undefined;return {id,title:entry?.title??title,entry,subtitle:cat.subtituloDe(item),resumo:cat.resumoDe?.(item),legenda:cat.id==='monstros'?cat.subtituloDe(item):undefined,category:cat.id,body:cat.corpoDe?.(item)??'',image:cat.id==='itens'?imagemDoItem(id):cat.id==='monstros'?imagemDoMonstro(id):null,spec:entry?registroSpec(entry.id,entry.title):cat.id==='itens'?itemSpec(id,title):cat.id==='magias'?{kind:'magia' as const,ref:id,title}:cat.id==='monstros'?regraSpec('bestiario',id,title):regraSpec(cat.id,id,title),ficha:cat.id==='monstros'?monstroSpec(id,title):undefined};});
+ const rowsBase=results.map(item=>{const id=cat.idDe(item),title=cat.nomeDe(item);const entry=cat.id==='monstros'?knowledge.items.find(e=>e.category==='monster'&&e.systemId==='dnd5e-2014'&&e.definitionId===id):undefined;return {id,title:entry?.title??title,entry,subtitle:cat.subtituloDe(item),resumo:cat.resumoDe?.(item),legenda:cat.id==='monstros'?cat.subtituloDe(item):undefined,category:cat.id,body:cat.corpoDe?.(item)??'',image:cat.id==='itens'?imagemDoItem(id):cat.id==='monstros'?imagemDoMonstro(id):null,spec:entry?registroSpec(entry.id,entry.title):cat.id==='itens'?itemSpec(id,title):cat.id==='magias'?{kind:'magia' as const,ref:id,title}:cat.id==='monstros'?regraSpec('bestiario',id,title):regraSpec(cat.id,id,title),ficha:cat.id==='monstros'&&active?.role==='mestre'&&!previa?monstroSpec(id,title):undefined};});
  const customs=cat.id==='monstros'&&active?.role==='mestre'&&index&&!Object.values(filters).some(Boolean)?knowledge.items.filter(e=>e.category==='monster'&&e.systemId==='dnd5e-2014'&&!index.itens.some(x=>cat.idDe(x)===e.definitionId)&&[e.title,deBlocos(e.description??[])].join(' ').toLocaleLowerCase().includes(query.toLocaleLowerCase())).map(e=>({id:e.id,title:e.title,subtitle:'Registro personalizado',category:'monster',body:deBlocos(e.description??[]),entry:e,spec:registroSpec(e.id,e.title)})):[];
  const allRows=[...rowsBase,...customs];const rows=allRows.slice(0,limit);const total=allRows.length;
  const pesquisar=(q:string)=>{setQuery(q);setLimit(PAGINA);};

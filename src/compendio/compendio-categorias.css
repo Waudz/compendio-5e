@@ -239,4 +239,4 @@
 .codex-editor .cd-editor-longos textarea { min-height:72px; }
 .cd-vinculo-embutido { border:1px solid var(--line); border-radius:9px; padding:10px; display:flex; flex-direction:column; gap:8px; }
 @container (min-width:620px) { .cd-editor-topo { grid-template-columns:200px minmax(0,1fr); } }
-
+.codex-editor .cd-vinculo-embutido label.cd-check { flex-direction:row; justify-content:flex-start; text-align:left; }

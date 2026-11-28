@@ -7,7 +7,10 @@ test('Compêndio: link da conjuração do monstro abre a magia, a ficha continua
   await page.getByRole('button', {name:/^Bestiário /}).click();
   const busca = page.getByRole('searchbox', { name: 'Pesquisar no Compêndio', exact: true });
   await busca.fill('arquimago');
-  await page.getByRole('button', { name: 'Ver ficha de Arquimago', exact: true }).click();
+  await page.getByRole('list', { name: 'Resultados do Compêndio' }).getByRole('button', { name: /^Arquimago(?!\S)/ }).first().click();
+  // no computador a ficha abre no pop-up; maximizar leva à página, que mantém a aba interna
+  const maximizar = page.getByRole('button', { name: 'Maximizar', exact: true });
+  if ((page.viewportSize()?.width ?? 1440) > 700) await maximizar.click();
   const ficha = page.getByRole('region', { name: 'Detalhes de Arquimago' });
   await expect(ficha).toBeVisible(); await expectNoHorizontalOverflow(page);
   // tudo em português e com o aviso de tradução por IA

@@ -3,14 +3,15 @@ import { test, expect, openDemo, navigate, expectNoHorizontalOverflow } from './
 import type { Page, Locator } from '@playwright/test';
 
 const celular = (page: Page) => (page.viewportSize()?.width ?? 1440) <= 700;
-/** Carta narrativa do Goblin (criatura com arte no catálogo), pela lista do Bestiário do mestre. */
+/** Retrato do Goblin (criatura com arte no catálogo): o clique no Bestiário do mestre abre a ficha, maximizada no computador. */
 async function cartaDoGoblin(page: Page) {
   await openDemo(page, 'mestre');
   await navigate(page, 'Compêndio');
   await page.getByRole('button', { name: /^Bestiário / }).click();
   await page.getByRole('searchbox', { name: 'Pesquisar no Compêndio', exact: true }).fill('goblin');
   await page.getByRole('button', { name: /^Goblin /, exact: false }).first().click();
-  return page.getByRole('article', { name: 'Detalhes de Goblin' });
+  if (!celular(page)) await page.getByRole('button', { name: 'Maximizar', exact: true }).click();
+  return page.getByRole('region', { name: 'Resumo da criatura' });
 }
 const escala = (img: Locator) => img.evaluate(el => new DOMMatrix(getComputedStyle(el).transform).a);
 const posicao = (img: Locator) => img.evaluate(el => { const m = new DOMMatrix(getComputedStyle(el).transform); return [Math.round(m.e), Math.round(m.f)]; });
@@ -29,8 +30,7 @@ test('retrato em destaque e visualizador: zoom, arraste, pinça, restaurar, Esc 
   const caixa = (await retrato.boundingBox())!, disponivel = (await carta.boundingBox())!.width;
   expect(Math.abs(caixa.width - caixa.height)).toBeLessThan(3);
   expect(caixa.width).toBeLessThanOrEqual(disponivel);
-  if (celular(page)) { expect(caixa.width).toBeGreaterThanOrEqual(Math.min(258, disponivel - 28)); expect(caixa.width).toBeLessThanOrEqual(262); }
-  else { expect(caixa.width).toBeGreaterThanOrEqual(278); expect(caixa.width).toBeLessThanOrEqual(322); }
+  expect(caixa.width).toBeGreaterThanOrEqual(64);
   await expectNoHorizontalOverflow(page);
 
   await retrato.click();

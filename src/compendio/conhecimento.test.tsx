@@ -369,8 +369,10 @@ describe("Compêndio unificado", () => {
     fireEvent.click(portal("Bestiário"));
     fireEvent.change(await screen.findByLabelText("Pesquisar no Compêndio"), { target: { value: "goblin" } });
     fireEvent.click(await screen.findByRole("button", { name: /^Goblin da mesa / }));
-    await screen.findByRole("dialog", { name: "Consulta do Compêndio" });
-    fireEvent.click(await carta().findByRole("button", { name: "Ampliar imagem de Goblin da mesa" }));
+    const ficha = await screen.findByRole("dialog", { name: "Consulta do Compêndio" });
+    fireEvent.click(within(await within(ficha).findByRole("navigation", { name: "Seções da ficha" })).getByRole("button", { name: "Bestiário" }));
+    await carta().findByRole("button", { name: "Mais ações do registro" });
+    fireEvent.click((await carta().findAllByRole("button", { name: "Ampliar imagem de Goblin da mesa" })).at(-1)!);
     fireEvent.keyDown(screen.getByRole("dialog", { name: "Imagem ampliada: Goblin da mesa" }), { key: "Escape" });
     expect(screen.queryByRole("dialog", { name: /^Imagem ampliada/ })).toBeNull();
     expect(screen.getByRole("dialog", { name: "Consulta do Compêndio" })).toBeTruthy();
@@ -530,7 +532,8 @@ describe("Compêndio unificado", () => {
     fireEvent.change(await within(janela).findByLabelText("Buscar monstro"), { target: { value: "goblin" } });
     fireEvent.click(await within(janela).findByRole("button", { name: "Vincular Goblin do Bestiário" }));
     fireEvent.click(await carta().findByRole("button", { name: "Ver ficha" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
+    // a ficha continua na mesma janela de consulta, com o botão de voltar à carta
+    expect(await screen.findByRole("button", { name: "Voltar à consulta anterior" })).toBeTruthy();
     const secoes = within(await screen.findByRole("navigation", { name: "Seções da ficha" }));
     expect(secoes.getAllByRole("button").map((x) => x.textContent)).toEqual(["Ficha", "Habilidades", "Identidade"]);
     expect(screen.getByRole("heading", { name: "Edric Voss", level: 1 })).toBeTruthy();
@@ -538,24 +541,26 @@ describe("Compêndio unificado", () => {
     fireEvent.click(secoes.getByRole("button", { name: "Identidade" }));
     expect(await screen.findByText("Contrabandista")).toBeTruthy();
   });
-  it("Bestiário do mestre: o clique abre a carta narrativa sem estatísticas; Ver ficha abre a ficha com a aba Bestiário", async () => {
+  it("Bestiário do mestre: o clique abre a ficha no pop-up, com a narrativa na aba Bestiário; na prévia, nada técnico", async () => {
     const codex = codexDemo(true, "ca");
     await codex.save("ca", null, 0, { category: "monster", systemId: "dnd5e-2014", definitionId: "troll", title: "Troll", fields: { habitat: "Pântanos" }, sheet: [{ k: "hp", l: "Pontos de vida", v: "84 (8d10)" }] });
     await mount("mestre", codex);
     fireEvent.click(portal("Bestiário"));
     fireEvent.change(await screen.findByLabelText("Pesquisar no Compêndio"), { target: { value: "troll" } });
-    fireEvent.click((await screen.findAllByRole("button", { name: /^Troll / }))[0]);
-    await screen.findByRole("dialog", { name: "Consulta do Compêndio" });
-    expect(await carta().findByText("Pântanos")).toBeTruthy();
-    expect(screen.getByRole("dialog").textContent).not.toMatch(/Pontos de vida|84|Classe de Armadura|Atributos/);
-    fireEvent.click(carta().getByRole("button", { name: "Ver ficha" }));
-    const secoes = within(await screen.findByRole("navigation", { name: "Seções da ficha" }));
-    expect(secoes.getAllByRole("button").map((x) => x.textContent)).toEqual(["Ficha", "Habilidades", "Bestiário"]);
     const abasAntes = document.querySelectorAll(".flexlayout__tab_button").length;
+    fireEvent.click((await screen.findAllByRole("button", { name: /^Troll / }))[0]);
+    const janela = await screen.findByRole("dialog", { name: "Consulta do Compêndio" });
+    const secoes = within(await within(janela).findByRole("navigation", { name: "Seções da ficha" }));
+    expect(secoes.getAllByRole("button").map((x) => x.textContent)).toEqual(["Ficha", "Habilidades", "Bestiário"]);
+    expect(within(janela).getByRole("region", { name: "Atributos" })).toBeTruthy();
     fireEvent.click(secoes.getByRole("button", { name: "Bestiário" }));
-    expect(await screen.findByText("Pântanos")).toBeTruthy();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(await within(janela).findByText("Pântanos")).toBeTruthy();
+    fireEvent.click(within(janela).getByRole("button", { name: "Fechar consulta" }));
     expect(document.querySelectorAll(".flexlayout__tab_button")).toHaveLength(abasAntes);
+    await alternarPrevia();
+    fireEvent.click(portal("Bestiário"));
+    expect(screen.queryByRole("navigation", { name: "Seções da ficha" })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Classe de Armadura|Pontos de vida|ND \d/);
   });
   it("jogador com aba restaurada de criatura não recebe ficha técnica, mesmo com a criatura revelada", async () => {
     localStorage.setItem(storageKey({ user: me.id, campaign: "ca", device: "navegador" }),

@@ -37,6 +37,7 @@ import "./compendio/compendio-categorias.css";
 // O painel é o catálogo genérico de `src/compendio/` (itens, magias e monstros de D&D 5e 2014); a página de item reutiliza o mesmo detalhe.
 import { Aviso } from "./Diario";
 import { useCampaigns } from "./CampaignsContext";
+import { useModoJogador } from "./modoJogador";
 import { srdItem } from "./catalogue/srd-2014-items";
 import { CompendioCatalogo } from "./compendio/CompendioCatalogo";
 import { DetalheItem, itemSpec } from "./compendio/DetalheItem";
@@ -225,12 +226,13 @@ export function ItemPagina({
 }) {
   const unavailable = useCatalogueCampaign(onOpenContent);
   const { active } = useCampaigns(),
-    { items, loading, error } = useConhecimento();
+    { items, loading, error } = useConhecimento(),
+    previa = useModoJogador().ativa;
   const definicoes = useDefinicoes();
   const definicao = useDefinicao("item", unavailable || id.startsWith("monstro:") ? undefined : id);
   useEffect(() => { if (definicao?.campanha) registrarTitulo(id, definicao.nome); }, [id, definicao?.nome]);
   if (unavailable) return unavailable;
-  if (active?.role !== "mestre") {
+  if (active?.role !== "mestre" || (previa && id.startsWith("monstro:"))) {
     if (id.startsWith("monstro:")) {
       const e = items.find(
         (x) =>
@@ -293,7 +295,7 @@ export function ItemPagina({
 
 /** Ficha técnica de uma criatura: exclusiva do mestre. Os jogadores conhecem criaturas somente pela carta narrativa. */
 export function MonstroPagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
- const {active}=useCampaigns(),knowledge=useConhecimento();const master=active?.role==='mestre';
+ const {active}=useCampaigns(),knowledge=useConhecimento(),previa=useModoJogador().ativa;const master=active?.role==='mestre'&&!previa;
  const registro=knowledge.items.find(x=>x.systemId==='dnd5e-2014'&&x.category==='monster'&&x.definitionId===id&&x.registered!==false);
  return <PaginaFichaTecnica definitionId={master?id:undefined} memoria={`${active?.campaign.id}:${id}`} onOpenContent={onOpenContent}
   terceira={{id:'bestiario',rotulo:'Bestiário',conteudo:registro
@@ -303,7 +305,7 @@ export function MonstroPagina({id,onOpenContent}:{id:string;onOpenContent:(s:Tab
 
 /** Ficha de combate de um NPC: o mesmo modelo de criatura, com a identidade narrativa do próprio NPC. */
 export function NpcFichaPagina({id,onOpenContent}:{id:string;onOpenContent:(s:TabSpec)=>void}){
- const {active}=useCampaigns(),knowledge=useConhecimento();const master=active?.role==='mestre';
+ const {active}=useCampaigns(),knowledge=useConhecimento(),previa=useModoJogador().ativa;const master=active?.role==='mestre'&&!previa;
  const npc=knowledge.items.find(x=>x.id===id&&x.category==='npc');
  if(master&&!knowledge.loading&&!npc?.combatDefinitionId)return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t="Este NPC não tem ficha de combate vinculada."/></div>;
  return <PaginaFichaTecnica definitionId={master?npc?.combatDefinitionId:undefined} nome={npc?.title} retrato={npc?<ImagemRegistro entry={npc} tamanho={104} ampliar/>:undefined} carregando={knowledge.loading}
@@ -312,10 +314,10 @@ export function NpcFichaPagina({id,onOpenContent}:{id:string;onOpenContent:(s:Ta
 }
 
 function PaginaFichaTecnica({definitionId,nome,retrato,memoria,terceira,carregando=false,semAcoes=false,onOpenContent}:{definitionId?:string;nome?:string;retrato?:ReactNode;memoria:string;terceira:AbaExtra;carregando?:boolean;semAcoes?:boolean;onOpenContent:(s:TabSpec)=>void}){
- const {active}=useCampaigns(),voltar=useContext(VoltarPaginaContext),definicoes=useDefinicoes();
+ const {active}=useCampaigns(),voltar=useContext(VoltarPaginaContext),definicoes=useDefinicoes(),previa=useModoJogador().ativa;
  const [data,setData]=useState<{id:string;definicao?:Definicao;error?:string}>();
  useEffect(()=>{let alive=true;if(definitionId&&!definicoes.carregando)void carregarDefinicao('monster',definitionId,definicoes.lista).then(definicao=>{if(alive){setData({id:definitionId,definicao});if(definicao&&!nome)registrarTitulo(definitionId,definicao.nome);}},()=>{if(alive)setData({id:definitionId,error:'Não foi possível carregar a criatura.'});});return()=>{alive=false;};},[definitionId,definicoes.lista,definicoes.carregando]);
- if(active&&active.role!=='mestre')return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t="A ficha técnica é exclusiva do mestre. Consulte o que seu grupo conhece em Bestiário."/></div>;
+ if(active&&(active.role!=='mestre'||previa))return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent}/><Aviso t="A ficha técnica é exclusiva do mestre. Consulte o que seu grupo conhece em Bestiário."/></div>;
  const atual=data&&data.id===definitionId?data:undefined,efetiva=atual?.definicao?.kind==='monster'?atual.definicao:undefined;
  if(!efetiva)return <div className="content cd-page">{voltar&&<VoltarCompendio onOpenContent={onOpenContent} label="Voltar"/>}{atual?<Aviso erro t={atual.error??'Criatura não encontrada.'}/>:<p role="status">{carregando?'Carregando registro…':'Carregando criatura…'}</p>}</div>;
  return <FichaMonstro key={memoria} monstro={efetiva.monstro} nome={nome} retrato={retrato} personalizado={!!efetiva.campanha} memoria={memoria} terceira={terceira}
