@@ -62,3 +62,7 @@
 
 .cd-tools .multi-selecao { flex-basis:100%; margin:0; gap:8px 12px; }
 @container (max-width:700px) { .cd-tools.compacta:has(.multi-selecao) { flex-wrap:wrap; } }
+
+.secao-narrativa { border-bottom:1px solid var(--line); padding-block:10px; min-width:0; }
+.secao-narrativa > summary { cursor:pointer; font-weight:650; padding-block:6px; }
+.secao-narrativa > section { display:grid; gap:10px; min-width:0; padding-top:10px; }

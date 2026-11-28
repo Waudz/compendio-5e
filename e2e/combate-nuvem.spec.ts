@@ -20,7 +20,8 @@ test('mestre: encontro → combate → turnos, dano, condição → recarregar �
   await cartao.getByLabel('Buscar monstro').fill('goblin');
   await cartao.getByRole('button', { name: 'Adicionar Goblin do Bestiário', exact: true }).click();
   await expect(cartao.getByText(/Bestiário · PV 7/)).toBeVisible();
-  await cartao.getByRole('button', { name: 'Voltar à lista de encontros' }).click();
+  await expect(cartao.getByRole('button', { name: 'Voltar à lista de encontros' })).toHaveCount(0);   // o retorno é o do cabeçalho
+  await page.getByRole('button', { name: /^Voltar( na aba)?$/ }).click();
   await page.getByRole('region', { name: 'Encontro Emboscada na estrada' }).getByRole('button', { name: 'Enviar para a Iniciativa', exact: true }).click();
   await expect(page.getByText(/foi enviado para a Iniciativa/)).toBeVisible();
   // 2. conduz o combate

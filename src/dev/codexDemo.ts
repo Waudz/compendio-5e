@@ -88,7 +88,14 @@ export function codexDemo(master: boolean, campaign: string, fichasNpc?: FichaDe
       try {
         const nid=await api.save(cid,id,version,data);
         for(const lid of changes.remover)await api.unlink(cid,lid);
-        for(const op of changes.adicionar)await api.link(cid,op.source??nid,op.target??nid,op.relation);
+        const refs=new Map<string,string>();
+        for(const ref of changes.referencias??[]){const existing=read().find(e=>e.category==='item'&&e.definitionId===ref.data.definitionId);refs.set(ref.token,existing?.id??await api.save(cid,null,0,{...ref.data,registered:false}));}
+        for(const op of changes.adicionar)await api.link(cid,refs.get(op.source??'')??op.source??nid,refs.get(op.target??'')??op.target??nid,op.relation);
+        if(changes.estado){
+          const e=read().find(x=>x.id===nid)!;
+          if((e.vitalStatus??'vivo')!==changes.estado.anterior)throw Error('conflito_de_versao');
+          await api.gravarVida?.(cid,nid,{estado:changes.estado.valor},crypto.randomUUID());
+        }
         return nid;
       }catch(e){keys.forEach((k,i)=>{if(before[i]===null)localStorage.removeItem(k);else localStorage.setItem(k,before[i]!);});throw e;}
     },

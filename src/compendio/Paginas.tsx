@@ -94,7 +94,6 @@ export function RegistroCompendioPagina({id,onOpenContent,semFicha=false}:{id:st
  const trilhaMestre=entry.category==='item'?nomesCategoria.item:`${nomesCategoria[entry.category]} / ${nomesRegistro[entry.category]}`;
  const botoes=master?<>
   {ficha&&<button type="button" className="btn-primary" onClick={()=>onOpenContent(ficha)}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>}
-  {bancoDeNpcs&&entry.category==='npc'&&<ControleVital noteId={entry.id} atual={entry.vitalStatus}/>}
   {entry.category==='item'&&entry.definitionId&&<EntregarItem definitionId={entry.definitionId} nome={entry.title} nomeAparente={entry.fields?.nickname}/>}
   <MenuDeAcoes rotulo="Mais ações do registro" acoes={menu}/>
  </>:undefined;
@@ -130,7 +129,7 @@ export function IdentidadePagina({id,onOpenContent}:{id:string;onOpenContent:(s:
  return <div className="content cd-page"><VoltarCompendio onOpenContent={onOpenContent} label="Personagens"/>
   {!p||!visto?<Aviso t={error??'Identidade indisponível nesta campanha.'}/>:<Carta trilha={p.situacao==='npc'?'Personagens / NPC':p.situacao?'Personagens':'Personagens / Aventureiro'} nome={visto.nome} alcunha={visto.alcunha} rotulo={`Identidade pública de ${visto.nome}`}
    retratoGrande imagem={<RetratoQuadrado src={card?card.imageUrl:p.retratoUrl} tipo="personagem" tamanho={300} ampliar={visto.nome}/>}
-   acoes={(podeFicha&&p.situacao!=='compendio')||gerencia?<>{active?.role==='mestre'&&bancoDeNpcs&&<ControleVital noteId={id}/>}{podeFicha&&p.situacao!=='compendio'&&<button type="button" className="btn-primary" onClick={()=>onOpenContent({kind:'ficha',ref:id,title:p.nome})}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>}{gerencia&&<button type="button" className="btn-secondary" onClick={()=>ciclo.gerenciar(id)}>Gerenciar personagem</button>}</>:undefined}>
+   acoes={(podeFicha&&p.situacao!=='compendio')||gerencia?<>{active?.role==='mestre'&&bancoDeNpcs&&<ControleVital noteId={id} acoes={gerencia?[{rotulo:"Gerenciar personagem",icone:Pencil,acao:()=>ciclo.gerenciar(id)}]:[]}/>}{podeFicha&&p.situacao!=='compendio'&&<button type="button" className="btn-primary" onClick={()=>onOpenContent({kind:'ficha',ref:id,title:p.nome})}><ClipboardList size={14} aria-hidden="true"/> Ver ficha</button>}{gerencia&&!bancoDeNpcs&&<MenuDeAcoes rotulo="Ações da identidade" acoes={[{rotulo:"Gerenciar personagem",icone:Pencil,acao:()=>ciclo.gerenciar(id)}]}/>}</>:undefined}>
    {jogador(atual?.owner)&&<p className="muted">Jogador: {jogador(atual?.owner)}</p>}
    <FatosCarta fatos={fatos}/>
    {descricao&&<p className="cd-texto">{descricao}</p>}

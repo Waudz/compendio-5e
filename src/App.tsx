@@ -1,3 +1,4 @@
+import {retornoLocal,useVersaoRetornoLocal} from "./retornoLocal";
 import {useIdentidades} from "./compendio/consulta";
 import { CICLO_ACESSO, type DetalheAcesso } from "./CicloPersonagens";
 import { GlobalMenu } from "./GlobalMenu";
@@ -79,6 +80,7 @@ function CampaignLoadError() {
 function Workspace({ userId }: { userId: string }) {
   // Espaço de trabalho por usuário + campanha ativa + dispositivo: ao trocar, carrega o layout daquele escopo.
   const { status } = useAuth();
+  const retornoVersao=useVersaoRetornoLocal();
   const previa = useModoJogador().ativa;
   const {items:identidadesPublicas}=useIdentidades();
   const { active, activeId: campaignId, memberships, setActive } = useCampaigns();
@@ -343,7 +345,7 @@ function Workspace({ userId }: { userId: string }) {
       v.buttons.push(<button key="new" className="grp-close" title="Nova aba" aria-label="Nova aba" onClick={()=>{model.doAction(Actions.setActiveTabset(node.getId()));openMenu({kind:"nova",ref:crypto.randomUUID(),title:"Nova aba"});}}><Plus size={14}/></button>);
     }
     if(node instanceof TabSetNode){const tab=node.getSelectedNode();if(tab instanceof TabNode){const h=historyOf(tab);
-      v.buttons.unshift(<span className="workspace-history" key="history"><button title="Voltar na aba" aria-label="Voltar na aba" hidden={h.index===0} onClick={()=>step(tab.getId(),h.index-1)}><ArrowLeft size={14}/></button><button title="Avançar na aba" aria-label="Avançar na aba" disabled={h.index===h.pages.length-1} onClick={()=>step(tab.getId(),h.index+1)}><ArrowRight size={14}/></button></span>);
+      v.buttons.unshift(<span className="workspace-history" key="history"><button title="Voltar na aba" aria-label="Voltar na aba" hidden={h.index===0&&!retornoLocal(tab.getId())} onClick={()=>{const local=retornoLocal(tab.getId());if(local)unsaved.api.guard([tab.getId()],local);else step(tab.getId(),h.index-1);}}><ArrowLeft size={14}/></button><button title="Avançar na aba" aria-label="Avançar na aba" disabled={h.index===h.pages.length-1} onClick={()=>step(tab.getId(),h.index+1)}><ArrowRight size={14}/></button></span>);
     }}
     if (node instanceof TabSetNode && groupCount(model) > 1)
       v.buttons.push(<button key="fg" className="grp-close" title="Fechar coluna" aria-label="Fechar coluna" onClick={guarded(node.getChildren().map(c => c.getId()), () => closeGroup(model, node.getId()))}><X size={14}/></button>);
@@ -352,7 +354,7 @@ function Workspace({ userId }: { userId: string }) {
       v.buttons.push(<button key="reopen" className="grp-close" title="Reabrir aba fechada" aria-label="Reabrir aba fechada" disabled={!closed.current.length} onClick={reopen}><RotateCcw size={14}/></button>);
       v.buttons.push(<button key="full" className="grp-close" title="Alternar tela cheia" aria-label="Alternar tela cheia" onClick={()=>{const app=document.querySelector<HTMLElement>(".app");void (document.fullscreenElement?document.exitFullscreen?.():app?.requestFullscreen?.())?.catch(()=>{});}}><Maximize size={14}/></button>);
     }
-  }, [model, onModelChange, unsaved.api, step, reopen, openMenu]);
+  }, [model, onModelChange, unsaved.api, step, reopen, openMenu, retornoVersao]);
 
   // Ficha de monstro pela Iniciativa: outro grupo no computador; no celular, na própria aba, para Voltar devolver ao combate.
   const aoLado = useCallback((s: TabSpec, origem?: string) => {

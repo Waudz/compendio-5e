@@ -416,14 +416,18 @@ describe("Compêndio unificado", () => {
     expect(acaoCarta("Adicionar ficha")).toBeTruthy();
   });
 
-  it("estado vital: o mestre escolhe na página; o jogador só vê quando revelado, e 'Desconhecido' é um valor", async () => {
+  it("estado vital: só salva no formulário Editar; o jogador só vê quando revelado, e 'Desconhecido' é um valor", async () => {
     const codex = codexDemo(true, "ca");
     await npc(codex);
     await mount("mestre", codex);
     await abrirRegistro("Personagens", "Edric Voss");
-    const escolha = await carta().findByRole("combobox", { name: "Estado vital" }) as HTMLSelectElement;
+    fireEvent.click(acaoCarta("Editar registro"));
+    const editor=within(screen.getByRole("dialog",{name:"Editar registro"}));
+    const escolha = await editor.findByRole("combobox", { name: "Estado vital" }) as HTMLSelectElement;
     expect(escolha.value).toBe("vivo");
     fireEvent.change(escolha, { target: { value: "desconhecido" } });
+    expect((await codex.list("ca"))[0].vitalStatus??"vivo").toBe("vivo");
+    fireEvent.click(editor.getByRole("button",{name:"Salvar"}));
     await waitFor(async () => expect((await codex.list("ca"))[0].vitalStatus).toBe("desconhecido"));
     const [e] = await codex.list("ca");
     await codex.reveal("ca", e.id, e.version, { visible: true, revealed: ["name"] });
@@ -431,6 +435,40 @@ describe("Compêndio unificado", () => {
     const [e2] = await codex.list("ca");
     await codex.reveal("ca", e2.id, e2.version, { visible: true, revealed: ["name", "vitalStatus"] });
     expect((await codexDemo(false, "ca").list("ca"))[0].vitalStatus).toBe("desconhecido");
+  });
+
+  it('sem a 0023, o estado vital sozinho ainda é gravado; junto de outra mudança, nada é gravado',async()=>{
+    const codex:CodexApi={...codexDemo(true,'ca'),edicaoAtomica:async()=>false};await npc(codex);
+    const atomica=vi.spyOn(codex,'salvarEdicao' as never),salvar=vi.spyOn(codex,'save');
+    await mount('mestre',codex);await abrirRegistro('Personagens','Edric Voss');
+    fireEvent.click(acaoCarta('Editar registro'));
+    const editor=()=>within(screen.getByRole('dialog',{name:'Editar registro'}));
+    fireEvent.change(await editor().findByRole('combobox',{name:'Estado vital'}),{target:{value:'desconhecido'}});
+    fireEvent.change(editor().getByRole('textbox',{name:'Notas privadas do mestre'}),{target:{value:'outra nota'}});
+    fireEvent.click(editor().getByRole('button',{name:'Salvar'}));
+    expect((await editor().findByRole('alert')).textContent).toContain('salve o estado vital sozinho');
+    expect(salvar).not.toHaveBeenCalled();expect((await codex.list('ca'))[0].vitalStatus??'vivo').toBe('vivo');
+    fireEvent.change(editor().getByRole('textbox',{name:'Notas privadas do mestre'}),{target:{value:'SEGREDO'}});
+    fireEvent.click(editor().getByRole('button',{name:'Salvar'}));
+    await waitFor(async()=>expect((await codex.list('ca'))[0].vitalStatus).toBe('desconhecido'));
+    expect(atomica).not.toHaveBeenCalled();expect(salvar).not.toHaveBeenCalled();
+  });
+
+  it('morte exige confirmação e cancelar o editor preserva o estado vital',async()=>{
+    const codex=codexDemo(true,'ca');await npc(codex);await mount('mestre',codex);await abrirRegistro('Personagens','Edric Voss');
+    fireEvent.click(acaoCarta('Editar registro'));
+    const editor=()=>within(screen.getByRole('dialog',{name:'Editar registro'}));
+    fireEvent.change(await editor().findByRole('combobox',{name:'Estado vital'}),{target:{value:'morto'}});
+    const confirmar=vi.spyOn(window,'confirm').mockReturnValue(false);
+    fireEvent.click(editor().getByRole('button',{name:'Salvar'}));
+    expect(confirmar).toHaveBeenCalled();expect((await codex.list('ca'))[0].vitalStatus??'vivo').toBe('vivo');
+    fireEvent.click(editor().getByRole('button',{name:'Cancelar'}));
+    fireEvent.click(acaoCarta('Editar registro'));
+    expect((await editor().findByRole('combobox',{name:'Estado vital'}) as HTMLSelectElement).value).toBe('vivo');
+    fireEvent.change(editor().getByRole('combobox',{name:'Estado vital'}),{target:{value:'morto'}});confirmar.mockReturnValue(true);
+    fireEvent.click(editor().getByRole('button',{name:'Salvar'}));
+    await waitFor(()=>expect(screen.queryByRole('dialog',{name:'Editar registro'})).toBeNull());
+    expect((await codex.list('ca'))[0].vitalStatus).toBe('morto');
   });
 
   it("NPC ganha 'Ver ficha' só com ficha de combate vinculada; a ficha reutiliza a criatura e mostra a identidade", async () => {

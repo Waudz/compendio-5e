@@ -196,11 +196,19 @@ describe("ficha de jogo", () => {
     const previa = within(await screen.findByRole("article", { name: "Prévia da identidade pública" }));
     expect(previa.getByRole("heading", { name: "Thorin" })).toBeTruthy();
     expect(previa.queryByText(/Pontos de vida|PV|Inventário/)).toBeNull();
-    fireEvent.click(previa.getByRole("button", { name: "Editar identidade pública" }));
+    fireEvent.click(previa.getByRole("button", { name: "Ações da identidade" }));
+    fireEvent.click(previa.getByRole("menuitem",{name:"Editar identidade pública"}));
     fireEvent.change(await screen.findByLabelText("Descrição pública"), { target: { value: "Um anão de poucas palavras." } });
+    expect(JSON.stringify((registros as unknown as {dados:unknown[]}).dados[0])).not.toContain("Um anão de poucas palavras.");
+    fireEvent.change(screen.getByRole("textbox", { name: "Naturalidade" }), { target: { value: "Vila de Pedra" } });
+    fireEvent.click(within(screen.getByRole("dialog",{name:"Editar identidade"})).getByRole("button",{name:"Salvar"}));
     await salvou(() => expect(JSON.stringify((registros as unknown as { dados: unknown[] }).dados[0])).toContain("Um anão de poucas palavras."));
-    fireEvent.click(screen.getByRole("button", { name: "Concluir" }));
     expect(within(screen.getByRole("article", { name: "Prévia da identidade pública" })).getByText("Um anão de poucas palavras.")).toBeTruthy();
+    // a narrativa fica na ficha privada, aparece na aba Ficha e não vai para a apresentação pública
+    expect(JSON.stringify((registros as unknown as { dados: unknown[] }).dados[0])).not.toContain("Vila de Pedra");
+    fireEvent.click(abas().getByRole("button", { name: "Ficha" }));
+    const narrativa = within(await screen.findByRole("region", { name: "História e personalidade" }));
+    expect(narrativa.getByText("Vila de Pedra")).toBeTruthy();
   });
 
   it("no celular, arrastar para o lado troca de aba; rolagem vertical, controles e a borda não trocam", async () => {

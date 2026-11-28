@@ -62,12 +62,12 @@ export function ListaVinculos({ links, rows, controles, onOpenContent, semAbrir 
     })}</ul>;
 }
 
-export function NovoVinculoBotao({ id, vinculos, onAdicionar }: { id: string; vinculos: ReturnType<typeof useVinculos>; onAdicionar?: (source:string,target:string,relation:NovoVinculo,chosen:LinhaCompendio)=>void }) {
+export function NovoVinculoBotao({ id, vinculos, onAdicionar }: { id: string; vinculos: ReturnType<typeof useVinculos>; onAdicionar?: (source:string,target:string,relation:NovoVinculo,chosen:LinhaCompendio)=>void|Promise<void> }) {
   const { active } = useCampaigns(), { data, links, reload } = vinculos;
   const [open, setOpen] = useState(false), [target, setTarget] = useState(''), [query, setQuery] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [relation, setRelation] = useState('related:a'), [custom, setCustom] = useState({ ida: '', volta: '' }), [revealed, setRevealed] = useState(false);
   const { lista } = useDefinicoes();
-  const candidates = useMemo(() => open ? [...data.rows.filter(r => (r.entry || r.pc) && r.id !== id), ...(onAdicionar?[]:linhasDoCatalogo(data.rows, lista))] : [], [open, data.rows, id, lista, !!onAdicionar]);
+  const candidates = useMemo(() => open ? [...data.rows.filter(r => (r.entry || r.pc) && r.id !== id), ...linhasDoCatalogo(data.rows, lista)] : [], [open, data.rows, id, lista, !!onAdicionar]);
   if (active?.role !== 'mestre') return null;
   const chosen = candidates.find(r => r.id === target);
   const rascunho = montarRelacao(relation, id, target, custom);
@@ -78,7 +78,7 @@ export function NovoVinculoBotao({ id, vinculos, onAdicionar }: { id: string; vi
     try {
       if(onAdicionar) {
         const r=montarRelacao(relation,id,chosen.id,custom)!;
-        onAdicionar(r.source,r.target,{kind:r.kind,label:r.label,inverse:r.inverse,revealed},chosen);
+        await onAdicionar(r.source,r.target,{kind:r.kind,label:r.label,inverse:r.inverse,revealed},chosen);
         setOpen(false);setTarget('');return;
       }
       const alvo = chosen.id.startsWith(CATALOGO) ? await garantirRegistro(data.api, active.campaign.id, data.items, 'item', chosen.id.slice(CATALOGO.length), false) : chosen.id;

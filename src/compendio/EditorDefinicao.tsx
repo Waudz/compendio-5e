@@ -1,3 +1,4 @@
+import {MenuDeAcoes,type AcaoDeMenu} from "../ui/MenuDeAcoes";
 /** Edição de monstros e itens da campanha. Parte sempre de uma definição válida (original, cópia ou modelo em branco),
  *  e o resultado passa pelo mesmo esquema do catálogo antes de gravar. */
 import { useState } from 'react';
@@ -190,13 +191,11 @@ export function AcoesDefinicao({ definicao, onOpenContent }: { definicao: Defini
   };
   return <div className="cd-definition-actions">
     {campanha && <p className="muted">{criacao ? 'Criação desta campanha.' : 'Personalizado nesta campanha.'}</p>}
-    <div className="cd-share-actions">
-      <button className="btn-secondary" disabled={busy} onClick={() => setEditor({ inicial: definicao, titulo: 'Editar nesta campanha' })}><Pencil size={15}/> Editar nesta campanha</button>
-      <button className="btn-secondary" disabled={busy} onClick={duplicar}><Copy size={15}/> Duplicar</button>
-      {campanha && (criacao
-        ? <button className="btn-secondary" disabled={busy} onClick={() => void remover()}><Trash2 size={15}/> Excluir criação</button>
-        : <button className="btn-secondary" disabled={busy} onClick={() => void remover()}><RotateCcw size={15}/> Restaurar padrão</button>)}
-    </div>
+    <MenuDeAcoes rotulo="Ações do catálogo" acoes={[
+      {rotulo:'Editar nesta campanha',icone:Pencil,desabilitada:busy,acao:()=>setEditor({inicial:definicao,titulo:'Editar nesta campanha'})},
+      {rotulo:'Duplicar',icone:Copy,desabilitada:busy,acao:duplicar},
+      ...(campanha?[{rotulo:criacao?'Excluir criação':'Restaurar padrão',icone:criacao?Trash2:RotateCcw,perigo:criacao,desabilitada:busy,acao:()=>void remover()}] as AcaoDeMenu[]:[])
+    ]}/>
     {error && <Aviso erro t={error}/>}
     {editor && <EditorDefinicao {...editor} onFechar={() => setEditor(undefined)} onSalvo={(novo, registro) => {
       setEditor(undefined);

@@ -40,7 +40,7 @@ Repositório: `Waudz/compendio-5e`, React/TypeScript/Vite, Supabase. Main verifi
 - Não apagar os quadros antigos dos jogadores. A nova experiência é somente documentos: preparar adaptação/conversão **não destrutiva**, mantendo conteúdo e referências recuperáveis. O responsável não escolheu um algoritmo de conversão; documentar e testar a compatibilidade antes de gravar qualquer transformação.
 - Preservar rascunhos em falha de salvamento, tratar concorrência/versões e não substituir silenciosamente conteúdo novo de outro dispositivo.
 - Não aplicar migrações em produção sem autorização. Se necessárias, preparar proposta revisável, testes isolados e rollback não destrutivo.
-- A migração 0022 já está aplicada em produção; **não reaplicar**. A proposta 0023 do #171 não está aplicada; confirmar situação atual em vez de presumir sua disponibilidade.
+- A migração 0022 já está aplicada em produção; **não reaplicar**. A 0023 do #171 (`supabase/migrations/0023_edicao_codex_atomica.sql`) não está aplicada; confirmar situação atual em vez de presumir sua disponibilidade.
 
 ## Infraestrutura de partida (conferir código atualizado)
 

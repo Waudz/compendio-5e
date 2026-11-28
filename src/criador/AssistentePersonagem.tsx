@@ -1,3 +1,4 @@
+import {CamposHistoria} from "../ui/CamposHistoria";
 // Criação e edição do personagem D&D 5e (2014) por etapas, sobre o motor `regras-2014` (nada de regras é recalculado aqui). Na criação,
 // as etapas seguem uma ordem sugerida (história, opcional, por último), mas se pode saltar, avançar com pendências e salvar incompleto. Na edição, cada categoria é
 // aberta direto. Nada do que pertence à mesa (PV atuais, moedas, inventário, recursos, condições) é editado aqui.
@@ -7,7 +8,7 @@ import { useState, type ReactNode, type Ref } from "react";
 import { srdItem } from "../catalogue/srd-2014-items";
 import { MolduraAtributo, SeloNivel } from "../dnd/elementos";
 import "../dnd/dnd.css";
-import { CAMPOS_HISTORIA } from "../ficha/campos";
+import { CAMPOS_NARRATIVOS } from "../ficha/campos";
 import { entregarNasAtivas, type ChaveMoeda } from "../moedas/moedas";
 import { ABILITY_ORDER, POINT_BUY_BUDGET, pointBuySpent } from "../rules/ability-generation-2014";
 import type { CharacterDraft, CharacterSheet } from "../rules/character-domain";
@@ -53,7 +54,7 @@ export function AssistentePersonagem(p: PropsAssistente) {
   // a identidade pública que acompanha a ficha já está pronta; só fica pendente se a personalização não apresentar nome nem alcunha
   const cartao = publicIdentityCard(p.identity, p.origemPublica);
   const publicaSemNome = !p.somenteFicha && p.identity.name.mode !== "sheet" && !cartao.name && !cartao.alias;
-  const temHistoria = CAMPOS_HISTORIA.some(([chave]) => draft.story?.[chave]?.trim());
+  const temHistoria = CAMPOS_NARRATIVOS.some(([chave]) => draft.story?.[chave]?.trim());
   const etapas: EtapaInfo<Etapa>[] = lista.map(([id, nome]) => {
     const publica = id === "publica" || id === "revisao";
     const n = publica ? Number(publicaSemNome) : pendencias.filter(x => x.etapa === id).length;
@@ -105,8 +106,7 @@ function EtapaIdentidade(p: PropsAssistente) {
 }
 
 function Historia({ draft, onChange }: PropsAssistente) {
-  const campos = <div className="etapa-historia">{CAMPOS_HISTORIA.map(([chave, rotulo]) => <label key={chave} className={chave === "historia" ? "etapa-largo" : undefined}>{rotulo}<textarea aria-label={rotulo} rows={chave === "historia" ? 6 : 3} maxLength={chave === "historia" ? 8000 : 1500} value={draft.story?.[chave] ?? ""} onChange={e => onChange({ ...draft, story: { ...draft.story, [chave]: e.target.value } })}/></label>)}</div>;
-  return <><Titulo ajuda="Opcional. Só você e o mestre leem.">História e personalidade</Titulo>{campos}</>;
+  return <><Titulo ajuda="Opcional. Só você e o mestre leem.">História e personalidade</Titulo><CamposHistoria value={draft.story??{}} onChange={story=>onChange({...draft,story})}/></>;
 }
 
 function EtapaRaca({ draft, onChange }: PropsAssistente) {

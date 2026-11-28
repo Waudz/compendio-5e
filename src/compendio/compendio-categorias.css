@@ -221,3 +221,7 @@
 .cd-cards.grade footer:has(>small) { position:static; padding:8px 10px; }
 .cd-cards.grade footer:empty { display:none; }
 .cd-cards.grade footer .carta-icone,.cd-cards.grade footer .menu-acoes-gatilho { background:var(--panel); }
+
+.cd-card-operacional-detalhes { margin:8px 12px 0; font-size:12px; color:var(--text-2); overflow-wrap:anywhere; }
+.cd-cards .cd-estado { white-space:normal; min-height:24px; }
+.cd-pv-barra { display:block; width:100%; height:5px; margin-top:5px; accent-color:var(--accent); }

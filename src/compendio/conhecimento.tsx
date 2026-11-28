@@ -86,7 +86,7 @@ export type CodexLink = {
   revealed?: boolean;
 };
 export type NotificationFeed={items:(CodexAviso&{title:string;category:CodexCategoria})[];unread:number;discoveries:number};
-export type EdicaoVinculos = { remover: string[]; adicionar: { source: string | null; target: string | null; relation: NovoVinculo }[] };
+export type EdicaoVinculos = { referencias?:{token:string;data:EdicaoConhecimento}[]; estado?:{anterior:EstadoVitalidade;valor:EstadoVitalidade}; remover: string[]; adicionar: { source: string | null; target: string | null; relation: NovoVinculo }[] };
 export interface CodexApi {
   edicaoAtomica?(): Promise<boolean>;
   salvarEdicao?(cid: string, id: string | null, version: number, data: EdicaoConhecimento, links: EdicaoVinculos): Promise<string>;

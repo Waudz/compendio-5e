@@ -6,7 +6,7 @@ import { class2014, label2014, proficiency2014, proficiencyLabel2014, raceTraits
 import { rotuloAtributo, rotuloPericia } from "../criador/rotulos";
 import { ABILITY_ORDER } from "../rules/ability-generation-2014";
 import { comEstado, defesasDerivadas, ROTULO_ALVO, ROTULO_DEFESA, sentidosEspeciais, somaTemporaria, usarRecurso, type AlvoMod, type TipoDefesa } from "./estadoJogo";
-import { CAMPOS_HISTORIA } from "./campos";
+import { CAMPOS_NARRATIVOS } from "./campos";
 import { Marcadores } from "./Marcadores";
 import { MolduraAtributo } from "../dnd/elementos";
 import { novoId, sinal, type PropsAba } from "./tipos";
@@ -28,7 +28,7 @@ export function AbaFicha({ draft, sheet, stats, estado, onChange, vital }: Props
   const dados = sheet.resources["hit-dice"], dadoDeVida = class2014(draft).data.hitDie;
   const idiomas = [...new Set([...sheet.languages.map(label2014), ...grupo("language:")])];
   const morte = (chave: "sucessos" | "falhas", n: number) => vital({ tipo: "morte", ...estado.morte, [chave]: estado.morte[chave] === n ? n - 1 : n });
-  const historia = CAMPOS_HISTORIA.flatMap(([chave, rotulo]) => { const texto = draft.story?.[chave]?.trim(); return texto ? [[rotulo, texto] as const] : []; });
+  const historia = CAMPOS_NARRATIVOS.flatMap(([chave, rotulo]) => { const texto = draft.story?.[chave]?.trim(); return texto ? [[rotulo, texto] as const] : []; });
 
   return <div className="ficha-pilha ficha-aba-ficha">
     <section className="ficha-bloco ficha-bloco-aberto" aria-label="Atributos">
