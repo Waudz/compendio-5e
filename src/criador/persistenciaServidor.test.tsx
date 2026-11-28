@@ -434,8 +434,12 @@ describe("Acesso autorizado: abas restauradas, sessão e dispositivo", () => {
           fireEvent.click(nav.getByRole("button", { name: "Compêndio" }));
           fireEvent.click(await screen.findByRole("button", { name: /^Personagens / }));
           fireEvent.click(await screen.findByRole("button", { name: /^(O Escudo|Thorin)( |$)/ }));
-          if (user.id === mestreUser.id) fireEvent.click(await screen.findByRole("button", { name: "Ver ficha" }));
-          else { expect(screen.queryByRole("button", { name: "Ver ficha" })).toBeNull(); continue; }
+          if (user.id === other.id) {
+            expect(screen.queryByRole("button", { name: "Ver ficha" })).toBeNull();
+            expect(screen.queryByTestId("ficha-guiada-leitura")).toBeNull();
+            expect(screen.queryByRole("region", { name: "Inventário do personagem" })).toBeNull();
+            continue;
+          }
         }
       }
       if (user.id === other.id) {
