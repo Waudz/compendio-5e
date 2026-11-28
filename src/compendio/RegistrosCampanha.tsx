@@ -113,7 +113,7 @@ export function RegistrarDescoberta({ category, id, onOpenContent }: { category:
 }
 
 /** Vínculo de um registro que ainda não foi salvo. */
-const NOVO = "__novo__", MAIS_USADOS = 3;
+const NOVO = "__novo__";
 export function EditorConhecimento({
   entry,
   category,
@@ -337,13 +337,12 @@ export function EditorConhecimento({
         <input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
       </label>
       {campos.filter((f) => !f.long).map(campo)}
-      {entry&&category==='npc'&&bancoDeNpcs&&<label>Estado vital<select value={estadoVital} onChange={e=>setEstadoVital(e.target.value as EstadoVitalidade)}>{VITALIDADES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>}
+      {entry&&category==='npc'&&bancoDeNpcs&&<label>Estado<select value={estadoVital} onChange={e=>setEstadoVital(e.target.value as EstadoVitalidade)}>{VITALIDADES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>}
       </div>
       </div>
       <CampoNarrativo label="Descrição compartilhada" value={text} maxLength={10000} onChange={setText} rows={dados.rows.filter((r) => r.id !== entry?.id)} />
       <p className="muted">Digite @ para citar um registro; o texto entre colchetes é o que aparece. Linha iniciada por ## vira subtítulo.</p>
-      <div className="cd-editor-longos">{campos.filter((f) => f.long).slice(0, MAIS_USADOS).map(campo)}</div>
-      {campos.filter((f) => f.long).length > MAIS_USADOS && <details open={campos.filter((f) => f.long).slice(MAIS_USADOS).some((f) => !!entry?.fields?.[f.id])}><summary>Mais detalhes (opcional)</summary><div className="cd-editor-longos">{campos.filter((f) => f.long).slice(MAIS_USADOS).map(campo)}</div></details>}
+      <div className="cd-editor-longos">{campos.filter((f) => f.long).map(campo)}</div>
       <section className="cd-relations" aria-label="Vínculos">
           <h3>Vínculos</h3>
           <p className="muted">{entry ? "Vínculos só serão gravados ao salvar esta edição. Cancelar preserva os vínculos existentes." : "Os vínculos são gravados junto com o registro, ao salvar."}</p>
@@ -366,7 +365,7 @@ export function EditorConhecimento({
             setAdicionados(xs=>[...xs,{source,target,relation,linha:{id:'draft:'+crypto.randomUUID(),targetId:chosen.id,title:chosen.title,category:(chosen.category==='catalog-item'?'item':chosen.category) as CodexLink['category'],kind:relation.kind,relation:source===idDaPagina?relation.label:relation.inverse,outgoing:source===idDaPagina,revealed:relation.revealed}}]);}} />
       </section>
       <label>
-        Notas privadas do mestre
+        Observações privadas do mestre
         <textarea value={secret} maxLength={4000} onChange={(e) => setSecret(e.target.value)} />
       </label>
       {error && <Aviso erro t={error} />}

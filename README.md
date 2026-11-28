@@ -1,5 +1,10 @@
 # Compêndio 5e 2.0
 
+## Continuidade vigente — 28/11/2026
+
+PRs #171, #172 e #173 integrados; migração 0023 já aplicada conforme confirmação do responsável. Não reaplicar. A nova reformulação está em andamento, sem conclusão funcional nem validação completa. Consultar [handoff para Claude](docs/HANDOFF-CLAUDE-20261128.md) e [escopo aprovado](docs/REFORMULACAO-BETA-20261128.md). Preferir dois PRs; Anotações não iniciada. As informações datadas abaixo são históricas e não substituem este estado.
+
+
 ## Estado atual — 27/11/2026 (prevalece sobre os registros datados abaixo)
 
 - **Publicado:** ciclo de vida dos personagens (migração 0021 aplicada) e a nova página Personagens (#168 e #169).

@@ -48,7 +48,7 @@ export function ImagemRegistro({ entry, tamanho, ampliar }: { entry: Conheciment
 }
 
 /** Campos curtos que formam a linha abaixo do nome. */
-const LINHA: Record<string, string[]> = { npc: ['race', 'age'], monster: ['classification'], location: ['type', 'region'], organization: ['type'], discovery: ['type'], item: ['type'] };
+const LINHA: Record<string, string[]> = { npc: ['race'], monster: ['classification'], location: ['type', 'region'], organization: ['type'], discovery: ['type'], item: ['type'] };
 
 export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links, rows, trilha, topo, acoes, privado, onOpenContent }: {
   entry: Conhecimento;
@@ -75,7 +75,7 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
     if (!vagas.some(v=>v.campo===f.id) && valor(f.id)) fatos.push({ k:f.id,rotulo:f.label,valor:valor(f.id) });
   }
   // estado vital: o jogador só o recebe se revelado; 'desconhecido' é um valor, não a falta de informação
-  if (!privado && entry.category === 'npc' && entry.vitalStatus) fatos.push({ k: 'vitalStatus', rotulo: 'Estado vital', valor: <RotuloVital estado={entry.vitalStatus}/> });
+  if (entry.category === 'npc' && entry.vitalStatus && entry.vitalStatus!=='vivo') fatos.push({ k: 'vitalStatus', rotulo: 'Estado', valor: <RotuloVital estado={entry.vitalStatus}/> });
   const descricao = deBlocos(entry.description ?? []).trim();
   const longos = campos.filter(f => f.long && f.id !== 'inhabitants' && valor(f.id));
   const textoHabitantes = valor('inhabitants');
@@ -108,7 +108,7 @@ export function VisaoRegistro({ entry, versaoPosse = entry, mostrarPosse, links,
         <h2>Registros relacionados</h2>
         <ListaVinculos links={links} rows={rows} onOpenContent={onOpenContent}/>
       </section>}
-      {privado && !!entry.secret?.trim() && <section className="cd-private"><h2>Notas privadas do mestre</h2><p className="cd-texto">{entry.secret}</p></section>}
+      {privado && !!entry.secret?.trim() && <section className="cd-private"><h2>Observações privadas do mestre</h2><p className="cd-texto">{entry.secret}</p></section>}
     </>}
   </Carta>;
 }
