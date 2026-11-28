@@ -64,5 +64,6 @@
 @container (max-width:700px) { .cd-tools.compacta:has(.multi-selecao) { flex-wrap:wrap; } }
 
 .secao-narrativa { border-bottom:1px solid var(--line); padding-block:10px; min-width:0; }
-.secao-narrativa > summary { cursor:pointer; font-weight:650; padding-block:6px; }
-.secao-narrativa > section { display:grid; gap:10px; min-width:0; padding-top:10px; }
+.secao-narrativa > h3 { font-size:14px; font-weight:650; margin:0; }
+.secao-narrativa > section { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:10px; min-width:0; padding-top:8px; }
+.secao-narrativa > section > .etapa-historia { grid-column:1/-1; }

@@ -19,9 +19,10 @@ export const CAMPOS: Record<CodexCategoria, Campo[]> = {
     { id: 'occupation', label: 'Ocupação' }, { id: 'birthplace', label: 'Naturalidade' }, { id: 'residence', label: 'Residência' }, historia,
     { id: 'personality', label: 'Personalidade', long: true }, { id: 'relationships', label: 'Observações sobre relações', long: true },
   ],
+  // `map` (referência em texto) saiu da interface; valores antigos continuam guardados no registro.
   location: [
-    { id: 'nickname', label: 'Alcunha' }, { id: 'type', label: 'Tipo' }, { id: 'region', label: 'Região' },
-    { id: 'map', label: 'Mapa (referência em texto)' }, { id: 'inhabitants', label: 'Sobre os habitantes', long: true }, historia,
+    { id: 'nickname', label: 'Nome alternativo' }, { id: 'type', label: 'Tipo' }, { id: 'region', label: 'Região' },
+    { id: 'inhabitants', label: 'Sobre os habitantes', long: true }, historia,
   ],
   organization: [
     { id: 'nickname', label: 'Sigla ou alcunha' }, { id: 'type', label: 'Tipo' }, { id: 'leadership', label: 'Liderança' },

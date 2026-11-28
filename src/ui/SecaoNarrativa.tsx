@@ -1,6 +1,6 @@
 import {useId,type ReactNode} from 'react';
-/** Seções recolhíveis comuns à identidade narrativa de aventureiros e NPCs. */
-export function SecaoNarrativa({titulo,children,aberta=true}:{titulo:string;children:ReactNode;aberta?:boolean}){
+/** Grupo de campos com título, comum à identidade narrativa de aventureiros e NPCs (nada é recolhido). */
+export function SecaoNarrativa({titulo,children}:{titulo:string;children:ReactNode}){
  const id=useId();
- return <details className="secao-narrativa" open={aberta}><summary id={id}>{titulo}</summary><section aria-labelledby={id}>{children}</section></details>;
+ return <div className="secao-narrativa"><h3 id={id}>{titulo}</h3><section aria-labelledby={id}>{children}</section></div>;
 }

@@ -20,7 +20,7 @@ export type CharacterDraft = {
   /** Nomes em português de raça e classe no momento da gravação: o servidor os usa na apresentação pública. */
   publicLabels?: { race: string; characterClass: string };
   /** História e personalidade, escritas pelo jogador (ficha privada). */
-  story?: { idade?:string; ocupacao?:string; naturalidade?:string; residencia?:string; observacoes?:string; personalidade?: string; ideais?: string; vinculos?: string; defeitos?: string; historia?: string };
+  story?: { /** Local do Compêndio escolhido; o texto ao lado é a reserva se ele deixar de ser visível. */ naturalidadeLocal?:string; residenciaLocal?:string; idade?:string; ocupacao?:string; naturalidade?:string; residencia?:string; observacoes?:string; personalidade?: string; ideais?: string; vinculos?: string; defeitos?: string; historia?: string };
   /** Estado de jogo (condições, inspiração, morte, modificadores temporários...), lido por `ficha/estadoJogo.ts`. */
   play?: unknown;
   abilityMethod?: 'point-buy' | 'standard-array' | 'manual';

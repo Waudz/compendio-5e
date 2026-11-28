@@ -472,6 +472,34 @@ describe("Compêndio unificado", () => {
     expect(screen.queryByText(/A ficha é opcional/)).toBeNull();
   });
 
+  it('vínculo escolhido na criação, sem a 0023: cancelar não cria nada; salvar grava o registro e o vínculo', async () => {
+    const codex: CodexApi = { ...codexDemo(true, 'ca'), edicaoAtomica: async () => false };
+    await codex.save('ca', null, 0, { category: 'location', systemId: 'dnd5e-2014', title: 'Vila do Vau', description: [], fields: {} });
+    await renderApp({ codex, registros: registrosEmMemoria('mestre'), api: { list: async () => ({ ok: true, data: [{ role: 'mestre', campaign }] }) } as unknown as CampaignApi });
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Menu principal' })).getByRole('button', { name: 'Personagens' }));
+    const abrir = async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Criar' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Criar NPC' }));
+      const editor = within(await screen.findByRole('dialog'));
+      fireEvent.change(editor.getByRole('textbox', { name: 'Nome' }), { target: { value: 'Taberneira' } });
+      fireEvent.click(editor.getByRole('button', { name: 'Vincular registro' }));
+      const painel = within(editor.getByRole('group', { name: 'Vincular registro' }));
+      expect(screen.getAllByRole('dialog')).toHaveLength(1);   // nada de janela sobre janela
+      fireEvent.click(await painel.findByRole('button', { name: /Vila do Vau/ }));
+      fireEvent.change(painel.getByRole('combobox', { name: 'Tipo de relação' }), { target: { value: 'resident:a' } });
+      expect(painel.queryByRole('option', { name: 'Membro de' })).toBeNull();
+      fireEvent.click(painel.getByRole('button', { name: 'Vincular' }));
+      return editor;
+    };
+    fireEvent.click((await abrir()).getByRole('button', { name: 'Cancelar' }));
+    if (screen.queryByRole('alertdialog')) fireEvent.click(screen.getByRole('button', { name: /Descartar/ }));
+    expect(await codex.list('ca')).toHaveLength(1);
+    fireEvent.click((await abrir()).getByRole('button', { name: 'Salvar' }));
+    await waitFor(async () => expect(await codex.list('ca')).toHaveLength(2));
+    const npc = (await codex.list('ca')).find(e => e.title === 'Taberneira')!;
+    await waitFor(async () => expect((await codex.links('ca', npc.id)).map(l => [l.title, l.relation])).toEqual([['Vila do Vau', 'Reside em']]));
+  });
+
   it('morte exige confirmação e cancelar o editor preserva o estado vital',async()=>{
     const codex=codexDemo(true,'ca');await npc(codex);await mount('mestre',codex);await abrirRegistro('Personagens','Edric Voss');
     fireEvent.click(acaoCarta('Editar registro'));
