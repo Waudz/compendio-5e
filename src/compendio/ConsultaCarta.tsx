@@ -12,9 +12,9 @@ export const AbrirCartaContext = createContext<((s: TabSpec) => void) | null>(nu
 export const useNaCarta = () => useContext(NaCartaContext);
 
 /** Ficha de criatura (do Bestiário ou de um NPC): ocupa a janela de consulta com barra própria. */
-export const ehFichaDeCriatura = (s: TabSpec) => s.kind === 'npc' || s.kind === 'monstro' || (s.kind === 'item' && s.ref.startsWith('monstro:'));
-/** Destinos de consulta: abrem no pop-up. A própria ficha de personagem, categorias e editores continuam sendo navegação. */
-export const ehConsulta = (s: TabSpec) => ['registro', 'identidade', 'magia', 'regra', 'npc', 'monstro', 'item'].includes(s.kind);
+export const ehFichaDeCriatura = (s: TabSpec) => s.kind === 'ficha' || s.kind === 'npc' || s.kind === 'monstro' || (s.kind === 'item' && s.ref.startsWith('monstro:'));
+/** Destinos de consulta: abrem no pop-up. A navegação direta da própria ficha não passa por este helper; categorias e editores continuam sendo navegação. */
+export const ehConsulta = (s: TabSpec) => ['registro', 'identidade', 'magia', 'regra', 'npc', 'monstro', 'item', 'ficha'].includes(s.kind);
 
 /** Clique normal em um registro: abre a carta quando há hospedeiro; senão navega na própria aba. */
 export function useAbrirConsulta(onOpenContent: (s: TabSpec) => void) {
