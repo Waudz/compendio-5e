@@ -21,7 +21,7 @@ async function inicio(page: Page) {
   // no celular a página aberta ocupa a tela; no computador a carta fecha sobre a lista
   if (celular(page)) await page.getByRole("button", { name: "Voltar", exact: true }).click();
   else await page.getByRole("button", { name: "Fechar consulta", exact: true }).click();
-  await page.locator(".compendio.cat .cd-back").filter({ visible: true }).click();
+  await page.getByRole("button",{name:celular(page)?"Voltar":"Voltar na aba",exact:true}).click();
 }
 
 test("Compêndio: cartões panorâmicos, regras compartilhadas, filtros persistentes e imagens quadradas", async ({
@@ -52,18 +52,18 @@ test("Compêndio: cartões panorâmicos, regras compartilhadas, filtros persiste
     exact: true,
   });
   await search.fill("adaga");
-  await page.getByRole("button", { name: "Grade", exact: true }).click();
+  await page.getByRole("button", { name: "Visualizar em grade", exact: true }).click();
   const portrait = page.locator(".cd-cards.grade .retrato-q").first();
   const box = await portrait.boundingBox();
   expect(box).not.toBeNull();
   expect(Math.abs(box!.width - box!.height)).toBeLessThan(2);
-  await page.locator(".compendio.cat .cd-back").click();
+  await page.getByRole("button",{name:celular(page)?"Voltar":"Voltar na aba",exact:true}).click();
   await area(page, "Regras");
   await page.getByRole("button", { name: /^Itens / }).click();
   await expect(search).toHaveValue("adaga");
   await expect(
-    page.getByRole("button", { name: "Grade", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+    page.getByRole("button", { name: "Visualizar em lista", exact: true }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   const axe = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
@@ -103,18 +103,22 @@ test("Compêndio: mestre cria local e revela somente a descrição autorizada ao
   await expect(page.getByRole("heading", { name: "Porto E2E", exact: true })).toBeVisible();
   // consulta limpa; o registro nasce secreto; "Revelar tudo" + salvar publica sem as notas privadas
   await expect(page.locator(".cd-record-page .cd-eye")).toHaveCount(0);
-  await page.getByRole("button", { name: "Gerenciar conhecimento", exact: true }).click();
+  await page.getByRole("button", { name: "Mais ações do registro", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Gerenciar conhecimento", exact: true }).click();
   await expect(page.getByRole("switch", { name: "Registro conhecido" })).not.toBeChecked();
   await page.getByRole("button", { name: "Revelar tudo", exact: true }).click();
   await expectNoHorizontalOverflow(page);
   const manageAxe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(manageAxe.violations).toEqual([]);
   await page.getByRole("button", { name: "Salvar conhecimento", exact: true }).click();
-  await page.getByRole("button", { name: "Ver como jogador", exact: true }).click();
-  const preview = page.getByRole("region", { name: "Prévia do jogador" });
-  await expect(preview).toContainText("Um porto autorizado.");
-  await expect(preview).not.toContainText("SEGREDO NÃO PUBLICÁVEL");
-  await preview.getByRole("button", { name: "Mestre", exact: true }).click();
+  await page.getByRole('button',{name:celular(page)?'Menu':'Abrir menu global',exact:true}).click();
+  await page.getByRole('button',{name:'Ver como jogador',exact:true}).click();
+  await navigate(page,'Compêndio');await area(page,'Campanha');await page.getByRole('button',{name:/^Locais /}).click();
+  await page.locator('.cd-card-main').filter({hasText:'Porto E2E',visible:true}).click();
+  const preview=page.getByRole('article',{name:'Detalhes de Porto E2E'});
+  await expect(preview).toContainText('Um porto autorizado.');await expect(preview).not.toContainText('SEGREDO NÃO PUBLICÁVEL');
+  await page.getByRole('button',{name:celular(page)?'Menu':'Abrir menu global',exact:true}).click();
+  await page.getByRole('button',{name:'Voltar à visão de mestre'}).click();
   await expectNoHorizontalOverflow(page);
   const masterAxe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(masterAxe.violations).toEqual([]);
@@ -123,7 +127,7 @@ test("Compêndio: mestre cria local e revela somente a descrição autorizada ao
   await navigate(page, "Compêndio");
   await area(page, "Campanha");
   await page.getByRole("button", { name: /^Locais / }).click();
-  await page.getByRole("button", { name: /^Porto E2E / }).click();
+  await page.getByRole("button", { name: /^Porto E2E(?: |$)/ }).click();
   await expect(
     page.getByText("Um porto autorizado.", { exact: true }),
   ).toBeVisible();

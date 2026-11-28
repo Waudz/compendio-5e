@@ -500,7 +500,7 @@ describe("página Personagens", () => {
     expect(resultados("Aventureiros").getByRole("button", { name: /^Thorin / })).toBeTruthy();
     buscar("lyr"); expect(resultados("Aventureiros").getByRole("button", { name: /^Lyra / })).toBeTruthy();
     buscar("ninguém"); expect(screen.getByText("Nenhum personagem encontrado nesta pesquisa.")).toBeTruthy();
-    buscar(""); fireEvent.click(screen.getByRole("button", { name: "Grade" }));
+    buscar(""); fireEvent.click(screen.getByRole("button", { name: "Visualizar em grade" }));
     cleanup(); await montar(mestreUser); await abrirPersonagens();
     expect((await screen.findByRole("list", { name: "Aventureiros" })).getAttribute("data-view")).toBe("grade");
   });
@@ -522,7 +522,7 @@ describe("página Personagens", () => {
     expect(screen.getByText("NPC · ficha de criatura")).toBeTruthy();
     expect(screen.queryByText(/Nenhum NPC com ficha/)).toBeNull();
     // ficha de criatura não entra na seleção coletiva de personagens
-    fireEvent.click(screen.getByRole("button", { name: "Selecionar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações da lista" })); fireEvent.click(screen.getByRole("menuitem", { name: "Selecionar" }));
     expect(screen.queryByRole("checkbox", { name: "Selecionar Edric Voss" })).toBeNull();
     expect(screen.getByRole("checkbox", { name: "Selecionar Thorin" })).toBeTruthy();
   });
@@ -544,7 +544,7 @@ describe("página Personagens", () => {
     await waitFor(() => expect(cartao.textContent).toMatch(/Guerreiro · nível 1/));
     expect(screen.getByText("NPC · ficha de personagem")).toBeTruthy();
     expect(resultados("Aventureiros").queryByRole("button", { name: /^Edric Voss / })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Selecionar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mais ações da lista" })); fireEvent.click(screen.getByRole("menuitem", { name: "Selecionar" }));
     expect(screen.queryByRole("checkbox", { name: "Selecionar Edric Voss" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     fireEvent.click(cartao);
@@ -611,7 +611,7 @@ describe("página Personagens", () => {
     await codex.setCombatSheet!("ca", await codex.save("ca", null, 0, { category: "npc", systemId: "dnd5e-2014", title: "Edric Voss", secret: "", fields: { nickname: "A Sombra", occupation: "Contrabandista" } }), 1, "goblin");
     await montar(mestreUser, true, codex); await abrirPersonagens(); await screen.findByRole("list", { name: "NPCs" });
     for (const visao of ["Lista", "Grade"]) {
-      fireEvent.click(screen.getByRole("button", { name: visao }));
+      const mudar=screen.queryByRole("button",{name:visao==="Lista"?"Visualizar em lista":"Visualizar em grade"}); if(mudar)fireEvent.click(mudar);
       for (const [nome, alcunha] of [["Thorin", "O Corvo"], ["Edric Voss", "A Sombra"]]) {
         const cartao = screen.getByRole("button", { name: new RegExp("^" + nome + " ") });
         expect(cartao.querySelector(".nome-alcunha > strong + em.nome-alcunha-apelido")?.textContent).toBe(alcunha);
@@ -627,7 +627,7 @@ describe("página Personagens", () => {
     const clicar = (nome: string) => fireEvent.click(screen.getByRole("button", { name: nome }));
     const barra = () => within(screen.getByRole("group", { name: "Seleção de personagens" }));
     expect(screen.queryByRole("checkbox", { name: /^Selecionar / })).toBeNull();
-    clicar("Selecionar");
+    clicar("Mais ações da lista"); fireEvent.click(screen.getByRole("menuitem",{name:"Selecionar"}));
     expect(screen.getAllByRole("checkbox", { name: /^Selecionar / })).toHaveLength(2);
     expect(barra().getByRole("status").textContent).toBe("0 selecionados");
     expect(screen.queryByRole("button", { name: /^Excluir selecionados/ })).toBeNull();
@@ -640,12 +640,12 @@ describe("página Personagens", () => {
     buscar("thor");   // o que saiu do filtro não conta
     expect(barra().getByRole("status").textContent).toBe("1 selecionado");
     expect(screen.getByRole("button", { name: "Excluir selecionados (1)" })).toBeTruthy();
-    buscar(""); clicar("Grade");
+    buscar(""); clicar("Visualizar em grade");
     expect(screen.getByRole("list", { name: "Aventureiros" }).getAttribute("data-view")).toBe("grade");
     expect(screen.getAllByRole("checkbox", { name: /^Selecionar / })).toHaveLength(2);
     clicar("Cancelar");
     expect(screen.queryByRole("checkbox", { name: /^Selecionar / })).toBeNull();
-    expect(screen.getByRole("button", { name: "Selecionar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mais ações da lista" })).toBeTruthy();
   });
 
   it("controles compactos: o seletor de situação e o menu de ordenação fazem o mesmo que os do desktop", async () => {
@@ -790,7 +790,7 @@ describe("ciclo de vida do personagem", () => {
   it("mestre seleciona todos e exclui de uma vez, digitando a confirmação", async () => {
     await criarPersonagem("Thorin"); cleanup(); await criarPersonagem("Lyra", other); cleanup();
     await montar(mestreUser); await abrirPersonagens();
-    fireEvent.click(await screen.findByRole("button", { name: "Selecionar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Mais ações da lista" })); fireEvent.click(screen.getByRole("menuitem",{name:"Selecionar"}));
     fireEvent.click(screen.getByRole("button", { name: "Selecionar todos" }));
     fireEvent.click(screen.getByRole("button", { name: "Excluir selecionados (2)" }));
     const d = await janela("Excluir personagens");

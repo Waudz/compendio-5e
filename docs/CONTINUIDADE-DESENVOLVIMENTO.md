@@ -1,3 +1,7 @@
+> Prioridade posterior do responsável (27/11/2026): concluir exclusivamente #171 nesta rodada. **Não iniciar Anotações.** Requisitos completos e contexto para outra IA em [ANOTACOES-BETA-HANDOFF](ANOTACOES-BETA-HANDOFF.md); documentação não significa implementação.
+
+> Atualização de 27/11/2026: PR #170 publicado e 0022 aplicada. Padronização global em desenvolvimento na branch `feat/interface-global-consistente`; [entrega, testes e pendências](INTERFACE-GLOBAL.md). A proposta 0023 **não foi aplicada**. Não tratar a solicitação inteira como concluída nem reaplicar 0022.
+
 # Continuidade do desenvolvimento — Compêndio 5e 2.0
 
 ## Atualização normativa — 22/11/2026
@@ -1048,3 +1052,7 @@ Cobertura nova: `supabase/npc-ficha.test.ts` (0022: permissões, mestre rebaixad
 Em 27/11/2026, a 0022 foi aplicada em produção pelo ChatGPT com autorização expressa. Capacidade 21 → 22; contagens antes/depois iguais: 115 notas, 0 fichas, 6 páginas, 1 NPC com ficha de criatura. RLS de character_life ativa; codex_npc_sheet_set disponível a authenticated e não a anon. Não reaplicar. O diagnóstico completo das 12 funções e o agendamento não foram conferidos nesta aplicação; não há confirmação de backup novo. PR #170 mesclado em 5c75a51; publicação e E2E pós-merge aprovados. Teste manual com contas reais pendente.
 
 Próximo módulo: `docs/ANOTACOES-JOGADOR.md`, preservando quadros e cartões existentes. Não reabrir o módulo anterior sem necessidade.
+
+## PR #171 — interface global (27/11/2026)
+
+Branch `feat/interface-global-consistente`. Trabalho interrompido pelo limite de uso foi recuperado e concluído; entrega, testes e pendências em [INTERFACE-GLOBAL](INTERFACE-GLOBAL.md). **0023 proposta, não aplicada** (só adiciona duas funções; reservas seguintes renumeradas para 0024+). Não reaplicar a 0022. Antes de integrar: CI do PR, revisão e decisão sobre a 0023. Próximo módulo depois da integração: Anotações.

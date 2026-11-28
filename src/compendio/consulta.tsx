@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
 import {useCampaigns} from '../CampaignsContext';
+import {useModoJogador} from '../modoJogador';
 import {useAuth} from '../AuthContext';
 import {useAventureiros} from '../AventureirosContext';
 import type {Aventureiro} from '../inicio';
@@ -16,10 +17,10 @@ import {semReferencias} from './referencias';
 export const nomesCategoria:Record<string,string>={npc:'Personagens',character:'Personagens',monster:'Bestiário',location:'Locais',organization:'Organizações',discovery:'Descobertas',item:'Descobertas','catalog-item':'Itens'};
 export const nomesRegistro:Record<string,string>={npc:'NPC',character:'Aventureiro',monster:'Criatura',location:'Local',organization:'Organização',discovery:'Descoberta',item:'Item descoberto','catalog-item':'Item do catálogo'};
 export type LinhaCompendio={/** Linha extra mostrada só na grade. */resumo?:string;/** Mostrada em linha própria sob o nome; nunca entra no subtítulo. */alcunha?:string|null;/** Substitui o rótulo do rodapé do cartão. */rodape?:string;/** Estado do personagem (PV, condições): espaço reservado para as próximas etapas. */estado?:import('react').ReactNode;id:string;title:string;subtitle:string;category:string;body:string;image?:string|null;spec:TabSpec;entry?:Conhecimento;pc?:Aventureiro;filter?:string;/** Ficha técnica acessível direto da lista (só o mestre). */ficha?:TabSpec};
-export function useIdentidades(){const source=useAventureiros(),{active}=useCampaigns(),{user}=useAuth(),version=useVersaoRegistros();
- const scope=`${user?.id}:${active?.campaign.id}`;
+export function useIdentidades(){const source=useAventureiros(),{active}=useCampaigns(),{user}=useAuth(),version=useVersaoRegistros(),previa=useModoJogador().ativa;
+ const scope=`${user?.id}:${active?.campaign.id}:${previa}`;
  const [state,setState]=useState<{scope:string;items:Aventureiro[];error?:string}>();
- useEffect(()=>{let alive=true;if(source&&active)void (source.listarTodos??source.listar)(active.campaign.id).then(r=>{if(alive)setState({scope,items:r.ok?r.data:[],error:r.ok?undefined:r.error});},()=>{if(alive)setState({scope,items:[],error:'Não foi possível carregar os personagens.'});});return()=>{alive=false;};},[source,scope,version]);
+ useEffect(()=>{let alive=true;if(source&&active)void (previa?source.listar:(source.listarTodos??source.listar))(active.campaign.id).then(r=>{if(alive)setState({scope,items:r.ok?r.data:[],error:r.ok?undefined:r.error});},()=>{if(alive)setState({scope,items:[],error:'Não foi possível carregar os personagens.'});});return()=>{alive=false;};},[source,scope,version]);
  return {items:state?.scope===scope?state.items:[],loading:!!source&&state?.scope!==scope,error:state?.scope===scope?state.error:undefined};
 }
 export function useLinhasCampanha(includeMonsters=false){

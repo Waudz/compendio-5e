@@ -3,9 +3,10 @@
 ## Estado atual — 27/11/2026 (prevalece sobre os registros datados abaixo)
 
 - **Publicado:** ciclo de vida dos personagens (migração 0021 aplicada) e a nova página Personagens (#168 e #169).
-- **Pronto, ainda não publicado:** personagens e NPCs integrados ([PR #170](https://github.com/Waudz/compendio-5e/pull/170)): fichas de NPC, PV e condições em Personagens, Iniciativa, Encontros e estado vital. Depende da **migração 0022, não aplicada**: [roteiro de aplicação](docs/APLICAR-0022.md).
+- **Publicado:** personagens e NPCs integrados ([PR #170](https://github.com/Waudz/compendio-5e/pull/170)); **0022 já aplicada**. Não reaplicar.
+- **Em desenvolvimento:** [padronização global de interface](docs/INTERFACE-GLOBAL.md), com escopo entregue, validação e pendências explícitas. A proposta 0023 não foi aplicada.
 - **Módulo encerrado:** o que faz, permissões e limitações em [Personagens e NPCs](docs/MODULO-PERSONAGENS-NPCS.md).
-- **Próxima tarefa:** [anotações dos jogadores](docs/ANOTACOES-JOGADOR.md).
+- **Após concluir a padronização global:** [anotações dos jogadores](docs/ANOTACOES-JOGADOR.md).
 - Prazos: funcionalidades até 05/12/2026; lançamento em 12/12/2026.
 
 ## Atualização normativa — 22/11/2026

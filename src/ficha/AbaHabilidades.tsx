@@ -82,7 +82,7 @@ export function AbaHabilidades({ draft, sheet, stats, estado, onChange, onOpenCo
   return <div className="ficha-pilha">
     <div className="hab-topo-aba"><h2>Habilidades</h2>
       <button type="button" className="ficha-acao-discreta" aria-label="Pesquisar habilidades" aria-expanded={buscando} onClick={() => { setBuscando(b => !b); setBusca(""); }}><Search size={15} aria-hidden="true"/></button></div>
-    {buscando && <input type="search" className="ficha-busca" autoFocus aria-label="Pesquisar nas habilidades" placeholder="Nome da habilidade ou magia" value={busca} onChange={e => setBusca(e.target.value)}/>}
+    {buscando && <input type="search" className="ficha-busca" autoFocus={!window.matchMedia("(max-width:700px)").matches} aria-label="Pesquisar nas habilidades" placeholder="Nome da habilidade ou magia" value={busca} onChange={e => setBusca(e.target.value)}/>}
     <div className="ficha-filtro-acao" role="group" aria-label="Filtrar por tipo de ação">{FILTROS_HAB.map(([v, r]) => <button key={v} type="button" className={filtro === v ? "ativo" : ""} aria-pressed={filtro === v} onClick={() => escolherFiltro(v)}>{r}</button>)}</div>
     {nada && <p className="muted" role="status">Nada deste tipo nas regras cadastradas para este personagem.</p>}
 

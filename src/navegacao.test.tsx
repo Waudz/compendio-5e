@@ -252,7 +252,7 @@ describe("celular (375 px): navegação independente", () => {
 
   it("os controles de navegação possuem nomes acessíveis", async () => {
     await renderApp();
-    expect(screen.getByRole("button", { name: "Voltar" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Voltar" })).toBeNull();
     expect(document.querySelector(".mobile-topbar")?.querySelector('[aria-label="Abrir menu"]')).toBeNull();
     for (const name of ["Início", "Anotações", "Ficha", "Compêndio", "Menu"]) {
       expect(bottom().getByRole("button", { name })).toBeTruthy();

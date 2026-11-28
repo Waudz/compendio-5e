@@ -304,8 +304,8 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
     if (a.startsWith("secao:")) gravar(q => soltarSecao(q, a.slice(6), o)); else gravar(q => soltarCartao(q, a, o));
   };
 
-  return <div className="content planejamento" data-testid="planejamento">
-    <style>{`@media(max-width:700px){.planejamento .quadro-mobile{display:flex;flex-direction:column;overflow:visible;gap:12px}.planejamento .quadro-mobile .coluna{min-width:0!important;width:100%!important;flex-basis:100%!important;max-width:100%!important}.planejamento .quadro-mobile .coluna-redim{display:none}.planejamento .quadro-mobile .secao{width:100%;max-width:100%}}`}</style>
+  return <div className={"content planejamento" + (active?.role === "mestre" ? " planejamento-mestre" : "")} data-testid="planejamento">
+    <style>{`@media(max-width:700px){.planejamento .quadro-mobile{display:flex;flex-direction:column;overflow:visible;gap:12px}.planejamento .quadro-mobile .coluna{min-width:0!important;width:100%!important;flex-basis:100%!important;max-width:100%!important}.planejamento .quadro-mobile .coluna-redim{display:none}.planejamento .quadro-mobile .secao{width:100%;max-width:100%}.planejamento-mestre .quadro-mobile{display:flex;flex-direction:row;overflow-x:auto;gap:12px;max-width:100%;scroll-snap-type:x proximity;align-items:stretch}.planejamento-mestre .quadro-mobile .coluna{min-width:0!important;width:85%!important;flex:0 0 85%!important;max-width:360px!important;scroll-snap-align:start;max-height:70dvh;overflow-y:auto}.planejamento-mestre .quadro-mobile .coluna-redim{display:none}.planejamento-mestre .quadro-mobile .secao{width:100%;max-width:100%}}`}</style>
     {confirmarSecoes && <div className="confirmacao-fundo" onMouseDown={e => { if (e.target === e.currentTarget) setConfirmarSecoes(null); }}>
       <div className="confirmacao-dialogo" role="alertdialog" aria-modal="true" aria-labelledby="confirmacao-titulo" aria-describedby="confirmacao-mensagem">
         <h2 id="confirmacao-titulo">Excluir seção?</h2>
@@ -326,7 +326,6 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
         </div>
       </div>
     </div>}
-    <div className="eyebrow">{active.campaign.name.toLocaleUpperCase("pt-BR")}</div>
     <h1>Anotações</h1>
     {carregado && boards.length > 0 && <Planos boards={boards} ativo={boardId} onTrocar={id => void trocarPlano(id)} onNovo={() => void novoPlano()} onFixar={b => void alternarFixacao(b)} onMover={(id, d, alvo) => void moverPlano(id, d, alvo)} onRenomear={(b, t) => void renomearPlano(b, t)} onExcluir={solicitarExclusaoPlano} onAbrirEmAba={onOpenContent ? b => onOpenContent({ kind: "secao", ref: `planejamento:${b.id}`, title: `Anotações · ${b.title}` }) : undefined}/>}
     {erro && <div className="notice err" role="alert">{erro} <button className="btn-link" onClick={() => { setErro(null); setCarregado(false); void carregar(); }}>Tentar de novo</button></div>}
@@ -335,12 +334,12 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
     {sel.length > 0 && <div className="selecao-barra" role="toolbar" aria-label="Seções selecionadas"><strong>{sel.length} {sel.length === 1 ? "seção selecionada" : "seções selecionadas"}</strong>
       <button className="btn-secondary danger" onClick={() => void excluirSecoesUI(sel)}><Trash2 size={14} aria-hidden="true"/> Excluir {sel.length === 1 ? "seção" : "seções"}</button>
       <button className="btn-secondary" onClick={() => setSel([])}>Limpar seleção</button></div>}
-    {carregado && board && <DndContext sensors={mobile ? [] : sensores} collisionDetection={args => { const hits = pointerWithin(args); return hits.length ? hits : rectIntersection(args).length ? rectIntersection(args) : closestCorners(args); }} onDragStart={e => setArrastando(String(e.active.id))} onDragCancel={() => setArrastando(null)} onDragEnd={soltar}><div className={mobile ? "quadro quadro-mobile" : "quadro"} role="list" aria-label="Colunas do planejamento" onClick={e => { if (e.target === e.currentTarget) setSel([]); }}>
+    {carregado && board && <DndContext sensors={mobile && active?.role!=="mestre" ? [] : sensores} collisionDetection={args => { const hits = pointerWithin(args); return hits.length ? hits : rectIntersection(args).length ? rectIntersection(args) : closestCorners(args); }} onDragStart={e => setArrastando(String(e.active.id))} onDragCancel={() => setArrastando(null)} onDragEnd={soltar}><div className={mobile ? "quadro quadro-mobile" : "quadro"} role="list" aria-label="Colunas do planejamento" onClick={e => { if (e.target === e.currentTarget) setSel([]); }}>
       {quadro.colunas.map(col => <Coluna key={col.id} id={col.id} largura={col.largura ?? LARGURA_PADRAO} mobile={mobile} onLargura={w => gravar(q => redimensionarColuna(q, col.id, w))}>
         <SortableContext items={col.secoes.map(s => `secao:${s.id}`)} strategy={verticalListSortingStrategy}>
           {col.secoes.map(s => <Fragment key={s.id}><SecaoOrdenavel secao={s} selecionada={sel.includes(s.id)} aoClicar={e => clicarSecao(s.id, e)}
             cabecalho={<header className={s.grande ? "secao-topo grande" : "secao-topo"} onClick={e => { if ((e.target as HTMLElement).closest("input, button")) return; clicarSecao(s.id, e); }}>
-              {!mobile && <SecaoAlca titulo={s.titulo}/>}
+              {(!mobile || active?.role==="mestre") && <SecaoAlca titulo={s.titulo}/>}
               <input className="secao-titulo" aria-label={`Nome da seção ${s.titulo}`} defaultValue={s.titulo} maxLength={80} onPointerDown={e => e.stopPropagation()}
                 onFocus={() => setSel([])} onBlur={e => { if (e.target.value.trim() && e.target.value !== s.titulo) gravar(q => renomearSecao(q, s.id, e.target.value)); else e.target.value = s.titulo; }}
                 onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}/>
@@ -351,13 +350,13 @@ export function PlanningPanel({ initialBoardId, onOpenContent }: { initialBoardI
               const c = cenas[id]; if (!c) return null;
               const x = ed[id], sujo = !!x && edSujo(x), blocos = x?.blocos ?? c.content, spec: TabSpec = { kind: "documento", ref: id, title: c.title };
               const editar = () => mexer(id, y => ({ ...y, editando: true }));
-              return <Ordenavel key={id} id={id} mobile={mobile} alca={`Arrastar o cartão ${c.title}`} onContextMenu={e => aoClicarDireito(e, spec)}>
+              return <Ordenavel key={id} id={id} mobile={mobile && active?.role!=="mestre"} alca={`Arrastar o cartão ${c.title}`} onContextMenu={e => aoClicarDireito(e, spec)}>
                 <CartaoTopo>
                   <div className="cartao-linha">
                     {(x?.titulo ?? c.title) === "Novo cartão"
                       ? <button type="button" className="cartao-adicionar-titulo" aria-label="Adicionar título ao cartão" onClick={() => mexer(id, y => ({ ...y, titulo: "" }))}>+ Título</button>
                       : <input className="cartao-titulo" aria-label={(x?.titulo ?? c.title) === "" ? "Novo título do cartão" : `Título do cartão ${c.title}`}
-                          autoFocus={(x?.titulo ?? c.title) === ""} placeholder="Título (opcional)" value={x?.titulo ?? c.title} maxLength={120}
+                          autoFocus={!mobile && (x?.titulo ?? c.title) === ""} placeholder="Título (opcional)" value={x?.titulo ?? c.title} maxLength={120}
                           onChange={e => { mexer(id, y => ({ ...y, titulo: e.target.value })); agendar(id); }}
                           onBlur={() => { const v = edRef.current[id]; if (v && !v.titulo.trim()) mexer(id, y => ({ ...y, titulo: "Novo cartão" })); void salvar(id); }}
                           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}/>}
@@ -426,7 +425,7 @@ function Planos({ boards, ativo, onTrocar, onNovo, onFixar, onMover, onRenomear,
       onDragOver={e => { if (arrastada && arrastada !== b.id && grupo.some(x => x.id === arrastada)) e.preventDefault(); }}
       onDrop={e => { e.preventDefault(); const de = grupo.findIndex(x => x.id === arrastada); if (de >= 0 && de !== i) onMover(arrastada!, de < i ? 1 : -1, b.id); setArrastada(null); }}
       onDragEnd={() => setArrastada(null)}>
-      {editar ? <input aria-label="Renomear guia" autoFocus defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); setRenomeando(null); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = b.title; e.currentTarget.blur(); } }}/>
+      {editar ? <input aria-label="Renomear guia" autoFocus={!window.matchMedia("(max-width:700px)").matches} defaultValue={b.title} maxLength={60} onBlur={e => { if (e.target.value.trim() && e.target.value !== b.title) onRenomear(b, e.target.value); setRenomeando(null); }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = b.title; e.currentTarget.blur(); } }}/>
         : <button type="button" className="plano-selecionar" aria-label={b.title} title={b.title} aria-pressed={on} onClick={() => { setMenu(null); onTrocar(b.id); }} onDoubleClick={e => { e.preventDefault(); setMenu(null); setRenomeando(b.id); }}>{perm ? <><Pin size={13} fill="currentColor" aria-hidden="true"/><span className="plano-fixada-titulo">{b.title}</span></> : b.title}</button>}
       {on && boards.length > 1 && <button type="button" className="plano-fechar" aria-label={`Excluir guia ${b.title}`} title="Excluir guia" onClick={() => { setMenu(null); onExcluir(b); }}>×</button>}
     </span>;

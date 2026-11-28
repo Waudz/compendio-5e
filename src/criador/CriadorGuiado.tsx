@@ -99,7 +99,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
   const nameRef = useRef<HTMLInputElement>(null);
   const previousVersion = useRef(draft.catalogueVersion);
   useEffect(() => {
-    if (previousVersion.current !== draft.catalogueVersion && modern2014(draft)) nameRef.current?.focus();
+    if (previousVersion.current !== draft.catalogueVersion && modern2014(draft) && !window.matchMedia("(max-width:700px)").matches) nameRef.current?.focus();
     previousVersion.current = draft.catalogueVersion;
   }, [draft.catalogueVersion]);
   // A apresentação pública é automática: segue a ficha, salvo o que o dono personalizar ou ocultar.
@@ -406,7 +406,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
       <button type="button" className="btn-primary" onClick={editar}>Editar personagem</button></div>;
     const naoSalvo = sujo && !salvando && falhou.current === retrato;
     return <Suspense fallback={<div className="content"><p className="muted" role="status">Carregando ficha…</p></div>}>
-      <FichaJogo semCiclo={deNpc} identidade={deNpc ? <div className="ficha-identidade-npc"><p className="muted">A história deste NPC e o que os jogadores veem ficam na página dele no Compêndio.</p><button type="button" className="btn-secondary" onClick={() => onOpenContent(registroSpec(idReal, draft.name))}>Abrir no Compêndio</button></div> : <AbaIdentidade identity={identity} source={origem} retrato={draft.portrait} editavel={!somenteFicha} onChange={proxima => { setIdentity(proxima); setMsg(null); }}/>} draft={draftTela} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudarNaFicha} vital={vital} usarItem={usarItem} transferir={transferir} personagemId={idReal} campaignId={campaignId} onOpenContent={onOpenContent}
+      <FichaJogo semCiclo={deNpc} identidade={deNpc ? <div className="ficha-identidade-npc"><p className="muted">A história deste NPC e o que os jogadores veem ficam na página dele no Compêndio.</p><button type="button" className="btn-secondary" onClick={() => onOpenContent(registroSpec(idReal, draft.name))}>Abrir no Compêndio</button></div> : <AbaIdentidade story={draft.story} onStory={story=>mudarNaFicha({...draft,story})} identity={identity} source={origem} retrato={draft.portrait} editavel={!somenteFicha} onChange={proxima => { setIdentity(proxima); setMsg(null); }}/>} draft={draftTela} campanha={campanha} memoria={`${userId}:${campaignId}:${idReal}`} onChange={mudarNaFicha} vital={vital} usarItem={usarItem} transferir={transferir} personagemId={idReal} campaignId={campaignId} onOpenContent={onOpenContent}
         onEditar={editar} onProgredir={() => { setMsg(null); setSubindo(true); }} podeConceder={mestre} moedas={configMoedas.pronto ? moedas : null}
         salvamento={<p className="muted ficha-salvamento" role="status" data-testid="estado-salvamento">{salvando ? "Salvando…" : conflito ? "Alterações não salvas: há um conflito." : naoSalvo ? "Não foi possível salvar." : sujo ? "Alterações pendentes…" : "Tudo salvo."}
           {naoSalvo && <>{" "}<button type="button" className="btn-secondary" onClick={() => void salvar(true)}>Tentar salvar de novo</button></>}</p>}
@@ -422,7 +422,7 @@ function Editor({ id, repo, store, userId, campaignId, campanha, onOpenContent, 
     <button type="button" className="btn-primary" onClick={() => void salvarEdicao()} disabled={salvando || (!base && !sujo && salvo !== null)}>{salvando ? "Salvando…" : "Salvar"}</button>
   </div>;
   return <div ref={raizEditor} className="content ficha auth wide criador sistema-dnd">
-    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · {base ? "EDITAR PERSONAGEM" : "CRIAR PERSONAGEM"} · D&amp;D 5e (2014)</div>
+    <div className="eyebrow">{base ? "EDITAR PERSONAGEM" : "CRIAR PERSONAGEM"} · D&amp;D 5e (2014)</div>
     <div className="criador-topo"><h1>{draft.name.trim() || "Novo personagem"}</h1>{botoes}</div>
     {saida && <div className="notice err criador-saida" role="alertdialog" aria-label="Alterações não salvas">
       <p>Há alterações nesta edição que ainda não foram salvas.</p>

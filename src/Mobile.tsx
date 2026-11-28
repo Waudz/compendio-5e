@@ -1,3 +1,5 @@
+import {retornoLocal,useVersaoRetornoLocal} from "./retornoLocal";
+import {useIdentidades} from "./compendio/consulta";
 import { CICLO_ACESSO, type DetalheAcesso } from "./CicloPersonagens";
 import { lerMapaAba } from "./criador/recuperacao";
 import { GlobalMenu } from "./GlobalMenu";
@@ -17,7 +19,8 @@ import { AbrirEmAbaContext, OrigemAbaContext } from "./abrirEmAba";
 import { ContextMenu, type MenuState } from "./ContextMenu";
 import { tabId, defaultTitle, type TabSpec } from "./workspace";
 import { useAuth } from "./AuthContext";
-import { useCampaigns } from "./CampaignsContext";
+import {  useCampaigns } from "./CampaignsContext";
+import {useModoJogador} from "./modoJogador";
 import { useRegistros } from "./RegistrosContext";
 import { useUnsaved } from "./unsaved";
 
@@ -53,6 +56,9 @@ type Props = {
 
 /** Navegação mobile independente das abas e colunas do FlexLayout do desktop. */
 export function Mobile(_props: Props) {
+  useVersaoRetornoLocal();
+  const previa=useModoJogador().ativa;
+  const {items:identidadesPublicas}=useIdentidades();
   const { active } = useCampaigns(), { user } = useAuth(), registros = useRegistros(), unsaved = useUnsaved();
   const home: TabSpec = active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: "campanhas" };
   const [screen, setScreen] = useState<TabSpec>(home);
@@ -65,7 +71,7 @@ export function Mobile(_props: Props) {
   useVersaoRegistros();
   const conhecidos=useConhecimento().items;
   // Título de registro vem somente da projeção autorizada, nunca de um nome guardado em memória.
-  const pageTitle=screen.kind==="registro"?conhecidos.find(x=>x.id===screen.ref)?.title??"Registro":screen.kind==="npc"?conhecidos.find(x=>x.id===screen.ref)?.title??"NPC":["documento","ficha","criador","monstro"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
+  const pageTitle=previa&&screen.kind==="identidade"?identidadesPublicas.find(p=>p.id===screen.ref)?.nome??"Personagem":previa&&["documento","ficha","criador","npc","monstro","identidade"].includes(screen.kind)?"Visão de jogador":screen.kind==="registro"?conhecidos.find(x=>x.id===screen.ref)?.title??"Registro":screen.kind==="npc"?conhecidos.find(x=>x.id===screen.ref)?.title??"NPC":["documento","ficha","criador","monstro"].includes(screen.kind)?tituloDe(screen.ref)??defaultTitle(screen):defaultTitle(screen);
   const current = tabId(screen);
   const currentRef=useRef(current);currentRef.current=current;
   const menuRef=useRef(menuOpen);menuRef.current=menuOpen;
@@ -106,8 +112,9 @@ export function Mobile(_props: Props) {
   const navigate = irPara;
   const [acoes, setAcoes] = useState<MenuState | null>(null);
   const goBack = () => {
+    const local=retornoLocal(current);if(local){unsaved.guard("all",local);return;}
     if (consumirVoltar()) return;
-    if (!history.length) { irPara(home); return; }
+    if (!history.length) { irPara(fichaPropria?{kind:"secao",ref:"meus-personagens"}:home); return; }
     unsaved.guard("all", () => {
       positions.current.set(current, scroll.current?.scrollTop ?? 0);
       const previous = history[history.length - 1];
@@ -184,14 +191,14 @@ export function Mobile(_props: Props) {
   const fichaPropria = !isMaster && screen.kind === "ficha" && !!user && !!active && propriedade === escopoFicha;
   const meus = !isMaster && isPage("meus-personagens");
   return <AbrirEmAbaContext.Provider value={{navegar:s=>navigate(s),abrir:s=>navigate(s),mostrar:(x,y,s,_origem,extras)=>{if(extras?.length)setAcoes({x,y,items:[{label:"Abrir",onSelect:()=>navigate(s)},...extras]});else navigate(s);}}}><div className="mobile mobile-simple">
-    {!fichaPropria && !meus && <header className="mobile-topbar">
-      <button className="mobile-icon-btn" aria-label="Voltar" onClick={goBack} disabled={!history.length && current === tabId(home)}><ArrowLeft size={20}/></button>
+    {<header className="mobile-topbar">
+      <button hidden={!history.length && current === tabId(home)&&!retornoLocal(current)} className="mobile-icon-btn" aria-label="Voltar" onClick={goBack}><ArrowLeft size={20}/></button>
       <div className="mobile-page-title"><BookOpen size={18} aria-hidden="true"/><span>{pageTitle}</span></div>
       <SinoNotificacoes onOpenContent={navigate}/>
     </header>}
     <div className="mobile-screen" ref={scroll}>
       <VoltarPaginaContext.Provider value={goBack}><OrigemAbaContext.Provider value={current}>
-        {(fichaPropria||meus)&&<div className="cd-own-header">{fichaPropria && <button type="button" className="btn-link mobile-meus-personagens" onClick={() => navigate({ kind: "secao", ref: "meus-personagens" })}><ArrowLeft size={16}/> Meus personagens</button>}<SinoNotificacoes onOpenContent={navigate}/></div>}
+
         {meus ? <PersonagensPanel key={current} somenteMeus onOpenContent={navigate}/> : <Panel key={current} kind={screen.kind} entity={screen.ref} onOpen={navigate} onOpenContent={navigate}/>}
       </OrigemAbaContext.Provider></VoltarPaginaContext.Provider>
     </div>

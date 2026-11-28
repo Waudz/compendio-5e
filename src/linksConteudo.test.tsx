@@ -79,11 +79,11 @@ describe("link de conteúdo (desktop)", () => {
   it("com dois painéis, voltar, avançar e nova aba são de cada um; reabrir e tela cheia aparecem uma vez, no da direita", async () => {
     await renderApp();
     const contar = (nome: string) => screen.queryAllByRole("button", { name: nome }).length;
-    expect([contar("Nova aba"), contar("Voltar na aba"), contar("Reabrir aba fechada"), contar("Alternar tela cheia")]).toEqual([1, 1, 1, 1]);
+    expect([contar("Nova aba"), contar("Voltar na aba"), contar("Reabrir aba fechada"), contar("Alternar tela cheia")]).toEqual([1, 0, 1, 1]);
     fireEvent.click(nav("Iniciativa"), { ctrlKey: true });
     fireEvent.contextMenu(tabEl("Iniciativa")); pick("Abrir em nova coluna à direita");
     await waitFor(() => expect(document.querySelectorAll(".flexlayout__tabset")).toHaveLength(2));
-    expect([contar("Nova aba"), contar("Voltar na aba"), contar("Avançar na aba"), contar("Fechar coluna"), contar("Reabrir aba fechada"), contar("Alternar tela cheia")]).toEqual([2, 2, 2, 2, 1, 1]);
+    expect([contar("Nova aba"), contar("Voltar na aba"), contar("Avançar na aba"), contar("Fechar coluna"), contar("Reabrir aba fechada"), contar("Alternar tela cheia")]).toEqual([2, 0, 2, 2, 1, 1]);
     const direita = document.querySelectorAll(".flexlayout__tabset")[1];
     expect(direita.querySelector("[aria-label='Reabrir aba fechada']")).toBeTruthy();
     expect([...direita.querySelectorAll("button[aria-label]")].map(b => b.getAttribute("aria-label")).slice(-2)).toEqual(["Reabrir aba fechada", "Alternar tela cheia"]);

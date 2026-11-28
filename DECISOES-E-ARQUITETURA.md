@@ -505,3 +505,19 @@ Decisão do responsável: as etapas restantes da DEC-039 viram uma entrega só (
 ### DEC-042 — Encerramento de personagens e NPCs; próxima tarefa (27/11/2026)
 
 O responsável aprovou o PR #170 e **encerrou o módulo**: sem novo escopo, auditorias ou refinamentos. Ordem: validar, documentar, preparar a 0022, **aplicar só com autorização**, mesclar o #170 e confirmar a publicação. A tarefa seguinte é a **reformulação das anotações dos jogadores** (DEC-035; ponto de partida em `docs/ANOTACOES-JOGADOR.md`).
+
+
+### DEC-043 — Padronização global de interface (27/11/2026)
+
+Pedido do responsável: retorno único no cabeçalho por contexto, sem retorno na raiz; histórico do navegador/Android e dois grupos mantidos. Busca/filtros/ordenação/visualização e cartões devem usar os componentes compartilhados; retratos individuais continuam grandes. Menus mobile excluem ações de novas abas. Formulários não abrem teclado automaticamente; formulários longos têm ações acessíveis e rolagem própria.
+
+Prévia de jogador passa ao Menu global, nunca muda a sessão ou RLS; títulos, imagens, pesquisa e vínculos devem usar a projeção autorizada, sem fallback para nomes privados. Edição de relações deve ser rascunho até Salvar e ser atômica com o conteúdo no servidor; SQL novo somente como proposta revisável, sem aplicação automática. Estado vital continua na fonte existente e deverá integrar a edição de identidade.
+
+**Implementação parcial, não decisão de reduzir escopo:** cobertura e lacunas em [Interface global](docs/INTERFACE-GLOBAL.md). A próxima tarefa de anotações dos jogadores depende de concluir este pedido; não foi iniciada. PR #170/0022 já publicados/aplicados conforme confirmação do responsável e main atual.
+
+
+### DEC-044 — Anotações completas da Beta; prioridade de execução (27/11/2026)
+
+O responsável aprovou um único módulo/PR de Anotações: mestre com documentos e quadros, jogador somente documentos; BlockNote compartilhado; sidebar desktop recolhível e listagem mobile; preservar última anotação. Quadros finitos expansíveis, cartões livres sem seções obrigatórias/grade P-M-G, movimento em dois eixos/diagonal, zoom por pinça/controles e enquadramento total; edição fullscreen mobile. Referências a registros originais do Compêndio e encontros, sem duplicação. Autosave, sincronização, privacidade por usuário/campanha e preservação integral dos dados. Sem canvas infinito, desenho ou setas. Migrações em produção somente com autorização.
+
+**Instrução posterior de prioridade:** esta IA conclui exclusivamente o PR #171 e não inicia Anotações. A especificação foi registrada para transferência a outra IA em [ANOTACOES-BETA-HANDOFF](docs/ANOTACOES-BETA-HANDOFF.md). Substitui restrições históricas incompatíveis com o novo escopo; não constitui implementação, merge, publicação ou migração aplicada.

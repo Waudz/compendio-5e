@@ -117,7 +117,7 @@ export function AbaInventario({ draft, sheet, stats, estado, onChange, onOpenCon
           </span>
         </div></div>
       {adicionando && <div className="ficha-adicionar">
-        <label>Adicionar item do catálogo<input type="search" autoFocus aria-label="Adicionar item do catálogo" placeholder="Digite ao menos 2 letras" value={novo} onChange={e => setNovo(e.target.value)}/></label>
+        <label>Adicionar item do catálogo<input type="search" autoFocus={!window.matchMedia("(max-width:700px)").matches} aria-label="Adicionar item do catálogo" placeholder="Digite ao menos 2 letras" value={novo} onChange={e => setNovo(e.target.value)}/></label>
         <p className="muted">{mestre ? "Como mestre, você pode entregar qualquer item do catálogo." : "Você adiciona itens comuns e as poções comuns. Itens mágicos e raros são entregues pelo mestre."}</p>
         {novo.trim().length >= 2 && <ul className="ficha-linhas" aria-label="Resultados da pesquisa de itens">
           {sugestoes.length === 0 && <li className="muted">Nenhum item disponível com esse nome.</li>}

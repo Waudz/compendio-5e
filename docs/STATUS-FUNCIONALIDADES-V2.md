@@ -1,3 +1,5 @@
+> Atualização de 27/11/2026: PR #170 publicado e 0022 aplicada. Padronização global em desenvolvimento na branch `feat/interface-global-consistente`; [entrega, testes e pendências](INTERFACE-GLOBAL.md). A proposta 0023 **não foi aplicada**. Não tratar a solicitação inteira como concluída nem reaplicar 0022.
+
 # Situação em 27/11/2026 (vigente)
 
 Sem percentuais: o quadro de 20/11 abaixo é histórico e não representa o código atual. "Publicado" = na `main` e no site; "pronto" = no PR, testado em ambiente isolado.

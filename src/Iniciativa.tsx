@@ -50,7 +50,7 @@ function useLojaCombate(userId: string | null, campaignId: string | null, podeGe
 }
 
 export function IniciativaPanel() {
-  const { userId, campaignId, campanha, podeGerenciar } = useEscopo();
+  const { userId, campaignId, podeGerenciar } = useEscopo();
   const nuvem = useNuvem(), fichas = useFichas();
   const loja = useLojaCombate(userId, campaignId, podeGerenciar, nuvem);
   const { estado, aplicar } = loja;
@@ -134,7 +134,7 @@ export function IniciativaPanel() {
     vit.loja.enviar(id, acao); return true;
   };
   return <div className="content iniciativa">
-    <div className="eyebrow">{(campanha ?? "").toLocaleUpperCase("pt-BR")} · COMBATE</div><h1>Iniciativa</h1>
+    <div className="eyebrow">COMBATE</div><h1>Iniciativa</h1>
     {estado.status === "carregando" && <div className="notice" role="status" aria-live="polite">Carregando o combate…</div>}
     {estado.status === "erro" && (nuvem ? <Aviso erro t={estado.mensagem ?? "Não foi possível carregar o combate no servidor."} onRetry={loja.tentar}/> : <ErroArmazenamento onTentar={loja.tentar} onDescartar={loja.descartar} o="o combate"/>)}
     {estado.status === "pronto" && !nuvem && estado.falhaGravacao && <Aviso erro t="Não foi possível salvar o combate. As alterações continuam nesta tela; tente salvar novamente antes de sair." onRetry={loja.tentar}/>}

@@ -114,7 +114,7 @@ describe("workspace (interface)", () => {
     expect(await screen.findByRole("heading", { name: "Perfil" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Voltar" }));                             // histórico próprio (botão Voltar)
     await waitFor(() => expect(screen.queryByRole("heading", { name: "Perfil" })).toBeNull());
-    expect((screen.getByRole("button", { name: "Voltar" }) as HTMLButtonElement).disabled).toBe(true);   // voltou à tela inicial
+    expect(screen.queryByRole("button", { name: "Voltar" })).toBeNull();   // voltou à tela inicial
     expect(screen.queryByRole("tablist")).toBeNull();
   });
 });

@@ -31,7 +31,6 @@ import {
   Wand,
   ChevronRight,
   Swords,
-  ArrowLeft,
 } from "lucide-react";
 import "./compendio/compendio-categorias.css";
 // Compêndio: ponto de entrada da seção (painel do catálogo) e da página de item (aba `item:<id>`, aberta pelo inventário do criador e pelos pacotes).
@@ -320,7 +319,6 @@ function PaginaFichaTecnica({definitionId,nome,retrato,memoria,terceira,carregan
  const atual=data&&data.id===definitionId?data:undefined,efetiva=atual?.definicao?.kind==='monster'?atual.definicao:undefined;
  if(!efetiva)return <div className="content cd-page">{voltar&&<VoltarCompendio onOpenContent={onOpenContent} label="Voltar"/>}{atual?<Aviso erro t={atual.error??'Criatura não encontrada.'}/>:<p role="status">{carregando?'Carregando registro…':'Carregando criatura…'}</p>}</div>;
  return <FichaMonstro key={memoria} monstro={efetiva.monstro} nome={nome} retrato={retrato} personalizado={!!efetiva.campanha} memoria={memoria} terceira={terceira}
-  voltar={voltar?<button type="button" className="cd-back" onClick={voltar}><ArrowLeft size={16}/> Voltar</button>:undefined}
   acoes={semAcoes?undefined:<AcoesDefinicao definicao={efetiva} onOpenContent={onOpenContent}/>}
   onAbrirMagia={ref=>onOpenContent({kind:'magia',ref})}/>;
 }

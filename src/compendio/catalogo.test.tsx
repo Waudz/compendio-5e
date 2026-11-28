@@ -29,7 +29,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const menu = () => within(screen.getByRole('navigation', { name: 'Menu principal' }));
 const montar = () => renderApp({ api: apiC(mestre) });
 const abrirCompendio = async () => { await waitFor(() => expect(menu().getByRole('button', { name: 'Compêndio' })).toBeTruthy()); fireEvent.click(menu().getByRole('button', { name: 'Compêndio' })); await screen.findByRole('heading', { name: 'Compêndio' }); categoria('Itens'); };
-const voltarDoCatalogo = () => document.querySelector<HTMLButtonElement>('.compendio.cat .cd-back');
+const voltarDoCatalogo = () => document.querySelector('.compendio.cat') ? screen.queryByRole<HTMLButtonElement>('button',{name:mobile?'Voltar':'Voltar na aba'}) : null;
 const categoria = (nome: string) => {
   const back = voltarDoCatalogo(); if (back) fireEvent.click(back);
   const area = screen.queryByRole('button', { name: nome === 'Monstros' ? 'Campanha' : 'Regras' }); if (area) fireEvent.click(area);
@@ -175,9 +175,9 @@ describe('lista, grade e detalhe', () => {
     await montar(); await abrirCompendio(); categoria('Magias'); await waitFor(() => expect(contagem()).toBe('319'));
     pesquisar('bola de fogo');
     expect(cartao('Bola de Fogo', '3º círculo').textContent).not.toMatch(/45 m/);
-    fireEvent.click(screen.getByRole('button', { name: /Grade/ })); expect(screen.getByRole('list', { name: 'Resultados do Compêndio' }).getAttribute('data-view')).toBe('grade');
+    fireEvent.click(screen.getByRole('button', { name: 'Visualizar em grade' })); expect(screen.getByRole('list', { name: 'Resultados do Compêndio' }).getAttribute('data-view')).toBe('grade');
     expect(cartao('Bola de Fogo', '3º círculo').textContent).toMatch(/1 ação · 45 m/);
-    categoria('Monstros'); fireEvent.click(screen.getByRole('button',{name:'Grade'})); pesquisar('goblin'); expect(cartao('Goblin').textContent).toMatch(/CA 15 · PV 7/);
+    categoria('Monstros'); fireEvent.click(screen.getByRole('button',{name:'Visualizar em grade'})); pesquisar('goblin'); expect(cartao('Goblin').textContent).toMatch(/CA 15 · PV 7/);
   });
 
   it('o estado de cada categoria não vaza para a outra e é preservado ao voltar', async () => {
@@ -240,7 +240,7 @@ describe('acessibilidade (WCAG 2.5.3) e celular', () => {
     filtro('círculo', '0'); expect(contagem()).toBe('24');
     pesquisar('luz'); fireEvent.click(cartao('Luz')); await screen.findByRole('article', { name: 'Detalhes de Luz' });
     expect(screen.queryByRole('tablist')).toBeNull();
-    fireEvent.click(document.querySelector<HTMLButtonElement>('.cd-page .cd-back')!);
+    fireEvent.click(screen.getByRole('button',{name:'Voltar'}));
     await waitFor(() => expect(screen.queryByRole('article')).toBeNull()); expect((screen.getByLabelText('Pesquisar no Compêndio') as HTMLInputElement).value).toBe('luz'); expect(contagem()).not.toBe('319');
   });
 

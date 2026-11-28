@@ -48,8 +48,8 @@ test('responsividade: controles cabem no painel e o Compêndio alterna lista/gra
   await expect(search).toBeVisible(); await search.fill('dagger');
   const cartaoAdaga = page.getByRole('button', { name: /^Adaga/ }).first();
   await expect(cartaoAdaga).toBeVisible();
-  await page.getByRole('button', { name: 'Grade', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Grade', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Visualizar em grade', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Visualizar em lista', exact: true })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Resultados do Compêndio' })).toHaveAttribute('data-view', 'grade');
   await cartaoAdaga.click();
   await expect(page.getByRole('article', { name: 'Detalhes de Adaga' })).toBeVisible();

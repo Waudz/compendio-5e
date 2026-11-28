@@ -70,7 +70,7 @@ export type FichaJogoProps = {
   semCiclo?: boolean;
 };
 
-export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, semCiclo, campaignId, podeConceder, moedas, identidade }: FichaJogoProps) {
+export default function FichaJogo({ draft, memoria, onChange, onOpenContent, onEditar, onProgredir, salvamento, avisos, vital, usarItem, transferir, personagemId, semCiclo, campaignId, podeConceder, moedas, identidade }: FichaJogoProps) {
   const ciclo=useCiclo();
   const catalogo = useVersaoCatalogo();
   const sheet = useMemo(() => sheet2014({ ...draft, name: draft.name.trim() || "Sem nome" }), [draft, catalogo]);
@@ -122,7 +122,7 @@ export default function FichaJogo({ draft, campanha, memoria, onChange, onOpenCo
   const [editandoRetrato, setEditandoRetrato] = useState(false);
   const nomeExibido = draft.name.trim() || "Personagem sem nome";
   return <div ref={raiz} className="content ficha auth wide ficha-jogo sistema-dnd" data-testid="ficha-guiada-leitura" {...gesto}><div className="ficha-largura">
-    <div className="eyebrow">{campanha.toLocaleUpperCase("pt-BR")} · FICHA DE PERSONAGEM · SRD 2014</div>
+    <div className="eyebrow">FICHA DE PERSONAGEM · SRD 2014</div>
     <section className="ficha-cabecalho" aria-label="Resumo do personagem">
       <div className="ficha-identidade">
         {retratoValido(draft.portrait)

@@ -1,7 +1,8 @@
+import {useRetornoLocal} from "./retornoLocal";
 // Página individual de um encontro (aberta na mesma aba da lista): nome, descrição e criaturas editáveis. Só edita o próprio encontro; o catálogo nunca é alterado.
 import { SeletorNpc, type NpcEscolhido } from "./npc/SeletorNpc";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft,Pencil, Plus, Trash2 } from "lucide-react";
+import { useRef,useState } from "react";
 import { adicionarParticipante, configurarCriatura, personalizarCriatura, definirDescricao, editarParticipante, removerParticipante, renomearEncontro, type Encontro, type ParticipanteEncontro, type RefCombate } from "./combate";
 import type { Monstro } from "./catalogue/sistemas/dnd5e-2014/esquemas";
 import { ControleNumerico } from "./ControleNumerico";
@@ -106,6 +107,7 @@ function EstadoEncontro({ enc, salvar, sincronizar, duplicarAtual }: { enc: Enco
 }
 
 export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincronizar, duplicarAtual }: { enc: Encontro; salvar: (e: Encontro) => void; voltar: () => void; enviar: (e: Encontro) => void; sincronizar: () => void; duplicarAtual: () => void }) {
+  const raiz=useRef<HTMLElement>(null);const temCabecalho=useRetornoLocal(voltar,raiz);
   const salvar = (e: Encontro) => salvarBruto(normalizarLoot(e));   // mantém o loot do estado atual em dia com a configuração
   const [aba, setAba] = useState<"criaturas" | "tesouros" | "progresso">("criaturas");
   const [renomeando, setRenomeando] = useState(false), [novoNome, setNovoNome] = useState(enc.nome);
@@ -114,8 +116,8 @@ export function EncontroPagina({ enc, salvar: salvarBruto, voltar, enviar, sincr
   // NPC é uma identidade permanente: um participante, uma unidade
   const adicionarNpc = (n: NpcEscolhido) => { if (!enc.participantes.some(p => p.ref?.id === n.id)) salvar(adicionarParticipante(enc, { nome: n.nome, quantidade: 1, pv: n.pvMax, ...(n.tipo === "npc" ? { ca: n.ca } : {}), ref: { tipo: n.tipo, id: n.id } })); };
   const total = enc.participantes.reduce((s, p) => s + p.quantidade, 0);
-  return <section className="enc-pagina" aria-label={`Página do encontro ${enc.nome}`}>
-    <button className="btn-link" onClick={voltar}><ArrowLeft size={14} aria-hidden="true"/> Voltar à lista de encontros</button>
+  return <section ref={raiz} className="enc-pagina" aria-label={`Página do encontro ${enc.nome}`}>
+    {!temCabecalho&&<button className="btn-link" onClick={voltar}><ArrowLeft size={14} aria-hidden="true"/> Voltar à lista de encontros</button>}
     {renomeando
       ? <form className="ini-form" aria-label={`Renomear ${enc.nome}`} onSubmit={e => { e.preventDefault(); salvar(renomearEncontro(enc, novoNome)); setRenomeando(false); }}>
         <label>Novo nome<input value={novoNome} onChange={e => setNovoNome(e.target.value)} required maxLength={80}/></label>

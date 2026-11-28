@@ -1,3 +1,5 @@
+import {ListChecks} from "lucide-react";
+import {MenuDeAcoes} from "./MenuDeAcoes";
 // Seleção múltipla em listas e grades: um texto discreto liga o modo; as caixas só aparecem nele; as ações coletivas, só com algo
 // marcado. Vale apenas o que está elegível E visível: quem a página passar em `elegiveis` já respeita campanha, filtros e permissões.
 import { useEffect, useState, type ReactNode } from "react";
@@ -32,7 +34,7 @@ export function useSelecao(escopo: string): (elegiveis: readonly string[]) => Se
 }
 
 export function BarraDeSelecao({ selecao, acoes, rotulo = "Seleção" }: { selecao: Selecao; /** Ações coletivas: só aparecem com algo marcado. */ acoes?: ReactNode; rotulo?: string }) {
-  if (!selecao.ativa) return selecao.total ? <div className="multi-selecao"><button type="button" className="multi-selecao-link" onClick={selecao.entrar}>Selecionar</button></div> : null;
+  if (!selecao.ativa) return selecao.total ? <MenuDeAcoes rotulo="Mais ações da lista" acoes={[{rotulo:"Selecionar",icone:ListChecks,acao:selecao.entrar}]}/> : null;
   const n = selecao.marcados.length, todos = selecao.total > 0 && n === selecao.total;
   return <div className="multi-selecao" role="group" aria-label={rotulo}>
     {selecao.total > 0 && <button type="button" className="multi-selecao-link" onClick={todos ? selecao.desmarcarTodos : selecao.marcarTodos}>{todos ? "Desmarcar todos" : "Selecionar todos"}</button>}

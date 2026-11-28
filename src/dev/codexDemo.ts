@@ -80,7 +80,25 @@ export function codexDemo(master: boolean, campaign: string, fichasNpc?: FichaDe
     if (!e || (version !== undefined && e.version !== version)) throw Error("Conflito de versão.");
     return e;
   };
-  return {
+  const api:CodexApi = {
+    edicaoAtomica: async()=>true,
+    salvarEdicao: async(cid,id,version,data,changes)=>{
+      check();scope(cid);
+      const keys=[key,key+':links',key+':notices'];const before=keys.map(k=>localStorage.getItem(k));
+      try {
+        const nid=await api.save(cid,id,version,data);
+        for(const lid of changes.remover)await api.unlink(cid,lid);
+        const refs=new Map<string,string>();
+        for(const ref of changes.referencias??[]){const existing=read().find(e=>e.category==='item'&&e.definitionId===ref.data.definitionId);refs.set(ref.token,existing?.id??await api.save(cid,null,0,{...ref.data,registered:false}));}
+        for(const op of changes.adicionar)await api.link(cid,refs.get(op.source??'')??op.source??nid,refs.get(op.target??'')??op.target??nid,op.relation);
+        if(changes.estado){
+          const e=read().find(x=>x.id===nid)!;
+          if((e.vitalStatus??'vivo')!==changes.estado.anterior)throw Error('conflito_de_versao');
+          await api.gravarVida?.(cid,nid,{estado:changes.estado.valor},crypto.randomUUID());
+        }
+        return nid;
+      }catch(e){keys.forEach((k,i)=>{if(before[i]===null)localStorage.removeItem(k);else localStorage.setItem(k,before[i]!);});throw e;}
+    },
     links: async (cid, id) => { scope(cid); if (!master && !read().some((x) => x.id === id && x.visible)) throw Error("Sem acesso."); return linksOf(id, !master); },
     link: async (cid, source, target, r) => {
       check(); scope(cid);
@@ -173,4 +191,5 @@ export function codexDemo(master: boolean, campaign: string, fichasNpc?: FichaDe
     seenAll: async (cid,through,signal) => { signal.throwIfAborted();scope(cid);if(!master){const visible=new Set(read().filter(e=>e.visible).map(e=>e.id));store(key+":notices",notices().map(n=>n.id<=through&&!n.read_at&&visible.has(n.entry_id)?{...n,read_at:new Date().toISOString()}:n));} },
     seen: async (id) => { if (!master) store(key + ":notices", notices().map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))); },
   };
+  return api;
 }
