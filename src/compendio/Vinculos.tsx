@@ -14,7 +14,7 @@ import { garantirRegistro } from './RegistrosCampanha';
 import { aplicarDaCampanha, useDefinicoes, type LinhaDefinicao } from './definicoes';
 import { nomesCategoria, type useLinhasCampanha, type LinhaCompendio } from './consulta';
 import { identidadeSpec, registroSpec } from './navegacao';
-import { montarRelacao, OPCOES_RELACAO, PERSONALIZADA } from './relacoes';
+import { montarRelacao, opcoesDeRelacao, PERSONALIZADA } from './relacoes';
 import type { TabSpec } from '../workspace';
 
 const CATALOGO = 'catalog:';
@@ -33,7 +33,7 @@ export function useVinculos(id: string, data: ReturnType<typeof useLinhasCampanh
   const scope = `${active?.campaign.id}:${active?.role}:${id}`;
   useEffect(() => {
     let alive = true;
-    if (data.api && active) void data.api.links(active.campaign.id, id).then(
+    if (id && data.api && active) void data.api.links(active.campaign.id, id).then(
       items => { if (alive) setState({ scope, items }); },
       () => { if (alive) setState({ scope, items: [], error: 'Não foi possível carregar os vínculos. Verifique a conexão e as migrações do Compêndio.' }); });
     return () => { alive = false; };
@@ -62,7 +62,7 @@ export function ListaVinculos({ links, rows, controles, onOpenContent, semAbrir 
     })}</ul>;
 }
 
-export function NovoVinculoBotao({ id, vinculos, onAdicionar }: { id: string; vinculos: ReturnType<typeof useVinculos>; onAdicionar?: (source:string,target:string,relation:NovoVinculo,chosen:LinhaCompendio)=>void|Promise<void> }) {
+export function NovoVinculoBotao({ id, vinculos, onAdicionar, categoria, embutido = false }: { /** Categoria da página atual (registro ainda não salvo). */ categoria?: string; /** Dentro de um formulário: abre no próprio lugar, sem outra janela. */ embutido?: boolean; id: string; vinculos: ReturnType<typeof useVinculos>; onAdicionar?: (source:string,target:string,relation:NovoVinculo,chosen:LinhaCompendio)=>void|Promise<void> }) {
   const { active } = useCampaigns(), { data, links, reload } = vinculos;
   const [open, setOpen] = useState(false), [target, setTarget] = useState(''), [query, setQuery] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [relation, setRelation] = useState('related:a'), [custom, setCustom] = useState({ ida: '', volta: '' }), [revealed, setRevealed] = useState(false);
@@ -70,31 +70,37 @@ export function NovoVinculoBotao({ id, vinculos, onAdicionar }: { id: string; vi
   const candidates = useMemo(() => open ? [...data.rows.filter(r => (r.entry || r.pc) && r.id !== id), ...linhasDoCatalogo(data.rows, lista)] : [], [open, data.rows, id, lista, !!onAdicionar]);
   if (active?.role !== 'mestre') return null;
   const chosen = candidates.find(r => r.id === target);
-  const rascunho = montarRelacao(relation, id, target, custom);
+  const minha = categoria ?? data.rows.find(r => r.id === id)?.category;
+  const opcoes = opcoesDeRelacao(minha, chosen?.category);
+  const valor = relation === PERSONALIZADA || opcoes.some(o => o.valor === relation) ? relation : opcoes.find(o => o.valor === 'related:a')?.valor ?? PERSONALIZADA;
+  const montar = (alvo: string) => montarRelacao(valor, id, alvo, custom, { atual: minha, alvo: chosen?.category });
+  const rascunho = montar(target);
   const repetido = !!rascunho && links.some(l => l.targetId === target && l.kind === rascunho.kind && (rascunho.kind !== PERSONALIZADA || l.relation === custom.ida.trim()));
   const salvar = async () => {
     if (!data.api || !chosen) return;
     setBusy(true); setError('');
     try {
       if(onAdicionar) {
-        const r=montarRelacao(relation,id,chosen.id,custom)!;
+        const r=montar(chosen.id)!;
         await onAdicionar(r.source,r.target,{kind:r.kind,label:r.label,inverse:r.inverse,revealed},chosen);
         setOpen(false);setTarget('');return;
       }
       const alvo = chosen.id.startsWith(CATALOGO) ? await garantirRegistro(data.api, active.campaign.id, data.items, 'item', chosen.id.slice(CATALOGO.length), false) : chosen.id;
-      const r = montarRelacao(relation, id, alvo, custom)!;
+      const r = montar(alvo)!;
       await data.api.link(active.campaign.id, r.source, r.target, { kind: r.kind, label: r.label, inverse: r.inverse, revealed });
       setOpen(false); setTarget(''); reload(); avisarConhecimento();
     } catch { setError('Não foi possível vincular. Confira a relação e a campanha e tente novamente.'); }
     finally { setBusy(false); }
   };
   return <>
-    <button className="btn-link" onClick={() => setOpen(true)}><Plus size={15}/> Vincular registro</button>
-    {open && <Modal titulo="Vincular registro" onFechar={() => setOpen(false)} ocupado={busy} acoes={<button className="btn-primary" disabled={!chosen || !rascunho || repetido || busy || data.loading || !!data.error} onClick={() => void salvar()}>Vincular</button>}>
+    <button type="button" className="btn-link" onClick={() => setOpen(true)}><Plus size={15}/> Vincular registro</button>
+    {open && (() => {
+      const confirmar = <button type="button" className="btn-primary" disabled={!chosen || !rascunho || repetido || busy || data.loading || !!data.error} onClick={() => void salvar()}>Vincular</button>;
+      const corpo = (
       <div className="cd-form">
         <SeletorRegistro rows={candidates} selected={target} onSelect={setTarget} query={query} onQuery={setQuery} loading={data.loading} error={data.error}/>
-        <label>Esta página é<select aria-label="Tipo de relação" value={relation} onChange={e => setRelation(e.target.value)}>{OPCOES_RELACAO.map(o => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}<option value={PERSONALIZADA}>Personalizada…</option></select></label>
-        {relation === PERSONALIZADA && <>
+        <label>Esta página é<select aria-label="Tipo de relação" value={valor} onChange={e => setRelation(e.target.value)}>{opcoes.map(o => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}<option value={PERSONALIZADA}>Personalizada…</option></select></label>
+        {valor === PERSONALIZADA && <>
           <label>Relação<input value={custom.ida} maxLength={80} placeholder="Como esta página se relaciona" onChange={e => setCustom(c => ({ ...c, ida: e.target.value }))}/></label>
           <label>Relação inversa<input value={custom.volta} maxLength={80} placeholder="Como aparece no outro registro" onChange={e => setCustom(c => ({ ...c, volta: e.target.value }))}/></label>
         </>}
@@ -103,6 +109,10 @@ export function NovoVinculoBotao({ id, vinculos, onAdicionar }: { id: string; vi
         {repetido && <p role="status">Essa relação já existe.</p>}
         {error && <Aviso erro t={error}/>}
       </div>
-    </Modal>}
+      );
+      return embutido
+        ? <div className="cd-vinculo-embutido" role="group" aria-label="Vincular registro">{corpo}<div className="row">{confirmar}<button type="button" className="btn-secondary" onClick={() => { setOpen(false); setTarget(''); }}>Fechar</button></div></div>
+        : <Modal titulo="Vincular registro" onFechar={() => setOpen(false)} ocupado={busy} acoes={confirmar}>{corpo}</Modal>;
+    })()}
   </>;
 }

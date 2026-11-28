@@ -74,10 +74,10 @@ describe("menu lateral: gestos (desktop)", () => {
   it("botão direito: três opções; cada uma faz o que diz", async () => {
     await renderApp();
     fireEvent.contextMenu(nav("Iniciativa"));
-    expect(menuItems()).toEqual(["Abrir em nova aba", "Abrir em novo grupo", "Abrir"]);
+    expect(menuItems()).toEqual(["Abrir", "Abrir em nova aba", "Abrir em outro grupo"]);
     pick("Abrir"); expect(tabs()).toEqual(["Iniciativa"]);
     fireEvent.contextMenu(nav("Encontros")); pick("Abrir em nova aba"); expect(tabs()).toEqual(["Iniciativa", "Encontros"]);
-    fireEvent.contextMenu(nav("Diário")); pick("Abrir em novo grupo");
+    fireEvent.contextMenu(nav("Diário")); pick("Abrir em outro grupo");
     expect(rawTabs()).toEqual(["Iniciativa", "Encontros", "Diário"]);
     expect(saved().layout.children).toHaveLength(2);
     expect(saved().layout.children[1].children[0].id).toBe("secao:diario");

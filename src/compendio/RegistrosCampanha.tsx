@@ -1,4 +1,3 @@
-import {SecaoNarrativa} from "../ui/SecaoNarrativa";
 import {VITALIDADES,avisarVida,useBancoDeNpcs,type EstadoVitalidade} from "../npc/estado";
 import {novaOperacao} from "../vitais/vitais";
 import { Modal } from "../ui/Modal";
@@ -113,6 +112,8 @@ export function RegistrarDescoberta({ category, id, onOpenContent }: { category:
   );
 }
 
+/** Vínculo de um registro que ainda não foi salvo. */
+const NOVO = "__novo__", MAIS_USADOS = 3;
 export function EditorConhecimento({
   entry,
   category,
@@ -150,7 +151,8 @@ export function EditorConhecimento({
   const [removidos,setRemovidos]=useState<string[]>([]);
   const [adicionados,setAdicionados]=useState<(EdicaoVinculos['adicionar'][number]&{linha:CodexLink})[]>([]);
   const linksDoRascunho=[...vinculos.links.filter(l=>!removidos.includes(l.id)),...adicionados.map(a=>a.linha)];
-  const vinculadosEm = (v: Vaga) => (entry ? linksDoRascunho.filter((l) => l.kind === v.kind && l.outgoing === v.outgoing) : []);
+  const idDaPagina = entry?.id ?? NOVO;
+  const vinculadosEm = (v: Vaga) => linksDoRascunho.filter((l) => l.kind === v.kind && l.outgoing === v.outgoing);
   const candidatos = (v: Vaga) => dados.rows.filter((r) => r.id !== entry?.id && (v.campo === "leadership" ? r.category === "npc" || r.category === "character" : r.category === "location"));
   const removerVinculo = (link: string, titulo: string) => {
     if (!window.confirm(`Remover o vínculo com ${titulo} ao salvar? Os registros serão preservados.`)) return;
@@ -171,7 +173,9 @@ export function EditorConhecimento({
     setError("");
     try {
       const alteraVinculos=mudouVital||removidos.length>0||adicionados.length>0||Object.values(ligacoes).some(Boolean);
-      if(alteraVinculos&&(!api.salvarEdicao||!await api.edicaoAtomica?.())){
+      const atomica=alteraVinculos&&!!api.salvarEdicao&&!!await api.edicaoAtomica?.();
+      // Criação sem a 0023: o registro é salvo e os vínculos pendentes são criados em seguida (cancelar antes não cria nada).
+      if(alteraVinculos&&!atomica&&entry){
         // Sem a 0023, o estado vital sozinho usa a operação que já existe (0022): uma gravação, sem salvamento parcial.
         if(mudouVital&&!mudouRegistro&&api.gravarVida){
           await api.gravarVida(active.campaign.id,entry!.id,{estado:estadoVital},novaOperacao());
@@ -204,12 +208,23 @@ export function EditorConhecimento({
         if(!id){id=await api.save(active.campaign.id,null,0,data);version=1;created.current={id,version};}
         imagePath=await api.upload(active.campaign.id,id,file);
       }
-      const novos:EdicaoVinculos['adicionar'] = adicionados.map(({source,target,relation})=>({source,target,relation}));
+      const semId=(x:string|null)=>(x===NOVO?null:x);
+      const novos:EdicaoVinculos['adicionar'] = adicionados.map(({source,target,relation})=>({source:semId(source),target:semId(target),relation}));
       for(const v of vagas){
         const alvo=ligacoes[v.campo],r=RELACOES.find(x=>x.kind===v.kind)!;
         if(alvo&&!linksDoRascunho.some(l=>l.targetId===alvo&&l.kind===v.kind))novos.push({source:v.outgoing?null:alvo,target:v.outgoing?alvo:null,relation:{kind:r.kind,label:r.a,inverse:r.b}});
       }
-      id=alteraVinculos?await api.salvarEdicao!(active.campaign.id,id,version,{...data,imagePath},{remover:removidos,adicionar:novos,referencias:referencias.filter(r=>novos.some(n=>n.source===r.token||n.target===r.token)),...(mudouVital?{estado:{anterior:entry!.vitalStatus??"vivo",valor:estadoVital}}:{})}):await api.save(active.campaign.id,id,version,{...data,imagePath});
+      if(alteraVinculos&&!atomica){
+        id=await api.save(active.campaign.id,id,version,{...data,imagePath});
+        const falhas:string[]=[];
+        for(const op of novos){
+          try{
+            const resolver=async(x:string|null)=>x===null?id!:x.startsWith('catalog:')?await garantirRegistro(api,active.campaign.id,dados.items,'item',x.slice('catalog:'.length),false):x;
+            await api.link(active.campaign.id,await resolver(op.source),await resolver(op.target),op.relation);
+          }catch{falhas.push(op.relation.label);}
+        }
+        if(falhas.length)window.alert(`O registro foi salvo, mas ${falhas.length} vínculo(s) não puderam ser criados (${falhas.join(', ')}). Adicione-os pela página do registro.`);
+      } else id=atomica?await api.salvarEdicao!(active.campaign.id,id,version,{...data,imagePath},{remover:removidos,adicionar:novos,referencias:referencias.filter(r=>novos.some(n=>n.source===r.token||n.target===r.token)),...(mudouVital?{estado:{anterior:entry!.vitalStatus??"vivo",valor:estadoVital}}:{})}):await api.save(active.campaign.id,id,version,{...data,imagePath});
       releaseGuard();
       avisarConhecimento();avisarVida();
       onDone(id??undefined);
@@ -280,9 +295,10 @@ export function EditorConhecimento({
       </div>
   </>;
   return (
-    <Modal titulo={entry?"Editar registro":"Novo registro"} onFechar={()=>onDone()} ocupado={busy} largura={640} acoes={acoes}><section className="codex-editor cd-form" aria-label="Editar conhecimento">
+    <Modal titulo={entry?"Editar registro":"Novo registro"} onFechar={()=>onDone()} ocupado={busy} largura={940} acoes={acoes}><section className="codex-editor cd-form" aria-label="Editar conhecimento">
       <p className="muted">{entry ? "A visibilidade é controlada na página do registro." : "Somente o nome é obrigatório. O registro nasce secreto; revele na página dele."}</p>
-      <SecaoNarrativa titulo="Identidade" aberta>
+      <div className="cd-editor-topo">
+      <div className="cd-editor-imagem">
       <div className="cd-arquivo">
         <label className="file-btn btn-secondary">
         <ImagePlus size={15} aria-hidden="true" /> Escolher imagem
@@ -314,23 +330,23 @@ export function EditorConhecimento({
           Remover imagem do registro
         </label>
       )}
+      </div>
+      <div className="cd-editor-grade">
       <label>
         Nome
         <input value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
       </label>
-      {campos.filter(f=>!f.long&&!['birthplace','residence','leadership','headquarters'].includes(f.id)).map(campo)}
+      {campos.filter((f) => !f.long).map(campo)}
       {entry&&category==='npc'&&bancoDeNpcs&&<label>Estado vital<select value={estadoVital} onChange={e=>setEstadoVital(e.target.value as EstadoVitalidade)}>{VITALIDADES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>}
-      </SecaoNarrativa>
-      <SecaoNarrativa titulo="Origem e residência">{campos.filter(f=>!f.long&&['birthplace','residence','leadership','headquarters'].includes(f.id)).map(campo)}</SecaoNarrativa>
-      <SecaoNarrativa titulo="Descrição e história" aberta>
+      </div>
+      </div>
       <CampoNarrativo label="Descrição compartilhada" value={text} maxLength={10000} onChange={setText} rows={dados.rows.filter((r) => r.id !== entry?.id)} />
       <p className="muted">Digite @ para citar um registro; o texto entre colchetes é o que aparece. Linha iniciada por ## vira subtítulo.</p>
-      {campos.some((f) => f.long) && <details open={campos.some((f) => f.long && !!entry?.fields?.[f.id])}><summary>História e detalhes opcionais</summary>{campos.filter((f) => f.long).map(campo)}</details>}
-      </SecaoNarrativa>
-      {entry && (
-        <SecaoNarrativa titulo="Vínculos"><section className="cd-relations" aria-label="Vínculos">
+      <div className="cd-editor-longos">{campos.filter((f) => f.long).slice(0, MAIS_USADOS).map(campo)}</div>
+      {campos.filter((f) => f.long).length > MAIS_USADOS && <details open={campos.filter((f) => f.long).slice(MAIS_USADOS).some((f) => !!entry?.fields?.[f.id])}><summary>Mais detalhes (opcional)</summary><div className="cd-editor-longos">{campos.filter((f) => f.long).slice(MAIS_USADOS).map(campo)}</div></details>}
+      <section className="cd-relations" aria-label="Vínculos">
           <h3>Vínculos</h3>
-          <p className="muted">Vínculos só serão gravados ao salvar esta edição. Cancelar preserva os vínculos existentes.</p>
+          <p className="muted">{entry ? "Vínculos só serão gravados ao salvar esta edição. Cancelar preserva os vínculos existentes." : "Os vínculos são gravados junto com o registro, ao salvar."}</p>
           {vinculos.error && <Aviso erro t={vinculos.error} />}
           {/* os que ocupam um campo próprio são removidos no próprio campo, acima */}
           <ListaVinculos
@@ -340,21 +356,19 @@ export function EditorConhecimento({
             semAbrir
             controles={{ busy, onRemover: (l) => removerVinculo(l.id, l.title) }}
           />
-          <NovoVinculoBotao id={entry.id} vinculos={{...vinculos,links:linksDoRascunho}} onAdicionar={async(source,target,relation,chosen)=>{
+          <NovoVinculoBotao id={idDaPagina} categoria={category} embutido vinculos={{...vinculos,links:linksDoRascunho}} onAdicionar={async(source,target,relation,chosen)=>{
             if(chosen.id.startsWith('catalog:')){
               const definitionId=chosen.id.slice('catalog:'.length);
               const definition=await carregarDefinicao('item',definitionId,await api?.definitions?.(active!.campaign.id));
               if(!definition)throw Error('Definição indisponível.');
               setReferencias(rs=>[...rs.filter(r=>r.token!==chosen.id),{token:chosen.id,data:{category:'item',systemId:'dnd5e-2014',definitionId,title:definition.nome,description:[],fields:{},sheet:secoesDaDefinicao(definition),registered:false}}]);
             }
-            setAdicionados(xs=>[...xs,{source,target,relation,linha:{id:'draft:'+crypto.randomUUID(),targetId:chosen.id,title:chosen.title,category:(chosen.category==='catalog-item'?'item':chosen.category) as CodexLink['category'],kind:relation.kind,relation:source===entry.id?relation.label:relation.inverse,outgoing:source===entry.id,revealed:relation.revealed}}]);}} />
-        </section></SecaoNarrativa>
-      )}
-      <SecaoNarrativa titulo="Notas privadas do mestre"><label>
+            setAdicionados(xs=>[...xs,{source,target,relation,linha:{id:'draft:'+crypto.randomUUID(),targetId:chosen.id,title:chosen.title,category:(chosen.category==='catalog-item'?'item':chosen.category) as CodexLink['category'],kind:relation.kind,relation:source===idDaPagina?relation.label:relation.inverse,outgoing:source===idDaPagina,revealed:relation.revealed}}]);}} />
+      </section>
+      <label>
         Notas privadas do mestre
         <textarea value={secret} maxLength={4000} onChange={(e) => setSecret(e.target.value)} />
       </label>
-      </SecaoNarrativa>
       {error && <Aviso erro t={error} />}
     </section></Modal>
   );

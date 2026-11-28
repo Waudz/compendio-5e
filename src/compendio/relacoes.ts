@@ -5,12 +5,12 @@ export const RELACOES = [
   { kind: 'founder', a: 'Fundador de', b: 'Fundado por' },
   { kind: 'owner', a: 'Proprietário de', b: 'Propriedade de' },
   { kind: 'former-owner', a: 'Antigo proprietário de', b: 'Antigo proprietário' },
-  { kind: 'headquarters', a: 'Sede de', b: 'Sede' },
+  { kind: 'headquarters', a: 'Sede de', b: 'Possui sede em' },
   { kind: 'located', a: 'Localizado em', b: 'Contém' },
-  { kind: 'resident', a: 'Habita', b: 'Habitante' },
+  { kind: 'resident', a: 'Reside em', b: 'Habitante' },
   { kind: 'represents', a: 'Representa', b: 'Descoberto como' },
   { kind: 'opens', a: 'Abre passagem para', b: 'Passagem aberta por' },
-  { kind: 'originates', a: 'Originado em', b: 'Origem de' },
+  { kind: 'originates', a: 'Nasceu em', b: 'Natural de' },
   { kind: 'related', a: 'Relacionado', b: 'Relacionado' },
 ] as const;
 export const PERSONALIZADA = 'custom';
@@ -20,8 +20,37 @@ export const OPCOES_RELACAO: { valor: string; rotulo: string }[] = RELACOES.flat
   ...(r.a === r.b ? [] : [{ valor: r.kind + ':b', rotulo: r.b }]),
 ]);
 
+const PESSOAS = ['npc', 'character', 'monster'], COISAS = ['item', 'discovery', 'catalog-item'];
+/** Que categorias podem ser origem e destino de cada relação. Fora daqui, a relação não é oferecida. */
+const COMPATIVEIS: Record<string, [string[] | null, string[] | null]> = {
+  member: [PESSOAS, ['organization']], leader: [PESSOAS, ['organization', 'location']], founder: [PESSOAS, ['organization', 'location']],
+  owner: [[...PESSOAS, 'organization'], [...COISAS, 'location']], 'former-owner': [[...PESSOAS, 'organization'], [...COISAS, 'location']],
+  headquarters: [['location'], ['organization']], located: [['location', ...COISAS], ['location']], resident: [PESSOAS, ['location']],
+  originates: [[...PESSOAS, ...COISAS], ['location']], represents: [COISAS, null], opens: [COISAS, ['location']], related: [null, null],
+};
+/** Leitura própria quando a origem é um item ou uma descoberta. */
+function rotulos(kind: string, a: string, b: string, origem?: string) {
+  if (origem && COISAS.includes(origem)) {
+    if (kind === 'originates') return { a: 'Originado em', b: 'Origem de' };
+    if (kind === 'located' && origem === 'discovery') return { a: 'Descoberta em', b: 'Local da descoberta' };
+  }
+  return { a, b };
+}
+const cabe = (lista: string[] | null, categoria?: string) => !lista || !categoria || lista.includes(categoria);
+/** Só as relações que fazem sentido entre a página atual e a escolhida (sem destino ainda, todas as da categoria atual). */
+export function opcoesDeRelacao(atual?: string, alvo?: string): { valor: string; rotulo: string }[] {
+  return RELACOES.flatMap(r => {
+    const [origem, destino] = COMPATIVEIS[r.kind];
+    const ida = cabe(origem, atual) && cabe(destino, alvo), volta = cabe(destino, atual) && cabe(origem, alvo);
+    return [
+      ...(ida ? [{ valor: r.kind + ':a', rotulo: rotulos(r.kind, r.a, r.b, atual).a }] : []),
+      ...(volta && r.kind !== 'related' ? [{ valor: r.kind + ':b', rotulo: rotulos(r.kind, r.a, r.b, alvo).b }] : []),
+    ];
+  });
+}
+
 /** `valor` descreve a página atual em relação à escolhida. A leitura inversa troca origem e destino para não duplicar. */
-export function montarRelacao(valor: string, atual: string, alvo: string, personalizada: { ida: string; volta: string }) {
+export function montarRelacao(valor: string, atual: string, alvo: string, personalizada: { ida: string; volta: string }, categorias: { atual?: string; alvo?: string } = {}) {
   if (valor === PERSONALIZADA) {
     const ida = personalizada.ida.trim(), volta = personalizada.volta.trim() || ida;
     return ida ? { source: atual, target: alvo, kind: PERSONALIZADA, label: ida, inverse: volta } : null;
@@ -29,7 +58,8 @@ export function montarRelacao(valor: string, atual: string, alvo: string, person
   const [kind, lado] = valor.split(':');
   const r = RELACOES.find(x => x.kind === kind);
   if (!r) return null;
-  return lado === 'b' ? { source: alvo, target: atual, kind, label: r.a, inverse: r.b } : { source: atual, target: alvo, kind, label: r.a, inverse: r.b };
+  const { a, b } = rotulos(r.kind, r.a, r.b, lado === 'b' ? categorias.alvo : categorias.atual);
+  return lado === 'b' ? { source: alvo, target: atual, kind, label: a, inverse: b } : { source: atual, target: alvo, kind, label: a, inverse: b };
 }
 
 /** Agrupa pela leitura vista na página; "Habitante" abre a lista num local, pois tem seção própria. */

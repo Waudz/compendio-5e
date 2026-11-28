@@ -215,9 +215,9 @@ function Workspace({ userId }: { userId: string }) {
   const guarded = (ids: string[], fn: () => void) => () => unsaved.api.guard(ids, () => { fn(); onModelChange(model); });
   /** Menu dos itens de navegação (botão direito, tecla de menu ou toque prolongado). */
   const showNavMenu = (s:TabSpec,x:number,y:number) => setMenu({x,y,items:[
-    {label:"Abrir em nova aba",onSelect:()=>openContentLink(s,undefined,true)},
-    ...(!mobile?[{label:"Abrir em novo grupo",onSelect:()=>openContentLink(s,undefined,false)}]:[]),
     {label:"Abrir",onSelect:()=>visit(s)},
+    {label:"Abrir em nova aba",onSelect:()=>openContentLink(s,undefined,true)},
+    ...(!mobile?[{label:"Abrir em outro grupo",onSelect:()=>openContentLink(s,undefined,false)}]:[]),
   ]});
 
   const homeSpec: TabSpec = active ? { kind: "campanha", ref: active.campaign.id, title: active.campaign.name } : { kind: "secao", ref: campaignsHub.page };
@@ -366,8 +366,8 @@ function Workspace({ userId }: { userId: string }) {
     aoLado,
     navegar: (s:TabSpec,origem?:string)=>visit(s,origem),
     abrir: (s: TabSpec, origem?: string) => openContentLink(s, origem, true),
-    mostrar: (x: number, y: number, s: TabSpec, origem?: string,extras:MenuItem[]=[]) => setMenu({ x, y, items: [{ label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
-      ...(!mobile ? [{ label: "Abrir em novo grupo", onSelect: () => openContentLink(s, origem, false) }] : []), { label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } },...extras] }),
+    mostrar: (x: number, y: number, s: TabSpec, origem?: string,extras:MenuItem[]=[]) => setMenu({ x, y, items: [{ label: "Abrir", onSelect: () => { if (mobile) openContentLink(s, origem, true); else visit(s, origem); } }, { label: "Abrir em nova aba", onSelect: () => openContentLink(s, origem, true) },
+      ...(!mobile ? [{ label: "Abrir em outro grupo", onSelect: () => openContentLink(s, origem, false) }] : []),...extras] }),
   }), [openContentLink, mobile, model, visit, aoLado]);
 
   return <NotificacoesProvider><CatalogoDaCampanha/><AbrirEmAbaContext.Provider value={abrirEmAba}><UnsavedContext.Provider value={unsaved.api}><div className={chromeHidden ? "app chrome-hidden" : "app"}>

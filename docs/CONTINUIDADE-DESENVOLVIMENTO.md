@@ -1056,3 +1056,14 @@ Próximo módulo: `docs/ANOTACOES-JOGADOR.md`, preservando quadros e cartões ex
 ## PR #171 — interface global (27/11/2026)
 
 Branch `feat/interface-global-consistente`. Trabalho interrompido pelo limite de uso foi recuperado e concluído; entrega, testes e pendências em [INTERFACE-GLOBAL](INTERFACE-GLOBAL.md). **0023 proposta, não aplicada** (só adiciona duas funções; reservas seguintes renumeradas para 0024+). Não reaplicar a 0022. Antes de integrar: CI do PR, revisão e decisão sobre a 0023. Próximo módulo depois da integração: Anotações.
+
+## Correções de usabilidade e padronização — 28/11/2026
+
+Três etapas em branches encadeadas: `fix/usabilidade-etapa1`, `fix/usabilidade-etapa2` e `fix/usabilidade-etapa3`. Sem migração nova e sem alteração no banco.
+
+- **Etapa 1:** proficiências repetidas (raça, classe e origem escolhidas depois prevalecem; ferramenta repetida da origem é substituída); NPC salvo sem ficha, com acesso ao registro; grade com tipo, tamanho e ND; Identidade na largura das demais abas.
+- **Etapa 2:** formulário compacto; vínculos na criação; relações filtradas por categoria, com inverso automático ("Reside em", "Nasceu em", "Natural de", "Possui sede em", "Descoberta em"); locais com nome alternativo e sem campo de mapa na interface (dados preservados); naturalidade e residência de aventureiros apontando para local visível ou em texto livre.
+- **Etapa 3:** clique abre pop-up (ficha da criatura para o mestre, com a aba Bestiário; jogador e prévia só o registro autorizado), com maximizar; menus com Abrir, Abrir em nova aba e Abrir em outro grupo; ícones "Ver ficha" das listas removidos.
+- **Sem a 0023** (ainda proposta): na criação, o registro é salvo e os vínculos pendentes são criados em seguida, com aviso se algum falhar; na edição, mudar vínculos junto continua exigindo a 0023.
+
+Pendências: o vínculo de naturalidade e residência de **aventureiros** fica só na ficha privada e não aparece na página do local (exige operação no servidor que o dono da ficha possa usar); ficha de **personagem** (aventureiro ou NPC) não abre dentro do pop-up, que mostra a carta com "Ver ficha"; no celular a consulta abre como página inteira, sem botão de maximizar; o formulário de criatura personalizada (`EditorDefinicao`) não foi redesenhado; notas privadas sobre aventureiros seguem no módulo de Anotações.

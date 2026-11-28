@@ -189,6 +189,7 @@ export function Choice({
             </label>
           )}
           {/* sem rolagem própria: as opções se distribuem em colunas e a etapa tem uma única rolagem */}
+          {['skill', 'language', 'proficiency'].includes(choice.kind) && options.some((o) => !selected.includes(o.id) && unavailable(o.id)) && <p className="muted">Opções desativadas já vêm de outra fonte e não podem ser repetidas.</p>}
           <div className="lista-de-opcoes">
             {options.map((o) => (
               <div className="character-spell-option" key={o.id}>

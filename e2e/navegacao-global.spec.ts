@@ -27,8 +27,8 @@ test('consulta normal preserva grupo e retorna à pesquisa pelo navegador',async
 test('contexto na ordem aprovada, grupo explícito e recuperação da aba',async({page})=>{
  test.skip(!desktop(page),'Abas e grupos pertencem ao desktop.');
  await itens(page);await adaga(page).click({button:'right'});
- await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText(['Abrir em nova aba','Abrir em novo grupo','Abrir']);
- await page.getByRole('menuitem',{name:'Abrir em novo grupo',exact:true}).click();
+ await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText(['Abrir','Abrir em nova aba','Abrir em outro grupo']);
+ await page.getByRole('menuitem',{name:'Abrir em outro grupo',exact:true}).click();
  await expect(page.locator('.flexlayout__tabset')).toHaveCount(2);
  await page.getByRole('tab',{name:/^Adaga/}).click({button:'right'});
  await page.getByRole('menuitem',{name:'Fechar aba',exact:true}).click();
