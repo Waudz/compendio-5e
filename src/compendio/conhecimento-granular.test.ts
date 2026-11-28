@@ -40,8 +40,8 @@ describe('chaves de divulgação', () => {
 
 describe('campos, relações e ficha herdada', () => {
   it('campos aprovados por categoria', () => {
-    expect(CAMPOS.npc.map(c => c.id)).toEqual(['nickname', 'race', 'age', 'classLevel', 'occupation', 'birthplace', 'residence', 'history', 'personality', 'relationships']);
-    expect(CAMPOS.organization.map(c => c.id)).toEqual(['nickname', 'type', 'leadership', 'headquarters', 'memberCount', 'history', 'objectives']);
+    expect(CAMPOS.npc.map(c => c.id)).toEqual(['nickname', 'race', 'occupation', 'birthplace', 'residence', 'history']);
+    expect(CAMPOS.organization.map(c => c.id)).toEqual(['nickname', 'type', 'headquarters', 'history']);
     expect(filtroDaDescoberta('discovery', 'Mapa')).toBe('Mapas');
     expect(filtroDaDescoberta('item')).toBe('Itens');
     expect(filtroDaDescoberta('discovery')).toBe('Outras');

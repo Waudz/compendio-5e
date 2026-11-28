@@ -1,3 +1,7 @@
+## Continuidade vigente — 28/11/2026
+
+PRs #171, #172 e #173 integrados; migração 0023 já aplicada conforme confirmação do responsável. Não reaplicar. A nova reformulação está em andamento, sem conclusão funcional nem validação completa. Consultar [handoff para Claude](HANDOFF-CLAUDE-20261128.md) e [escopo aprovado](REFORMULACAO-BETA-20261128.md). Preferir dois PRs; Anotações não iniciada. As informações datadas abaixo são históricas e não substituem este estado.
+
 > Prioridade posterior do responsável (27/11/2026): concluir exclusivamente #171 nesta rodada. **Não iniciar Anotações.** Requisitos completos e contexto para outra IA em [ANOTACOES-BETA-HANDOFF](ANOTACOES-BETA-HANDOFF.md); documentação não significa implementação.
 
 > Atualização de 27/11/2026: PR #170 publicado e 0022 aplicada. Padronização global em desenvolvimento na branch `feat/interface-global-consistente`; [entrega, testes e pendências](INTERFACE-GLOBAL.md). A proposta 0023 **não foi aplicada**. Não tratar a solicitação inteira como concluída nem reaplicar 0022.

@@ -21,5 +21,5 @@ export function CamposHistoria({value,onChange}:{value:Historia;onChange:(h:Hist
    </select>}
   </div>;
  };
- return <><SecaoNarrativa titulo="Origem e residência">{CAMPOS_ORIGEM.map(([id,label])=>origem(id,label))}</SecaoNarrativa><SecaoNarrativa titulo="História e personalidade"><div className="etapa-historia">{CAMPOS_HISTORIA.map(([id,label])=>campo(id,label,true))}{campo('observacoes','Observações',true)}</div></SecaoNarrativa></>;
+ return <><SecaoNarrativa titulo="Origem e residência">{CAMPOS_ORIGEM.map(([id,label])=>origem(id,label))}</SecaoNarrativa><SecaoNarrativa titulo="História e vínculos pessoais"><div className="etapa-historia">{CAMPOS_HISTORIA.map(([id,label])=>campo(id,label,true))}{campo('observacoes','Observações',true)}</div></SecaoNarrativa></>;
 }

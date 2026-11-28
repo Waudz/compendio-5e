@@ -13,21 +13,21 @@ const descoberta: Campo[] = [
   { id: 'purpose', label: 'Finalidade', long: true },
   historia,
 ];
+export const TIPOS_LOCAL = ['Plano', 'Mundo', 'Continente', 'Região', 'Reino', 'Ilha', 'Floresta', 'Montanha', 'Rio', 'Lago', 'Deserto', 'Caverna', 'Cidade', 'Vila', 'Aldeia', 'Povoado', 'Bairro', 'Distrito', 'Rua', 'Praça', 'Taverna', 'Bar', 'Hospedaria', 'Loja', 'Oficina', 'Castelo', 'Fortaleza', 'Torre', 'Templo', 'Residência', 'Ruína', 'Masmorra', 'Acampamento', 'Esconderijo', 'Outro'] as const;
 export const CAMPOS: Record<CodexCategoria, Campo[]> = {
   npc: [
-    { id: 'nickname', label: 'Alcunha' }, { id: 'race', label: 'Raça' }, { id: 'age', label: 'Idade' }, { id: 'classLevel', label: 'Classe e nível' },
+    { id: 'nickname', label: 'Alcunha' }, { id: 'race', label: 'Raça' }, 
     { id: 'occupation', label: 'Ocupação' }, { id: 'birthplace', label: 'Naturalidade' }, { id: 'residence', label: 'Residência' }, historia,
-    { id: 'personality', label: 'Personalidade', long: true }, { id: 'relationships', label: 'Observações sobre relações', long: true },
   ],
   // `map` (referência em texto) saiu da interface; valores antigos continuam guardados no registro.
   location: [
-    { id: 'nickname', label: 'Nome alternativo' }, { id: 'type', label: 'Tipo' }, { id: 'region', label: 'Região' },
-    { id: 'inhabitants', label: 'Sobre os habitantes', long: true }, historia,
+    { id: 'nickname', label: 'Nome alternativo' }, { id: 'type', label: 'Tipo de local', opcoes: TIPOS_LOCAL }, { id: 'region', label: 'Local superior / Região' },
+    historia,
   ],
   organization: [
-    { id: 'nickname', label: 'Sigla ou alcunha' }, { id: 'type', label: 'Tipo' }, { id: 'leadership', label: 'Liderança' },
-    { id: 'headquarters', label: 'Sede' }, { id: 'memberCount', label: 'Quantidade de membros' },
-    historia, { id: 'objectives', label: 'Objetivos', long: true },
+    { id: 'nickname', label: 'Nome alternativo' }, { id: 'type', label: 'Tipo' },
+    { id: 'headquarters', label: 'Sede' },
+    historia,
   ],
   discovery: descoberta,
   item: descoberta,

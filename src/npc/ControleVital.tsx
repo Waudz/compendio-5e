@@ -22,7 +22,7 @@ export function ControleVital({ noteId, atual,acoes=[] }: { acoes?:AcaoDeMenu[];
       if(rascunho==='morto'&&estado!=='morto'&&!window.confirm('Confirmar morte? A ficha, os PV e as condições serão preservados.'))return;
       setSalvando(true);const ok=rascunho===estado||await vidas.definir(noteId,rascunho);setSalvando(false);if(ok)setAberto(false);
     }}>Salvar</button><button type="button" className="btn-secondary" disabled={salvando} onClick={()=>setAberto(false)}>Cancelar</button></>}>
-      <SecaoNarrativa titulo="Identidade"><label>Estado vital<select value={rascunho} onChange={e=>setRascunho(e.target.value as EstadoVitalidade)}>{VITALIDADES.map(([v,r])=><option key={v} value={v}>{r}</option>)}</select></label></SecaoNarrativa>
+      <SecaoNarrativa titulo="Identidade"><label>Estado<select value={rascunho} onChange={e=>setRascunho(e.target.value as EstadoVitalidade)}>{VITALIDADES.map(([v,r])=><option key={v} value={v}>{r}</option>)}</select></label></SecaoNarrativa>
       {vidas.erro&&<p role="alert">{vidas.erro}</p>}
     </Modal>}
   </>;
