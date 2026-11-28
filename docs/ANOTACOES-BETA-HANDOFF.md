@@ -14,6 +14,10 @@ Repositório: `Waudz/compendio-5e`, React/TypeScript/Vite, Supabase. Main verifi
 - Mobile: listagem com alternância Documentos/Quadros para mestre; jogador somente Documentos.
 - Preservar a última anotação aberta ao navegar para Ficha, Compêndio ou outras áreas e voltar.
 
+## Pendência herdada do #171: notas privadas sobre aventureiros
+
+Por decisão do responsável (27/11/2026), entra neste módulo. Hoje o mestre tem notas privadas em registros do Compêndio (como NPCs), mas **não** sobre aventureiros: não há onde guardá-las sem que o dono da ficha possa lê-las. Requer armazenamento privado do mestre por campanha e personagem, com RLS (nem o dono do personagem nem os outros jogadores leem), fora da ficha e da identidade pública, com testes isolados e reversão; SQL somente como proposta, sem aplicação sem autorização. Não implementado.
+
 ## Quadros do mestre
 
 - Remover a obrigatoriedade de seções; **preservar todos os cartões e conteúdos existentes**.

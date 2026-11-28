@@ -35,7 +35,7 @@ O limite de uso interrompeu a finalização com 25 arquivos alterados e 4 novos 
 
 ## Pendências
 
-1. Notas privadas do mestre para **aventureiros** não existem: a ficha deles não tem registro privado só do mestre; exige armazenamento novo (SQL e RLS) e decisão do responsável. Os vínculos de aventureiros continuam na carta (gravação imediata), fora do formulário; o estado vital deles continua na janela do mestre, com Salvar e confirmação.
+1. Notas privadas do mestre para **aventureiros** não existem: a ficha deles não tem registro privado só do mestre; exige armazenamento novo (SQL e RLS). **Por decisão do responsável (27/11/2026), fica para o próximo módulo, o de [Anotações](ANOTACOES-BETA-HANDOFF.md); não faz parte do #171.** Os vínculos de aventureiros continuam na carta (gravação imediata), fora do formulário; o estado vital deles continua na janela do mestre, com Salvar e confirmação.
 2. Revisar os menus dos demais tipos de catálogo e identidade (não houve varredura completa).
 3. Revisar, autorizar e aplicar a 0023; sem ela, não há salvamento conjunto de vínculos.
 4. Confirmar arraste em Android físico, teclado físico e leitor de tela.
