@@ -94,7 +94,7 @@
 .ficha-embutida .content { height: auto; overflow: visible; padding: 0 !important; }
 .ficha-embutida .cd-back { display: none; }
 .ficha-embutida .carta h1.carta-nome { font-size: 19px; }
-.ficha-identidade-publica .carta { background: var(--panel); border-radius: 10px; }
+.ficha-identidade-publica .carta { background: var(--panel); border-radius: 10px; max-width: none; }   /* mesma largura das outras abas */
 /* contraste AA dos links de texto sobre o fundo da carta */
 .carta .btn-link { color: var(--accent-text); }
 /* no celular a barra superior já tem o Voltar */

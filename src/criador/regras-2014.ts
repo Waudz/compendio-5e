@@ -340,6 +340,13 @@ const languages = [
 ];
 /** Perícias que a própria raça concede (para a regra de não repetir). */
 const raceSkills = (raceId: string, base: string) => [...(base === 'half-orc' ? ['intimidation'] : []), ...(base === 'elf' || raceId === 'high-elf' ? ['perception'] : [])];
+/** Ferramentas que a classe e a raça já dão, sem escolha. */
+function ferramentasFixas2014(d: CharacterDraft): string[] {
+  const daClasse = [...class2014(d).effects, ...features2014(d).flatMap((f) => f.effects)]
+    .filter((e) => e.type === 'proficiency' && e.category === 'tool')
+    .map((e) => e.target!);
+  return d.raceId === 'rock-gnome' ? [...daClasse, 'tinkers-tools'] : daClasse;
+}
 export function choices2014(d: CharacterDraft): Choice2014[] {
   const c = class2014(d),
     level = c.data.levels[d.level - 1];
@@ -571,6 +578,21 @@ export function choices2014(d: CharacterDraft): Choice2014[] {
       repetidas.length,
       'skill',
       allSkills.filter((s) => !origem!.pericias.includes(s) && !raceSkills(d.raceId, race.index).includes(s)),
+    );
+  // mesma regra para ferramenta: a que classe ou raça já dão é trocada por outra do mesmo tipo
+  const fixas = ferramentasFixas2014(d);
+  const ferramentasRepetidas = (origem?.ferramentas ?? []).filter((f) => fixas.includes(f));
+  if (ferramentasRepetidas.length)
+    add(
+      'background-replacement-tool',
+      'Ferramenta no lugar da repetida pela origem',
+      ferramentasRepetidas.length,
+      'proficiency',
+      Object.entries(data.itemCategories)
+        .filter(([, v]) => v.category === 'tools')
+        .map(([id]) => shortId(id))
+        .filter((id) => !fixas.includes(id) && !origem!.ferramentas.includes(id))
+        .map((id) => 'tool:' + id),
     );
   if (d.backgroundId === 'custom') {
     add('background-skills', 'Perícias da origem', 2, 'skill', allSkills);
@@ -1015,11 +1037,35 @@ export function sheet2014(d: CharacterDraft): CharacterSheet {
   }
   return sheet;
 }
+/** O que raça, classe e origem dão sem escolha prevalece: a escolha que passou a repetir uma dessas proficiências volta a ficar
+ * pendente, para ser refeita com outra do mesmo tipo (SRD 2014). Só altera escolhas repetidas. */
+export function semRepetidas2014(d: CharacterDraft): CharacterDraft {
+  if (!modern2014(d)) return d;
+  const { race } = race2014(d), origem = origem2014(d.backgroundId);
+  const pericias = new Set([...(origem?.pericias ?? []), ...raceSkills(d.raceId, race.index)]);
+  const idiomas = new Set(race.languages.map((l) => l.index));
+  const ferramentas = new Set([...(origem?.ferramentas ?? []), ...ferramentasFixas2014(d)].map((f) => 'tool:' + f));
+  const tipos = new Map(choices2014(d).map((c) => [c.id, c.kind]));
+  let mudou = false;
+  const decisions = d.decisions.map((decisao) => {
+    const tipo = tipos.get(decisao.id);
+    const optionIds = decisao.optionIds.filter((id) =>
+      tipo === 'skill' ? !pericias.has(id)
+        : tipo === 'language' ? !idiomas.has(id)
+        : tipo === 'proficiency' ? !ferramentas.has(id) && !(id.startsWith('language:') && idiomas.has(id.slice(9)))
+        : true);
+    if (optionIds.length === decisao.optionIds.length) return decisao;
+    mudou = true;
+    return { ...decisao, optionIds };
+  });
+  return mudou ? { ...d, decisions } : d;
+}
 export function change2014(
   d: CharacterDraft,
   patch: Partial<CharacterDraft>,
 ): CharacterDraft {
-  const next = { ...d, ...patch };
+  let next = { ...d, ...patch };
+  if (['raceId', 'classId', 'backgroundId'].some((k) => k in patch)) next = semRepetidas2014(next);
   const max = sheet2014({ ...next, currentHp: 0 }).maxHp;
   return { ...next, currentHp: Math.min(d.currentHp, max) };
 }

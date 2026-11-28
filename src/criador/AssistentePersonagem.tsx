@@ -113,7 +113,7 @@ function EtapaRaca({ draft, onChange }: PropsAssistente) {
   const [erro, setErro] = useState("");
   const trocar = (raceId: string) => {
     if (raceId === draft.raceId) return;
-    try { onChange(change2014(draft, { raceId, decisions: draft.decisions.filter(c => etapaDaEscolha(c.id) !== "raca" && c.id !== "background-replacement-skill") })); setErro(""); }
+    try { onChange(change2014(draft, { raceId, decisions: draft.decisions.filter(c => etapaDaEscolha(c.id) !== "raca" && !/^background-replacement-/.test(c.id)) })); setErro(""); }
     catch (e) { setErro(e instanceof Error ? e.message : "Não foi possível trocar a raça."); }
   };
   return <>
@@ -185,7 +185,7 @@ function EtapaOrigem({ draft, onChange }: PropsAssistente) {
   const origem = origem2014(draft.backgroundId), [erro, setErro] = useState("");
   const trocar = (backgroundId: string) => {
     if (backgroundId === draft.backgroundId) return;
-    try { onChange(change2014(draft, { backgroundId, decisions: draft.decisions.filter(c => !/^background-(languages|tool|skills|training|replacement-skill|feature|package)$/.test(c.id)) })); setErro(""); }
+    try { onChange(change2014(draft, { backgroundId, decisions: draft.decisions.filter(c => !/^background-(languages|tool|skills|training|replacement-skill|replacement-tool|feature|package)$/.test(c.id)) })); setErro(""); }
     catch (e) { setErro(e instanceof Error ? e.message : "Não foi possível trocar a origem."); }
   };
   const pericias = origem?.pericias.map(rotuloPericia).join(", ");

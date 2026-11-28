@@ -21,6 +21,7 @@ import { useCodexApi, useConhecimento } from "./compendio/conhecimento";
 import { npcSpec, registroSpec } from "./compendio/navegacao";
 import { aplicarDaCampanha, useDefinicoes } from "./compendio/definicoes";
 import { formatarND } from "./catalogue/sistemas/dnd5e-2014/formatar";
+import { rotuloTipoCriatura } from "./catalogue/sistemas/dnd5e-2014/rotulos";
 import { normalizar } from "./catalogue/nucleo/busca";
 import "./compendio/compendio-categorias.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -90,7 +91,7 @@ function useNpcsComFicha(ativo: boolean, fichasDeNpc?: ResumoFicha[]): { linhas:
         spec: { kind: "ficha" as const, ref: e.id, title: e.title }, rodape: "NPC · ficha de personagem", busca: normalizar(`${e.title} ${e.fields?.nickname ?? ""}`), situacaoDaLinha: "ativos" as const, npc: true };
     }
     const m = monstros.find(x => x.id === e.combatDefinitionId);
-    const detalhe = m ? `${m.nome} · ND ${formatarND(m.nd)}` : "Ficha de criatura";
+    const detalhe = m ? `${rotuloTipoCriatura(m.tipo)} · ND ${formatarND(m.nd)}` : "Ficha de criatura";
     return { id: e.id, title: e.title, alcunha: e.fields?.nickname, subtitle: detalhe, category: "npc", body: "", entry: e, spec: npcSpec(e.id, e.title), rodape: "NPC · ficha de criatura", busca: normalizar(`${e.title} ${e.fields?.nickname ?? ""}`), situacaoDaLinha: "ativos" as const, npc: true };
   }) };
 }
@@ -101,12 +102,12 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
   const [dados, setDados] = useState<ListaPersonagens | null>(null), [erro, setErro] = useState<string | null>(null), [tentativa, setTentativa] = useState(0);
   const [aviso, setAviso] = useState<{ ok: boolean; t: string } | null>(null), [descartando, setDescartando] = useState<string | null>(null), [enviando, setEnviando] = useState<string | null>(null);
   const consultar = useAbrirConsulta(onOpenContent), jogador = useJogadoresCampanha(), ciclo = useCiclo();
-  const [situacao, setSituacao] = useState<Situacao>("todos"), [criandoNpc, setCriandoNpc] = useState(false);
+  const [situacao, setSituacao] = useState<Situacao>("todos"), [criandoNpc, setCriandoNpc] = useState(false), [npcCriado, setNpcCriado] = useState<string | null>(null);
   const cid = active?.campaign.id, userId = user?.id ?? null, mestre = active?.role === "mestre";
   const [pesquisa, setPesquisa] = useState(""), [ordem, setOrdem] = useState("nome"), [visao, setVisao] = useState<Visao>(() => lerVisao(userId));
   useEffect(() => { setVisao(lerVisao(userId)); }, [userId]);
   const trocarVisao = (nova: Visao) => { setVisao(nova); try { localStorage.setItem(chaveDaVisao(userId), nova); } catch { /* só não lembra */ } };
-  useEffect(() => { setDados(null); setErro(null); setAviso(null); setSituacao("todos"); setPesquisa(""); setCriandoNpc(false); }, [cid]);   // nada de uma campanha aparece em outra
+  useEffect(() => { setDados(null); setErro(null); setAviso(null); setSituacao("todos"); setPesquisa(""); setCriandoNpc(false); setNpcCriado(null); }, [cid]);   // nada de uma campanha aparece em outra
   useEffect(() => {
     if (!api || !cid) return; let vivo = true;
     listarPersonagens(cid, { registros: api, fichas, userId }).then(r => { if (!vivo) return; if (r.ok) { setDados(r.data); setErro(null); } else setErro(r.error); }, () => { if (vivo) setErro("Não foi possível carregar os personagens."); });
@@ -194,6 +195,10 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
   return <div className="content personagens cd-page">
     <div className="row-between"><h1>{somenteMeus ? "Meus personagens" : "Personagens"}</h1><BotaoCriar opcoes={criacao}/></div>
     {aviso && <Aviso erro={!aviso.ok} t={aviso.t}/>}
+    {npcCriado && <div className="notice npc-criado" role="status"><p>NPC salvo no Compêndio. A ficha é opcional: sem ela, o NPC não aparece nesta página.</p>
+      <div className="row"><button type="button" className="btn-primary" onClick={() => { onOpenContent(registroSpec(npcCriado)); setNpcCriado(null); }}>Abrir no Compêndio</button>
+        {bancoDeNpcs && <button type="button" className="btn-secondary" onClick={() => { setFichando(npcCriado); setNpcCriado(null); }}>Adicionar ficha</button>}
+        <button type="button" className="btn-secondary" onClick={() => setNpcCriado(null)}>Concluir sem ficha</button></div></div>}
     {erro && <Aviso erro t={erro} onRetry={() => setTentativa(n => n + 1)}/>}
     {dados?.avisoFichas && <Aviso erro t={`${dados.avisoFichas} A lista pode estar incompleta.`} onRetry={() => setTentativa(n => n + 1)}/>}
     {!dados && !erro && <p className="muted" role="status">Carregando personagens…</p>}
@@ -220,7 +225,7 @@ export function PersonagensPanel({ onOpenContent, somenteMeus = false }: { onOpe
           <button className="btn-primary" onClick={() => void enviar(g)} disabled={enviando !== null} aria-label={`${enviando === g.id ? "Enviando…" : "Enviar para a campanha"}: ${g.nome}`}>{enviando === g.id ? "Enviando…" : "Enviar para a campanha"}</button>
           {descartando === g.id ? <><button className="btn-secondary danger" onClick={() => descartar(g)}>Confirmar descarte</button><button className="btn-secondary" onClick={() => setDescartando(null)}>Cancelar</button></>
             : <button className="btn-secondary danger" onClick={() => setDescartando(g.id)} aria-label={`Descartar rascunho local ${g.nome}`}>Descartar</button>}</span></li>)}</ul></div>}
-    {criandoNpc && <EditorConhecimento category="npc" entry={null} onDone={id => { setCriandoNpc(false); avisarRegistros(); if (!id) return; setAviso({ ok: true, t: "NPC criado no Compêndio. Atribua uma ficha para ele aparecer em Personagens." }); if (bancoDeNpcs) { avisarConhecimento(); setFichando(id); } else onOpenContent(registroSpec(id)); }}/>}
+    {criandoNpc && <EditorConhecimento category="npc" entry={null} onDone={id => { setCriandoNpc(false); avisarRegistros(); if (!id) return; avisarConhecimento(); setAviso(null); setNpcCriado(id); }}/>}
     {npcFichando && <FichaDoNpc entry={npcFichando} onFechar={() => setFichando(null)} onOpenContent={onOpenContent}/>}
   </div>;
 }

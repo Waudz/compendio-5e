@@ -14,6 +14,7 @@ import type { CampaignApi, Membership } from "../campaigns";
 import { storageKey } from "../persistence";
 import { jogadorPodeAdicionar } from "../catalogue/disponibilidade";
 import { codexDemo } from "../dev/codexDemo";
+import { registrosEmMemoria } from "../registrosMemoria";
 import type { FonteAventureiros } from "../inicio";
 import {
   avisarConhecimento,
@@ -452,6 +453,23 @@ describe("Compêndio unificado", () => {
     fireEvent.click(editor().getByRole('button',{name:'Salvar'}));
     await waitFor(async()=>expect((await codex.list('ca'))[0].vitalStatus).toBe('desconhecido'));
     expect(atomica).not.toHaveBeenCalled();expect(salvar).not.toHaveBeenCalled();
+  });
+
+  it('NPC criado em Personagens fica salvo sem ficha: nenhuma janela de ficha se impõe e há acesso ao registro', async () => {
+    const codex = codexDemo(true, 'ca');
+    await renderApp({ codex, registros: registrosEmMemoria("mestre"), api: { list: async () => ({ ok: true, data: [{ role: 'mestre', campaign }] }) } as unknown as CampaignApi });
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Menu principal' })).getByRole('button', { name: 'Personagens' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Criar/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Criar NPC' }));
+    const editor = within(await screen.findByRole('dialog'));
+    fireEvent.change(editor.getByRole('textbox', { name: 'Nome' }), { target: { value: 'Mira sem ficha' } });
+    fireEvent.click(editor.getByRole('button', { name: /^(Salvar|Criar)/ }));
+    expect(await screen.findByText(/A ficha é opcional/)).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: /^Ficha de/ })).toBeNull();
+    expect((await codex.list('ca')).map(e => e.title)).toEqual(['Mira sem ficha']);
+    expect(screen.getByRole('button', { name: 'Abrir no Compêndio' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Concluir sem ficha' }));
+    expect(screen.queryByText(/A ficha é opcional/)).toBeNull();
   });
 
   it('morte exige confirmação e cancelar o editor preserva o estado vital',async()=>{
